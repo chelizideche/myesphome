@@ -1,0 +1,11 @@
+device:
+  - id: other_device
+    name: Another device
+
+binary_sensor:
+  - platform: template
+    name: Basic sensor
+
+  - platform: template
+    name: Other device sensor
+    device_id: other_device
