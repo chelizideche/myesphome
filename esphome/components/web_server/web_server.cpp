@@ -369,6 +369,40 @@ void WebServer::handle_index_request(AsyncWebServerRequest *request) {
   // No gzip header here because the HTML file is so small
   request->send(response);
 }
+
+#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+void WebServer::handle_captive_portal_request(AsyncWebServerRequest *request) {
+  auto *response = request->beginResponse_P(200, "text/html", CAPTIVE_PORTAL_GZ, sizeof(CAPTIVE_PORTAL_GZ));
+  response->addHeader("Content-Encoding", "gzip");
+  request->send(response);
+}
+void WebServer::handle_config(AsyncWebServerRequest *request) {
+  AsyncResponseStream *stream = request->beginResponseStream("application/json");
+  stream->addHeader("cache-control", "public, max-age=0, must-revalidate");
+  stream->printf(R"({"mac":"%s","name":"%s","aps":[{})", get_mac_address_pretty().c_str(), App.get_name().c_str());
+
+  for (auto &scan : wifi::global_wifi_component->get_scan_result()) {
+    if (scan.get_is_hidden())
+      continue;
+
+    // Assumes no " in ssid, possible unicode isses?
+    stream->printf(R"(,{"ssid":"%s","rssi":%d,"lock":%d})", scan.get_ssid().c_str(), scan.get_rssi(),
+                   scan.get_with_auth());
+  }
+  stream->print(F("]}"));
+  request->send(stream);
+}
+void WebServer::handle_wifisave(AsyncWebServerRequest *request) {
+  std::string ssid = request->arg("ssid").c_str();
+  std::string psk = request->arg("psk").c_str();
+  ESP_LOGI(TAG, "Captive Portal Requested WiFi Settings Change:");
+  ESP_LOGI(TAG, "  SSID='%s'", ssid.c_str());
+  ESP_LOGI(TAG, "  Password=" LOG_SECRET("'%s'"), psk.c_str());
+  wifi::global_wifi_component->save_wifi_sta(ssid, psk);
+  wifi::global_wifi_component->start_scanning();
+  request->redirect("/?save");
+}
+#endif  // USE_WEBSERVER_CAPTIVE_PORTAL
 #endif
 
 #ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
@@ -1527,6 +1561,15 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) {
   }
 #endif
 
+#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+  if (request->url() == "/captive_portal")
+    return true;
+  if (request->url() == "/wifisave")
+    return true;
+  if (request->url() == "/config.json")
+    return true;
+#endif
+
   UrlMatch match = match_url(request->url().c_str(), true);
   if (!match.valid)
     return false;
@@ -1627,6 +1670,19 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
     this->handle_index_request(request);
     return;
   }
+
+#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+  if (request->url() == "/captive_portal") {
+    this->handle_captive_portal_request(request);
+    return;
+  } else if (request->url() == "/wifisave") {
+    this->handle_wifisave_request(request);
+    return;
+  } else if (request->url() == "/config.json") {
+    this->handle_config_request(request);
+    return;
+  }
+#endif
 
 #ifdef USE_WEBSERVER_CSS_INCLUDE
   if (request->url() == "/0.css") {

@@ -30,6 +30,11 @@ extern const uint8_t ESPHOME_WEBSERVER_JS_INCLUDE[] PROGMEM;
 extern const size_t ESPHOME_WEBSERVER_JS_INCLUDE_SIZE;
 #endif
 
+#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+#include "esphome/components/wifi/wifi_component.h"
+#include "server_captive_portal.h"
+#endif
+
 namespace esphome {
 namespace web_server {
 
@@ -122,7 +127,12 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 
   /// Handle an index request under '/'.
   void handle_index_request(AsyncWebServerRequest *request);
-
+  /// Handle an captive portal request under '/captive_portal'.
+  void handle_captive_portal_request(AsyncWebServerRequest *request);
+  /// Handle an config request under '/config.json'.
+  void handle_config_request(AsyncWebServerRequest *request);
+  /// Handle an captive portal request under '/wifisave'.
+  void handle_wifisave_request(AsyncWebServerRequest *request);
   /// Return the webserver configuration as JSON.
   std::string get_config_json();
 

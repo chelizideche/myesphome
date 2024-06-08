@@ -4,7 +4,7 @@ import gzip
 import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.final_validate as fv
-from esphome.components import web_server_base
+from esphome.components import web_server_base, captive_portal
 from esphome.components.web_server_base import CONF_WEB_SERVER_BASE_ID
 from esphome.const import (
     CONF_CSS_INCLUDE,
@@ -31,6 +31,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 
+CONF_CAPTIVE_PORTAL = "captive_portal"
 AUTO_LOAD = ["json", "web_server_base"]
 
 web_server_ns = cg.esphome_ns.namespace("web_server")
@@ -120,6 +121,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_JS_URL): cv.string,
             cv.Optional(CONF_JS_INCLUDE): cv.file_,
             cv.Optional(CONF_ENABLE_PRIVATE_NETWORK_ACCESS, default=True): cv.boolean,
+            cv.Optional(CONF_CAPTIVE_PORTAL, False): cv.boolean,
             cv.Optional(CONF_AUTH): cv.Schema(
                 {
                     cv.Required(CONF_USERNAME): cv.All(
@@ -241,3 +243,5 @@ async def to_code(config):
     cg.add(var.set_include_internal(config[CONF_INCLUDE_INTERNAL]))
     if CONF_LOCAL in config and config[CONF_LOCAL]:
         cg.add_define("USE_WEBSERVER_LOCAL")
+    if CONF_CAPTIVE_PORTAL in config and config[CONF_CAPTIVE_PORTAL] is True:
+        cg.add_define("USE_WEBSERVER_CAPTIVE_PORTAL")
