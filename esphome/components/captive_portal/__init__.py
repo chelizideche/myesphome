@@ -8,6 +8,7 @@ from esphome.const import (
     PLATFORM_ESP8266,
     PLATFORM_BK72XX,
     PLATFORM_RTL87XX,
+    CONF_MODE,
 )
 from esphome.core import coroutine_with_priority, CORE
 
@@ -18,12 +19,21 @@ CODEOWNERS = ["@OttoWinter"]
 captive_portal_ns = cg.esphome_ns.namespace("captive_portal")
 CaptivePortal = captive_portal_ns.class_("CaptivePortal", cg.Component)
 
+mode = captive_portal_ns.enum("Mode")
+Modes = {
+    "ALWAYS_ON": mode.MODE_ALWAYS_ON,
+    "AP_ONLY": mode.MODE_AP_ONLY,
+}
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(CaptivePortal),
             cv.GenerateID(CONF_WEB_SERVER_BASE_ID): cv.use_id(
                 web_server_base.WebServerBase
+            ),
+            cv.Optional(CONF_MODE, default="AP_ONLY"): cv.enum(
+                Modes, upper=True, space="_"
             ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
@@ -47,3 +57,5 @@ async def to_code(config):
             cg.add_library("DNSServer", None)
         if CORE.is_libretiny:
             cg.add_library("DNSServer", None)
+
+    cg.add(var.setMode(config[CONF_MODE]))

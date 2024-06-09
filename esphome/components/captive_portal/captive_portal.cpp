@@ -44,6 +44,8 @@ void CaptivePortal::start() {
     this->base_->add_ota_handler();
   }
 
+  // this->portal_path_ = portal_path;
+
 #ifdef USE_ARDUINO
   this->dns_server_ = make_unique<DNSServer>();
   this->dns_server_->setErrorReplyCode(DNSReplyCode::NoError);
@@ -65,8 +67,19 @@ void CaptivePortal::start() {
   this->active_ = true;
 }
 
+void CaptivePortal::end() {
+  ESP_LOGV(TAG, "Ending Captive Portal");
+
+  this->active_ = false;
+  this->base_->deinit();
+#ifdef USE_ARDUINO
+  this->dns_server_->stop();
+  this->dns_server_ = nullptr;
+#endif
+}
+
 void CaptivePortal::handleRequest(AsyncWebServerRequest *req) {
-  if (req->url() == "/") {
+  if (req->url() == this->portal_path_) {
     auto *response = req->beginResponse_P(200, "text/html", INDEX_GZ, sizeof(INDEX_GZ));
     response->addHeader("Content-Encoding", "gzip");
     req->send(response);
