@@ -13,6 +13,8 @@ namespace esphome {
 
 namespace captive_portal {
 
+enum Mode { MODE_ALWAYS_ON, MODE_AP_ONLY };
+
 class CaptivePortal : public AsyncWebHandler, public Component {
  public:
   CaptivePortal(web_server_base::WebServerBase *base);
@@ -25,23 +27,19 @@ class CaptivePortal : public AsyncWebHandler, public Component {
   }
 #endif
   float get_setup_priority() const override;
+
+  void setMode(Mode _mode) { this->mode = _mode; }
+
   void start(const String path);
   bool is_active() const { return this->active_; }
-  void end() {
-    this->active_ = false;
-    this->base_->deinit();
-#ifdef USE_ARDUINO
-    this->dns_server_->stop();
-    this->dns_server_ = nullptr;
-#endif
-  }
+  void end();
 
   bool canHandle(AsyncWebServerRequest *request) override {
     if (!this->active_)
       return false;
 
     if (request->method() == HTTP_GET) {
-      if (request->url() == this->path_)
+      if (request->url() == this->portal_path_)
         return true;
       if (request->url() == "/config.json")
         return true;
@@ -58,11 +56,13 @@ class CaptivePortal : public AsyncWebHandler, public Component {
 
   void handleRequest(AsyncWebServerRequest *req) override;
 
+  Mode mode{MODE_AP_ONLY};
+
  protected:
   web_server_base::WebServerBase *base_;
   bool initialized_{false};
   bool active_{false};
-  String path_{};
+  String portal_path_{};
 #ifdef USE_ARDUINO
   std::unique_ptr<DNSServer> dns_server_{nullptr};
 #endif

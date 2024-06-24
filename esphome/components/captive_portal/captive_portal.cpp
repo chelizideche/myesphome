@@ -37,8 +37,8 @@ void CaptivePortal::handle_wifisave(AsyncWebServerRequest *request) {
 }
 
 void CaptivePortal::setup() {}
-void CaptivePortal::start(const String path) {
-  this->path_ = path;
+void CaptivePortal::start(const String portal_path) {
+  this->portal_path_ = portal_path;
   this->base_->init();
   if (!this->initialized_) {
     this->base_->add_handler(this);
@@ -66,8 +66,19 @@ void CaptivePortal::start(const String path) {
   this->active_ = true;
 }
 
+void CaptivePortal::end() {
+  ESP_LOGV(TAG, "Ending Captive Portal");
+
+  this->active_ = false;
+  this->base_->deinit();
+#ifdef USE_ARDUINO
+  this->dns_server_->stop();
+  this->dns_server_ = nullptr;
+#endif
+}
+
 void CaptivePortal::handleRequest(AsyncWebServerRequest *req) {
-  if (req->url() == this->path_) {
+  if (req->url() == this->portal_path_) {
     auto *response = req->beginResponse_P(200, "text/html", INDEX_GZ, sizeof(INDEX_GZ));
     response->addHeader("Content-Encoding", "gzip");
     req->send(response);
