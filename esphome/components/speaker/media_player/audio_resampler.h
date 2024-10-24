@@ -9,7 +9,7 @@
 #include "esphome/core/ring_buffer.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 enum class AudioResamplerState : uint8_t {
   INITIALIZED = 0,
@@ -76,7 +76,7 @@ class AudioResampler {
   bool post_filter_{false};
 };
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

@@ -2,13 +2,13 @@
 
 #ifdef USE_ESP_IDF
 
-#include "nabu_media_helpers.h"
+#include "speaker_media_helpers.h"
 #include "esphome/core/ring_buffer.h"
 
 #include <esp_http_client.h>
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 enum class AudioReaderState : uint8_t {
   READING = 0,
@@ -48,7 +48,7 @@ class AudioReader {
 
   MediaFile *current_media_file_{nullptr};
 };
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

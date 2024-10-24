@@ -5,7 +5,7 @@
 #include "audio_mixer.h"
 #include "audio_pipeline.h"
 
-#include "nabu_media_helpers.h"
+#include "speaker_media_helpers.h"
 
 #include "esphome/components/media_player/media_player.h"
 #include "esphome/components/speaker/speaker.h"
@@ -20,7 +20,7 @@
 #include <esp_http_client.h>
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 struct MediaCallCommand {
   optional<media_player::MediaPlayerCommand> command;
@@ -35,7 +35,7 @@ struct VolumeRestoreState {
   bool is_muted;
 };
 
-class NabuMediaPlayer : public Component, public media_player::MediaPlayer {
+class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
  public:
   float get_setup_priority() const override { return esphome::setup_priority::LATE; }
   void setup() override;
@@ -58,7 +58,7 @@ class NabuMediaPlayer : public Component, public media_player::MediaPlayer {
   void set_volume_max(float volume_max) { this->volume_max_ = volume_max; }
   void set_volume_min(float volume_min) { this->volume_min_ = volume_min; }
 
-  void set_speaker(speaker::Speaker *speaker) { this->speaker_ = speaker; }
+  void set_speaker(Speaker *speaker) { this->speaker_ = speaker; }
 
   Trigger<> *get_mute_trigger() const { return this->mute_trigger_; }
   Trigger<> *get_unmute_trigger() const { return this->unmute_trigger_; }
@@ -89,7 +89,7 @@ class NabuMediaPlayer : public Component, public media_player::MediaPlayer {
   std::unique_ptr<AudioPipeline> announcement_pipeline_;
   std::unique_ptr<AudioMixer> audio_mixer_;
 
-  speaker::Speaker *speaker_{nullptr};
+  Speaker *speaker_{nullptr};
 
   // Monitors the mixer task
   void watch_mixer_();
@@ -127,7 +127,7 @@ class NabuMediaPlayer : public Component, public media_player::MediaPlayer {
   Trigger<float> *volume_trigger_ = new Trigger<float>();
 };
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

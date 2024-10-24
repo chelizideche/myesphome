@@ -1,4 +1,4 @@
-"""Nabu Media Player Setup."""
+"""Speaker Media Player Setup."""
 
 import hashlib
 import logging
@@ -47,17 +47,17 @@ CONF_ON_MUTE = "on_mute"
 CONF_ON_UNMUTE = "on_unmute"
 CONF_ON_VOLUME = "on_volume"
 
-nabu_ns = cg.esphome_ns.namespace("nabu")
-NabuMediaPlayer = nabu_ns.class_("NabuMediaPlayer")
-NabuMediaPlayer = nabu_ns.class_(
-    "NabuMediaPlayer",
-    NabuMediaPlayer,
+speaker_ns = cg.esphome_ns.namespace("speaker")
+SpeakerMediaPlayer = speaker_ns.class_("SpeakerMediaPlayer")
+SpeakerMediaPlayer = speaker_ns.class_(
+    "SpeakerMediaPlayer",
+    SpeakerMediaPlayer,
     media_player.MediaPlayer,
     cg.Component,
 )
 
-MediaFile = nabu_ns.struct("MediaFile")
-MediaFileType = nabu_ns.enum("MediaFileType", is_class=True)
+MediaFile = speaker_ns.struct("MediaFile")
+MediaFileType = speaker_ns.enum("MediaFileType", is_class=True)
 MEDIA_FILE_TYPE_ENUM = {
     "NONE": MediaFileType.NONE,
     "WAV": MediaFileType.WAV,
@@ -65,20 +65,20 @@ MEDIA_FILE_TYPE_ENUM = {
     "FLAC": MediaFileType.FLAC,
 }
 
-PipelineType = nabu_ns.enum("AudioPipelineType", is_class=True)
+PipelineType = speaker_ns.enum("AudioPipelineType", is_class=True)
 PIPELINE_TYPE_ENUM = {
     "MEDIA": PipelineType.MEDIA,
     "ANNOUNCEMENT": PipelineType.ANNOUNCEMENT,
 }
 
-PlayLocalMediaAction = nabu_ns.class_(
-    "PlayLocalMediaAction", automation.Action, cg.Parented.template(NabuMediaPlayer)
+PlayLocalMediaAction = speaker_ns.class_(
+    "PlayLocalMediaAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
 )
-StopPipelineAction = nabu_ns.class_(
-    "StopPipelineAction", automation.Action, cg.Parented.template(NabuMediaPlayer)
+StopPipelineAction = speaker_ns.class_(
+    "StopPipelineAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
 )
-DuckingSetAction = nabu_ns.class_(
-    "DuckingSetAction", automation.Action, cg.Parented.template(NabuMediaPlayer)
+DuckingSetAction = speaker_ns.class_(
+    "DuckingSetAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
 )
 
 
@@ -205,7 +205,7 @@ MEDIA_FILE_TYPE_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.All(
     media_player.MEDIA_PLAYER_SCHEMA.extend(
         {
-            cv.GenerateID(): cv.declare_id(NabuMediaPlayer),
+            cv.GenerateID(): cv.declare_id(SpeakerMediaPlayer),
             cv.Required(CONF_SPEAKER): cv.use_id(speaker.Speaker),
             cv.Optional(CONF_SAMPLE_RATE, default=16000): cv.int_range(min=1),
             cv.Optional(CONF_VOLUME_INCREMENT, default=0.05): cv.percentage,
@@ -317,18 +317,18 @@ async def to_code(config):
 
 
 @automation.register_action(
-    "nabu.play_local_media_file",
+    "speaker_media_player.play_local_media_file",
     PlayLocalMediaAction,
     cv.maybe_simple_value(
         {
-            cv.GenerateID(): cv.use_id(NabuMediaPlayer),
+            cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
             cv.Required(CONF_MEDIA_FILE): cv.use_id(MediaFile),
             cv.Optional(CONF_ANNOUNCEMENT, default=False): cv.boolean,
         },
         key=CONF_MEDIA_FILE,
     ),
 )
-async def nabu_play_local_media_media_action(config, action_id, template_arg, args):
+async def play_local_media_media_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     media_file = await cg.get_variable(config[CONF_MEDIA_FILE])
@@ -338,17 +338,17 @@ async def nabu_play_local_media_media_action(config, action_id, template_arg, ar
 
 
 @automation.register_action(
-    "nabu.stop_pipeline",
+    "speaker_media_player.stop_pipeline",
     StopPipelineAction,
     cv.maybe_simple_value(
         {
-            cv.GenerateID(): cv.use_id(NabuMediaPlayer),
+            cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
             cv.Required(CONF_PIPELINE): cv.enum(PIPELINE_TYPE_ENUM, upper=True),
         },
         key=CONF_PIPELINE,
     ),
 )
-async def nabu_stop_pipeline_action(config, action_id, template_arg, args):
+async def stop_pipeline_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     cg.add(var.set_pipeline_type(config[CONF_PIPELINE]))
@@ -356,11 +356,11 @@ async def nabu_stop_pipeline_action(config, action_id, template_arg, args):
 
 
 @automation.register_action(
-    "nabu.set_ducking",
+    "speaker_media_player.set_ducking",
     DuckingSetAction,
     cv.Schema(
         {
-            cv.GenerateID(): cv.use_id(NabuMediaPlayer),
+            cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
             cv.Required(CONF_DECIBEL_REDUCTION): cv.templatable(
                 cv.int_range(min=0, max=51)
             ),

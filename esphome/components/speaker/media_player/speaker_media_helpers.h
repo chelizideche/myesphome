@@ -6,7 +6,7 @@
 #include <cstddef>
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 enum class MediaFileType : uint8_t {
   NONE = 0,
@@ -22,7 +22,7 @@ struct MediaFile {
   MediaFileType file_type;
 };
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

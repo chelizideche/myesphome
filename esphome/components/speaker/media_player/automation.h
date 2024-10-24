@@ -3,12 +3,12 @@
 #ifdef USE_ESP_IDF
 
 #include "esphome/core/automation.h"
-#include "nabu_media_player.h"
+#include "speaker_media_player.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
-template<typename... Ts> class DuckingSetAction : public Action<Ts...>, public Parented<NabuMediaPlayer> {
+template<typename... Ts> class DuckingSetAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
   TEMPLATABLE_VALUE(uint8_t, decibel_reduction)
   TEMPLATABLE_VALUE(float, duration)
   void play(Ts... x) override {
@@ -16,7 +16,7 @@ template<typename... Ts> class DuckingSetAction : public Action<Ts...>, public P
   }
 };
 
-template<typename... Ts> class PlayLocalMediaAction : public Action<Ts...>, public Parented<NabuMediaPlayer> {
+template<typename... Ts> class PlayLocalMediaAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
   TEMPLATABLE_VALUE(MediaFile *, media_file)
   TEMPLATABLE_VALUE(bool, announcement)
   void play(Ts... x) override {
@@ -24,7 +24,7 @@ template<typename... Ts> class PlayLocalMediaAction : public Action<Ts...>, publ
   }
 };
 
-template<typename... Ts> class StopPipelineAction : public Action<Ts...>, public Parented<NabuMediaPlayer> {
+template<typename... Ts> class StopPipelineAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
   TEMPLATABLE_VALUE(AudioPipelineType, pipeline_type)
   void play(Ts... x) override {
     bool announcement = false;
@@ -38,7 +38,7 @@ template<typename... Ts> class StopPipelineAction : public Action<Ts...>, public
   }
 };
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

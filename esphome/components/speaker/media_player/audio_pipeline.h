@@ -6,7 +6,7 @@
 #include "audio_decoder.h"
 #include "audio_resampler.h"
 #include "audio_mixer.h"
-#include "nabu_media_helpers.h"
+#include "speaker_media_helpers.h"
 
 #include "esphome/components/audio/audio.h"
 
@@ -19,7 +19,7 @@
 #include <freertos/queue.h>
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 enum class AudioPipelineType : uint8_t {
   MEDIA,
@@ -147,7 +147,7 @@ class AudioPipeline {
   StackType_t *resample_task_stack_buffer_{nullptr};
 };
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

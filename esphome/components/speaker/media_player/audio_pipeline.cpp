@@ -6,7 +6,7 @@
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 static const size_t FILE_BUFFER_SIZE = 32 * 1024;
 static const size_t FILE_RING_BUFFER_SIZE = 64 * 1024;
@@ -19,7 +19,7 @@ static const uint32_t RESAMPLER_TASK_STACK_SIZE = 3 * 1024;
 
 static const size_t INFO_ERROR_QUEUE_COUNT = 5;
 
-static const char *const TAG = "nabu_media_player.pipeline";
+static const char *const TAG = "speaker_media_player.pipeline";
 
 enum EventGroupBits : uint32_t {
   // The stop() function clears all unfinished bits
@@ -535,6 +535,6 @@ void AudioPipeline::resample_task(void *params) {
   }
 }
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 #endif

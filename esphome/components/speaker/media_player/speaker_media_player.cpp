@@ -1,6 +1,6 @@
 #ifdef USE_ESP_IDF
 
-#include "nabu_media_player.h"
+#include "speaker_media_player.h"
 
 #include "esphome/components/audio/audio.h"
 
@@ -12,7 +12,7 @@
 #endif
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 // Framework:
 //  - Media player that can handle two streams; one for media and one for announcements
@@ -65,7 +65,7 @@ static const size_t TASK_DELAY_MS = 10;
 
 static const float FIRST_BOOT_DEFAULT_VOLUME = 0.5f;
 
-static const char *const TAG = "nabu_media_player";
+static const char *const TAG = "speaker_media_player";
 
 const char *media_player_file_type_to_string(MediaFileType file_type) {
   switch (file_type) {
@@ -80,7 +80,7 @@ const char *media_player_file_type_to_string(MediaFileType file_type) {
   }
 }
 
-void NabuMediaPlayer::setup() {
+void SpeakerMediaPlayer::setup() {
   state = media_player::MEDIA_PLAYER_STATE_IDLE;
 
   this->media_control_command_queue_ = xQueueCreate(QUEUE_LENGTH, sizeof(MediaCallCommand));
@@ -123,10 +123,10 @@ void NabuMediaPlayer::setup() {
       });
 #endif
 
-  ESP_LOGI(TAG, "Set up nabu media player");
+  ESP_LOGI(TAG, "Set up speaker media player");
 }
 
-esp_err_t NabuMediaPlayer::start_pipeline_(AudioPipelineType type, bool url) {
+esp_err_t SpeakerMediaPlayer::start_pipeline_(AudioPipelineType type, bool url) {
   esp_err_t err = ESP_OK;
 
   if (this->speaker_ != nullptr) {
@@ -182,7 +182,7 @@ esp_err_t NabuMediaPlayer::start_pipeline_(AudioPipelineType type, bool url) {
   return err;
 }
 
-void NabuMediaPlayer::watch_media_commands_() {
+void SpeakerMediaPlayer::watch_media_commands_() {
   MediaCallCommand media_command;
   CommandEvent command_event;
   esp_err_t err = ESP_OK;
@@ -280,7 +280,7 @@ void NabuMediaPlayer::watch_media_commands_() {
   }
 }
 
-void NabuMediaPlayer::watch_mixer_() {
+void SpeakerMediaPlayer::watch_mixer_() {
   TaskEvent event;
   if (this->audio_mixer_ != nullptr) {
     while (this->audio_mixer_->read_event(&event)) {
@@ -292,7 +292,7 @@ void NabuMediaPlayer::watch_mixer_() {
   }
 }
 
-void NabuMediaPlayer::loop() {
+void SpeakerMediaPlayer::loop() {
   this->watch_media_commands_();
   this->watch_mixer_();
 
@@ -338,7 +338,7 @@ void NabuMediaPlayer::loop() {
   }
 }
 
-void NabuMediaPlayer::set_ducking_reduction(uint8_t decibel_reduction, float duration) {
+void SpeakerMediaPlayer::set_ducking_reduction(uint8_t decibel_reduction, float duration) {
   if (this->audio_mixer_ != nullptr) {
     CommandEvent command_event;
     command_event.command = CommandEventType::DUCK;
@@ -350,7 +350,7 @@ void NabuMediaPlayer::set_ducking_reduction(uint8_t decibel_reduction, float dur
   }
 }
 
-void NabuMediaPlayer::play_file(MediaFile *media_file, bool announcement) {
+void SpeakerMediaPlayer::play_file(MediaFile *media_file, bool announcement) {
   if (!this->is_ready()) {
     // Ignore any commands sent before the media player is setup
     return;
@@ -369,7 +369,7 @@ void NabuMediaPlayer::play_file(MediaFile *media_file, bool announcement) {
   xQueueSend(this->media_control_command_queue_, &media_command, portMAX_DELAY);
 }
 
-void NabuMediaPlayer::control(const media_player::MediaPlayerCall &call) {
+void SpeakerMediaPlayer::control(const media_player::MediaPlayerCall &call) {
   if (!this->is_ready()) {
     // Ignore any commands sent before the media player is setup
     return;
@@ -415,7 +415,7 @@ void NabuMediaPlayer::control(const media_player::MediaPlayerCall &call) {
   }
 }
 
-media_player::MediaPlayerTraits NabuMediaPlayer::get_traits() {
+media_player::MediaPlayerTraits SpeakerMediaPlayer::get_traits() {
   auto traits = media_player::MediaPlayerTraits();
   traits.set_supports_pause(true);
   traits.get_supported_formats().push_back(
@@ -433,14 +433,14 @@ media_player::MediaPlayerTraits NabuMediaPlayer::get_traits() {
   return traits;
 };
 
-void NabuMediaPlayer::save_volume_restore_state_() {
+void SpeakerMediaPlayer::save_volume_restore_state_() {
   VolumeRestoreState volume_restore_state;
   volume_restore_state.volume = this->volume;
   volume_restore_state.is_muted = this->is_muted_;
   this->pref_.save(&volume_restore_state);
 }
 
-void NabuMediaPlayer::set_mute_state_(bool mute_state) {
+void SpeakerMediaPlayer::set_mute_state_(bool mute_state) {
   this->speaker_->set_mute_state(mute_state);
 
   bool old_mute_state = this->is_muted_;
@@ -457,7 +457,7 @@ void NabuMediaPlayer::set_mute_state_(bool mute_state) {
   }
 }
 
-void NabuMediaPlayer::set_volume_(float volume, bool publish) {
+void SpeakerMediaPlayer::set_volume_(float volume, bool publish) {
   // Remap the volume to fit with in the configured limits
   float bounded_volume = remap<float, float>(volume, 0.0f, 1.0f, this->volume_min_, this->volume_max_);
 
@@ -471,6 +471,6 @@ void NabuMediaPlayer::set_volume_(float volume, bool publish) {
   this->defer([this, volume]() { this->volume_trigger_->trigger(volume); });
 }
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 #endif

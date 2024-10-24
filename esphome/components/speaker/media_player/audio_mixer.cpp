@@ -8,7 +8,7 @@
 #include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 static const size_t INPUT_RING_BUFFER_SAMPLES = 24000;
 static const size_t OUTPUT_BUFFER_SAMPLES = 8192;
@@ -20,7 +20,7 @@ static const size_t TASK_DELAY_MS = 25;
 static const int16_t MAX_AUDIO_SAMPLE_VALUE = INT16_MAX;
 static const int16_t MIN_AUDIO_SAMPLE_VALUE = INT16_MIN;
 
-esp_err_t AudioMixer::start(speaker::Speaker *speaker, const std::string &task_name, UBaseType_t priority) {
+esp_err_t AudioMixer::start(Speaker *speaker, const std::string &task_name, UBaseType_t priority) {
   esp_err_t err = this->allocate_buffers_();
 
   if (err != ESP_OK) {
@@ -377,6 +377,6 @@ void AudioMixer::scale_audio_samples_(int16_t *audio_samples, int16_t *output_bu
   dsps_mulc_s16(audio_samples, output_buffer, samples_to_scale, scale_factor, 1, 1);
 }
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 #endif

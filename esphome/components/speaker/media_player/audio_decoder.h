@@ -6,14 +6,14 @@
 #include <wav_decoder.h>
 #include <mp3_decoder.h>
 
-#include "nabu_media_helpers.h"
+#include "speaker_media_helpers.h"
 #include "esphome/components/audio/audio.h"
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/ring_buffer.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 enum class AudioDecoderState : uint8_t {
   INITIALIZED = 0,
@@ -75,7 +75,7 @@ class AudioDecoder {
   size_t potentially_failed_count_{0};
   bool end_of_file_{false};
 };
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

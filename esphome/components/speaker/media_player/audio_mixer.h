@@ -13,7 +13,7 @@
 #include <freertos/queue.h>
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 // Mixes two incoming audio streams together
 //  - The media stream intended for music playback
@@ -95,7 +95,7 @@ class AudioMixer {
   /// @param task_name FreeRTOS task name
   /// @param priority FreeRTOS task priority. Defaults to 1
   /// @return ESP_OK if successful, and error otherwise
-  esp_err_t start(speaker::Speaker *speaker, const std::string &task_name, UBaseType_t priority = 1);
+  esp_err_t start(Speaker *speaker, const std::string &task_name, UBaseType_t priority = 1);
 
   /// @brief Stops the mixer task and clears the queues
   void stop();
@@ -148,12 +148,12 @@ class AudioMixer {
   // Stores commands to send the mixer task
   QueueHandle_t command_queue_;
 
-  speaker::Speaker *speaker_{nullptr};
+  Speaker *speaker_{nullptr};
 
   std::unique_ptr<RingBuffer> media_ring_buffer_;
   std::unique_ptr<RingBuffer> announcement_ring_buffer_;
 };
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

@@ -6,7 +6,7 @@
 #include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 static const size_t NUM_TAPS = 32;
 static const size_t NUM_FILTERS = 32;
@@ -311,7 +311,7 @@ AudioResamplerState AudioResampler::resample(bool stop_gracefully) {
   return AudioResamplerState::RESAMPLING;
 }
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif

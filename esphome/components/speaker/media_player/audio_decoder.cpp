@@ -7,7 +7,7 @@
 #include "esphome/core/ring_buffer.h"
 
 namespace esphome {
-namespace nabu {
+namespace speaker {
 
 static const size_t READ_WRITE_TIMEOUT_MS = 20;
 
@@ -378,7 +378,7 @@ FileDecoderState AudioDecoder::decode_wav_() {
   return FileDecoderState::END_OF_FILE;
 }
 
-}  // namespace nabu
+}  // namespace speaker
 }  // namespace esphome
 
 #endif
