@@ -322,7 +322,7 @@ void AudioMixer::mix_audio_samples_without_clipping_(int16_t *media_buffer, int1
 
   int16_t q15_scaling_factor = MAX_AUDIO_SAMPLE_VALUE;
 
-  for (int i = 0; i < samples_to_mix; ++i) {
+  for (size_t i = 0; i < samples_to_mix; ++i) {
     int32_t added_sample = static_cast<int32_t>(media_buffer[i]) + static_cast<int32_t>(announcement_buffer[i]);
 
     if ((added_sample > MAX_AUDIO_SAMPLE_VALUE) || (added_sample < MIN_AUDIO_SAMPLE_VALUE)) {
