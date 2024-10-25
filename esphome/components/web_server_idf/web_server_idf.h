@@ -272,7 +272,7 @@ class AsyncEventSourceResponse {
   esphome::web_server::WebServer *web_server_;
   std::unique_ptr<esphome::web_server::ListEntitiesIterator> entities_iterator_;
   std::string event_buffer_{""};
-  int event_bytes_sent_;
+  size_t event_bytes_sent_;
 };
 
 using AsyncEventSourceClient = AsyncEventSourceResponse;

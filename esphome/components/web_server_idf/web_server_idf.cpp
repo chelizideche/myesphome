@@ -8,10 +8,11 @@
 #include "esp_tls_crypto.h"
 
 #include "utils.h"
-#include "web_server_idf.h"
 
 #include "esphome/components/web_server/web_server.h"
 #include "esphome/components/web_server/list_entities.h"
+
+#include "web_server_idf.h"
 
 namespace esphome {
 namespace web_server_idf {
