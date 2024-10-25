@@ -28,7 +28,7 @@ esp_err_t AudioMixer::start(Speaker *speaker, const std::string &task_name, UBas
   }
 
   if (this->task_handle_ == nullptr) {
-    this->task_handle_ = xTaskCreateStatic(AudioMixer::audio_mixer_task_, task_name.c_str(), TASK_STACK_SIZE,
+    this->task_handle_ = xTaskCreateStatic(AudioMixer::audio_mixer_task, task_name.c_str(), TASK_STACK_SIZE,
                                            (void *) this, priority, this->stack_buffer_, &this->task_stack_);
   }
 
@@ -61,7 +61,7 @@ void AudioMixer::resume_task() {
   }
 }
 
-void AudioMixer::audio_mixer_task_(void *params) {
+void AudioMixer::audio_mixer_task(void *params) {
   AudioMixer *this_mixer = (AudioMixer *) params;
 
   TaskEvent event;
@@ -199,9 +199,9 @@ void AudioMixer::audio_mixer_task_(void *params) {
                 while (samples_left_to_duck > 0) {
                   // Ensure we only point to valid index in the Q15 scaling factor table
                   uint8_t safe_db_reduction_index =
-                      clamp<uint8_t>(current_ducking_db_reduction, 0, decibel_reduction_table.size() - 1);
+                      clamp<uint8_t>(current_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
 
-                  int16_t q15_scale_factor = decibel_reduction_table[safe_db_reduction_index];
+                  int16_t q15_scale_factor = DECIBEL_REDUCTION_TABLE[safe_db_reduction_index];
                   this_mixer->scale_audio_samples_(current_media_buffer, current_media_buffer, q15_scale_factor,
                                                    samples_left_to_duck);
 
@@ -225,9 +225,9 @@ void AudioMixer::audio_mixer_task_(void *params) {
                 // We still need to apply a ducking scaling, but we are done transitioning
 
                 uint8_t safe_db_reduction_index =
-                    clamp<uint8_t>(target_ducking_db_reduction, 0, decibel_reduction_table.size() - 1);
+                    clamp<uint8_t>(target_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
 
-                int16_t q15_scale_factor = decibel_reduction_table[safe_db_reduction_index];
+                int16_t q15_scale_factor = DECIBEL_REDUCTION_TABLE[safe_db_reduction_index];
                 this_mixer->scale_audio_samples_(media_buffer, media_buffer, q15_scale_factor, samples_read);
               }
             }

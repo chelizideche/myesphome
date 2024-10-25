@@ -179,7 +179,7 @@ AudioDecoderState AudioDecoder::decode(bool stop_gracefully) {
       this->end_of_file_ = true;
     } else if (state == FileDecoderState::FAILED) {
       return AudioDecoderState::FAILED;
-    } else if ((state == FileDecoderState::MORE_TO_PROCESS)) {
+    } else if (state == FileDecoderState::MORE_TO_PROCESS) {
       this->potentially_failed_count_ = 0;
     }
   }

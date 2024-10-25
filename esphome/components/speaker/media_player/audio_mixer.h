@@ -67,7 +67,7 @@ struct CommandEvent {
 // Gives the Q15 fixed point scaling factor to reduce by 0 dB, 1dB, ..., 50 dB
 // dB to PCM scaling factor formula: floating_point_scale_factor = 2^(-db/6.014)
 // float to Q15 fixed point formula: q15_scale_factor = floating_point_scale_factor * 2^(15)
-static const std::vector<int16_t> decibel_reduction_table = {
+static const std::vector<int16_t> DECIBEL_REDUCTION_TABLE = {
     32767, 29201, 26022, 23189, 20665, 18415, 16410, 14624, 13032, 11613, 10349, 9222, 8218, 7324, 6527, 5816, 5183,
     4619,  4116,  3668,  3269,  2913,  2596,  2313,  2061,  1837,  1637,  1459,  1300, 1158, 1032, 920,  820,  731,
     651,   580,   517,   461,   411,   366,   326,   291,   259,   231,   206,   183,  163,  146,  130,  116,  103};
@@ -137,7 +137,7 @@ class AudioMixer {
   void scale_audio_samples_(int16_t *audio_samples, int16_t *output_buffer, int16_t scale_factor,
                             size_t samples_to_scale);
 
-  static void audio_mixer_task_(void *params);
+  static void audio_mixer_task(void *params);
   TaskHandle_t task_handle_{nullptr};
   StaticTask_t task_stack_;
   StackType_t *stack_buffer_{nullptr};
