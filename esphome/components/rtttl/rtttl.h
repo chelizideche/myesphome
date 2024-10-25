@@ -78,7 +78,6 @@ class Rtttl : public Component {
 
 #ifdef USE_SPEAKER
   speaker::Speaker *speaker_{nullptr};
-  int sample_rate_{16000};
   int samples_per_wave_{0};
   int samples_sent_{0};
   int samples_count_{0};

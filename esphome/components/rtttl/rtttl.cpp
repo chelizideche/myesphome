@@ -16,7 +16,7 @@ static const uint16_t NOTES[] = {0,    262,  277,  294,  311,  330,  349,  370, 
                                  1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976, 2093, 2217,
                                  2349, 2489, 2637, 2794, 2960, 3136, 3322, 3520, 3729, 3951};
 
-static const uint16_t SAMPLE_RATE = 1600;
+static const uint16_t SAMPLE_RATE = 16000;
 
 #ifdef USE_SPEAKER
 static const size_t SAMPLE_BUFFER_SIZE = 2048;
@@ -148,17 +148,6 @@ void Rtttl::stop() {
 }
 
 void Rtttl::loop() {
-#ifdef USE_SPEAKER
-  if (this->speaker_ != nullptr) {
-    if (this->state_ == State::STATE_STOPPING) {
-      if (this->speaker_->is_stopped()) {
-        this->set_state_(State::STATE_STOPPED);
-      }
-      return;
-    }
-  }
-#endif
-
   if (this->note_duration_ == 0 || this->state_ == State::STATE_STOPPED)
     return;
 
@@ -211,7 +200,7 @@ void Rtttl::loop() {
         x++;
       }
       if (x > 0) {
-        ESP_LOGV(TAG, "Play (samples: %d | %d | %d)", x, this->samples_sent_, this->samples_count_);
+        //   ESP_LOGV(TAG, "Play (samples: %d | %d | %d)", x, this->samples_sent_, this->samples_count_);
         int send = this->speaker_->play((uint8_t *) (&sample), x * 2);
         if (send != x * 2) {
           this->samples_sent_ -= (x - (send / 2));
@@ -240,8 +229,8 @@ void Rtttl::loop() {
   if (num) {
     this->note_duration_ = this->wholenote_ / num;
   } else {
-    this->note_duration_ =
-        this->wholenote_ / this->default_duration_;  // we will need to check if we are a dotted note after
+    // we will need to check if we are a dotted note after
+    this->note_duration_ = this->wholenote_ / this->default_duration_;
   }
 
   uint8_t note;
@@ -340,15 +329,15 @@ void Rtttl::loop() {
     this->samples_sent_ = 0;
     this->samples_gap_ = 0;
     this->samples_per_wave_ = 0;
-    this->samples_count_ = (this->sample_rate_ * this->note_duration_) / SAMPLE_RATE;  //(ms);
+    this->samples_count_ = (SAMPLE_RATE * this->note_duration_) / 1000L;  //(ms);
     if (need_note_gap) {
-      this->samples_gap_ = (this->sample_rate_ * DOUBLE_NOTE_GAP_MS) / SAMPLE_RATE;  //(ms);
+      this->samples_gap_ = (SAMPLE_RATE * DOUBLE_NOTE_GAP_MS) / 1000L;  //(ms);
     }
     if (this->output_freq_ != 0) {
       // make sure there is enough samples to add a full last sinus.
 
       uint16_t samples_wish = this->samples_count_;
-      this->samples_per_wave_ = (this->sample_rate_ << 10) / this->output_freq_;
+      this->samples_per_wave_ = (SAMPLE_RATE << 10) / this->output_freq_;
 
       uint16_t division = ((this->samples_count_ << 10) / this->samples_per_wave_) + 1;
 
@@ -368,15 +357,14 @@ void Rtttl::finish_() {
 #ifdef USE_OUTPUT
   if (this->output_ != nullptr) {
     this->output_->set_level(0.0);
-    this->set_state_(State::STATE_STOPPED);
   }
 #endif
 #ifdef USE_SPEAKER
   if (this->speaker_ != nullptr) {
     this->speaker_->finish();
-    this->set_state_(State::STATE_STOPPING);
   }
 #endif
+  this->set_state_(State::STATE_STOPPED);
   this->note_duration_ = 0;
   this->on_finished_playback_callback_.call();
   ESP_LOGD(TAG, "Playback finished");
