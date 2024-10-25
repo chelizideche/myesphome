@@ -98,20 +98,6 @@ esp_err_t AudioPipeline::allocate_buffers_() {
     return ESP_ERR_NO_MEM;
   }
 
-  if (this->read_task_stack_buffer_ == nullptr)
-    this->read_task_stack_buffer_ = (StackType_t *) malloc(READER_TASK_STACK_SIZE);
-
-  if (this->decode_task_stack_buffer_ == nullptr)
-    this->decode_task_stack_buffer_ = (StackType_t *) malloc(DECODER_TASK_STACK_SIZE);
-
-  if (this->resample_task_stack_buffer_ == nullptr)
-    this->resample_task_stack_buffer_ = (StackType_t *) malloc(RESAMPLER_TASK_STACK_SIZE);
-
-  if ((this->read_task_stack_buffer_ == nullptr) || (this->decode_task_stack_buffer_ == nullptr) ||
-      (this->resample_task_stack_buffer_ == nullptr)) {
-    return ESP_ERR_NO_MEM;
-  }
-
   if (this->event_group_ == nullptr)
     this->event_group_ = xEventGroupCreate();
 
@@ -136,19 +122,16 @@ esp_err_t AudioPipeline::common_start_(uint32_t target_sample_rate, const std::s
   }
 
   if (this->read_task_handle_ == nullptr) {
-    this->read_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::read_task, (task_name + "_read").c_str(), READER_TASK_STACK_SIZE,
-                          (void *) this, priority, this->read_task_stack_buffer_, &this->read_task_stack_);
+    xTaskCreate(AudioPipeline::read_task, (task_name + "_read").c_str(), READER_TASK_STACK_SIZE, (void *) this,
+                priority, &this->read_task_handle_);
   }
   if (this->decode_task_handle_ == nullptr) {
-    this->decode_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::decode_task, (task_name + "_decode").c_str(), DECODER_TASK_STACK_SIZE,
-                          (void *) this, priority, this->decode_task_stack_buffer_, &this->decode_task_stack_);
+    xTaskCreate(AudioPipeline::decode_task, (task_name + "_decode").c_str(), DECODER_TASK_STACK_SIZE, (void *) this,
+                priority, &this->decode_task_handle_);
   }
   if (this->resample_task_handle_ == nullptr) {
-    this->resample_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::resample_task, (task_name + "_resample").c_str(), RESAMPLER_TASK_STACK_SIZE,
-                          (void *) this, priority, this->resample_task_stack_buffer_, &this->resample_task_stack_);
+    xTaskCreate(AudioPipeline::resample_task, (task_name + "_resample").c_str(), RESAMPLER_TASK_STACK_SIZE,
+                (void *) this, priority, &this->resample_task_handle_);
   }
 
   if ((this->read_task_handle_ == nullptr) || (this->decode_task_handle_ == nullptr) ||
@@ -387,11 +370,11 @@ void AudioPipeline::decode_task(void *params) {
     xEventGroupSetBits(this_pipeline->event_group_, EventGroupBits::DECODER_MESSAGE_FINISHED);
 
     // Wait until the reader notifies us that the media type is available
-    EventBits_t event_bits = xEventGroupWaitBits(this_pipeline->event_group_,
-                                                 READER_MESSAGE_LOADED_MEDIA_TYPE,  // Bit message to read
-                                                 pdTRUE,                            // Clear the bit on exit
-                                                 pdFALSE,                           // Wait for all the bits,
-                                                 portMAX_DELAY);  // Block indefinitely until bit is set
+    xEventGroupWaitBits(this_pipeline->event_group_,
+                        READER_MESSAGE_LOADED_MEDIA_TYPE,  // Bit message to read
+                        pdTRUE,                            // Clear the bit on exit
+                        pdFALSE,                           // Wait for all the bits,
+                        portMAX_DELAY);                    // Block indefinitely until bit is set
 
     xEventGroupClearBits(this_pipeline->event_group_, EventGroupBits::DECODER_MESSAGE_FINISHED);
 
@@ -416,7 +399,7 @@ void AudioPipeline::decode_task(void *params) {
       bool has_stream_info = false;
 
       while (true) {
-        event_bits = xEventGroupGetBits(this_pipeline->event_group_);
+        EventBits_t event_bits = xEventGroupGetBits(this_pipeline->event_group_);
 
         if (event_bits & PIPELINE_COMMAND_STOP) {
           break;
@@ -474,11 +457,11 @@ void AudioPipeline::resample_task(void *params) {
     xEventGroupSetBits(this_pipeline->event_group_, EventGroupBits::RESAMPLER_MESSAGE_FINISHED);
 
     // Wait until the decoder notifies us that the stream information is available
-    EventBits_t event_bits = xEventGroupWaitBits(this_pipeline->event_group_,
-                                                 DECODER_MESSAGE_LOADED_STREAM_INFO,  // Bit message to read
-                                                 pdTRUE,                              // Clear the bit on exit
-                                                 pdFALSE,                             // Wait for all the bits,
-                                                 portMAX_DELAY);  // Block indefinitely until bit is set
+    xEventGroupWaitBits(this_pipeline->event_group_,
+                        DECODER_MESSAGE_LOADED_STREAM_INFO,  // Bit message to read
+                        pdTRUE,                              // Clear the bit on exit
+                        pdFALSE,                             // Wait for all the bits,
+                        portMAX_DELAY);                      // Block indefinitely until bit is set
 
     xEventGroupClearBits(this_pipeline->event_group_, EventGroupBits::RESAMPLER_MESSAGE_FINISHED);
 
@@ -514,7 +497,7 @@ void AudioPipeline::resample_task(void *params) {
       }
 
       while (true) {
-        event_bits = xEventGroupGetBits(this_pipeline->event_group_);
+        EventBits_t event_bits = xEventGroupGetBits(this_pipeline->event_group_);
 
         if (event_bits & PIPELINE_COMMAND_STOP) {
           break;

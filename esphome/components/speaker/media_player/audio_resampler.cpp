@@ -241,7 +241,7 @@ AudioResamplerState AudioResampler::resample(bool stop_gracefully) {
 
       size_t samples_read = this->input_buffer_length_ / sizeof(int16_t);
 
-      for (int i = 0; i < samples_read; ++i) {
+      for (size_t i = 0; i < samples_read; ++i) {
         this->float_input_buffer_[i] = static_cast<float>(this->input_buffer_[i]) / 32768.0f;
       }
 
@@ -277,7 +277,7 @@ AudioResamplerState AudioResampler::resample(bool stop_gracefully) {
 
       size_t samples_generated = frames_generated * this->stream_info_.channels;
 
-      for (int i = 0; i < samples_generated; ++i) {
+      for (size_t i = 0; i < samples_generated; ++i) {
         this->output_buffer_[i] = static_cast<int16_t>(this->float_output_buffer_[i] * 32767);
       }
 

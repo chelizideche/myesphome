@@ -131,20 +131,14 @@ class AudioPipeline {
   // Handles reading the media file from flash or a url
   static void read_task(void *params);
   TaskHandle_t read_task_handle_{nullptr};
-  StaticTask_t read_task_stack_;
-  StackType_t *read_task_stack_buffer_{nullptr};
 
   // Decodes the media file into PCM audio
   static void decode_task(void *params);
   TaskHandle_t decode_task_handle_{nullptr};
-  StaticTask_t decode_task_stack_;
-  StackType_t *decode_task_stack_buffer_{nullptr};
 
   // Resamples the audio to match the specified target sample rate. Converts mono audio to stereo audio if necessary.
   static void resample_task(void *params);
   TaskHandle_t resample_task_handle_{nullptr};
-  StaticTask_t resample_task_stack_;
-  StackType_t *resample_task_stack_buffer_{nullptr};
 };
 
 }  // namespace speaker

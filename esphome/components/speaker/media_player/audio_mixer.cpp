@@ -28,8 +28,8 @@ esp_err_t AudioMixer::start(Speaker *speaker, const std::string &task_name, UBas
   }
 
   if (this->task_handle_ == nullptr) {
-    this->task_handle_ = xTaskCreateStatic(AudioMixer::audio_mixer_task, task_name.c_str(), TASK_STACK_SIZE,
-                                           (void *) this, priority, this->stack_buffer_, &this->task_stack_);
+    xTaskCreate(AudioMixer::audio_mixer_task, task_name.c_str(), TASK_STACK_SIZE, (void *) this, priority,
+                &this->task_handle_);
   }
 
   if (this->task_handle_ == nullptr) {
@@ -72,7 +72,6 @@ void AudioMixer::audio_mixer_task(void *params) {
   int16_t *announcement_buffer = allocator.allocate(OUTPUT_BUFFER_SAMPLES);
   int16_t *combination_buffer = allocator.allocate(OUTPUT_BUFFER_SAMPLES);
 
-  int16_t *combination_buffer_current = combination_buffer;
   size_t combination_buffer_length = 0;
 
   if ((media_buffer == nullptr) || (announcement_buffer == nullptr)) {
@@ -194,8 +193,6 @@ void AudioMixer::audio_mixer_task(void *params) {
                 }
                 size_t samples_left_to_duck = std::min(samples_left_in_step, samples_read);
 
-                size_t total_samples_ducked = 0;
-
                 while (samples_left_to_duck > 0) {
                   // Ensure we only point to valid index in the Q15 scaling factor table
                   uint8_t safe_db_reduction_index =
@@ -209,8 +206,6 @@ void AudioMixer::audio_mixer_task(void *params) {
 
                   samples_read -= samples_left_to_duck;
                   samples_left -= samples_left_to_duck;
-
-                  total_samples_ducked += samples_left_to_duck;
 
                   samples_left_in_step = samples_left % samples_per_ducking_step;
                   if (samples_left_in_step == 0) {
@@ -293,13 +288,6 @@ esp_err_t AudioMixer::allocate_buffers_() {
     this->announcement_ring_buffer_ = RingBuffer::create(INPUT_RING_BUFFER_SAMPLES * sizeof(int16_t));
 
   if ((this->announcement_ring_buffer_ == nullptr) || (this->media_ring_buffer_ == nullptr)) {
-    return ESP_ERR_NO_MEM;
-  }
-
-  if (this->stack_buffer_ == nullptr)
-    this->stack_buffer_ = (StackType_t *) malloc(TASK_STACK_SIZE);
-
-  if (this->stack_buffer_ == nullptr) {
     return ESP_ERR_NO_MEM;
   }
 

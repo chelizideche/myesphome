@@ -139,8 +139,6 @@ class AudioMixer {
 
   static void audio_mixer_task(void *params);
   TaskHandle_t task_handle_{nullptr};
-  StaticTask_t task_stack_;
-  StackType_t *stack_buffer_{nullptr};
 
   // Reports events from the mixer task
   QueueHandle_t event_queue_;

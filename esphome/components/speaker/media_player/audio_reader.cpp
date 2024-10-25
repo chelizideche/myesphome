@@ -15,7 +15,7 @@ namespace speaker {
 static const size_t READ_WRITE_TIMEOUT_MS = 20;
 
 // The number of times the http read times out with no data before throwing an error
-static const size_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 10;
+static const ssize_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 10;
 
 AudioReader::AudioReader(esphome::RingBuffer *output_ring_buffer, size_t transfer_buffer_size) {
   this->output_ring_buffer_ = output_ring_buffer;
@@ -101,7 +101,7 @@ esp_err_t AudioReader::start(const std::string &uri, MediaFileType &file_type) {
     return err;
   }
 
-  int content_length = esp_http_client_fetch_headers(this->client_);
+  esp_http_client_fetch_headers(this->client_);
 
   char url[500];
   err = esp_http_client_get_url(this->client_, url, 500);
