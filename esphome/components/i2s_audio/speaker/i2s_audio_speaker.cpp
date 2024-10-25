@@ -201,9 +201,6 @@ size_t I2SAudioSpeaker::play(const uint8_t *data, size_t length, TickType_t tick
     ESP_LOGE(TAG, "Cannot play new audio, it being used by an other audio component.");
     return 0;
   }
-  if (this->state_ == speaker::STATE_STOPPING) {
-    return 0;
-  }
 
   if (this->state_ != speaker::STATE_RUNNING && this->state_ != speaker::STATE_STARTING) {
     this->start();
