@@ -287,7 +287,6 @@ esphome/components/mopeka_std_check/* @Fabian-Schmidt
 esphome/components/mpl3115a2/* @kbickar
 esphome/components/mpu6886/* @fabaff
 esphome/components/ms8607/* @e28eta
-esphome/components/nabu/* @kahrendt @synesthesiam
 esphome/components/nau7802/* @cujomalainey
 esphome/components/network/* @esphome/core
 esphome/components/nextion/* @edwardtfn @senexcrenshaw
@@ -379,6 +378,7 @@ esphome/components/sn74hc165/* @jesserockz
 esphome/components/socket/* @esphome/core
 esphome/components/sonoff_d1/* @anatoly-savchenkov
 esphome/components/speaker/* @jesserockz @kahrendt
+esphome/components/speaker/media_player/* @kahrendt @synesthesiam
 esphome/components/spi/* @clydebarrow @esphome/core
 esphome/components/spi_device/* @clydebarrow
 esphome/components/spi_led_strip/* @clydebarrow
