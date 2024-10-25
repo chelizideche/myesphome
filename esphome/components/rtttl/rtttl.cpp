@@ -145,11 +145,7 @@ void Rtttl::loop() {
 
 #ifdef USE_SPEAKER
   if (this->speaker_ != nullptr) {
-    if (this->state_ == State::STATE_STOPPING) {
-      if (this->speaker_->is_stopped()) {
-        this->set_state_(State::STATE_STOPPED);
-      }
-    } else if (this->state_ == State::STATE_INIT) {
+    if (this->state_ == State::STATE_INIT) {
       if (this->speaker_->is_stopped()) {
         this->speaker_->start();
         this->set_state_(State::STATE_STARTING);
@@ -346,22 +342,9 @@ void Rtttl::finish_() {
 #ifdef USE_OUTPUT
   if (this->output_ != nullptr) {
     this->output_->set_level(0.0);
-    this->set_state_(State::STATE_STOPPED);
   }
 #endif
-#ifdef USE_SPEAKER
-  if (this->speaker_ != nullptr) {
-    SpeakerSample sample[2];
-    sample[0].left = 0;
-    sample[0].right = 0;
-    sample[1].left = 0;
-    sample[1].right = 0;
-    this->speaker_->play((uint8_t *) (&sample), 8);
-
-    this->speaker_->finish();
-    this->set_state_(State::STATE_STOPPING);
-  }
-#endif
+  this->set_state_(State::STATE_STOPPED);
   this->note_duration_ = 0;
   this->on_finished_playback_callback_.call();
   ESP_LOGD(TAG, "Playback finished");

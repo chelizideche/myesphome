@@ -44,11 +44,6 @@ template<typename... Ts> class StopAction : public Action<Ts...>, public Parente
   void play(Ts... x) override { this->parent_->stop(); }
 };
 
-template<typename... Ts> class FinishAction : public Action<Ts...>, public Parented<Speaker> {
- public:
-  void play(Ts... x) override { this->parent_->finish(); }
-};
-
 template<typename... Ts> class IsPlayingCondition : public Condition<Ts...>, public Parented<Speaker> {
  public:
   bool check(Ts... x) override { return this->parent_->is_running(); }

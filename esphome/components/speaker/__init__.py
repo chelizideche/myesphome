@@ -81,9 +81,6 @@ async def speaker_play_action(config, action_id, template_arg, args):
 automation.register_action("speaker.stop", StopAction, SPEAKER_AUTOMATION_SCHEMA)(
     speaker_action
 )
-automation.register_action("speaker.finish", FinishAction, SPEAKER_AUTOMATION_SCHEMA)(
-    speaker_action
-)
 
 automation.register_condition(
     "speaker.is_playing", IsPlayingCondition, SPEAKER_AUTOMATION_SCHEMA

@@ -36,7 +36,6 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
 
   void start() override;
   void stop() override;
-  void finish() override;
 
   /// @brief Plays the provided audio data.
   /// Starts the speaker task, if necessary. Writes the audio data to the ring buffer.
