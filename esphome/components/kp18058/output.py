@@ -16,15 +16,15 @@ def validate_unique_channels(config):
 
     kp18058_id = str(config[CONF_KP18058_ID])
     channel = config[CONF_CHANNEL]
-    
+
     if kp18058_id not in _output_registry:
         _output_registry[kp18058_id] = set()
-    
+
     if channel in _output_registry[kp18058_id]:
         raise cv.Invalid(f"Channel {channel} is already used for kp18058 component with id {kp18058_id}. Each output must have a unique channel.")
-    
+
     _output_registry[kp18058_id].add(channel)
-    
+
     return config
 
 CONFIG_SCHEMA = cv.All(

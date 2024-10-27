@@ -11,8 +11,8 @@ namespace kp18058 {
 
 class kp18058 : public Component {
   public:
-      kp18058() : data_pin_(nullptr), 
-                  clock_pin_(nullptr), 
+      kp18058() : data_pin_(nullptr),
+                  clock_pin_(nullptr),
                   max_cw_current_(0),
                   max_rgb_current_(0),
                   channels{nullptr} {}
