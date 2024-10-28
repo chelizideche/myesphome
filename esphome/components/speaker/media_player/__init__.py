@@ -38,7 +38,7 @@ CONF_DECIBEL_REDUCTION = "decibel_reduction"
 
 CONF_ANNOUNCEMENT = "announcement"
 CONF_MEDIA_FILE = "media_file"
-CONF_PIPELINE = "pipeline"
+CONF_STREAM = "stream"
 CONF_VOLUME_INCREMENT = "volume_increment"
 CONF_VOLUME_MIN = "volume_min"
 CONF_VOLUME_MAX = "volume_max"
@@ -74,8 +74,8 @@ PIPELINE_TYPE_ENUM = {
 PlayLocalMediaAction = speaker_ns.class_(
     "PlayLocalMediaAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
 )
-StopPipelineAction = speaker_ns.class_(
-    "StopPipelineAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
+StopStreamAction = speaker_ns.class_(
+    "StopStreamAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
 )
 DuckingSetAction = speaker_ns.class_(
     "DuckingSetAction", automation.Action, cg.Parented.template(SpeakerMediaPlayer)
@@ -341,20 +341,20 @@ async def play_local_media_media_action(config, action_id, template_arg, args):
 
 
 @automation.register_action(
-    "speaker_media_player.stop_pipeline",
-    StopPipelineAction,
+    "speaker_media_player.stop_stream",
+    StopStreamAction,
     cv.maybe_simple_value(
         {
             cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
-            cv.Required(CONF_PIPELINE): cv.enum(PIPELINE_TYPE_ENUM, upper=True),
+            cv.Required(CONF_STREAM): cv.enum(PIPELINE_TYPE_ENUM, upper=True),
         },
-        key=CONF_PIPELINE,
+        key=CONF_STREAM,
     ),
 )
-async def stop_pipeline_action(config, action_id, template_arg, args):
+async def stop_stream_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
-    cg.add(var.set_pipeline_type(config[CONF_PIPELINE]))
+    cg.add(var.set_pipeline_type(config[CONF_STREAM]))
     return var
 
 

@@ -15,11 +15,11 @@ esphome:
       - media_player.toggle:
       - media_player.stop:
       - speaker_media_player.play_local_media_file: wake_word_trigger_sound
-      - speaker_media_player.stop_pipeline: media
+      - speaker_media_player.stop_stream: media
       - speaker_media_player.play_local_media_file:
           media_file: wake_word_trigger_sound
           announcement: true
-      - speaker_media_player.stop_pipeline: announcement
+      - speaker_media_player.stop_stream: announcement
 
 wifi:
   ssid: MySSID

@@ -24,7 +24,7 @@ template<typename... Ts> class PlayLocalMediaAction : public Action<Ts...>, publ
   }
 };
 
-template<typename... Ts> class StopPipelineAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
+template<typename... Ts> class StopStreamAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
   TEMPLATABLE_VALUE(AudioPipelineType, pipeline_type)
   void play(Ts... x) override {
     bool announcement = false;
