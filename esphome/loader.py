@@ -53,6 +53,10 @@ class ComponentManifest:
         return getattr(self.module, "IS_PLATFORM_COMPONENT", False)
 
     @property
+    def is_target_platform(self) -> bool:
+        return getattr(self.module, "IS_TARGET_PLATFORM", False)
+
+    @property
     def config_schema(self) -> Optional[Any]:
         return getattr(self.module, "CONFIG_SCHEMA", None)
 
