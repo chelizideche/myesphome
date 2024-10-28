@@ -48,10 +48,8 @@ CONF_ON_UNMUTE = "on_unmute"
 CONF_ON_VOLUME = "on_volume"
 
 speaker_ns = cg.esphome_ns.namespace("speaker")
-SpeakerMediaPlayer = speaker_ns.class_("SpeakerMediaPlayer")
 SpeakerMediaPlayer = speaker_ns.class_(
     "SpeakerMediaPlayer",
-    SpeakerMediaPlayer,
     media_player.MediaPlayer,
     cg.Component,
 )
