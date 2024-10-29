@@ -29,6 +29,32 @@ text_sensor:
       }
     update_interval: 60s
 
+binary_sensor:
+  - platform: template
+    id: template_binary_sensor1
+    lambda: |-
+      if (millis() > 10000) {
+        return true;
+      } else {
+        return false;
+      }
+    update_interval: 60s
+
+switch:
+  - platform: template
+    id: template_switch1
+    lambda: |-
+      if (millis() > 10000) {
+        return true;
+      } else {
+        return false;
+      }
+    update_interval: 60s
+
+fan:
+  - platform: template
+    id: template_fan1
+
 prometheus:
   include_internal: true
   relabel:
