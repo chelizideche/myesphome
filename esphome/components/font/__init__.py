@@ -98,13 +98,13 @@ def validate_pillow_installed(value):
     except ImportError as err:
         raise cv.Invalid(
             "Please install the pillow python package to use this feature. "
-            '(pip install "pillow==10.2.0")'
+            '(pip install "pillow==10.4.0")'
         ) from err
 
-    if version.parse(PIL.__version__) != version.parse("10.2.0"):
+    if version.parse(PIL.__version__) != version.parse("10.4.0"):
         raise cv.Invalid(
-            "Please update your pillow installation to 10.2.0. "
-            '(pip install "pillow==10.2.0")'
+            "Please update your pillow installation to 10.4.0. "
+            '(pip install "pillow==10.4.0")'
         )
 
     return value
@@ -344,7 +344,7 @@ class TrueTypeFontWrapper:
         return offset_x, offset_y
 
     def getmask(self, glyph, **kwargs):
-        return self.font.getmask(glyph, **kwargs)
+        return self.font.getmask(str(glyph), **kwargs)
 
     def getmetrics(self, glyphs):
         return self.font.getmetrics()
@@ -359,7 +359,7 @@ class BitmapFontWrapper:
         return 0, 0
 
     def getmask(self, glyph, **kwargs):
-        return self.font.getmask(glyph, **kwargs)
+        return self.font.getmask(str(glyph), **kwargs)
 
     def getmetrics(self, glyphs):
         max_height = 0

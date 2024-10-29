@@ -110,6 +110,13 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
   void lock_row_(AsyncResponseStream *stream, lock::Lock *obj);
 #endif
 
+#ifdef USE_TEXT_SENSOR
+  /// Return the type for prometheus
+  void text_sensor_type_(AsyncResponseStream *stream);
+  /// Return the lock Values state as prometheus data point
+  void text_sensor_row_(AsyncResponseStream *stream, text_sensor::TextSensor *obj);
+#endif
+
   web_server_base::WebServerBase *base_;
   bool include_internal_{false};
   std::map<EntityBase *, std::string> relabel_map_id_;
