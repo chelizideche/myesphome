@@ -63,7 +63,6 @@ cover:
       } else {
         return COVER_CLOSED;
       }
-    update_interval: 60s
 
 prometheus:
   include_internal: true
