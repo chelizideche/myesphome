@@ -50,6 +50,12 @@ void PrometheusHandler::handleRequest(AsyncWebServerRequest *req) {
     this->lock_row_(stream, obj);
 #endif
 
+#ifdef USE_TEXT_SENSOR
+  this->text_sensor_type_(stream);
+  for (auto *obj : App.get_text_sensors())
+    this->text_sensor_row_(stream, obj);
+#endif
+
   req->send(stream);
 }
 
@@ -346,6 +352,43 @@ void PrometheusHandler::lock_row_(AsyncResponseStream *stream, lock::Lock *obj) 
   stream->print(F("\"} "));
   stream->print(obj->state);
   stream->print(F("\n"));
+}
+#endif
+
+// Type-specific implementation
+#ifdef USE_TEXT_SENSOR
+void PrometheusHandler::text_sensor_type_(AsyncResponseStream *stream) {
+  stream->print(F("#TYPE esphome_text_sensor_value gauge\n"));
+  stream->print(F("#TYPE esphome_text_sensor_failed gauge\n"));
+}
+void PrometheusHandler::text_sensor_row_(AsyncResponseStream *stream, text_sensor::TextSensor *obj) {
+  if (obj->is_internal() && !this->include_internal_)
+    return;
+  if (obj->has_state()) {
+    // We have a valid value, output this value
+    stream->print(F("esphome_text_sensor_failed{id=\""));
+    stream->print(relabel_id_(obj).c_str());
+    stream->print(F("\",name=\""));
+    stream->print(relabel_name_(obj).c_str());
+    stream->print(F("\"} 0\n"));
+    // Data itself
+    stream->print(F("esphome_text_sensor_value{id=\""));
+    stream->print(relabel_id_(obj).c_str());
+    stream->print(F("\",name=\""));
+    stream->print(relabel_name_(obj).c_str());
+    stream->print(F("\",value=\""));
+    stream->print(obj->state.c_str());
+    stream->print(F("\"} "));
+    stream->print(F("1.0"));
+    stream->print(F("\n"));
+  } else {
+    // Invalid state
+    stream->print(F("esphome_text_sensor_failed{id=\""));
+    stream->print(relabel_id_(obj).c_str());
+    stream->print(F("\",name=\""));
+    stream->print(relabel_name_(obj).c_str());
+    stream->print(F("\"} 1\n"));
+  }
 }
 #endif
 
