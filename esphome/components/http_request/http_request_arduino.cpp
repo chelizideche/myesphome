@@ -116,8 +116,7 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   if (container->status_code < 200 || container->status_code >= 300) {
     ESP_LOGE(TAG, "HTTP Request failed; URL: %s; Code: %d", url.c_str(), container->status_code);
     this->status_momentary_error("failed", 1000);
-    container->end();
-    return nullptr;
+    // Still return the container, so it can be used to get the status code and error message
   }
 
   int content_length = container->client_.getSize();
