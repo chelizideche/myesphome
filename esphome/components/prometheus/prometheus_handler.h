@@ -60,6 +60,7 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
  protected:
   std::string relabel_id_(EntityBase *obj);
   std::string relabel_name_(EntityBase *obj);
+  void add_area_label_(AsyncResponseStream *stream, std::string &area);
 
 #ifdef USE_SENSOR
   /// Return the type for prometheus
