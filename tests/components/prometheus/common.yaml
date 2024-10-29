@@ -64,6 +64,16 @@ cover:
         return COVER_CLOSED;
       }
 
+lock:
+  - platform: template
+    id: template_lock1
+    lambda: |-
+      if (millis() > 10000) {
+        return LOCK_STATE_LOCKED;
+      } else {
+        return LOCK_STATE_UNLOCKED;
+      }
+
 prometheus:
   include_internal: true
   relabel:
