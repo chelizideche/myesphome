@@ -85,8 +85,7 @@ void PrometheusHandler::sensor_row_(AsyncResponseStream *stream, sensor::Sensor 
     stream->print(relabel_id_(obj).c_str());
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
-    if stream
-      ->print(F("\"} 0\n"));
+    stream->print(F("\"} 0\n"));
     // Data itself
     stream->print(F("esphome_sensor_value{id=\""));
     stream->print(relabel_id_(obj).c_str());
