@@ -29,8 +29,8 @@ template<typename... Ts> class OtaHttpRequestComponentFlashAction : public Actio
     if (this->username_.has_value()) {
       this->parent_->set_username(this->username_.value(x...));
     }
-    if (this->disable_bluetooth_proxy.has_value()) {
-      this->parent_->set_disable_bluetooth_proxy(this->disable_bluetooth_proxy.value(x...));
+    if (this->disable_bluetooth_proxy_.has_value()) {
+      this->parent_->set_disable_bluetooth_proxy(this->disable_bluetooth_proxy_.value(x...));
     }
     this->parent_->set_url(this->url_.value(x...));
 
