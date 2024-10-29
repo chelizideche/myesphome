@@ -13,9 +13,23 @@ sensor:
       }
     update_interval: 60s
 
+text_sensor:
+  - platform: template
+    id: template_text_sensor1
+    lambda: |-
+      if (millis() > 10000) {
+        return {"Hello World"};
+      } else {
+        return {"Goodbye (cruel) World"};
+      }
+    update_interval: 60s
+
 prometheus:
   include_internal: true
   relabel:
     template_sensor1:
       id: hellow_world
       name: Hello World
+    template_text_sensor1:
+      id: hello_text
+      name: Text Substitution
