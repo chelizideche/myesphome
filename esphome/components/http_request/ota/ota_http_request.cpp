@@ -11,9 +11,6 @@
 #include "esphome/components/ota/ota_backend_arduino_esp8266.h"
 #include "esphome/components/ota/ota_backend_arduino_rp2040.h"
 #include "esphome/components/ota/ota_backend_esp_idf.h"
-#ifdef USE_BLUETOOTH_PROXY
-#include "esphome/components/bluetooth_proxy/bluetooth_proxy.h"
-#endif
 
 namespace esphome {
 namespace http_request {
@@ -52,13 +49,6 @@ void OtaHttpRequestComponent::flash() {
   }
 
   ESP_LOGI(TAG, "Starting update...");
-#ifdef USE_BLUETOOTH_PROXY
-  ESP_LOGI(TAG, "Bluetooth proxy exists, checking to disable");
-  if (this->get_disable_bluetooth_proxy()) {
-    ESP_LOGI(TAG, "Disable bluetooth proxy before update");
-    bluetooth_proxy::global_bluetooth_proxy->parent_->disable();
-  }
-#endif
 #ifdef USE_OTA_STATE_CALLBACK
   this->state_callback_.call(ota::OTA_STARTED, 0.0f, 0);
 #endif

@@ -14,7 +14,6 @@ DEPENDENCIES = ["network", "http_request"]
 
 CONF_MD5 = "md5"
 CONF_MD5_URL = "md5_url"
-CONF_DISABLE_BLUETOOTH_PROXY = "disable_bluetooth_proxy"
 
 OtaHttpRequestComponent = http_request_ns.class_(
     "OtaHttpRequestComponent", OTAComponent
@@ -60,7 +59,6 @@ OTA_HTTP_REQUEST_FLASH_ACTION_SCHEMA = cv.All(
             cv.Optional(CONF_PASSWORD): cv.templatable(cv.string),
             cv.Optional(CONF_USERNAME): cv.templatable(cv.string),
             cv.Required(CONF_URL): cv.templatable(cv.url),
-            cv.Optional(CONF_DISABLE_BLUETOOTH_PROXY, default=False): cv.boolean,
         }
     ),
     cv.has_exactly_one_key(CONF_MD5, CONF_MD5_URL),
@@ -91,10 +89,6 @@ async def ota_http_request_action_to_code(config, action_id, template_arg, args)
     if username_str := config.get(CONF_USERNAME):
         template_ = await cg.templatable(username_str, args, cg.std_string)
         cg.add(var.set_username(template_))
-
-    if disable_bluetooth_proxy_bool := config.get(CONF_DISABLE_BLUETOOTH_PROXY):
-        template_ = await cg.templatable(disable_bluetooth_proxy_bool, args, cg.bool_)
-        cg.add(var.set_disable_bluetooth_proxy(template_))
 
     template_ = await cg.templatable(config[CONF_URL], args, cg.std_string)
     cg.add(var.set_url(template_))

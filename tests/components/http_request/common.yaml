@@ -69,22 +69,10 @@ button:
         - ota.http_request.flash:
             md5_url: http://my.ha.net:8123/local/esphome/firmware.md5
             url: http://my.ha.net:8123/local/esphome/firmware.bin
-            disable_bluetooth_proxy: false
 
         - ota.http_request.flash:
             md5: 0123456789abcdef0123456789abcdef
             url: http://my.ha.net:8123/local/esphome/firmware.bin
-            disable_bluetooth_proxy: false
-
-        - ota.http_request.flash:
-            md5_url: http://my.ha.net:8123/local/esphome/firmware.md5
-            url: http://my.ha.net:8123/local/esphome/firmware.bin
-            disable_bluetooth_proxy: true
-
-        - ota.http_request.flash:
-            md5: 0123456789abcdef0123456789abcdef
-            url: http://my.ha.net:8123/local/esphome/firmware.bin
-            disable_bluetooth_proxy: true
 
         - logger.log: "This message should be not displayed (reboot)"
 
