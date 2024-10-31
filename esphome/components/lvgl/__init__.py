@@ -33,7 +33,7 @@ from .schemas import (
     FLEX_OBJ_SCHEMA,
     GRID_CELL_SCHEMA,
     LAYOUT_SCHEMAS,
-    STATE_SCHEMA,
+    STYLE_SCHEMA,
     WIDGET_TYPES,
     any_widget_schema,
     container_schema,
@@ -71,6 +71,7 @@ from .widgets.meter import meter_spec
 from .widgets.msgbox import MSGBOX_SCHEMA, msgboxes_to_code
 from .widgets.obj import obj_spec
 from .widgets.page import add_pages, generate_page_triggers, page_spec
+from .widgets.qrcode import qr_code_spec
 from .widgets.roller import roller_spec
 from .widgets.slider import slider_spec
 from .widgets.spinbox import spinbox_spec
@@ -109,6 +110,7 @@ for w_type in (
     spinbox_spec,
     keyboard_spec,
     tileview_spec,
+    qr_code_spec,
 ):
     WIDGET_TYPES[w_type.name] = w_type
 
@@ -342,7 +344,7 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(df.CONF_STYLE_DEFINITIONS): cv.ensure_list(
                 cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)})
-                .extend(STATE_SCHEMA)
+                .extend(STYLE_SCHEMA)
                 .extend(
                     {
                         cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,

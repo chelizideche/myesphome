@@ -437,7 +437,7 @@ class TrueTypeFontWrapper:
         return offset_x, offset_y
 
     def getmask(self, glyph, **kwargs):
-        return self.font.getmask(glyph, **kwargs)
+        return self.font.getmask(str(glyph), **kwargs)
 
     def getmetrics(self, glyphs):
         return self.font.getmetrics()
@@ -452,7 +452,7 @@ class BitmapFontWrapper:
         return 0, 0
 
     def getmask(self, glyph, **kwargs):
-        return self.font.getmask(glyph, **kwargs)
+        return self.font.getmask(str(glyph), **kwargs)
 
     def getmetrics(self, glyphs):
         max_height = 0
