@@ -691,9 +691,11 @@ void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parame
 void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parameter)
   wifi_get_macaddr(STATION_IF, mac);
 }
-#elif defined(USE_RP2040) && defined(USE_WIFI)
+#elif defined(USE_RP2040)
 void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parameter)
+#ifdef USE_WIFI
   WiFi.macAddress(mac);
+#endif
 }
 #elif defined(USE_LIBRETINY)
 void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parameter)
