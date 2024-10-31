@@ -8,9 +8,7 @@ static const char *const TAG = "gp8211";
 
 static const uint8_t RANGE_REGISTER = 0x01;
 
-void GP8211::setup() {
-  this->write_register(RANGE_REGISTER, &this->voltage_, 1);
-}
+void GP8211::setup() { this->write_register(RANGE_REGISTER, &this->voltage_, 1); }
 
 void GP8211::dump_config() {
   ESP_LOGCONFIG(TAG, "GP8211:");
