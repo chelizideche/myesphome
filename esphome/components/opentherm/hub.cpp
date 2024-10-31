@@ -29,6 +29,8 @@ uint8_t parse_u8_hb(OpenthermData &data) { return data.valueHB; }
 int8_t parse_s8_lb(OpenthermData &data) { return (int8_t) data.valueLB; }
 int8_t parse_s8_hb(OpenthermData &data) { return (int8_t) data.valueHB; }
 uint16_t parse_u16(OpenthermData &data) { return data.u16(); }
+uint16_t parse_u8_lb_60(OpenthermData &data) { return data.valueLB * 60; }
+uint16_t parse_u8_hb_60(OpenthermData &data) { return data.valueHB * 60; }
 int16_t parse_s16(OpenthermData &data) { return data.s16(); }
 float parse_f88(OpenthermData &data) { return data.f88(); }
 
