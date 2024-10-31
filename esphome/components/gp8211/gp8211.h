@@ -7,8 +7,8 @@ namespace esphome {
 namespace gp8211 {
 
 enum GP8211Voltage {
-  GP8211_VOLTAGE_5V = 0x00,
-  GP8211_VOLTAGE_10V = 0x11,
+  GP8211_VOLTAGE_5V = 0x55,
+  GP8211_VOLTAGE_10V = 0x77,
 };
 
 class GP8211 : public Component, public i2c::I2CDevice {
