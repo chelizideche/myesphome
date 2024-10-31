@@ -1,11 +1,15 @@
-from esphome import automation
 import esphome.codegen as cg
-from esphome.components.ota import BASE_OTA_SCHEMA, OTAComponent, ota_to_code
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PASSWORD, CONF_URL, CONF_USERNAME
+from esphome import automation
+from esphome.const import (
+    CONF_ID,
+    CONF_PASSWORD,
+    CONF_URL,
+    CONF_USERNAME,
+)
+from esphome.components.ota import BASE_OTA_SCHEMA, ota_to_code, OTAComponent
 from esphome.core import coroutine_with_priority
-
-from .. import CONF_HTTP_REQUEST_ID, HttpRequestComponent, http_request_ns
+from .. import CONF_HTTP_REQUEST_ID, http_request_ns, HttpRequestComponent
 
 CODEOWNERS = ["@oarcher"]
 
