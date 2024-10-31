@@ -9,8 +9,7 @@ static const char *const TAG = "gp8211";
 static const uint8_t RANGE_REGISTER = 0x01;
 
 void GP8211::setup() {
-  uint8_t voltage_setting = (this->voltage_ == GP8211_VOLTAGE_10V) ? 0x77 : 0x55;
-  this->write_register(RANGE_REGISTER, &voltage_setting, 1);
+  this->write_register(RANGE_REGISTER, &this->voltage_, 1);
 }
 
 void GP8211::dump_config() {
