@@ -1,6 +1,8 @@
 esphome:
+  name: exampleproject
+  friendly_name: "ESPHome Example Project"
   project:
-    name: "My Custom Project"
+    name: esphome.example-project
     version: "1.0.0"
 
 text_sensor:
