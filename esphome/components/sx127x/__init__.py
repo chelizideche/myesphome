@@ -177,7 +177,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PA_POWER, default=17): cv.int_range(min=0, max=17),
             cv.Optional(CONF_ON_PACKET): automation.validate_automation(single=True),
         },
-    ).extend(spi.spi_device_schema(False, 8e6, "mode0")),
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(spi.spi_device_schema(False, 8e6, "mode0")),
     validate_config,
 )
 
