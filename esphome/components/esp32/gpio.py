@@ -69,6 +69,8 @@ def _translate_pin(value):
         )
     if isinstance(value, int):
         return value
+    if isinstance(value, list):
+        raise cv.Invalid("A pin schema can't be a list.")
     try:
         return int(value)
     except ValueError:
