@@ -7,16 +7,16 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_MODEL,
-    CONF_UUID,
-    CONF_SERVICES,
-    CONF_VALUE,
     CONF_NOTIFY,
     CONF_ON_CONNECT,
     CONF_ON_DISCONNECT,
+    CONF_SERVICES,
+    CONF_UUID,
+    CONF_VALUE,
 )
 from esphome.core import CORE
 
-AUTO_LOAD = ["esp32_ble"]
+AUTO_LOAD = ["esp32_ble", "bytebuffer"]
 CODEOWNERS = ["@jesserockz", "@clydebarrow", "@Rapsssito"]
 DEPENDENCIES = ["esp32"]
 
@@ -67,8 +67,9 @@ BLECharacteristicSetValueAction = esp32_ble_server_automations_ns.class_(
 BLECharacteristicNotifyAction = esp32_ble_server_automations_ns.class_(
     "BLECharacteristicNotifyAction", automation.Action
 )
-ByteBuffer_ns = cg.esphome_ns.namespace("ByteBuffer")
-ByteBuffer = cg.esphome_ns.class_("ByteBuffer")
+bytebuffer_ns = cg.esphome_ns.namespace("bytebuffer")
+ByteBuffer_ns = bytebuffer_ns.namespace("ByteBuffer")
+ByteBuffer = bytebuffer_ns.class_("ByteBuffer")
 
 
 PROPERTY_MAP = {
@@ -331,8 +332,7 @@ async def parse_value(value, str_encoding, buffer_id, args, byte_length=None):
         return await cg.templatable(
             value,
             args,
-            ByteBuffer,
-            ByteBuffer_ns.wrap,
+            cg.std_vector.template(cg.uint8),
         )
 
     val, val_method = bytebuffer_parser_(value, str_encoding)
@@ -356,11 +356,11 @@ async def parse_value(value, str_encoding, buffer_id, args, byte_length=None):
 
 
 def calculate_num_handles(service_config):
-    total = 1
-    for char_conf in service_config[CONF_CHARACTERISTICS]:
-        total += 2  # One for the char_conf itself and one for the value
-        for _ in char_conf[CONF_DESCRIPTORS]:
-            total += 1
+    total = 1 + len(service_config[CONF_CHARACTERISTICS]) * 2
+    total += sum(
+        len(char_conf[CONF_DESCRIPTORS])
+        for char_conf in service_config[CONF_CHARACTERISTICS]
+    )
     return total
 
 
@@ -416,7 +416,7 @@ async def to_code_characteristic(service_var, char_conf):
         value_action = await ble_server_characteristic_set_value(
             action_conf,
             char_conf[CONF_CHAR_VALUE_ACTION_ID_],
-            cg.TemplateArguments(None),
+            cg.TemplateArguments(),
             {},
         )
         cg.add(value_action.play())

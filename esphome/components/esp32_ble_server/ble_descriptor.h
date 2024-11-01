@@ -2,7 +2,7 @@
 
 #include "esphome/components/esp32_ble/ble_uuid.h"
 #include "esphome/core/event_emitter.h"
-#include "esphome/core/bytebuffer.h"
+#include "esphome/components/bytebuffer/bytebuffer.h"
 
 #ifdef USE_ESP32
 
@@ -13,6 +13,7 @@ namespace esphome {
 namespace esp32_ble_server {
 
 using namespace esp32_ble;
+using namespace bytebuffer;
 
 class BLECharacteristic;
 

@@ -32,10 +32,15 @@ BLECharacteristic::BLECharacteristic(const ESPBTUUID uuid, uint32_t properties) 
   this->set_write_no_response_property((properties & PROPERTY_WRITE_NR) != 0);
 }
 
-void BLECharacteristic::set_value(ByteBuffer buffer) {
+void BLECharacteristic::set_value(ByteBuffer buffer) { this->set_value(buffer.get_data()); }
+
+void BLECharacteristic::set_value(const std::vector<uint8_t> &buffer) {
   xSemaphoreTake(this->set_value_lock_, 0L);
-  this->value_ = buffer.get_data();
+  this->value_ = buffer;
   xSemaphoreGive(this->set_value_lock_);
+}
+void BLECharacteristic::set_value(const std::string &buffer) {
+  this->set_value(std::vector<uint8_t>(buffer.begin(), buffer.end()));
 }
 
 void BLECharacteristic::notify() {

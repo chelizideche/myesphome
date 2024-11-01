@@ -6,7 +6,6 @@
 
 #include "esphome/core/event_emitter.h"
 #include "esphome/core/automation.h"
-#include "esphome/core/bytebuffer.h"
 
 #include <vector>
 #include <unordered_map>
@@ -59,7 +58,8 @@ class BLECharacteristicSetValueActionManager
 template<typename... Ts> class BLECharacteristicSetValueAction : public Action<Ts...> {
  public:
   BLECharacteristicSetValueAction(BLECharacteristic *characteristic) : parent_(characteristic) {}
-  TEMPLATABLE_VALUE(ByteBuffer, buffer)
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, buffer)
+  void set_buffer(ByteBuffer buffer) { this->set_buffer(buffer.get_data()); }
   void play(Ts... x) override {
     // If the listener is already set, do nothing
     if (BLECharacteristicSetValueActionManager::get_instance()->get_listener(this->parent_) == this->listener_id_)

@@ -4,12 +4,14 @@
 #include "esphome/components/esp32_ble_server/ble_2902.h"
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
-#include "esphome/core/bytebuffer.h"
+#include "esphome/components/bytebuffer/bytebuffer.h"
 
 #ifdef USE_ESP32
 
 namespace esphome {
 namespace esp32_improv {
+
+using namespace bytebuffer;
 
 static const char *const TAG = "esp32_improv.component";
 static const char *const ESPHOME_MY_LINK = "https://my.home-assistant.io/redirect/config_flow_start?domain=esphome";

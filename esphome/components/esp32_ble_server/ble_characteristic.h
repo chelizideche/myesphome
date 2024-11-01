@@ -3,7 +3,7 @@
 #include "ble_descriptor.h"
 #include "esphome/components/esp32_ble/ble_uuid.h"
 #include "esphome/core/event_emitter.h"
-#include "esphome/core/bytebuffer.h"
+#include "esphome/components/bytebuffer/bytebuffer.h"
 
 #include <vector>
 #include <unordered_map>
@@ -22,6 +22,7 @@ namespace esphome {
 namespace esp32_ble_server {
 
 using namespace esp32_ble;
+using namespace bytebuffer;
 
 class BLEService;
 
@@ -42,6 +43,8 @@ class BLECharacteristic : public EventEmitter<BLECharacteristicEvt::VectorEvt, s
   ~BLECharacteristic();
 
   void set_value(ByteBuffer buffer);
+  void set_value(const std::vector<uint8_t> &buffer);
+  void set_value(const std::string &buffer);
 
   void set_broadcast_property(bool value);
   void set_indicate_property(bool value);

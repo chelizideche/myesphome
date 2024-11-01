@@ -4,13 +4,10 @@
 #include "ble_characteristic.h"
 
 #include "esphome/components/esp32_ble/ble.h"
-#include "esphome/components/esp32_ble/ble_advertising.h"
 #include "esphome/components/esp32_ble/ble_uuid.h"
-#include "esphome/components/esp32_ble/queue.h"
-#include "esphome/core/automation.h"
+#include "esphome/components/bytebuffer/bytebuffer.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
-#include "esphome/core/preferences.h"
 
 #include <memory>
 #include <vector>
@@ -19,13 +16,13 @@
 
 #ifdef USE_ESP32
 
-#include <esp_gap_ble_api.h>
 #include <esp_gatts_api.h>
 
 namespace esphome {
 namespace esp32_ble_server {
 
 using namespace esp32_ble;
+using namespace bytebuffer;
 
 namespace BLEServerEvt {
 enum EmptyEvt {
@@ -78,16 +75,16 @@ class BLEServer : public Component,
   void add_client_(uint16_t conn_id) { this->clients_.insert(conn_id); }
   void remove_client_(uint16_t conn_id) { this->clients_.erase(conn_id); }
 
-  std::string manufacturer_;
-  optional<std::string> model_;
-  std::vector<uint8_t> manufacturer_data_;
+  std::string manufacturer_{};
+  optional<std::string> model_{};
+  std::vector<uint8_t> manufacturer_data_{};
   esp_gatt_if_t gatts_if_{0};
   bool registered_{false};
 
   std::unordered_set<uint16_t> clients_;
-  std::unordered_map<std::string, BLEService *> services_;
-  std::vector<BLEService *> services_to_start_;
-  BLEService *device_information_service_;
+  std::unordered_map<std::string, BLEService *> services_{};
+  std::vector<BLEService *> services_to_start_{};
+  BLEService *device_information_service_{};
 
   enum State : uint8_t {
     INIT = 0x00,
