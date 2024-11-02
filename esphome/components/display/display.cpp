@@ -662,7 +662,8 @@ void DisplayOnPageChangeTrigger::process(DisplayPage *from, DisplayPage *to) {
   if ((this->from_ == nullptr || this->from_ == from) && (this->to_ == nullptr || this->to_ == to))
     this->trigger(from, to);
 }
-void Display::strftime(int x, int y, BaseFont *font, Color color, Color background, TextAlign align, const char *format, ESPTime time) {
+void Display::strftime(int x, int y, BaseFont *font, Color color, Color background, TextAlign align, const char *format, 
+                       ESPTime time) {
   char buffer[64];
   size_t ret = time.strftime(buffer, sizeof(buffer), format);
   if (ret > 0)
