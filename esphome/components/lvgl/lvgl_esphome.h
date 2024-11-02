@@ -117,7 +117,7 @@ void lv_animimg_stop(lv_obj_t *obj);
 /**
  * Initialize the LVGL library and register custom events.
  */
-inline void LvglInit() {
+inline void esphome_lvgl_init() {
   lv_init();
   lv_update_event = static_cast<lv_event_code_t>(lv_event_register_id());
   lv_api_event = static_cast<lv_event_code_t>(lv_event_register_id());

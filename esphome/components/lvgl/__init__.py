@@ -274,7 +274,7 @@ async def to_code(configs):
         add_define("LV_FONT_DEFAULT", df.DEFAULT_ESPHOME_FONT)
     else:
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
-    cg.add(CallExpression(RawExpression("lvgl::LvglInit")))
+    cg.add(CallExpression(RawExpression("lvgl::esphome_lvgl_init")))
 
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
