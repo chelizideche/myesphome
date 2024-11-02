@@ -7,4 +7,8 @@ esphome:
 
 text_sensor:
   - platform: project_version
+    name: "ESPHome Project Version Detailed"
+
+  - platform: project_version
     name: "ESPHome Project Version"
+    hide_timestamp: true
