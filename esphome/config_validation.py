@@ -1644,100 +1644,40 @@ def _get_priority_default(*args):
 class SplitDefault(Optional):
     """Mark this key to have a split default for ESP8266/ESP32."""
 
-    def __init__(
-        self,
-        key,
-        esp8266=vol.UNDEFINED,
-        esp32=vol.UNDEFINED,
-        esp32_arduino=vol.UNDEFINED,
-        esp32_idf=vol.UNDEFINED,
-        esp32_s2=vol.UNDEFINED,
-        esp32_s2_arduino=vol.UNDEFINED,
-        esp32_s2_idf=vol.UNDEFINED,
-        esp32_s3=vol.UNDEFINED,
-        esp32_s3_arduino=vol.UNDEFINED,
-        esp32_s3_idf=vol.UNDEFINED,
-        esp32_c3=vol.UNDEFINED,
-        esp32_c3_arduino=vol.UNDEFINED,
-        esp32_c3_idf=vol.UNDEFINED,
-        rp2040=vol.UNDEFINED,
-        bk72xx=vol.UNDEFINED,
-        rtl87xx=vol.UNDEFINED,
-        host=vol.UNDEFINED,
-    ):
+    def __init__(self, key, **kwargs):
         super().__init__(key)
-        self._esp8266_default = vol.default_factory(esp8266)
-        self._esp32_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_arduino, esp32)
-        )
-        self._esp32_idf_default = vol.default_factory(
-            _get_priority_default(esp32_idf, esp32)
-        )
-        self._esp32_s2_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_s2_arduino, esp32_s2, esp32_arduino, esp32)
-        )
-        self._esp32_s2_idf_default = vol.default_factory(
-            _get_priority_default(esp32_s2_idf, esp32_s2, esp32_idf, esp32)
-        )
-        self._esp32_s3_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_s3_arduino, esp32_s3, esp32_arduino, esp32)
-        )
-        self._esp32_s3_idf_default = vol.default_factory(
-            _get_priority_default(esp32_s3_idf, esp32_s3, esp32_idf, esp32)
-        )
-        self._esp32_c3_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_c3_arduino, esp32_c3, esp32_arduino, esp32)
-        )
-        self._esp32_c3_idf_default = vol.default_factory(
-            _get_priority_default(esp32_c3_idf, esp32_c3, esp32_idf, esp32)
-        )
-        self._rp2040_default = vol.default_factory(rp2040)
-        self._bk72xx_default = vol.default_factory(bk72xx)
-        self._rtl87xx_default = vol.default_factory(rtl87xx)
-        self._host_default = vol.default_factory(host)
+        self._defaults = {}
+        priority_mapping = {
+            "esp32_arduino": ["esp32"],
+            "esp32_idf": ["esp32"],
+            "esp32_s2_arduino": ["esp32_s2", "esp32_arduino", "esp32"],
+            "esp32_s2_idf": ["esp32_s2", "esp32_idf", "esp32"],
+            "esp32_s3_arduino": ["esp32_s3", "esp32_arduino", "esp32"],
+            "esp32_s3_idf": ["esp32_s3", "esp32_idf", "esp32"],
+            "esp32_c3_arduino": ["esp32_c3", "esp32_arduino", "esp32"],
+            "esp32_c3_idf": ["esp32_c3", "esp32_idf", "esp32"],
+        }
+        for platform_key, value in kwargs.items():
+            if platform_key in priority_mapping:
+                prioritized_default = _get_priority_default(
+                    value, *[kwargs.get(p) for p in priority_mapping[platform_key]]
+                )
+                self._defaults[platform_key] = vol.default_factory(prioritized_default)
+            else:
+                self._defaults[platform_key] = vol.default_factory(value)
 
     @property
     def default(self):
-        if CORE.is_esp8266:
-            return self._esp8266_default
+        key = [CORE.target_platform]
         if CORE.is_esp32:
             from esphome.components.esp32 import get_esp32_variant
-            from esphome.components.esp32.const import (
-                VARIANT_ESP32C3,
-                VARIANT_ESP32S2,
-                VARIANT_ESP32S3,
-            )
+            from esphome.components.esp32.const import VARIANT_ESP32
 
-            variant = get_esp32_variant()
-            if variant == VARIANT_ESP32S2:
-                if CORE.using_arduino:
-                    return self._esp32_s2_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_s2_idf_default
-            elif variant == VARIANT_ESP32S3:
-                if CORE.using_arduino:
-                    return self._esp32_s3_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_s3_idf_default
-            elif variant == VARIANT_ESP32C3:
-                if CORE.using_arduino:
-                    return self._esp32_c3_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_c3_idf_default
-            else:
-                if CORE.using_arduino:
-                    return self._esp32_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_idf_default
-        if CORE.is_rp2040:
-            return self._rp2040_default
-        if CORE.is_bk72xx:
-            return self._bk72xx_default
-        if CORE.is_rtl87xx:
-            return self._rtl87xx_default
-        if CORE.is_host:
-            return self._host_default
-        raise NotImplementedError
+            variant = get_esp32_variant().replace(VARIANT_ESP32, "").lower()
+            if variant:
+                key += [variant]
+            key += [CORE.target_framework.replace("esp-", "")]
+        return self._defaults.get("_".join(key), vol.default_factory(vol.UNDEFINED))
 
     @default.setter
     def default(self, value):
