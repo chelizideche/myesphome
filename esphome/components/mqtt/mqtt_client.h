@@ -423,9 +423,7 @@ template<typename... Ts> class MQTTEnableAction : public Action<Ts...> {
  public:
   MQTTEnableAction(MQTTClientComponent *parent) : parent_(parent) {}
 
-  void play(Ts... x) override {
-    this->parent_->enable();
-  }
+  void play(Ts... x) override { this->parent_->enable(); }
 
  protected:
   MQTTClientComponent *parent_;
@@ -435,9 +433,7 @@ template<typename... Ts> class MQTTDisableAction : public Action<Ts...> {
  public:
   MQTTDisableAction(MQTTClientComponent *parent) : parent_(parent) {}
 
-  void play(Ts... x) override {
-    this->parent_->disable();
-  }
+  void play(Ts... x) override { this->parent_->disable(); }
 
  protected:
   MQTTClientComponent *parent_;
