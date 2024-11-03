@@ -1635,8 +1635,7 @@ class GenerateID(Optional):
 
 
 def _get_default_key(*args):
-    key = [CORE.target_platform]
-    key.extend(args)
+    key = [CORE.target_platform] + list(args)
     return ["_".join(key)]
 
 
