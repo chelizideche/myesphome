@@ -1650,7 +1650,6 @@ class SplitDefault(Optional):
 
         for platform_key, value in kwargs.items():
             self._defaults[platform_key] = vol.default_factory(value)
-        self._defaults[vol.UNDEFINED] = vol.default_factory(vol.UNDEFINED)
 
     @property
     def default(self):
@@ -1666,11 +1665,10 @@ class SplitDefault(Optional):
                 keys += _get_default_key(variant)
             keys += _get_default_key(framework)
         keys += _get_default_key()
-        keys += [vol.UNDEFINED]
         for key in keys:
             if self._defaults.get(key) is not None:
                 return self._defaults[key]
-        raise NotImplementedError
+        return vol.default_factory(vol.UNDEFINED)
 
     @default.setter
     def default(self, value):
