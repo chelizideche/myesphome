@@ -91,8 +91,8 @@ void KP18058::program_led_driver() {
 
   // Calculate parity bits for each byte
   uint8_t *settings_bytes = reinterpret_cast<uint8_t *>(&settings);
-  for (auto &byte : settings_bytes) {
-    byte |= get_parity_bit(byte);
+  for (size_t i = 0; i < sizeof(KP18058_Settings); i++) {
+    settings_bytes[i] |= get_parity_bit(settings_bytes[i]);
   }
 
   // Send the I2C message
