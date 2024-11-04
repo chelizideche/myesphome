@@ -77,6 +77,8 @@ class OpenthermHub : public Component {
   // we are talking to the boiler. Enable if you experience random intermittent invalid response errors.
   // Very likely to happen while using Dallas temperature sensors.
   bool sync_mode_ = false;
+  
+  float opentherm_version_ = 0.0f;
 
   // Create OpenTherm messages based on the message id
   OpenthermData build_request_(MessageId request_id) const;
@@ -147,6 +149,7 @@ class OpenthermHub : public Component {
   void set_summer_mode_active(bool value) { this->summer_mode_active = value; }
   void set_dhw_block(bool value) { this->dhw_block = value; }
   void set_sync_mode(bool sync_mode) { this->sync_mode_ = sync_mode; }
+  void set_opentherm_version(float value) { this->opentherm_version_ = value; }
 
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
 

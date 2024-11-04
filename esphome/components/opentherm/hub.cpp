@@ -89,6 +89,15 @@ OpenthermData OpenthermHub::build_request_(MessageId request_id) const {
     return data;
   }
 
+  // Another special case is OpenTherm version number which is configured at hub level as a constant
+  if (request_id == MessageId::OT_VERSION_CONTROLLER) {
+    data.type = MessageType::WRITE_DATA;
+    data.id = MessageId::OT_VERSION_CONTROLLER;
+    data.f88(this->opentherm_version_);
+    
+    return data;
+  }
+
 // Disable incomplete switch statement warnings, because the cases in each
 // switch are generated based on the configured sensors and inputs.
 #pragma GCC diagnostic push
@@ -157,6 +166,10 @@ void OpenthermHub::setup() {
   
   // Also ensure that we start communication with the STATUS message
   this->initial_messages_.insert(this->initial_messages_.begin(), MessageId::STATUS);
+
+  if (this->opentherm_version_ > 0.0f) {
+    this->initial_messages_.insert(this->initial_messages_.begin(), MessageId::OT_VERSION_CONTROLLER);
+  }
 
   this->current_message_iterator_ = this->initial_messages_.begin();
 }

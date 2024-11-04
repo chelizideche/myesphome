@@ -20,6 +20,7 @@ CONF_CH2_ACTIVE = "ch2_active"
 CONF_SUMMER_MODE_ACTIVE = "summer_mode_active"
 CONF_DHW_BLOCK = "dhw_block"
 CONF_SYNC_MODE = "sync_mode"
+CONF_OPENTHERM_VERSION = "opentherm_version"
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -35,6 +36,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SUMMER_MODE_ACTIVE, False): cv.boolean,
             cv.Optional(CONF_DHW_BLOCK, False): cv.boolean,
             cv.Optional(CONF_SYNC_MODE, False): cv.boolean,
+            cv.Optional(CONF_OPENTHERM_VERSION): cv.positive_float,
         }
     )
     .extend(
