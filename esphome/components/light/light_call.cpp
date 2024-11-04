@@ -305,19 +305,26 @@ LightColorValues LightCall::validate_() {
     if (this->parent_->dynamic_default_transition_) {
       // dynamic transition adapts the transition length to the change size.
 
-      // Current and target values for different parameters
-      float brightness_change = fabs(v.get_brightness() - this->parent_->current_values.get_brightness());
-      float color_temp_change =
-          fabs((v.get_color_temperature() - this->parent_->current_values.get_color_temperature()) /
-               (traits.get_max_mireds() - traits.get_min_mireds()));
-      float red_change = fabs(v.get_red() - this->parent_->current_values.get_red());
-      float green_change = fabs(v.get_green() - this->parent_->current_values.get_green());
-      float blue_change = fabs(v.get_blue() - this->parent_->current_values.get_blue());
-      float cold_white_change = fabs(v.get_cold_white() - this->parent_->current_values.get_cold_white());
-      float warm_white_change = fabs(v.get_warm_white() - this->parent_->current_values.get_warm_white());
-      // Find the maximum change
-      float change_ratio = std::max({brightness_change, color_temp_change, red_change, green_change, blue_change,
-                                     cold_white_change, warm_white_change});
+      // first assume it is a light state change call for that use brightness value only
+      float brightness_change = this->parent_->current_values.get_brightness();
+      float change_ratio = brightness_change;
+
+      // if it not explicit change state call check all parameters to determine max change.
+      if (v.get_state() == this->parent_->remote_values.get_state()) {
+        brightness_change = fabs(v.get_brightness() - brightness_change);
+        float red_change = fabs(v.get_red() - this->parent_->current_values.get_red());
+        float green_change = fabs(v.get_green() - this->parent_->current_values.get_green());
+        float blue_change = fabs(v.get_blue() - this->parent_->current_values.get_blue());
+        float cold_white_change = fabs(v.get_cold_white() - this->parent_->current_values.get_cold_white());
+        float warm_white_change = fabs(v.get_warm_white() - this->parent_->current_values.get_warm_white());
+        float color_temp_change =
+            fabs((v.get_color_temperature() - this->parent_->current_values.get_color_temperature()) /
+                 (traits.get_max_mireds() - traits.get_min_mireds()));
+
+        // Find the maximum change
+        change_ratio = std::max({brightness_change, red_change, green_change, blue_change, cold_white_change,
+                                 warm_white_change, color_temp_change});
+      }
 
       // Calculate dynamic transition length based on state change
       this->transition_length_ = change_ratio * this->parent_->default_transition_length_;
