@@ -12,7 +12,9 @@ class AsyncEventSource;
 #endif
 namespace web_server {
 
+#ifdef USE_ARDUINO
 class DeferredUpdateEventSource;
+#endif
 class WebServer;
 
 class ListEntitiesIterator : public ComponentIterator {

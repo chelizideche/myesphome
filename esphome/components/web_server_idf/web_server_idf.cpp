@@ -498,10 +498,11 @@ void AsyncEventSourceResponse::deferrable_send_state(void *source, const char *e
     ESP_LOGE(TAG, "Can't defer non-state event");
   }
 
-  if (!deferred_queue_.empty())
-    process_deferred_queue_();
-  if (!deferred_queue_.empty()) {
-    // deferred queue still not empty which means downstream tcp send buffer full, no point trying to send first
+  process_buffer_();
+  process_deferred_queue_();
+
+  if (!event_buffer_.empty() || !deferred_queue_.empty()) {
+    // outgoing event buffer or deferred queue still not empty which means downstream tcp send buffer full, no point trying to send first
     deq_push_back_with_dedup_(source, message_generator);
   } else {
     std::string message = message_generator(web_server_, source);
