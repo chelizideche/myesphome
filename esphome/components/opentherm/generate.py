@@ -6,6 +6,7 @@ from esphome.const import CONF_ID
 from . import const
 from .schema import TSchema
 
+
 opentherm_ns = cg.esphome_ns.namespace("opentherm")
 OpenthermHub = opentherm_ns.class_("OpenthermHub", cg.Component)
 
@@ -130,6 +131,8 @@ async def component_to_code(
         id = conf[CONF_ID]
         if id and id.type == type:
             entity = await create(conf, key, hub)
+            if const.CONF_MESSAGE_DATA in conf:
+                schemas[key].message_data = conf[const.CONF_MESSAGE_DATA]
             cg.add(getattr(hub, f"set_{key}_{component_type.lower()}")(entity))
             keys.append(key)
 
