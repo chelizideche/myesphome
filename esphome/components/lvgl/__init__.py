@@ -16,7 +16,7 @@ from esphome.const import (
     CONF_TYPE,
 )
 from esphome.core import CORE, ID
-from esphome.cpp_generator import CallExpression, MockObj, RawExpression
+from esphome.cpp_generator import MockObj
 from esphome.final_validate import full_config
 from esphome.helpers import write_file_if_changed
 
@@ -27,7 +27,7 @@ from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
 from .lv_validation import lv_bool, lv_images_used
-from .lvcode import LvContext, LvglComponent
+from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
     DISP_BG_SCHEMA,
     FLEX_OBJ_SCHEMA,
@@ -274,7 +274,7 @@ async def to_code(configs):
         add_define("LV_FONT_DEFAULT", df.DEFAULT_ESPHOME_FONT)
     else:
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
-    cg.add(CallExpression(RawExpression("lvgl::esphome_lvgl_init")))
+    cg.add(lvgl_static.esphome_lvgl_init())
 
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]

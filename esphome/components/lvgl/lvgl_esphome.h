@@ -114,15 +114,6 @@ class FontEngine {
 void lv_animimg_stop(lv_obj_t *obj);
 #endif  // USE_LVGL_ANIMIMG
 
-/**
- * Initialize the LVGL library and register custom events.
- */
-inline void esphome_lvgl_init() {
-  lv_init();
-  lv_update_event = static_cast<lv_event_code_t>(lv_event_register_id());
-  lv_api_event = static_cast<lv_event_code_t>(lv_event_register_id());
-}
-
 class LvglComponent : public PollingComponent {
   constexpr static const char *const TAG = "lvgl";
 
@@ -155,6 +146,10 @@ class LvglComponent : public PollingComponent {
     }
   }
 
+  /**
+   * Initialize the LVGL library and register custom events.
+   */
+  static void esphome_lvgl_init();
   static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event);
   static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2);
   static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2,

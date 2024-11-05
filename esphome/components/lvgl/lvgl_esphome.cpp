@@ -98,6 +98,11 @@ void LvglComponent::set_paused(bool paused, bool show_snow) {
   this->pause_callbacks_.call(paused);
 }
 
+void LvglComponent::esphome_lvgl_init() {
+  lv_init();
+  lv_update_event = static_cast<lv_event_code_t>(lv_event_register_id());
+  lv_api_event = static_cast<lv_event_code_t>(lv_event_register_id());
+}
 void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event) {
   lv_obj_add_event_cb(obj, callback, event, nullptr);
 }
