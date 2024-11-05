@@ -1,6 +1,7 @@
 #include "seeed_mr60fda2.h"
 #include "esphome/core/log.h"
 
+#include <cinttypes>
 #include <utility>
 
 namespace esphome {
@@ -250,44 +251,41 @@ void MR60FDA2Component::process_frame_() {
       this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       break;
 
-    case RESULT_PARAMETERS:
+    case RESULT_PARAMETERS: {
       float install_height_float = 0;
       float height_threshold_float = 0;
-      uint32_t current_install_height_int_ = 0;
-      uint32_t current_height_threshold_int_ = 0;
-      uint32_t current_sensitivity_ = 0;
-      uint32_t select_index_ = 0;
+      uint32_t current_sensitivity = 0;
       if (this->install_height_select_ != nullptr) {
-        current_install_height_int_ =
+        uint32_t current_install_height_int =
             encode_uint32(current_data_buf_[3], current_data_buf_[2], current_data_buf_[1], current_data_buf_[0]);
 
-        install_height_float = bit_cast<float>(current_install_height_int_);
-        select_index_ = find_nearest_index(install_height_float, INSTALL_HEIGHT, 7);
-        this->install_height_select_->publish_state(this->install_height_select_->at(select_index_).value());
+        install_height_float = bit_cast<float>(current_install_height_int);
+        uint32_t select_index = find_nearest_index(install_height_float, INSTALL_HEIGHT, 7);
+        this->install_height_select_->publish_state(this->install_height_select_->at(select_index).value());
       }
 
       if (this->height_threshold_select_ != nullptr) {
-        current_height_threshold_int_ =
+        uint32_t current_height_threshold_int_ =
             encode_uint32(current_data_buf_[7], current_data_buf_[6], current_data_buf_[5], current_data_buf_[4]);
 
         height_threshold_float = bit_cast<float>(current_height_threshold_int_);
-        select_index_ = find_nearest_index(height_threshold_float, HEIGHT_THRESHOLD, 7);
-        this->height_threshold_select_->publish_state(this->height_threshold_select_->at(select_index_).value());
+        size_t select_index = find_nearest_index(height_threshold_float, HEIGHT_THRESHOLD, 7);
+        this->height_threshold_select_->publish_state(this->height_threshold_select_->at(select_index).value());
       }
 
       if (this->sensitivity_select_ != nullptr) {
-        current_sensitivity_ =
+        current_sensitivity =
             encode_uint32(current_data_buf_[11], current_data_buf_[10], current_data_buf_[9], current_data_buf_[8]);
 
-        select_index_ = find_nearest_index(current_sensitivity_, SENSITIVITY, 3);
-        this->sensitivity_select_->publish_state(this->sensitivity_select_->at(select_index_).value());
+        uint32_t select_index = find_nearest_index(current_sensitivity, SENSITIVITY, 3);
+        this->sensitivity_select_->publish_state(this->sensitivity_select_->at(select_index).value());
       }
 
-      ESP_LOGD(TAG, "Mounting height: %.2f, Height threshold: %.2f, Sensitivity: %u", install_height_float,
-               height_threshold_float, this->current_sensitivity_);
+      ESP_LOGD(TAG, "Mounting height: %.2f, Height threshold: %.2f, Sensitivity: %" PRIu32, install_height_float,
+               height_threshold_float, current_sensitivity);
       this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       break;
-
+    }
     default:
       break;
   }
