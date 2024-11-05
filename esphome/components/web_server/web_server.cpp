@@ -1019,7 +1019,7 @@ void WebServer::handle_date_request(AsyncWebServerRequest *request, const UrlMat
     }
 
     if (request->hasParam("value")) {
-      std::string value = request->getParam("value")->value().c_str();
+      std::string value = request->getParam("value")->value().c_str();  // NOLINT
       call.set_date(value);
     }
 
@@ -1087,7 +1087,7 @@ void WebServer::handle_time_request(AsyncWebServerRequest *request, const UrlMat
     }
 
     if (request->hasParam("value")) {
-      std::string value = request->getParam("value")->value().c_str();
+      std::string value = request->getParam("value")->value().c_str();  // NOLINT
       call.set_time(value);
     }
 
@@ -1154,7 +1154,7 @@ void WebServer::handle_datetime_request(AsyncWebServerRequest *request, const Ur
     }
 
     if (request->hasParam("value")) {
-      std::string value = request->getParam("value")->value().c_str();
+      std::string value = request->getParam("value")->value().c_str();  // NOLINT
       call.set_datetime(value);
     }
 
@@ -1218,7 +1218,7 @@ void WebServer::handle_text_request(AsyncWebServerRequest *request, const UrlMat
     auto call = obj->make_call();
     if (request->hasParam("value")) {
       String value = request->getParam("value")->value();
-      call.set_value(value.c_str());
+      call.set_value(value.c_str());  // NOLINT
     }
 
     this->defer([call]() mutable { call.perform(); });
@@ -1290,7 +1290,7 @@ void WebServer::handle_select_request(AsyncWebServerRequest *request, const UrlM
 
     if (request->hasParam("option")) {
       auto option = request->getParam("option")->value();
-      call.set_option(option.c_str());  // NOLINT(clang-diagnostic-deprecated-declarations)
+      call.set_option(option.c_str());  // NOLINT
     }
 
     this->schedule_([call]() mutable { call.perform(); });
@@ -1358,17 +1358,17 @@ void WebServer::handle_climate_request(AsyncWebServerRequest *request, const Url
 
     if (request->hasParam("mode")) {
       auto mode = request->getParam("mode")->value();
-      call.set_mode(mode.c_str());
+      call.set_mode(mode.c_str());  // NOLINT
     }
 
     if (request->hasParam("fan_mode")) {
       auto mode = request->getParam("fan_mode")->value();
-      call.set_fan_mode(mode.c_str());
+      call.set_fan_mode(mode.c_str());  // NOLINT
     }
 
     if (request->hasParam("swing_mode")) {
       auto mode = request->getParam("swing_mode")->value();
-      call.set_swing_mode(mode.c_str());
+      call.set_swing_mode(mode.c_str());  // NOLINT
     }
 
     if (request->hasParam("target_temperature_high")) {
@@ -1845,7 +1845,7 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str(), true);
+  UrlMatch match = match_url(request->url().c_str(), true);  // NOLINT
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1984,7 +1984,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str());
+  UrlMatch match = match_url(request->url().c_str());  // NOLINT
 #ifdef USE_SENSOR
   if (match.domain == "sensor") {
     this->handle_sensor_request(request, match);
