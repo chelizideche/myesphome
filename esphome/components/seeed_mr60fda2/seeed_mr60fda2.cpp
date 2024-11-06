@@ -324,15 +324,12 @@ void MR60FDA2Component::process_frame_() {
   }
 }
 
-// Sending data frames
-void MR60FDA2Component::send_query_(uint8_t *query, size_t string_length) { this->write_array(query, string_length); }
-
 // Send Heartbeat Packet Command
 void MR60FDA2Component::set_install_height(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x04, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00};
   float_to_bytes(INSTALL_HEIGHT[index], &send_data[8]);
   send_data[12] = calculate_checksum(send_data + 8, 4);
-  this->send_query_(send_data, 13);
+  this->write_array(send_data, 13);
   ESP_LOGV(TAG, "SEND INSTALL HEIGHT FRAME: %s", format_hex_pretty(send_data, 13).c_str());
 }
 
@@ -340,7 +337,7 @@ void MR60FDA2Component::set_height_threshold(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x08, 0xFC, 0x00, 0x00, 0x00, 0x00, 0x00};
   float_to_bytes(INSTALL_HEIGHT[index], &send_data[8]);
   send_data[12] = calculate_checksum(send_data + 8, 4);
-  this->send_query_(send_data, 13);
+  this->write_array(send_data, 13);
   ESP_LOGV(TAG, "SEND HEIGHT THRESHOLD: %s", format_hex_pretty(send_data, 13).c_str());
 }
 
@@ -350,19 +347,19 @@ void MR60FDA2Component::set_sensitivity(uint8_t index) {
   int_to_bytes(SENSITIVITY[index], &send_data[8]);
 
   send_data[12] = calculate_checksum(send_data + 8, 4);
-  this->send_query_(send_data, 13);
+  this->write_array(send_data, 13);
   ESP_LOGV(TAG, "SEND SET SENSITIVITY: %s", format_hex_pretty(send_data, 13).c_str());
 }
 
 void MR60FDA2Component::get_radar_parameters() {
   uint8_t send_data[8] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x06, 0xF6};
-  this->send_query_(send_data, 8);
+  this->write_array(send_data, 8);
   ESP_LOGV(TAG, "SEND GET PARAMETERS: %s", format_hex_pretty(send_data, 8).c_str());
 }
 
 void MR60FDA2Component::factory_reset() {
   uint8_t send_data[8] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x21, 0x10, 0xCF};
-  this->send_query_(send_data, 8);
+  this->write_array(send_data, 8);
   ESP_LOGV(TAG, "SEND RESET: %s", format_hex_pretty(send_data, 8).c_str());
   this->get_radar_parameters();
 }

@@ -84,7 +84,6 @@ class MR60FDA2Component : public Component,
 
   void split_frame_(uint8_t buffer);
   void process_frame_();
-  void send_query_(uint8_t *query, size_t string_length);
 
  public:
   float get_setup_priority() const override { return esphome::setup_priority::LATE; }
