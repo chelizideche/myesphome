@@ -12,7 +12,7 @@ opentherm:
   cooling_enable: false
   otc_active: false
   ch2_active: true
-  t_room: t_boiler # We are testing compilability only, so plugging in a random sensor
+  t_room: t_boiler
   summer_mode_active: true
   dhw_block: true
   sync_mode: true
