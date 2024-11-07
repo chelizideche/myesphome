@@ -119,7 +119,8 @@ std::string DebugComponent::get_reset_reason_() {
         case ESP_RST_SDIO:
           reset_reason = "Reset over SDIO";
           break;
-#if defined(USE_ESP_IDF) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
+#ifdef USE_ESP32
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5))
         case ESP_RST_USB:
           reset_reason = "Reset by USB peripheral";
           break;
