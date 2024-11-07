@@ -119,7 +119,7 @@ std::string DebugComponent::get_reset_reason_() {
         case ESP_RST_SDIO:
           reset_reason = "Reset over SDIO";
           break;
-#ifdef USE_ESP32
+#ifdef USE_ESP32_VARIANT_ESP32
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5))
         case ESP_RST_USB:
           reset_reason = "Reset by USB peripheral";
@@ -137,7 +137,7 @@ std::string DebugComponent::get_reset_reason_() {
           reset_reason = "Reset due to CPU lock up (double exception)";
           break;
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5)
-#endif  // USE_ESP32
+#endif  // USE_ESP32_VARIANT_ESP32
         default:
           reset_reason = "Software Reset CPU";
           break;
