@@ -137,20 +137,18 @@ async def disp_update(disp, config: dict):
         cv.maybe_simple_value(
             {
                 cv.Required(CONF_ID): cv.use_id(lv_obj_t),
-                cv.GenerateID(CONF_LVGL_ID): cv.use_id(LvglComponent),
             },
             key=CONF_ID,
         ),
-        cv.Schema(
-            {
-                cv.GenerateID(CONF_LVGL_ID): cv.use_id(LvglComponent),
-            }
-        ),
+        LVGL_SCHEMA,
     ),
 )
 async def obj_invalidate_to_code(config, action_id, template_arg, args):
-    lv_comp = await cg.get_variable(config[CONF_LVGL_ID])
-    widgets = await get_widgets(config) or [get_scr_act(lv_comp)]
+    if CONF_LVGL_ID in config:
+        lv_comp = await cg.get_variable(config[CONF_LVGL_ID])
+        widgets = [get_scr_act(lv_comp)]
+    else:
+        widgets = await get_widgets(config)
 
     async def do_invalidate(widget: Widget):
         lv_obj.invalidate(widget.obj)
