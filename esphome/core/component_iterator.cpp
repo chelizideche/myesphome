@@ -160,14 +160,14 @@ void ComponentIterator::advance() {
 #endif
 #ifdef USE_CAMERA
     case IteratorState::CAMERA:
-      if (camera::Camera::global_camera == nullptr) {
+      if (camera::Camera::instance() == nullptr) {
         advance_platform = true;
       } else {
-        if (camera::Camera::global_camera->is_internal() && !this->include_internal_) {
+        if (camera::Camera::instance()->is_internal() && !this->include_internal_) {
           advance_platform = success = true;
           break;
         } else {
-          advance_platform = success = this->on_camera(camera::Camera::global_camera);
+          advance_platform = success = this->on_camera(camera::Camera::instance());
         }
       }
       break;

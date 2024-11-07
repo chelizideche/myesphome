@@ -41,9 +41,8 @@ APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *pa
 #endif
 
 #ifdef USE_CAMERA
-  if (camera::Camera::global_camera != nullptr) {
-    this->image_reader_ =
-        std::unique_ptr<camera::CameraImageReader>{camera::Camera::global_camera->create_image_reader()};
+  if (camera::Camera::instance() != nullptr) {
+    this->image_reader_ = std::unique_ptr<camera::CameraImageReader>{camera::Camera::instance()->create_image_reader()};
   }
 #endif
 }
@@ -161,7 +160,7 @@ void APIConnection::loop() {
     uint32_t to_send = std::min((size_t) 1024, this->image_reader_->available());
     auto buffer = this->create_buffer();
     // fixed32 key = 1;
-    buffer.encode_fixed32(1, camera::Camera::global_camera->get_object_id_hash());
+    buffer.encode_fixed32(1, camera::Camera::instance()->get_object_id_hash());
     // bytes data = 2;
     buffer.encode_bytes(2, this->image_reader_->peek_data_buffer(), to_send);
     // bool done = 3;
@@ -1092,16 +1091,16 @@ bool APIConnection::send_camera_info(camera::Camera *camera) {
   return this->send_list_entities_camera_response(msg);
 }
 void APIConnection::camera_image(const CameraImageRequest &msg) {
-  if (camera::Camera::global_camera == nullptr)
+  if (camera::Camera::instance() == nullptr)
     return;
 
   if (msg.single)
-    camera::Camera::global_camera->request_image(esphome::camera::API_REQUESTER);
+    camera::Camera::instance()->request_image(esphome::camera::API_REQUESTER);
   if (msg.stream) {
-    camera::Camera::global_camera->start_stream(esphome::camera::API_REQUESTER);
+    camera::Camera::instance()->start_stream(esphome::camera::API_REQUESTER);
 
     App.scheduler.set_timeout(this->parent_, "api_esp32_camera_stop_stream", ESP32_CAMERA_STOP_STREAM,
-                              []() { camera::Camera::global_camera->stop_stream(esphome::camera::API_REQUESTER); });
+                              []() { camera::Camera::instance()->stop_stream(esphome::camera::API_REQUESTER); });
   }
 }
 #endif

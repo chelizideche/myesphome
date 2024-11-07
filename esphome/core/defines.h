@@ -21,6 +21,7 @@
 #define USE_API_PLAINTEXT
 #define USE_BINARY_SENSOR
 #define USE_BUTTON
+#define USE_CAMERA
 #define USE_CLIMATE
 #define USE_COVER
 #define USE_DATETIME
@@ -102,7 +103,6 @@
 #define USE_ESP32_BLE
 #define USE_ESP32_BLE_CLIENT
 #define USE_ESP32_BLE_SERVER
-#define USE_CAMERA
 #define USE_IMPROV
 #define USE_MICRO_WAKE_WORD_VAD
 #define USE_MICROPHONE

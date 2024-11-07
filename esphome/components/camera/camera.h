@@ -54,11 +54,15 @@ class CameraImageReader {
  *  6) API connection consumes data from the image reader and returns the image when finished.
  *  7.a) Camera caputes new image and continues with 4) until start_stream is called.
  */
-class Camera : public EntityBase {
+class Camera : public Component, public EntityBase {
  public:
   Camera();
   // Camera implementation invokes callback to publish a new image.
-  virtual void add_image_callback(std::function<void(std::shared_ptr<CameraImage>)> &&callback) = 0;
+  virtual void add_image_callback(std::function<void(std::shared_ptr<CameraImage>)> &&callback);
+  // Camera implementation invokes callback when start_stream is called.
+  virtual void add_stream_start_callback(std::function<void()> &&callback);
+  // Camera implementation invokes callback when stop_stream is called.
+  virtual void add_stream_stop_callback(std::function<void()> &&callback);
   /// Returns a new camera image reader that keeps track of the JPEG data in the camera image.
   virtual CameraImageReader *create_image_reader() = 0;
   // Connection, camera or web server requests one new JPEG image.
@@ -69,8 +73,54 @@ class Camera : public EntityBase {
   virtual void stop_stream(CameraRequester requester) = 0;
   virtual ~Camera() {}
   /// The singleton instance of the camera implementation.
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  static Camera *instance();
+
+ protected:
+  CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
+  CallbackManager<void()> stream_start_callback_{};
+  CallbackManager<void()> stream_stop_callback_{};
   static Camera *global_camera;
+};
+
+/** Struct that encapsulates the image data for the CameraImageTrigger */
+struct CameraImageData {
+  uint8_t *data;
+  size_t length;
+};
+
+/** Class that installs a camera callback which is triggered
+ *  every time a new image is captured.
+ */
+class CameraImageTrigger : public Trigger<CameraImageData> {
+ public:
+  explicit CameraImageTrigger(Camera *camera) {
+    camera->add_image_callback([this](const std::shared_ptr<camera::CameraImage> &image) {
+      CameraImageData camera_image_data{};
+      camera_image_data.length = image->get_data_length();
+      camera_image_data.data = image->get_data_buffer();
+      this->trigger(camera_image_data);
+    });
+  }
+};
+
+/** Class that installs a camera callback which is triggered
+ *  every time a new image stream is requested.
+ */
+class CameraStreamStartTrigger : public Trigger<> {
+ public:
+  explicit CameraStreamStartTrigger(Camera *camera) {
+    camera->add_stream_start_callback([this]() { this->trigger(); });
+  }
+};
+
+/** Class that installs a camera callback which is triggered
+ *  every time a image stream is stopped.
+ */
+class CameraStreamStopTrigger : public Trigger<> {
+ public:
+  explicit CameraStreamStopTrigger(Camera *camera) {
+    camera->add_stream_stop_callback([this]() { this->trigger(); });
+  }
 };
 
 }  // namespace camera

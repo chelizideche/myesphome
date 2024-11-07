@@ -1,5 +1,6 @@
-from esphome import automation, pins
+from esphome import pins
 import esphome.codegen as cg
+from esphome.components import camera
 from esphome.components.esp32 import add_idf_component
 import esphome.config_validation as cv
 from esphome.const import (
@@ -13,7 +14,6 @@ from esphome.const import (
     CONF_RESOLUTION,
     CONF_SCL,
     CONF_SDA,
-    CONF_TRIGGER_ID,
     CONF_VSYNC_PIN,
 )
 from esphome.core import CORE
@@ -25,19 +25,6 @@ AUTO_LOAD = ["psram", "camera"]
 
 esp32_camera_ns = cg.esphome_ns.namespace("esp32_camera")
 ESP32Camera = esp32_camera_ns.class_("ESP32Camera", cg.PollingComponent, cg.EntityBase)
-ESP32CameraImageData = esp32_camera_ns.struct("CameraImageData")
-# Triggers
-ESP32CameraImageTrigger = esp32_camera_ns.class_(
-    "ESP32CameraImageTrigger", automation.Trigger.template()
-)
-ESP32CameraStreamStartTrigger = esp32_camera_ns.class_(
-    "ESP32CameraStreamStartTrigger",
-    automation.Trigger.template(),
-)
-ESP32CameraStreamStopTrigger = esp32_camera_ns.class_(
-    "ESP32CameraStreamStopTrigger",
-    automation.Trigger.template(),
-)
 ESP32CameraFrameSize = esp32_camera_ns.enum("ESP32CameraFrameSize")
 FRAME_SIZES = {
     "160X120": ESP32CameraFrameSize.ESP32_CAMERA_SIZE_160X120,
@@ -142,100 +129,82 @@ CONF_IDLE_FRAMERATE = "idle_framerate"
 # frame buffer
 CONF_FRAME_BUFFER_COUNT = "frame_buffer_count"
 
-# stream trigger
-CONF_ON_STREAM_START = "on_stream_start"
-CONF_ON_STREAM_STOP = "on_stream_stop"
-CONF_ON_IMAGE = "on_image"
-
 camera_range_param = cv.int_range(min=-2, max=2)
 
-CONFIG_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
-    {
-        cv.GenerateID(): cv.declare_id(ESP32Camera),
-        # pin assignment
-        cv.Required(CONF_DATA_PINS): cv.All(
-            [pins.internal_gpio_input_pin_number], cv.Length(min=8, max=8)
-        ),
-        cv.Required(CONF_VSYNC_PIN): pins.internal_gpio_input_pin_number,
-        cv.Required(CONF_HREF_PIN): pins.internal_gpio_input_pin_number,
-        cv.Required(CONF_PIXEL_CLOCK_PIN): pins.internal_gpio_input_pin_number,
-        cv.Required(CONF_EXTERNAL_CLOCK): cv.Schema(
-            {
-                cv.Required(CONF_PIN): pins.internal_gpio_input_pin_number,
-                cv.Optional(CONF_FREQUENCY, default="20MHz"): cv.All(
-                    cv.frequency, cv.Range(min=8e6, max=20e6)
-                ),
-            }
-        ),
-        cv.Required(CONF_I2C_PINS): cv.Schema(
-            {
-                cv.Required(CONF_SDA): pins.internal_gpio_output_pin_number,
-                cv.Required(CONF_SCL): pins.internal_gpio_output_pin_number,
-            }
-        ),
-        cv.Optional(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
-        cv.Optional(CONF_POWER_DOWN_PIN): pins.internal_gpio_output_pin_number,
-        # image
-        cv.Optional(CONF_RESOLUTION, default="640X480"): cv.enum(
-            FRAME_SIZES, upper=True
-        ),
-        cv.Optional(CONF_JPEG_QUALITY, default=10): cv.int_range(min=6, max=63),
-        cv.Optional(CONF_CONTRAST, default=0): camera_range_param,
-        cv.Optional(CONF_BRIGHTNESS, default=0): camera_range_param,
-        cv.Optional(CONF_SATURATION, default=0): camera_range_param,
-        cv.Optional(CONF_VERTICAL_FLIP, default=True): cv.boolean,
-        cv.Optional(CONF_HORIZONTAL_MIRROR, default=True): cv.boolean,
-        cv.Optional(CONF_SPECIAL_EFFECT, default="NONE"): cv.enum(
-            ENUM_SPECIAL_EFFECT, upper=True
-        ),
-        # exposure
-        cv.Optional(CONF_AGC_MODE, default="AUTO"): cv.enum(
-            ENUM_GAIN_CONTROL_MODE, upper=True
-        ),
-        cv.Optional(CONF_AEC2, default=False): cv.boolean,
-        cv.Optional(CONF_AE_LEVEL, default=0): camera_range_param,
-        cv.Optional(CONF_AEC_VALUE, default=300): cv.int_range(min=0, max=1200),
-        # gains
-        cv.Optional(CONF_AEC_MODE, default="AUTO"): cv.enum(
-            ENUM_GAIN_CONTROL_MODE, upper=True
-        ),
-        cv.Optional(CONF_AGC_VALUE, default=0): cv.int_range(min=0, max=30),
-        cv.Optional(CONF_AGC_GAIN_CEILING, default="2X"): cv.enum(
-            ENUM_GAIN_CEILING, upper=True
-        ),
-        # white balance
-        cv.Optional(CONF_WB_MODE, default="AUTO"): cv.enum(ENUM_WB_MODE, upper=True),
-        # test pattern
-        cv.Optional(CONF_TEST_PATTERN, default=False): cv.boolean,
-        # framerates
-        cv.Optional(CONF_MAX_FRAMERATE, default="10 fps"): cv.All(
-            cv.framerate, cv.Range(min=0, min_included=False, max=60)
-        ),
-        cv.Optional(CONF_IDLE_FRAMERATE, default="0.1 fps"): cv.All(
-            cv.framerate, cv.Range(min=0, max=1)
-        ),
-        cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
-        cv.Optional(CONF_ON_STREAM_START): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                    ESP32CameraStreamStartTrigger
-                ),
-            }
-        ),
-        cv.Optional(CONF_ON_STREAM_STOP): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                    ESP32CameraStreamStopTrigger
-                ),
-            }
-        ),
-        cv.Optional(CONF_ON_IMAGE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESP32CameraImageTrigger),
-            }
-        ),
-    }
-).extend(cv.COMPONENT_SCHEMA)
+CONFIG_SCHEMA = (
+    cv.ENTITY_BASE_SCHEMA.extend(
+        {
+            cv.GenerateID(): cv.declare_id(ESP32Camera),
+            # pin assignment
+            cv.Required(CONF_DATA_PINS): cv.All(
+                [pins.internal_gpio_input_pin_number], cv.Length(min=8, max=8)
+            ),
+            cv.Required(CONF_VSYNC_PIN): pins.internal_gpio_input_pin_number,
+            cv.Required(CONF_HREF_PIN): pins.internal_gpio_input_pin_number,
+            cv.Required(CONF_PIXEL_CLOCK_PIN): pins.internal_gpio_input_pin_number,
+            cv.Required(CONF_EXTERNAL_CLOCK): cv.Schema(
+                {
+                    cv.Required(CONF_PIN): pins.internal_gpio_input_pin_number,
+                    cv.Optional(CONF_FREQUENCY, default="20MHz"): cv.All(
+                        cv.frequency, cv.Range(min=8e6, max=20e6)
+                    ),
+                }
+            ),
+            cv.Required(CONF_I2C_PINS): cv.Schema(
+                {
+                    cv.Required(CONF_SDA): pins.internal_gpio_output_pin_number,
+                    cv.Required(CONF_SCL): pins.internal_gpio_output_pin_number,
+                }
+            ),
+            cv.Optional(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_POWER_DOWN_PIN): pins.internal_gpio_output_pin_number,
+            # image
+            cv.Optional(CONF_RESOLUTION, default="640X480"): cv.enum(
+                FRAME_SIZES, upper=True
+            ),
+            cv.Optional(CONF_JPEG_QUALITY, default=10): cv.int_range(min=6, max=63),
+            cv.Optional(CONF_CONTRAST, default=0): camera_range_param,
+            cv.Optional(CONF_BRIGHTNESS, default=0): camera_range_param,
+            cv.Optional(CONF_SATURATION, default=0): camera_range_param,
+            cv.Optional(CONF_VERTICAL_FLIP, default=True): cv.boolean,
+            cv.Optional(CONF_HORIZONTAL_MIRROR, default=True): cv.boolean,
+            cv.Optional(CONF_SPECIAL_EFFECT, default="NONE"): cv.enum(
+                ENUM_SPECIAL_EFFECT, upper=True
+            ),
+            # exposure
+            cv.Optional(CONF_AGC_MODE, default="AUTO"): cv.enum(
+                ENUM_GAIN_CONTROL_MODE, upper=True
+            ),
+            cv.Optional(CONF_AEC2, default=False): cv.boolean,
+            cv.Optional(CONF_AE_LEVEL, default=0): camera_range_param,
+            cv.Optional(CONF_AEC_VALUE, default=300): cv.int_range(min=0, max=1200),
+            # gains
+            cv.Optional(CONF_AEC_MODE, default="AUTO"): cv.enum(
+                ENUM_GAIN_CONTROL_MODE, upper=True
+            ),
+            cv.Optional(CONF_AGC_VALUE, default=0): cv.int_range(min=0, max=30),
+            cv.Optional(CONF_AGC_GAIN_CEILING, default="2X"): cv.enum(
+                ENUM_GAIN_CEILING, upper=True
+            ),
+            # white balance
+            cv.Optional(CONF_WB_MODE, default="AUTO"): cv.enum(
+                ENUM_WB_MODE, upper=True
+            ),
+            # test pattern
+            cv.Optional(CONF_TEST_PATTERN, default=False): cv.boolean,
+            # framerates
+            cv.Optional(CONF_MAX_FRAMERATE, default="10 fps"): cv.All(
+                cv.framerate, cv.Range(min=0, min_included=False, max=60)
+            ),
+            cv.Optional(CONF_IDLE_FRAMERATE, default="0.1 fps"): cv.All(
+                cv.framerate, cv.Range(min=0, max=1)
+            ),
+            cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
+        }
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(camera.CONFIG_SCHEMA)
+)
 
 SETTERS = {
     # pin assignment
@@ -273,6 +242,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await setup_entity(var, config)
     await cg.register_component(var, config)
+    await camera.setup_camera(var, config)
 
     for key, setter in SETTERS.items():
         if key in config:
@@ -290,25 +260,9 @@ async def to_code(config):
     cg.add(var.set_frame_buffer_count(config[CONF_FRAME_BUFFER_COUNT]))
     cg.add(var.set_frame_size(config[CONF_RESOLUTION]))
 
-    cg.add_define("USE_CAMERA")
-
     if CORE.using_esp_idf:
         add_idf_component(
             name="esp32-camera",
             repo="https://github.com/espressif/esp32-camera.git",
             ref="v2.0.9",
-        )
-
-    for conf in config.get(CONF_ON_STREAM_START, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_STREAM_STOP, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_IMAGE, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(
-            trigger, [(ESP32CameraImageData, "image")], conf
         )

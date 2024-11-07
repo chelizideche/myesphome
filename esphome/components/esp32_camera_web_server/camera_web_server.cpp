@@ -40,7 +40,7 @@ CameraWebServer::CameraWebServer() {}
 CameraWebServer::~CameraWebServer() {}
 
 void CameraWebServer::setup() {
-  if (!camera::Camera::global_camera) {
+  if (!camera::Camera::instance() || camera::Camera::instance()->is_failed()) {
     this->mark_failed();
     return;
   }
@@ -67,7 +67,7 @@ void CameraWebServer::setup() {
 
   httpd_register_uri_handler(this->httpd_, &uri);
 
-  camera::Camera::global_camera->add_image_callback([this](std::shared_ptr<camera::CameraImage> image) {
+  camera::Camera::instance()->add_image_callback([this](std::shared_ptr<camera::CameraImage> image) {
     if (this->running_ && image->was_requested_by(camera::WEB_REQUESTER)) {
       this->image_ = std::move(image);
       xSemaphoreGive(this->semaphore_);
@@ -170,7 +170,7 @@ esp_err_t CameraWebServer::streaming_handler_(struct httpd_req *req) {
   uint32_t last_frame = millis();
   uint32_t frames = 0;
 
-  camera::Camera::global_camera->start_stream(esphome::camera::WEB_REQUESTER);
+  camera::Camera::instance()->start_stream(esphome::camera::WEB_REQUESTER);
 
   while (res == ESP_OK && this->running_) {
     auto image = this->wait_for_image_();
@@ -203,7 +203,7 @@ esp_err_t CameraWebServer::streaming_handler_(struct httpd_req *req) {
     res = httpd_send_all(req, STREAM_ERROR, strlen(STREAM_ERROR));
   }
 
-  camera::Camera::global_camera->stop_stream(esphome::camera::WEB_REQUESTER);
+  camera::Camera::instance()->stop_stream(esphome::camera::WEB_REQUESTER);
 
   ESP_LOGI(TAG, "STREAM: closed. Frames: %" PRIu32, frames);
 
@@ -213,7 +213,7 @@ esp_err_t CameraWebServer::streaming_handler_(struct httpd_req *req) {
 esp_err_t CameraWebServer::snapshot_handler_(struct httpd_req *req) {
   esp_err_t res = ESP_OK;
 
-  camera::Camera::global_camera->request_image(esphome::camera::WEB_REQUESTER);
+  camera::Camera::instance()->request_image(esphome::camera::WEB_REQUESTER);
 
   auto image = this->wait_for_image_();
 
