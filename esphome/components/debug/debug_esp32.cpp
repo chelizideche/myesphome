@@ -78,8 +78,8 @@ std::string DebugComponent::get_reset_reason_() {
     case ESP_RST_CPU_LOCKUP:
       reset_reason = "Reset due to CPU lock up (double exception)";
       break;
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5)
-#endif  // USE_ESP32_VARIANT_ESP32
+#endif        // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5)
+#endif        // USE_ESP32_VARIANT_ESP32
     default:  // Includes ESP_RST_UNKNOWN
       switch (rtc_get_reset_reason(0)) {
         case POWERON_RESET:
@@ -88,7 +88,7 @@ std::string DebugComponent::get_reset_reason_() {
 #if defined(USE_ESP32_VARIANT_ESP32)
         case SW_RESET:
 #elif defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S2) || \
-        defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
+    defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
         case RTC_SW_SYS_RESET:
 #endif
           reset_reason = "Software Reset Digital Core";
@@ -125,7 +125,7 @@ std::string DebugComponent::get_reset_reason_() {
           reset_reason = "Timer Group Reset CPU";
           break;
 #elif defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S2) || \
-        defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
+    defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
         case TG0WDT_CPU_RESET:
           reset_reason = "Timer Group 0 Reset CPU";
           break;
@@ -133,7 +133,7 @@ std::string DebugComponent::get_reset_reason_() {
 #if defined(USE_ESP32_VARIANT_ESP32)
         case SW_CPU_RESET:
 #elif defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S2) || \
-        defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
+    defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
         case RTC_SW_CPU_RESET:
 #endif
           reset_reason = "Software Reset CPU";
@@ -153,7 +153,7 @@ std::string DebugComponent::get_reset_reason_() {
           reset_reason = "RTC Watch Dog Reset Digital Core And RTC Module";
           break;
 #if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3) || \
-        defined(USE_ESP32_VARIANT_ESP32C6)
+    defined(USE_ESP32_VARIANT_ESP32C6)
         case TG1WDT_CPU_RESET:
           reset_reason = "Timer Group 1 Reset CPU";
           break;
