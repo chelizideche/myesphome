@@ -66,6 +66,10 @@ SPI_MODE_OPTIONS = {
     1: SPIMode.MODE1,
     2: SPIMode.MODE2,
     3: SPIMode.MODE3,
+    "0": SPIMode.MODE0,
+    "1": SPIMode.MODE1,
+    "2": SPIMode.MODE2,
+    "3": SPIMode.MODE3,
 }
 
 CONF_SPI_MODE = "spi_mode"
