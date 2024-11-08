@@ -3,6 +3,8 @@
 #include "esphome/core/log.h"
 #include "air_conditioner.h"
 #include "ac_adapter.h"
+#include <cmath>
+#include <cstdint>
 
 namespace esphome {
 namespace midea {
@@ -121,7 +123,29 @@ void AirConditioner::dump_config() {
 
 void AirConditioner::do_follow_me(float temperature, bool beeper) {
 #ifdef USE_REMOTE_TRANSMITTER
-  IrFollowMeData data(static_cast<uint8_t>(lroundf(temperature)), beeper);
+  // Check if temperature is finite (not NaN or infinite)
+  if (!std::isfinite(temperature)) {
+      ESP_LOGW(Constants::TAG, "Follow me action requires a finite temperature, got: %f", temperature);
+      return;
+  }
+
+  // Round the temperature
+  long int rounded_temp = std::lroundf(temperature);
+
+  // Check if rounded temperature is within the uint8_t range
+  if (rounded_temp < 0 || rounded_temp > UINT8_MAX) {
+      ESP_LOGW(Constants::TAG, "Rounded temperature out of range: %ld", rounded_temp);
+      return;
+  }
+
+  // Safely cast to uint8_t after all checks
+  uint8_t rounded_temp_uint8 = static_cast<uint8_t>(rounded_temp);
+
+  ESP_LOGD(Constants::TAG, "Follow me action called with temperature: %f, sending rounded temperature: %u", temperature, rounded_temp_uint8);
+
+
+  // Create and transmit the data
+  IrFollowMeData data(rounded_temp_uint8, beeper);
   this->transmitter_.transmit(data);
 #else
   ESP_LOGW(Constants::TAG, "Action needs remote_transmitter component");
