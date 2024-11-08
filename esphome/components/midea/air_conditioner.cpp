@@ -130,8 +130,8 @@ void AirConditioner::do_follow_me(float temperature, bool beeper) {
   }
 
   // Round and convert temperature to long, then clamp and convert it to uint8_t
-  uint8_t temp_uint8 = static_cast<uint8_t>(std::max(0L, 
-                                                     std::min(static_cast<long>(UINT8_MAX), 
+  uint8_t temp_uint8 = static_cast<uint8_t>(std::max(0L,
+                                                     std::min(static_cast<long>(UINT8_MAX),
                                                               std::lroundf(temperature))));
 
   ESP_LOGD(Constants::TAG, "Follow me action called with temperature: %f °C, rounded to: %u °C", temperature,
