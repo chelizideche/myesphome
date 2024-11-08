@@ -271,6 +271,7 @@ class LVEncoderListener : public Parented<LvglComponent> {
     if (!this->parent_->is_paused()) {
       this->pressed_ = pressed;
       this->key_ = key;
+      ESP_LOGD("encoder_listener", "Key press %X", key);
     } else if (!pressed) {
       // maybe wakeup on release if paused
       this->parent_->maybe_wakeup();

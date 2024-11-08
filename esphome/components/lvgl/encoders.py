@@ -40,8 +40,7 @@ ENCODERS_CONFIG = cv.ensure_list(
 
 
 def get_default_group(config):
-    default_group = lv_Pvariable(lv_group_t, config[CONF_DEFAULT_GROUP])
-    lv_assign(default_group, lv_expr.group_create())
+    default_group = cg.Pvariable(config[CONF_DEFAULT_GROUP], lv_expr.group_create())
     lv.group_set_default(default_group)
     return default_group
 
