@@ -24,7 +24,7 @@ CameraStreamStopTrigger = camera_ns.class_(
     automation.Trigger.template(),
 )
 
-CONFIG_SCHEMA = cv.Schema(
+CAMERA_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_ON_STREAM_START): automation.validate_automation(
             {

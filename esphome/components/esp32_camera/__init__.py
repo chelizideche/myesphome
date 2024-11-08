@@ -203,7 +203,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(camera.CONFIG_SCHEMA)
+    .extend(camera.CAMERA_SCHEMA)
 )
 
 SETTERS = {
