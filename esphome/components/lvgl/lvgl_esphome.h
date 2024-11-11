@@ -146,10 +146,14 @@ class LvglComponent : public PollingComponent {
     }
   }
 
-  void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event);
-  void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2);
-  void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2,
-                    lv_event_code_t event3);
+  /**
+   * Initialize the LVGL library and register custom events.
+   */
+  static void esphome_lvgl_init();
+  static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event);
+  static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2);
+  static void add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1, lv_event_code_t event2,
+                           lv_event_code_t event3);
   void add_page(LvPageType *page);
   void show_page(size_t index, lv_scr_load_anim_t anim, uint32_t time);
   void show_next_page(lv_scr_load_anim_t anim, uint32_t time);
@@ -231,7 +235,7 @@ template<typename... Ts> class LvglCondition : public Condition<Ts...>, public P
 #ifdef USE_LVGL_TOUCHSCREEN
 class LVTouchListener : public touchscreen::TouchListener, public Parented<LvglComponent> {
  public:
-  LVTouchListener(uint16_t long_press_time, uint16_t long_press_repeat_time);
+  LVTouchListener(uint16_t long_press_time, uint16_t long_press_repeat_time, LvglComponent *parent);
   void update(const touchscreen::TouchPoints_t &tpoints) override;
   void release() override {
     touch_pressed_ = false;
