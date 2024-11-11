@@ -9,6 +9,7 @@ from esphome.const import (
     CONF_BRIGHTNESS,
     CONF_TRIGGER_ID,
     CONF_ON_TOUCH,
+    CONF_ON_BUFFER_OVERFLOW,
 )
 from esphome.core import CORE
 from . import Nextion, nextion_ns, nextion_ref
@@ -36,6 +37,7 @@ SleepTrigger = nextion_ns.class_("SleepTrigger", automation.Trigger.template())
 WakeTrigger = nextion_ns.class_("WakeTrigger", automation.Trigger.template())
 PageTrigger = nextion_ns.class_("PageTrigger", automation.Trigger.template())
 TouchTrigger = nextion_ns.class_("TouchTrigger", automation.Trigger.template())
+BufferOverflowTrigger = nextion_ns.class_("BufferOverflowTrigger", automation.Trigger.template())
 
 CONFIG_SCHEMA = (
     display.BASIC_DISPLAY_SCHEMA.extend(
@@ -66,6 +68,11 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ON_TOUCH): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(TouchTrigger),
+                }
+            ),
+            cv.Optional(CONF_ON_BUFFER_OVERFLOW): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BufferOverflowTrigger),
                 }
             ),
             cv.Optional(CONF_TOUCH_SLEEP_TIMEOUT): cv.int_range(min=3, max=65535),
@@ -151,3 +158,7 @@ async def to_code(config):
             ],
             conf,
         )
+
+    for conf in config.get(CONF_ON_BUFFER_OVERFLOW, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
