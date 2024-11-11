@@ -256,15 +256,8 @@ class LVEncoderListener : public Parented<LvglComponent> {
   LVEncoderListener(lv_indev_type_t type, uint16_t lpt, uint16_t lprt);
 
 #ifdef USE_BINARY_SENSOR
-  void set_left_button(binary_sensor::BinarySensor *left_button) {
-    left_button->add_on_state_callback([this](bool state) { this->event(LV_KEY_LEFT, state); });
-  }
-  void set_right_button(binary_sensor::BinarySensor *right_button) {
-    right_button->add_on_state_callback([this](bool state) { this->event(LV_KEY_RIGHT, state); });
-  }
-
-  void set_enter_button(binary_sensor::BinarySensor *enter_button) {
-    enter_button->add_on_state_callback([this](bool state) { this->event(LV_KEY_ENTER, state); });
+  void add_button(binary_sensor::BinarySensor *button, lv_key_t key) {
+    button->add_on_state_callback([this, key](bool state) { this->event(key, state); });
   }
 #endif
 
