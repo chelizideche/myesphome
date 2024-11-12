@@ -119,71 +119,75 @@ DisplayIntensityAction = max7219_ns.class_("DisplayIntensityAction", automation.
 
 MAX7219_OFF_ACTION_SCHEMA = automation.maybe_simple_id(
     {
-        cv.Required(CONF_ID): cv.use_id(MAX7219Component),
+        cv.GenerateID(): cv.use_id(MAX7219Component),
         cv.Optional(CONF_STATE, default=False): False,
     }
 )
 
 MAX7219_ON_ACTION_SCHEMA = automation.maybe_simple_id(
     {
-        cv.Required(CONF_ID): cv.use_id(MAX7219Component),
+        cv.GenerateID(): cv.use_id(MAX7219Component),
         cv.Optional(CONF_STATE, default=True): True,
     }
 )
 
 
 @automation.register_action(
-    "MAX7219.invert_off", DisplayInvertAction, MAX7219_OFF_ACTION_SCHEMA
+    "max7129digit.invert_off", DisplayInvertAction, MAX7219_OFF_ACTION_SCHEMA
 )
 @automation.register_action(
-    "MAX7219.invert_on", DisplayInvertAction, MAX7219_ON_ACTION_SCHEMA
+    "max7129digit.invert_on", DisplayInvertAction, MAX7219_ON_ACTION_SCHEMA
 )
-async def MAX7219_inveert_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_STATE], args, bool)
-    cg.add(var.set_state(template_))
-
-
-@automation.register_action(
-    "MAX7219.turn_off", DisplayVisibilityAction, MAX7219_OFF_ACTION_SCHEMA
-)
-@automation.register_action(
-    "MAX7219.turn_on", DisplayVisibilityAction, MAX7219_ON_ACTION_SCHEMA
-)
-async def MAX7219_visible_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_STATE], args, bool)
-    cg.add(var.set_state(template_))
+async def max7129digit_invert_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    cg.add(var.set_state(config[CONF_STATE]))
+    return var
 
 
 @automation.register_action(
-    "MAX7219.reverse_off", DisplayReverseAction, MAX7219_OFF_ACTION_SCHEMA
+    "max7129digit.turn_off", DisplayVisibilityAction, MAX7219_OFF_ACTION_SCHEMA
 )
 @automation.register_action(
-    "MAX7219.reverse_on", DisplayReverseAction, MAX7219_ON_ACTION_SCHEMA
+    "max7129digit.turn_on", DisplayVisibilityAction, MAX7219_ON_ACTION_SCHEMA
 )
-async def MAX7219_reverse_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_STATE], args, bool)
-    cg.add(var.set_state(template_))
+async def max7129digit_visible_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    cg.add(var.set_state(config[CONF_STATE]))
+    return var
 
 
-MAX7219_INTENSITY_SCHEMA = automation.maybe_simple_id(
+@automation.register_action(
+    "max7129digit.reverse_off", DisplayReverseAction, MAX7219_OFF_ACTION_SCHEMA
+)
+@automation.register_action(
+    "max7129digit.reverse_on", DisplayReverseAction, MAX7219_ON_ACTION_SCHEMA
+)
+async def max7129digit_reverse_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    cg.add(var.set_state(config[CONF_STATE]))
+    return var
+
+
+MAX7219_INTENSITY_SCHEMA = cv.maybe_simple_value(
     {
-        cv.Required(CONF_ID): cv.use_id(MAX7219Component),
-        cv.Optional(CONF_INTENSITY, default=15): cv.int_range(min=0, max=15),
-    }
+        cv.GenerateID(): cv.use_id(MAX7219Component),
+        cv.Optional(CONF_INTENSITY, default=15): cv.templatable(
+            cv.int_range(min=0, max=15)
+        ),
+    },
+    key=CONF_INTENSITY,
 )
 
 
 @automation.register_action(
-    "MAX7219.intensity", DisplayIntensityAction, MAX7219_INTENSITY_SCHEMA
+    "max7129digit.intensity", DisplayIntensityAction, MAX7219_INTENSITY_SCHEMA
 )
-async def MAX7219_intensity_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
+async def max7129digit_intensity_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
     template_ = await cg.templatable(config[CONF_INTENSITY], args, cg.int_)
     cg.add(var.set_state(template_))
+    return var
