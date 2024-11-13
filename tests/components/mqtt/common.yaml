@@ -95,6 +95,11 @@ button:
           payload: Hello
           qos: 2
           retain: true
+      - mqtt.subscribe:
+          topic: !lambda return "dummy/topic";
+          then:
+            - lambda: |-
+                ESP_LOGD("MQTT", "Received message %s", x.c_str());
 
 climate:
   - platform: thermostat
