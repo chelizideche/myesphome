@@ -350,8 +350,7 @@ class MQTTMessageTrigger : public Trigger<std::string> {
 
   void subscribe(MQTTClientComponent *parent, const std::string &topic, uint8_t qos) {
     parent->subscribe(
-      topic,
-      [this](const std::string &topic, const std::string &payload) { this->trigger(payload); }, qos);
+        topic, [this](const std::string &topic, const std::string &payload) { this->trigger(payload); }, qos);
   }
 
  protected:
