@@ -339,7 +339,7 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 }
 
 void I2SAudioSpeaker::start() {
-  if (this->is_failed() || this->status_has_error())
+  if (!this->is_ready() || this->is_failed() || this->status_has_error())
     return;
   if ((this->state_ == speaker::STATE_STARTING) || (this->state_ == speaker::STATE_RUNNING))
     return;
