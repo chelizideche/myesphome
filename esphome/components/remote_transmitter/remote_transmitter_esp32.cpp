@@ -41,7 +41,13 @@ void RemoteTransmitterComponent::configure_rmt_() {
   if (this->one_wire_) {
     channel.flags.io_loop_back = 1;
     channel.flags.io_od_mode = 1;
+  } else {
+    channel.flags.io_loop_back = 0;
+    channel.flags.io_od_mode = 0;
   }
+  channel.flags.invert_out = 0;
+  channel.flags.with_dma = 0;
+  channel.intr_priority = 0;
   esp_err_t error = rmt_new_tx_channel(&channel, &this->channel_);
   if (error != ESP_OK) {
     this->error_code_ = error;
