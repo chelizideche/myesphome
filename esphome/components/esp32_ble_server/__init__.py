@@ -27,7 +27,7 @@ CONF_BROADCAST = "broadcast"
 CONF_CHARACTERISTICS = "characteristics"
 CONF_DESCRIPTION = "description"
 CONF_DESCRIPTORS = "descriptors"
-CONF_ENDIANNES = "endianness"
+CONF_ENDIANNESS = "endianness"
 CONF_INDICATE = "indicate"
 CONF_MANUFACTURER = "manufacturer"
 CONF_MANUFACTURER_DATA = "manufacturer_data"
@@ -218,7 +218,7 @@ VALUE_SCHEMA = cv.Schema(
                 ]
             )  # Common encodings
         ),
-        cv.Optional(CONF_ENDIANNES, default="LITTLE"): cv.enum(
+        cv.Optional(CONF_ENDIANNESS, default="LITTLE"): cv.enum(
             {
                 "LITTLE": Endianness_ns.LITTLE,
                 "BIG": Endianness_ns.BIG,
@@ -325,7 +325,7 @@ async def parse_value(value_config, args):
         value, value_config[CONF_TYPE], value_config[CONF_STRING_ENCODING]
     )
     buffer_var = cg.variable(
-        buffer_id, ByteBuffer_ns.wrap(val, value_config[CONF_ENDIANNES])
+        buffer_id, ByteBuffer_ns.wrap(val, value_config[CONF_ENDIANNESS])
     )
     return buffer_var
 
