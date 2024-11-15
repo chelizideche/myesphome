@@ -574,6 +574,7 @@ void ShellyDimmer::start_calibration() {
   this->set_brightness_no_transition_(1);
 
   // Init calibration data
+  this->calibration_data_.fill(0);
   this->calibration_measurements_.fill(0);
   this->calibration_measurement_cnt_ = 0;
   this->calibration_step_ = -20;
@@ -646,11 +647,7 @@ void ShellyDimmer::complete_calibration_() {
     value = remap(value, min, max, 0.0f, 1.0f);
   }
 
-  if (this->rtc_.save(&this->calibration_data_)) {
-    ESP_LOGD(TAG, "Saved calibration to flash");
-  } else {
-    ESP_LOGW(TAG, "Couldn't save calibration to flash");
-  }
+  this->save_calibration_();
 
   ESP_LOGD(TAG, "Finished calibration. Values:");
   for (float value : this->calibration_data_) {
@@ -659,12 +656,23 @@ void ShellyDimmer::complete_calibration_() {
 
   this->set_brightness_no_transition_(1);
 }
+void ShellyDimmer::save_calibration_() {
+  if (this->rtc_.save(&this->calibration_data_)) {
+    ESP_LOGD(TAG, "Saved calibration to flash");
+  } else {
+    ESP_LOGW(TAG, "Couldn't save calibration to flash");
+  }
+}
 void ShellyDimmer::set_brightness_no_transition_(float brightness) {
   auto call = this->state_->make_call();
   call.set_brightness(brightness);
   call.set_transition_length(0);
   call.set_state(true);
   call.perform();
+}
+void ShellyDimmer::clear_calibration() {
+  this->calibration_data_.fill(0);
+  this->save_calibration_();
 }
 
 }  // namespace shelly_dimmer

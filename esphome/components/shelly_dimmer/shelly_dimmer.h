@@ -50,7 +50,11 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
   void set_voltage_sensor(sensor::Sensor *voltage_sensor) { this->voltage_sensor_ = voltage_sensor; }
   void set_current_sensor(sensor::Sensor *current_sensor) { this->current_sensor_ = current_sensor; }
 
+  /// Starts the calibration process.
   void start_calibration();
+
+  /// Clears calibration values.
+  void clear_calibration();
 
  protected:
   GPIOPin *pin_nrst_;
@@ -132,10 +136,13 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
   /// Complete a single calibration step averaging over accumulated measurements.
   void complete_calibration_step_();
 
-  // Complete the whole calibration process.
+  /// Complete the whole calibration process.
   void complete_calibration_();
 
-  // Set brightness with no transition during calibration.
+  /// Saves calibration values to flash.
+  void save_calibration_();
+
+  /// Set brightness with no transition during calibration.
   void set_brightness_no_transition_(float brightness);
 };
 
