@@ -37,6 +37,9 @@ void RemoteTransmitterComponent::configure_rmt_() {
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
   channel.mem_block_symbols = 64 * this->mem_block_num_;
   channel.trans_queue_depth = 1;
+  // TODO: add support for a rx/tx 1-wire gpio
+  // channel.flags.io_loop_back = 1;
+  // channel.flags.io_od_mode = 1;
   esp_err_t error = rmt_new_tx_channel(&channel, &this->channel_);
   if (error != ESP_OK) {
     this->error_code_ = error;

@@ -30,7 +30,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   void dump_config() override;
 
-  float get_setup_priority() const override { return setup_priority::DATA; }
+  float get_setup_priority() const override { return setup_priority::DATA - 1; }
 
   void set_carrier_duty_percent(uint8_t carrier_duty_percent) { this->carrier_duty_percent_ = carrier_duty_percent; }
 
