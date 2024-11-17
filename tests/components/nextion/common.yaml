@@ -274,7 +274,7 @@ text_sensor:
 
 display:
   - platform: nextion
-    tft_url: http://esphome.io/default35.tft
+    id: main_lcd
     update_interval: 5s
     on_sleep:
       then:

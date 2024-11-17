@@ -4,3 +4,7 @@ substitutions:
 
 packages:
   base: !include common.yaml
+
+display:
+  - id: !extend main_lcd
+    tft_url: http://esphome.io/default35.tft
