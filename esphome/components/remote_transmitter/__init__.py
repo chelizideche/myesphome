@@ -38,8 +38,8 @@ async def to_code(config):
 
     cg.add(var.set_carrier_duty_percent(config[CONF_CARRIER_DUTY_PERCENT]))
 
-    if one_wite_config := config.get(CONF_ONE_WIRE):
-        cg.add(var.set_one_wire(one_wite_config))
+    if one_wire_config := config.get(CONF_ONE_WIRE):
+        cg.add(var.set_one_wire(one_wire_config))
 
     if on_transmit_config := config.get(CONF_ON_TRANSMIT):
         await automation.build_automation(
