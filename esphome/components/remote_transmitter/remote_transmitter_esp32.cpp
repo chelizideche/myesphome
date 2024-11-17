@@ -33,6 +33,7 @@ void RemoteTransmitterComponent::dump_config() {
 
 void RemoteTransmitterComponent::configure_rmt_() {
   rmt_tx_channel_config_t channel{};
+  memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
   channel.resolution_hz = 1 * 1000 * 1000;
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
@@ -57,6 +58,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
   }
 
   rmt_copy_encoder_config_t encoder{};
+  memset(&encoder, 0, sizeof(encoder));
   error = rmt_new_copy_encoder(&encoder, &this->encoder_);
   if (error != ESP_OK) {
     this->error_code_ = error;
@@ -66,6 +68,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
   }
 
   rmt_carrier_config_t carrier{};
+  memset(&carrier, 0, sizeof(carrier));
   if (this->current_carrier_frequency_ == 0 || this->carrier_duty_percent_ == 100) {
     carrier.frequency_hz = 0;
     carrier.duty_cycle = 100;
@@ -141,6 +144,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
   this->transmit_trigger_->trigger();
   for (uint32_t i = 0; i < send_times; i++) {
     rmt_transmit_config_t config{};
+    memset(&config, 0, sizeof(config));
     config.loop_count = 0;
     config.flags.eot_level = this->inverted_;
     esp_err_t error = rmt_transmit(this->channel_, this->encoder_, this->rmt_temp_.data(),

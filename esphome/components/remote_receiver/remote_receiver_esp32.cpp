@@ -32,6 +32,7 @@ static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_r
 void RemoteReceiverComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Remote Receiver...");
   rmt_rx_channel_config_t channel{};
+  memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
   channel.resolution_hz = 1 * 1000 * 1000;
   channel.mem_block_symbols = MEM_BLOCK_SIZE * this->mem_block_num_;
@@ -56,6 +57,7 @@ void RemoteReceiverComponent::setup() {
   }
 
   rmt_rx_event_callbacks_t callbacks{};
+  memset(&callbacks, 0, sizeof(callbacks));
   callbacks.on_recv_done = rmt_callback;
   error = rmt_rx_register_event_callbacks(this->channel_, &callbacks, &this->store_);
   if (error != ESP_OK) {
@@ -68,6 +70,7 @@ void RemoteReceiverComponent::setup() {
   uint32_t event_size = sizeof(rmt_rx_done_event_data_t);
   uint32_t max_filter_ns = 255u * 1000 / this->clock_divider_;
   uint32_t max_idle_ns = 65535u * 1000;
+  memset(&this->store_.config, 0, sizeof(this->store_.config));
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
   this->store_.receive_size = (MEM_BLOCK_SIZE * this->mem_block_num_ + 1) * sizeof(rmt_symbol_word_t);
