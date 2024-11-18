@@ -28,11 +28,10 @@ logger:
   level: verbose
 
 espnow:
-  auto_add_peer: true
+  auto_add_peer: false
   peers:
     - FF:FF:FF:FF:FF:FF
-    - 0xFFFFFFFFFFFF
-    - ZZZZZZZZ
+    # - kGf7Ii0t
   on_receive:
     - logger.log:
         format: "Received: '%s' from '%s' command: %d RSSI: %d"
@@ -49,20 +48,28 @@ espnow:
       then:
         - logger.log:
             format: "Broadcast Received from: '%s' RSSI: %d: %s"
-            args: [packet.get_peer_code().c_str(), packet.rssi, packet.get_payload()]
+            args:
+              [
+                packet.get_peer_code().c_str(),
+                packet.rssi,
+                packet.get_payload(),
+              ]
 
 interval:
-  - interval: 10sec
+  - interval: 30sec
+    startup_delay: 20sec
     then:
-      - espnow.broatcast:
-          payload: "hallo everyone"
-          command: 123
+      - espnow.peer.new:
+          peer: kGf7Ii0t
+  - interval: 5sec
+    then:
+      - espnow.send:
+          peer: kGf7Ii0t
+          payload: "tesing the test"
 
 binary_sensor:
   - platform: gpio
     pin: GPIO39
     name: Button
     on_click:
-      - espnow.peer.new:
-          peer: kGf7Ii0t
       - espnow.peer.del: kGf7Ii0t
