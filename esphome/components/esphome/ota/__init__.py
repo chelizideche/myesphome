@@ -1,10 +1,9 @@
 import logging
 
 import esphome.codegen as cg
-import esphome.config_validation as cv
-import esphome.final_validate as fv
-from esphome.components.ota import BASE_OTA_SCHEMA, ota_to_code, OTAComponent
+from esphome.components.ota import BASE_OTA_SCHEMA, OTAComponent, ota_to_code
 from esphome.config_helpers import merge_config
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ESPHOME,
     CONF_ID,
@@ -18,6 +17,7 @@ from esphome.const import (
     CONF_VERSION,
 )
 from esphome.core import coroutine_with_priority
+import esphome.final_validate as fv
 
 _LOGGER = logging.getLogger(__name__)
 
