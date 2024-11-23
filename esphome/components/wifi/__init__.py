@@ -66,7 +66,9 @@ WiFiConnectedCondition = wifi_ns.class_("WiFiConnectedCondition", Condition)
 WiFiEnabledCondition = wifi_ns.class_("WiFiEnabledCondition", Condition)
 WiFiEnableAction = wifi_ns.class_("WiFiEnableAction", automation.Action)
 WiFiDisableAction = wifi_ns.class_("WiFiDisableAction", automation.Action)
-WiFiConfigureAction = wifi_ns.class_("WiFiConfigureAction", automation.Action, cg.Component)
+WiFiConfigureAction = wifi_ns.class_(
+    "WiFiConfigureAction", automation.Action, cg.Component
+)
 
 
 def validate_password(value):
