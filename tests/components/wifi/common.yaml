@@ -3,7 +3,7 @@ esphome:
     then:
       - wifi.disable
       - wifi.enable
-      - wifi.set_sta:
+      - wifi.configure:
           ssid: MySSID
           password: password1
           on_connect:

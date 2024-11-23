@@ -442,10 +442,11 @@ template<typename... Ts> class WiFiDisableAction : public Action<Ts...> {
   void play(Ts... x) override { global_wifi_component->disable(); }
 };
 
-template<typename... Ts> class WiFiSetSTAAction : public Action<Ts...>, public Component {
+template<typename... Ts> class WiFiConfigureAction : public Action<Ts...>, public Component {
  public:
   TEMPLATABLE_VALUE(std::string, ssid)
   TEMPLATABLE_VALUE(std::string, password)
+  TEMPLATABLE_VALUE(bool, save)
   TEMPLATABLE_VALUE(uint32_t, connection_timeout)
 
   void play(Ts... x) override {
@@ -460,8 +461,6 @@ template<typename... Ts> class WiFiSetSTAAction : public Action<Ts...>, public C
       this->connect_trigger_->trigger();
       return;
     }
-    // Set the state to connecting
-    this->connecting_ = true;
     // Create a new WiFiAP object with the new SSID and password
     this->new_sta_.set_ssid(ssid);
     this->new_sta_.set_password(password);
@@ -469,21 +468,27 @@ template<typename... Ts> class WiFiSetSTAAction : public Action<Ts...>, public C
     this->old_sta_ = global_wifi_component->get_sta();
     // Disable WiFi
     global_wifi_component->disable();
+    // Set the state to connecting
+    this->connecting_ = true;
     // Store the new STA so once the WiFi is enabled, it will connect to it
     // This is necessary because the WiFiComponent will raise an error and fallback to the saved STA
     // if trying to connect to a new STA while already connected to another one
-    global_wifi_component->save_wifi_sta(new_sta_.get_ssid(), new_sta_.get_password());
+    if (this->save_.value(x...)) {
+      global_wifi_component->save_wifi_sta(new_sta_.get_ssid(), new_sta_.get_password());
+    } else {
+      global_wifi_component->set_sta(new_sta_);
+    }
     // Enable WiFi
     global_wifi_component->enable();
     // Set timeout for the connection
     this->set_timeout("wifi-connect-timeout", this->connection_timeout_.value(x...), [this]() {
+      this->connecting_ = false;
       // If the timeout is reached, stop connecting and revert to the old AP
       global_wifi_component->disable();
       global_wifi_component->save_wifi_sta(old_sta_.get_ssid(), old_sta_.get_password());
       global_wifi_component->enable();
       // Callback to notify the user that the connection failed
       this->error_trigger_->trigger();
-      this->connecting_ = false;
     });
   }
 

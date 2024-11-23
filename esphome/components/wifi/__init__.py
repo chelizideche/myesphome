@@ -48,6 +48,7 @@ from . import wpa2_eap
 AUTO_LOAD = ["network"]
 
 NO_WIFI_VARIANTS = [const.VARIANT_ESP32H2]
+CONF_SAVE = "save"
 
 wifi_ns = cg.esphome_ns.namespace("wifi")
 EAPAuth = wifi_ns.struct("EAPAuth")
@@ -65,7 +66,7 @@ WiFiConnectedCondition = wifi_ns.class_("WiFiConnectedCondition", Condition)
 WiFiEnabledCondition = wifi_ns.class_("WiFiEnabledCondition", Condition)
 WiFiEnableAction = wifi_ns.class_("WiFiEnableAction", automation.Action)
 WiFiDisableAction = wifi_ns.class_("WiFiDisableAction", automation.Action)
-WiFiSetSTAAction = wifi_ns.class_("WiFiSetSTAAction", automation.Action, cg.Component)
+WiFiConfigureAction = wifi_ns.class_("WiFiConfigureAction", automation.Action, cg.Component)
 
 
 def validate_password(value):
@@ -489,12 +490,13 @@ async def wifi_disable_to_code(config, action_id, template_arg, args):
 
 
 @automation.register_action(
-    "wifi.set_sta",
-    WiFiSetSTAAction,
+    "wifi.configure",
+    WiFiConfigureAction,
     cv.Schema(
         {
             cv.Required(CONF_SSID): cv.templatable(cv.ssid),
             cv.Required(CONF_PASSWORD): cv.templatable(validate_password),
+            cv.Optional(CONF_SAVE, default=True): cv.templatable(cv.boolean),
             cv.Optional(CONF_TIMEOUT, default="30000ms"): cv.templatable(
                 cv.positive_time_period_milliseconds
             ),
@@ -507,9 +509,11 @@ async def wifi_set_sta_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     ssid = await cg.templatable(config[CONF_SSID], args, cg.std_string)
     password = await cg.templatable(config[CONF_PASSWORD], args, cg.std_string)
+    save = await cg.templatable(config[CONF_SAVE], args, cg.bool_)
     timeout = await cg.templatable(config.get(CONF_TIMEOUT), args, cg.uint32)
     cg.add(var.set_ssid(ssid))
     cg.add(var.set_password(password))
+    cg.add(var.set_save(save))
     cg.add(var.set_connection_timeout(timeout))
     if on_connect_config := config.get(CONF_ON_CONNECT):
         await automation.build_automation(
