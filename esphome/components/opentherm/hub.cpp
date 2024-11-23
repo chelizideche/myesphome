@@ -313,6 +313,8 @@ void OpenthermHub::start_conversation_() {
 
   auto request = this->build_request_(*this->current_message_iterator_);
 
+  this->before_send_callback_.call(request);
+
   ESP_LOGD(TAG, "Sending request with id %d (%s)", request.id,
            this->opentherm_->message_id_to_str((MessageId) request.id));
   this->opentherm_->debug_data(request);
@@ -331,6 +333,7 @@ void OpenthermHub::read_response_() {
 
   this->stop_opentherm_();
 
+  this->before_process_response_callback_.call(response);
   this->process_response(response);
 
   this->current_message_iterator_++;

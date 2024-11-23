@@ -80,6 +80,9 @@ class OpenthermHub : public Component {
 
   float opentherm_version_ = 0.0f;
 
+  CallbackManager<void(OpenthermData &)> before_send_callback_;
+  CallbackManager<void(OpenthermData &)> before_process_response_callback_;
+
   // Create OpenTherm messages based on the message id
   OpenthermData build_request_(MessageId request_id) const;
   void handle_protocol_write_error_();
@@ -150,6 +153,13 @@ class OpenthermHub : public Component {
   void set_dhw_block(bool value) { this->dhw_block = value; }
   void set_sync_mode(bool sync_mode) { this->sync_mode_ = sync_mode; }
   void set_opentherm_version(float value) { this->opentherm_version_ = value; }
+
+  void add_on_before_send_callback(std::function<void(OpenthermData &)> &&callback) {
+    this->before_send_callback_.add(std::move(callback));
+  }
+  void add_on_before_process_response_callback(std::function<void(OpenthermData &)> &&callback) {
+    this->before_process_response_callback_.add(std::move(callback));
+  }
 
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
 

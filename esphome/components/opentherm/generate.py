@@ -8,6 +8,7 @@ from .schema import TSchema
 
 opentherm_ns = cg.esphome_ns.namespace("opentherm")
 OpenthermHub = opentherm_ns.class_("OpenthermHub", cg.Component)
+OpenthermData = opentherm_ns.class_("OpenthermData")
 
 
 def define_has_component(component_type: str, keys: list[str]) -> None:

@@ -546,7 +546,7 @@ std::string OpenTherm::format_bin(const uint8_t *data, size_t length) {
   result.resize(length * 8);
   for (int byte_idx = 0; byte_idx < length; ++byte_idx) {
     for (int bit_idx = 0; bit_idx < 8; ++bit_idx) {
-      result[byte_idx * 8 + bit_idx] = (char) ((data[byte_idx] >> bit_idx) & 1 + '0');
+      result[byte_idx * 8 + bit_idx] = (char) (((data[byte_idx] >> bit_idx) & 1) + '0');
     }
   }
 
