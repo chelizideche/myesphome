@@ -111,7 +111,6 @@ void QspiDbi::reset_params_(bool ready) {
     mad |= MADCTL_MY;
   this->write_command_(MADCTL_CMD, mad);
   this->write_command_(BRIGHTNESS, this->brightness_);
-  this->write_command_(NORON);
   this->write_command_(DISPLAY_ON);
 }
 
