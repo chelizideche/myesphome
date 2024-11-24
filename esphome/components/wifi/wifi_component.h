@@ -317,6 +317,8 @@ class WiFiComponent : public Component {
   Trigger<> *get_connect_trigger() const { return this->connect_trigger_; };
   Trigger<> *get_disconnect_trigger() const { return this->disconnect_trigger_; };
 
+  int32_t get_wifi_channel();
+
  protected:
   static std::string format_mac_addr(const uint8_t mac[6]);
 
@@ -344,7 +346,7 @@ class WiFiComponent : public Component {
 #endif  // USE_WIFI_AP
 
   bool wifi_disconnect_();
-  int32_t wifi_channel_();
+
   network::IPAddress wifi_subnet_mask_();
   network::IPAddress wifi_gateway_ip_();
   network::IPAddress wifi_dns_ip_(int num);
