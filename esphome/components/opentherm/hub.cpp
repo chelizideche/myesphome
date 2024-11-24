@@ -165,7 +165,7 @@ void OpenthermHub::setup() {
   this->add_repeating_message(MessageId::STATUS);
   this->reorder_initial_messages_();
   this->initial_message_iterator_ = this->initial_messages_.begin();
-  this->repeating_message_iterator = this->repeating_messages_.begin();
+  this->repeating_message_iterator_ = this->repeating_messages_.begin();
 }
 
 void OpenthermHub::on_shutdown() { this->opentherm_->stop(); }
@@ -175,12 +175,12 @@ void OpenthermHub::reorder_initial_messages_() {
   this->initial_messages_.clear();
 
   // Rerder significant initial messages
-  this->add_initial_message_if_exists(MessageId::VERSION_DEVICE, initial);
-  this->add_initial_message_if_exists(MessageId::VERSION_CONTROLLER, initial);
-  this->add_initial_message_if_exists(MessageId::OT_VERSION_DEVICE, initial);
-  this->add_initial_message_if_exists(MessageId::OT_VERSION_CONTROLLER, initial);
-  this->add_initial_message_if_exists(MessageId::DEVICE_CONFIG, initial);
-  this->add_initial_message_if_exists(MessageId::CONTROLLER_CONFIG, initial);
+  this->add_initial_message_if_exists_(MessageId::VERSION_DEVICE, initial);
+  this->add_initial_message_if_exists_(MessageId::VERSION_CONTROLLER, initial);
+  this->add_initial_message_if_exists_(MessageId::OT_VERSION_DEVICE, initial);
+  this->add_initial_message_if_exists_(MessageId::OT_VERSION_CONTROLLER, initial);
+  this->add_initial_message_if_exists_(MessageId::DEVICE_CONFIG, initial);
+  this->add_initial_message_if_exists_(MessageId::CONTROLLER_CONFIG, initial);
 
   // Ensure we follow config messages with STATUS message
   this->initial_messages_.push_back(MessageId::STATUS);
@@ -191,7 +191,7 @@ void OpenthermHub::reorder_initial_messages_() {
   }
 }
 
-void OpenthermHub::add_initial_message_if_exists(MessageId id, std::unordered_set<MessageId> &messages) {
+void OpenthermHub::add_initial_message_if_exists_(MessageId id, std::unordered_set<MessageId> &messages) {
   if (messages.find(id) != messages.end()) {
     this->initial_messages_.push_back(id);
     messages.erase(id);
@@ -330,16 +330,16 @@ void OpenthermHub::start_conversation_() {
   if (this->sending_initial_) {
     if (this->initial_message_iterator_ == this->initial_messages_.end()) {
       this->sending_initial_ = false;
-      this->repeating_message_iterator = this->repeating_messages_.begin();
-      message_id = *this->repeating_message_iterator;
+      this->repeating_message_iterator_ = this->repeating_messages_.begin();
+      message_id = *this->repeating_message_iterator_;
     } else {
       message_id = *this->initial_message_iterator_;
     }
   } else {
-    if (this->repeating_message_iterator == this->repeating_messages_.end()) {
-      this->repeating_message_iterator = this->repeating_messages_.begin();
+    if (this->repeating_message_iterator_ == this->repeating_messages_.end()) {
+      this->repeating_message_iterator_ = this->repeating_messages_.begin();
     }
-    message_id = *this->repeating_message_iterator;
+    message_id = *this->repeating_message_iterator_;
   }
 
   auto request = this->build_request_(message_id);
@@ -370,7 +370,7 @@ void OpenthermHub::read_response_() {
   if (this->sending_initial_) {
     this->initial_message_iterator_++;
   } else {
-    this->repeating_message_iterator++;
+    this->repeating_message_iterator_++;
   }
 }
 
