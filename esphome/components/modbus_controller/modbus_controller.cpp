@@ -626,10 +626,11 @@ int64_t payload_to_number(const std::vector<uint8_t> &data, SensorValueType sens
   bool error = false;
   switch (sensor_value_type) {
     case SensorValueType::U_WORD:
-      if (size >= 2)
+      if (size >= 2) {
         value = mask_and_shift_by_rightbit(get_data<uint16_t>(data, offset), bitmask);  // default is 0xFFFF ;
-      else
+      } else {
         error = true;
+      }
       break;
     case SensorValueType::U_DWORD:
     case SensorValueType::FP32:
@@ -659,10 +660,11 @@ int64_t payload_to_number(const std::vector<uint8_t> &data, SensorValueType sens
       }
       break;
     case SensorValueType::S_DWORD:
-      if (size >= 4)
+      if (size >= 4) {
         value = mask_and_shift_by_rightbit(get_data<int32_t>(data, offset), bitmask);
-      else
+      } else {
         error = true;
+      }
       break;
     case SensorValueType::S_DWORD_R: {
       if (size >= 4) {
@@ -679,10 +681,11 @@ int64_t payload_to_number(const std::vector<uint8_t> &data, SensorValueType sens
     case SensorValueType::U_QWORD:
     case SensorValueType::S_QWORD:
       // Ignore bitmask for QWORD
-      if (size >= 8)
+      if (size >= 8) {
         value = get_data<uint64_t>(data, offset);
-      else
+      } else {
         error = true;
+      }
       break;
     case SensorValueType::U_QWORD_R:
     case SensorValueType::S_QWORD_R: {
