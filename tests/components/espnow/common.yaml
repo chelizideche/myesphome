@@ -1,7 +1,8 @@
-external_components:
-  - source: github://pr#7564
-    components: []
-    refresh: 1 sec
+globals:
+  - id: hub_address
+    type: uint64_t
+    initial_value: "0xE86BEA23CD98"
+    restore_value: yes
 
 espnow:
   auto_add_peer: true
