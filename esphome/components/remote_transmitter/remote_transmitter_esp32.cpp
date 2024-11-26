@@ -32,39 +32,52 @@ void RemoteTransmitterComponent::dump_config() {
 }
 
 void RemoteTransmitterComponent::configure_rmt_() {
-  rmt_tx_channel_config_t channel{};
-  memset(&channel, 0, sizeof(channel));
-  channel.clk_src = RMT_CLK_SRC_DEFAULT;
-  channel.resolution_hz = 1 * 1000 * 1000;
-  channel.gpio_num = gpio_num_t(this->pin_->get_pin());
-  channel.mem_block_symbols = 64 * this->mem_block_num_;
-  channel.trans_queue_depth = 1;
-  if (this->one_wire_) {
-    channel.flags.io_loop_back = 1;
-    channel.flags.io_od_mode = 1;
-  } else {
-    channel.flags.io_loop_back = 0;
-    channel.flags.io_od_mode = 0;
-  }
-  channel.flags.invert_out = 0;
-  channel.flags.with_dma = this->with_dma_;
-  channel.intr_priority = 0;
-  esp_err_t error = rmt_new_tx_channel(&channel, &this->channel_);
-  if (error != ESP_OK) {
-    this->error_code_ = error;
-    this->error_string_ = "in rmt_new_tx_channel";
-    this->mark_failed();
-    return;
-  }
+  esp_err_t error;
 
-  rmt_copy_encoder_config_t encoder{};
-  memset(&encoder, 0, sizeof(encoder));
-  error = rmt_new_copy_encoder(&encoder, &this->encoder_);
-  if (error != ESP_OK) {
-    this->error_code_ = error;
-    this->error_string_ = "in rmt_new_copy_encoder";
-    this->mark_failed();
-    return;
+  if (!this->initialized_) {
+    rmt_tx_channel_config_t channel{};
+    memset(&channel, 0, sizeof(channel));
+    channel.clk_src = RMT_CLK_SRC_DEFAULT;
+    channel.resolution_hz = 1 * 1000 * 1000;
+    channel.gpio_num = gpio_num_t(this->pin_->get_pin());
+    channel.mem_block_symbols = 64 * this->mem_block_num_;
+    channel.trans_queue_depth = 1;
+    if (this->one_wire_) {
+      channel.flags.io_loop_back = 1;
+      channel.flags.io_od_mode = 1;
+    } else {
+      channel.flags.io_loop_back = 0;
+      channel.flags.io_od_mode = 0;
+    }
+    channel.flags.invert_out = 0;
+    channel.flags.with_dma = this->with_dma_;
+    channel.intr_priority = 0;
+    error = rmt_new_tx_channel(&channel, &this->channel_);
+    if (error != ESP_OK) {
+      this->error_code_ = error;
+      this->error_string_ = "in rmt_new_tx_channel";
+      this->mark_failed();
+      return;
+    }
+
+    rmt_copy_encoder_config_t encoder{};
+    memset(&encoder, 0, sizeof(encoder));
+    error = rmt_new_copy_encoder(&encoder, &this->encoder_);
+    if (error != ESP_OK) {
+      this->error_code_ = error;
+      this->error_string_ = "in rmt_new_copy_encoder";
+      this->mark_failed();
+      return;
+    }
+
+    error = rmt_enable(this->channel_);
+    if (error != ESP_OK) {
+      this->error_code_ = error;
+      this->error_string_ = "in rmt_enable";
+      this->mark_failed();
+      return;
+    }
+    this->initialized_ = true;
   }
 
   rmt_carrier_config_t carrier{};
@@ -82,14 +95,6 @@ void RemoteTransmitterComponent::configure_rmt_() {
   if (error != ESP_OK) {
     this->error_code_ = error;
     this->error_string_ = "in rmt_apply_carrier";
-    this->mark_failed();
-    return;
-  }
-
-  error = rmt_enable(this->channel_);
-  if (error != ESP_OK) {
-    this->error_code_ = error;
-    this->error_string_ = "in rmt_enable";
     this->mark_failed();
     return;
   }
