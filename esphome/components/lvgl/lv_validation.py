@@ -30,7 +30,7 @@ from .defines import (
     call_lambda,
     literal,
 )
-from .helpers import esphome_fonts_used, lv_fonts_used, requires_component
+from .helpers import add_lv_use, esphome_fonts_used, lv_fonts_used, requires_component
 from .types import lv_font_t, lv_gradient_t, lv_img_t
 
 opacity_consts = LvConstant("LV_OPA_", "TRANSP", "COVER")
@@ -326,6 +326,7 @@ def image_validator(value):
     value = requires_component("image")(value)
     value = cv.use_id(Image_)(value)
     lv_images_used.add(value)
+    add_lv_use("img", "label")
     return value
 
 

@@ -343,7 +343,7 @@ void Nextion::process_serial_() {
 }
 // nextion.tech/instruction-set/
 void Nextion::process_nextion_commands_() {
-  if (this->command_data_.length() == 0) {
+  if (this->command_data_.empty()) {
     return;
   }
 
