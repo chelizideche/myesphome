@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 import hashlib
 import io
 import logging
+import os
 from pathlib import Path
 import re
 
@@ -77,11 +79,18 @@ def download_mdi(value):
 
     mdi_id = value[CONF_ICON]
     path = _compute_local_icon_path(value)
+    # Don't re-fetch mdi files that are less than 24 hours old with valid contents
+    if path.stat().st_size > 0 and "svg" in puremagic.from_file(str(path), mime=True):
+        modify_time = path.stat().st_mtime
+        current_time = datetime.now().timestamp()
+        if current_time - modify_time <= 24 * 60 * 60:
+            return value
 
     url = f"https://raw.githubusercontent.com/Templarian/MaterialDesign/master/svg/{mdi_id}.svg"
 
     external_files.download_content(url, path, IMAGE_DOWNLOAD_TIMEOUT)
-
+    # Touch the file to update its mtime, to prevent a refetch attempt later
+    os.utime(path, None)
     return value
 
 
@@ -138,8 +147,12 @@ def validate_cross_dependencies(config):
     if is_transparent_type and not config[CONF_USE_TRANSPARENCY]:
         raise cv.Invalid(f"Image type {image_type} must always be transparent.")
 
-    if is_mdi and config[CONF_TYPE] not in ["BINARY", "TRANSPARENT_BINARY"]:
-        raise cv.Invalid("MDI images must be binary images.")
+    if is_mdi and config[CONF_TYPE] not in [
+        "BINARY",
+        "TRANSPARENT_BINARY",
+        "GRAYSCALE",
+    ]:
+        raise cv.Invalid("MDI images must be monochrome.")
 
     return config
 
@@ -309,17 +322,18 @@ async def to_code(config):
     )
     if config[CONF_TYPE] == "GRAYSCALE":
         image = image.convert("LA", dither=dither)
+        alpha = image.split()[-1]
+        has_alpha = alpha.getextrema()[0] < 0xFF
+        _LOGGER.debug("%s Has alpha: %s", config[CONF_ID], has_alpha)
+
         pixels = list(image.getdata())
         data = [0 for _ in range(height * width)]
         pos = 0
         for g, a in pixels:
-            if transparent:
-                if g == 1:
-                    g = 0
-                if a < 0x80:
-                    g = 1
-
-            data[pos] = g
+            if has_alpha:
+                data[pos] = a
+            else:
+                data[pos] = g
             pos += 1
 
     elif config[CONF_TYPE] == "RGBA":
@@ -378,16 +392,14 @@ async def to_code(config):
                 pos += 1
 
     elif config[CONF_TYPE] in ["BINARY", "TRANSPARENT_BINARY"]:
-        if transparent:
-            alpha = image.split()[-1]
-            has_alpha = alpha.getextrema()[0] < 0xFF
-            _LOGGER.debug("%s Has alpha: %s", config[CONF_ID], has_alpha)
+        alpha = image.split()[-1]
+        has_alpha = transparent and alpha.getextrema()[0] < 0xFF
         image = image.convert("1", dither=dither)
         width8 = ((width + 7) // 8) * 8
         data = [0 for _ in range(height * width8 // 8)]
         for y in range(height):
             for x in range(width):
-                if transparent and has_alpha:
+                if has_alpha:
                     a = alpha.getpixel((x, y))
                     if not a:
                         continue
