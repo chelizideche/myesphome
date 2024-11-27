@@ -12,12 +12,6 @@ from esphome.const import (
 )
 from esphome.core import CORE
 
-USE_NEW_RMT_DRIVER = False
-if CORE.is_esp32:
-    version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
-    if CORE.using_esp_idf and version >= cv.Version(5, 0, 0):
-        USE_NEW_RMT_DRIVER = True
-
 AUTO_LOAD = ["remote_base"]
 
 CONF_ON_TRANSMIT = "on_transmit"
@@ -50,12 +44,14 @@ CONFIG_SCHEMA = cv.Schema(
 async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     if CORE.is_esp32:
+        version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
+        new_driver = CORE.using_esp_idf and version >= cv.Version(5, 0, 0)
         rmt_channel = config.get(CONF_RMT_CHANNEL, None)
-        if not USE_NEW_RMT_DRIVER and rmt_channel is not None:
+        if not new_driver and rmt_channel is not None:
             var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
         else:
             var = cg.new_Pvariable(config[CONF_ID], pin)
-        if USE_NEW_RMT_DRIVER:
+        if new_driver:
             cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
             cg.add_define("USE_NEW_RMT_DRIVER")
