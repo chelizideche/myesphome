@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER)
 #include <driver/rmt_tx.h>
 #endif
 
@@ -23,6 +23,10 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 #ifdef USE_ESP32
   RemoteTransmitterComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : remote_base::RemoteTransmitterBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
+#ifndef USE_NEW_RMT_DRIVER
+  RemoteTransmitterComponent(InternalGPIOPin *pin, rmt_channel_t channel, uint8_t mem_block_num = 1)
+      : remote_base::RemoteTransmitterBase(pin), remote_base::RemoteRMTChannel(channel, mem_block_num) {}
+#endif
 #else
   explicit RemoteTransmitterComponent(InternalGPIOPin *pin) : remote_base::RemoteTransmitterBase(pin) {}
 #endif
@@ -34,7 +38,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   void set_carrier_duty_percent(uint8_t carrier_duty_percent) { this->carrier_duty_percent_ = carrier_duty_percent; }
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER)
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
   void set_one_wire(bool one_wire) { this->one_wire_ = one_wire; }
 #endif
@@ -60,14 +64,18 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   uint32_t current_carrier_frequency_{38000};
   bool initialized_{false};
+#ifdef USE_NEW_RMT_DRIVER
+  std::vector<rmt_symbol_word_t> rmt_temp_;
+  bool with_dma_{false};
   bool one_wire_{false};
   rmt_channel_handle_t channel_{NULL};
   rmt_encoder_handle_t encoder_{NULL};
-  std::vector<rmt_symbol_word_t> rmt_temp_;
+#else
+  std::vector<rmt_item32_t> rmt_temp_;
+#endif
   esp_err_t error_code_{ESP_OK};
   std::string error_string_{""};
   bool inverted_{false};
-  bool with_dma_{false};
 #endif
   uint8_t carrier_duty_percent_;
 

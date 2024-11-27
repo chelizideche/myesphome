@@ -2,8 +2,21 @@ from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import esp32_rmt, remote_base
 import esphome.config_validation as cv
-from esphome.const import CONF_CARRIER_DUTY_PERCENT, CONF_ID, CONF_PIN, CONF_RMT_CHANNEL
+from esphome.const import (
+    CONF_CARRIER_DUTY_PERCENT,
+    CONF_ID,
+    CONF_PIN,
+    CONF_RMT_CHANNEL,
+    KEY_CORE,
+    KEY_FRAMEWORK_VERSION,
+)
 from esphome.core import CORE
+
+USE_NEW_RMT_DRIVER = False
+if CORE.is_esp32:
+    version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
+    if CORE.using_esp_idf and version >= cv.Version(5, 0, 0):
+        USE_NEW_RMT_DRIVER = True
 
 AUTO_LOAD = ["remote_base"]
 
@@ -25,7 +38,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_CARRIER_DUTY_PERCENT): cv.All(
             cv.percentage_int, cv.Range(min=1, max=100)
         ),
-        cv.Optional(CONF_ONE_WIRE): cv.boolean,
+        cv.Optional(CONF_ONE_WIRE, default=False): cv.boolean,
         cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
         cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
         cv.Optional(CONF_ON_TRANSMIT): automation.validate_automation(single=True),
@@ -36,15 +49,19 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
-    var = cg.new_Pvariable(config[CONF_ID], pin)
+    if CORE.is_esp32:
+        rmt_channel = config.get(CONF_RMT_CHANNEL, None)
+        if not USE_NEW_RMT_DRIVER and rmt_channel is not None:
+            var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
+        else:
+            var = cg.new_Pvariable(config[CONF_ID], pin)
+        cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+        cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
+        if USE_NEW_RMT_DRIVER:
+            cg.add_define("USE_NEW_RMT_DRIVER")
     await cg.register_component(var, config)
 
-    if CORE.is_esp32:
-        cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
     cg.add(var.set_carrier_duty_percent(config[CONF_CARRIER_DUTY_PERCENT]))
-
-    if one_wire_config := config.get(CONF_ONE_WIRE):
-        cg.add(var.set_one_wire(one_wire_config))
 
     if on_transmit_config := config.get(CONF_ON_TRANSMIT):
         await automation.build_automation(
