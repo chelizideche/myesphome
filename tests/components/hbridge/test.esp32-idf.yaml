@@ -7,7 +7,8 @@ substitutions:
   hbridge_on_pin: "4"
   hbridge_off_pin: "5"
 
-<<: !include common.yaml
+packages:
+  common: !include common.yaml
 
 switch:
   - id: !extend switch_hbridge

@@ -1,5 +1,5 @@
 substitutions:
-  pwm_platform: "ledc"
+  pwm_platform: "rp2040_pwm"
   output1_pin: "4"
   output2_pin: "5"
   output3_pin: "6"
@@ -7,7 +7,8 @@ substitutions:
   hbridge_on_pin: "2"
   hbridge_off_pin: "3"
 
-<<: !include common.yaml
+packages:
+  common: !include common.yaml
 
 switch:
   - id: !extend switch_hbridge
