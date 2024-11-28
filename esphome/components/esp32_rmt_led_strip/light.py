@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import pins
+import esphome.codegen as cg
 from esphome.components import esp32_rmt, light
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_CHIPSET,
     CONF_IS_RGBW,
@@ -13,7 +13,10 @@ from esphome.const import (
     CONF_PIN,
     CONF_RGB_ORDER,
     CONF_RMT_CHANNEL,
+    KEY_CORE,
+    KEY_FRAMEWORK_VERSION,
 )
+from esphome.core import CORE
 
 CODEOWNERS = ["@jesserockz"]
 DEPENDENCIES = ["esp32"]
@@ -22,8 +25,6 @@ esp32_rmt_led_strip_ns = cg.esphome_ns.namespace("esp32_rmt_led_strip")
 ESP32RMTLEDStripLightOutput = esp32_rmt_led_strip_ns.class_(
     "ESP32RMTLEDStripLightOutput", light.AddressableLight
 )
-
-rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
 
 RGBOrder = esp32_rmt_led_strip_ns.enum("RGBOrder")
 
@@ -72,7 +73,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_NUM_LEDS): cv.positive_not_null_int,
             cv.Required(CONF_RGB_ORDER): cv.enum(RGB_ORDERS, upper=True),
-            cv.Required(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
+            cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
             cv.Optional(CONF_MAX_REFRESH_RATE): cv.positive_time_period_microseconds,
             cv.Optional(CONF_CHIPSET): cv.one_of(*CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
@@ -148,8 +149,13 @@ async def to_code(config):
     cg.add(var.set_is_wrgb(config[CONF_IS_WRGB]))
     cg.add(var.set_use_psram(config[CONF_USE_PSRAM]))
 
-    cg.add(
-        var.set_rmt_channel(
-            getattr(rmt_channel_t, f"RMT_CHANNEL_{config[CONF_RMT_CHANNEL]}")
+    version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
+    if CORE.using_esp_idf and version >= cv.Version(5, 0, 0):
+        cg.add_define("USE_NEW_RMT_DRIVER")
+    else:
+        rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
+        cg.add(
+            var.set_rmt_channel(
+                getattr(rmt_channel_t, f"RMT_CHANNEL_{config[CONF_RMT_CHANNEL]}")
+            )
         )
-    )
