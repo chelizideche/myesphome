@@ -110,6 +110,8 @@ async def to_code(config: dict[str, Any]) -> None:
             cg.add(getattr(var, f"set_{key}_{const.INPUT_SENSOR}")(input_sensor))
             input_sensors.append(key)
         elif key in schema.SETTINGS:
+            if value == schema.SETTINGS[key].default_value:
+                continue
             cg.add(getattr(var, f"set_{key}_{const.SETTING}")(value))
             settings.append(key)
         else:
