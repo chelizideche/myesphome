@@ -629,64 +629,52 @@ void PrometheusHandler::media_player_row_(AsyncResponseStream *stream, media_pla
                                           std::string &area, std::string &node, std::string &friendly_name) {
   if (obj->is_internal() && !this->include_internal_)
     return;
-  if (obj->has_state()) {
-    // We have a valid value, output this value
-    stream->print(F("esphome_media_player_failed{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\"} 0\n"));
-    // Data itself
-    stream->print(F("esphome_media_player_state_value{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\",value=\""));
-    stream->print(media_player::media_player_state_to_string(obj->state).c_str());
-    stream->print(F("\"} "));
+  stream->print(F("esphome_media_player_failed{id=\""));
+  stream->print(relabel_id_(obj).c_str());
+  add_area_label_(stream, area);
+  add_node_label_(stream, node);
+  add_friendly_name_label_(stream, friendly_name);
+  stream->print(F("\",name=\""));
+  stream->print(relabel_name_(obj).c_str());
+  stream->print(F("\"} 0\n"));
+  // Data itself
+  stream->print(F("esphome_media_player_state_value{id=\""));
+  stream->print(relabel_id_(obj).c_str());
+  add_area_label_(stream, area);
+  add_node_label_(stream, node);
+  add_friendly_name_label_(stream, friendly_name);
+  stream->print(F("\",name=\""));
+  stream->print(relabel_name_(obj).c_str());
+  stream->print(F("\",value=\""));
+  stream->print(media_player::media_player_state_to_string(obj->state));
+  stream->print(F("\"} "));
+  stream->print(F("1.0"));
+  stream->print(F("\n"));
+  stream->print(F("esphome_media_player_volume{id=\""));
+  stream->print(relabel_id_(obj).c_str());
+  add_area_label_(stream, area);
+  add_node_label_(stream, node);
+  add_friendly_name_label_(stream, friendly_name);
+  stream->print(F("\",name=\""));
+  stream->print(relabel_name_(obj).c_str());
+  stream->print(F("\"} "));
+  stream->print(obj->volume);
+  stream->print(F("\n"));
+  stream->print(F("esphome_media_player_is_muted{id=\""));
+  stream->print(relabel_id_(obj).c_str());
+  add_area_label_(stream, area);
+  add_node_label_(stream, node);
+  add_friendly_name_label_(stream, friendly_name);
+  stream->print(F("\",name=\""));
+  stream->print(relabel_name_(obj).c_str());
+  stream->print(F("\"} "));
+  if (obj->is_muted()) {
     stream->print(F("1.0"));
-    stream->print(F("\n"));
-    stream->print(F("esphome_media_player_volume{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\"} "));
-    stream->print(obj->volume);
-    stream->print(F("\n"));
-    stream->print(F("esphome_media_player_is_muted{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\"} "));
-    if (obj->is_muted()) {
-      stream->print(F("1.0"));
-    } else {
-      stream->print(F("0.0"));
-    }
-    stream->print(F("\n"));
   } else {
-    // Invalid state
-    stream->print(F("esphome_media_player_failed{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\"} 1\n"));
+    stream->print(F("0.0"));
   }
+  stream->print(F("\n"));
+}
 }
 #endif
 
