@@ -437,13 +437,15 @@ class Display : public PollingComponent {
    */
   void printf(int x, int y, BaseFont *font, const char *format, ...) __attribute__((format(printf, 5, 6)));
 
-  /** Evaluate the strftime-format `format` and print the result with the top left at [x,y] with `font`.
+  /** Evaluate the strftime-format `format` and print the result with the anchor point at [x,y] with `font`.
    *
-   * @param x The x coordinate of the upper left corner.
-   * @param y The y coordinate of the upper left corner.
+   * @param x The x coordinate of the text alignment anchor point.
+   * @param y The y coordinate of the text alignment anchor point.
    * @param font The font to draw the text with.
    * @param color The color to draw the text with.
    * @param background The background color to draw the text with.
+   * @param align The alignment of the text.
+   * @param format The format to use.
    * @param ... The arguments to use for the text formatting.
    */
   void strftime(int x, int y, BaseFont *font, Color color, Color background, TextAlign align, const char *format,
