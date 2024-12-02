@@ -478,12 +478,8 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_() {
 }
 
 esp_err_t I2SAudioSpeaker::reconfigure_i2s_stream_info_(audio::AudioStreamInfo &audio_stream_info) {
-  if (this->i2s_mode_ & I2S_MODE_MASTER) {
-    // ESP controls for the the I2S bus, so adjust the sample rate and bits per sample to match the incoming audio
-    this->sample_rate_ = audio_stream_info.sample_rate;
-    this->bits_per_sample_ = (i2s_bits_per_sample_t) audio_stream_info.bits_per_sample;
-  } else if (this->sample_rate_ != audio_stream_info.sample_rate) {
-    // Can't reconfigure I2S bus, so the sample rate must match the configured value
+  if ((this->i2s_mode_ & I2S_MODE_SLAVE) && (this->sample_rate_ != audio_stream_info.sample_rate)) {
+    //  Can't reconfigure I2S bus, so the sample rate must match the configured value
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -492,10 +488,12 @@ esp_err_t I2SAudioSpeaker::reconfigure_i2s_stream_info_(audio::AudioStreamInfo &
     return ESP_ERR_INVALID_ARG;
   }
 
+  uint32_t bits_cfg = (this->bits_per_channel_ << 16) | this->bits_per_sample_;
+
   if (audio_stream_info.channels == 1) {
-    return i2s_set_clk(this->parent_->get_port(), this->sample_rate_, this->bits_per_sample_, I2S_CHANNEL_MONO);
+    return i2s_set_clk(this->parent_->get_port(), audio_stream_info.sample_rate, bits_cfg, I2S_CHANNEL_MONO);
   } else if (audio_stream_info.channels == 2) {
-    return i2s_set_clk(this->parent_->get_port(), this->sample_rate_, this->bits_per_sample_, I2S_CHANNEL_STEREO);
+    return i2s_set_clk(this->parent_->get_port(), audio_stream_info.sample_rate, bits_cfg, I2S_CHANNEL_STEREO);
   }
 
   return ESP_ERR_INVALID_ARG;
