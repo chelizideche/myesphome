@@ -275,6 +275,8 @@ class ESPNowComponent : public Component {
   void handle_internal_commands(ESPNowPacket packet);
   void handle_internal_sent(ESPNowPacket packet, bool status);
 
+  uint8_t get_channel_for(uint64_t peer);
+
  protected:
   bool validate_channel_(uint8_t channel);
 
@@ -300,7 +302,6 @@ class ESPNowComponent : public Component {
   void call_on_add_peer_(uint64_t peer);
   void call_on_del_peer_(uint64_t peer);
 
-  uint8_t get_channel_for_(uint64_t peer);
   void update_channel_scan_(ESPNowPacket &packet);
   void start_multi_cast_();
 

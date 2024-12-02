@@ -272,29 +272,29 @@ void ESPNowComponent::set_wifi_channel(uint8_t channel) {
 
 esp_err_t ESPNowComponent::add_peer(uint64_t peer, int8_t channel) {
   esp_err_t result = ESP_OK;
-  int8_t old_channel = this->wifi_channel_;
   esp_now_peer_info_t peer_info = {};
 
   if (this->is_ready()) {
     if (peer == this->own_peer_address_) {
-      ESP_LOGE(TAG, "Tried to peer your self.");
+      ESP_LOGE(TAG, "Tried to pair your self.");
       this->mark_failed();
       return ESP_ERR_INVALID_MAC;
     }
     if (esp_now_is_peer_exist((uint8_t *) &peer)) {
-      esp_now_get_peer((const uint8_t *) &peer, &peer_info);
-      old_channel = peer_info.channel;
-      result = esp_now_del_peer((uint8_t *) &peer);
-      if (result != ESP_OK)
-        return result;
+      result = esp_now_get_peer((const uint8_t *) &peer, &peer_info);
+      if (result == ESP_OK) {
+        peer_info.channel = (channel = -1) ? this->wifi_channel_ : channel;
+        result = esp_now_mod_peer((uint8_t *) &peer);
+      }
+    } else {
+      memset(&peer_info, 0, sizeof(esp_now_peer_info_t));
+      peer_info.channel = (channel = -1) ? this->wifi_channel_ : channel;
+      peer_info.encrypt = false;
+      peer_info.ifidx = WIFI_IF_STA;
+      memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
+      esp_err_t result = esp_now_add_peer(&peer_info);
     }
 
-    memset(&peer_info, 0, sizeof(esp_now_peer_info_t));
-    peer_info.channel = (channel = -1) ? old_channel : channel;
-    peer_info.encrypt = false;
-    peer_info.ifidx = WIFI_IF_STA;
-    memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
-    esp_err_t result = esp_now_add_peer(&peer_info);
     if (result == ESP_OK) {
       this->call_on_add_peer_(peer);
     }
@@ -535,7 +535,12 @@ void ESPNowComponent::on_data_sent(const uint8_t *mac_addr, esp_now_send_status_
   }
 }
 
-uint8_t ESPNowComponent::get_channel_for_(uint64_t peer) { return 0; }
+uint8_t ESPNowComponent::get_channel_for(uint64_t peer) {
+  esp_now_peer_info_t peer_info = {};
+  esp_now_get_peer((const uint8_t *) &peer, &peer_info);
+  return peer_info.channel;
+}
+
 void ESPNowComponent::update_channel_scan_(ESPNowPacket &packet) {}
 
 void ESPNowComponent::start_multi_cast_() {
