@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 import functools
 import hashlib
 import logging
@@ -8,7 +7,6 @@ import re
 
 import freetype
 import glyphsets
-from packaging import version
 import requests
 
 from esphome import core, external_files
@@ -88,7 +86,7 @@ def flatten(lists) -> list:
     return list(chain.from_iterable(lists))
 
 
-def check_missing_glyphs(file, codepoints: Iterable, warning: bool = False):
+def check_missing_glyphs(file, codepoints, warning: bool = False):
     """
     Check that the given font file actually contains the requested glyphs
     :param file: A Truetype font file
@@ -175,24 +173,6 @@ def validate_glyphs(config):
             ]
 
     return config
-
-
-def validate_pillow_installed(value):
-    try:
-        import PIL
-    except ImportError as err:
-        raise cv.Invalid(
-            "Please install the pillow python package to use this feature. "
-            '(pip install "pillow==10.4.0")'
-        ) from err
-
-    if version.parse(PIL.__version__) != version.parse("10.4.0"):
-        raise cv.Invalid(
-            "Please update your pillow installation to 10.4.0. "
-            '(pip install "pillow==10.4.0")'
-        )
-
-    return value
 
 
 FONT_EXTENSIONS = (".ttf", ".woff", ".otf")
@@ -421,7 +401,7 @@ FONT_SCHEMA = cv.Schema(
     },
 )
 
-CONFIG_SCHEMA = cv.All(validate_pillow_installed, FONT_SCHEMA, validate_glyphs)
+CONFIG_SCHEMA = cv.All(FONT_SCHEMA, validate_glyphs)
 
 
 # PIL doesn't provide a consistent interface for both TrueType and bitmap
