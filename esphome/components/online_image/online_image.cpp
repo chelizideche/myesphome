@@ -174,7 +174,7 @@ void OnlineImage::loop() {
 }
 
 void OnlineImage::map_chroma_key(Color &color) {
-  if (this->transparent_ == image::TRANSPARENCY_CHROMA_KEY) {
+  if (this->transparency_ == image::TRANSPARENCY_CHROMA_KEY) {
     if (color.g == 1 && color.r == 0 && color.b == 0) {
       color.g = 0;
     }
@@ -214,14 +214,14 @@ void OnlineImage::draw_pixel_(int x, int y, Color color) {
     }
     case ImageType::IMAGE_TYPE_GRAYSCALE: {
       uint8_t gray = static_cast<uint8_t>(0.2125 * color.r + 0.7154 * color.g + 0.0721 * color.b);
-      if (this->transparent_ == image::TRANSPARENCY_CHROMA_KEY) {
+      if (this->transparency_ == image::TRANSPARENCY_CHROMA_KEY) {
         if (gray == 1) {
           gray = 0;
         }
         if (color.w < 0x80) {
           gray = 1;
         }
-      } else if (this->transparent_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
+      } else if (this->transparency_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
         if (color.w != 0xFF)
           gray = color.w;
       }
@@ -233,7 +233,7 @@ void OnlineImage::draw_pixel_(int x, int y, Color color) {
       uint16_t col565 = display::ColorUtil::color_to_565(color);
       this->buffer_[pos + 0] = static_cast<uint8_t>((col565 >> 8) & 0xFF);
       this->buffer_[pos + 1] = static_cast<uint8_t>(col565 & 0xFF);
-      if (this->transparent_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
+      if (this->transparency_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
         this->buffer_[pos + 2] = color.w;
       }
       break;
@@ -243,7 +243,7 @@ void OnlineImage::draw_pixel_(int x, int y, Color color) {
       this->buffer_[pos + 0] = color.r;
       this->buffer_[pos + 1] = color.g;
       this->buffer_[pos + 2] = color.b;
-      if (this->transparent_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
+      if (this->transparency_ == image::TRANSPARENCY_ALPHA_CHANNEL) {
         this->buffer_[pos + 3] = color.w;
       }
       break;

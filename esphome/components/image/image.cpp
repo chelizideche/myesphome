@@ -12,7 +12,7 @@ void Image::draw(int x, int y, display::Display *display, Color color_on, Color 
         for (int img_y = 0; img_y < height_; img_y++) {
           if (this->get_binary_pixel_(img_x, img_y)) {
             display->draw_pixel_at(x + img_x, y + img_y, color_on);
-          } else if (!this->transparent_) {
+          } else if (!this->transparency_) {
             display->draw_pixel_at(x + img_x, y + img_y, color_off);
           }
         }
@@ -100,13 +100,14 @@ lv_img_dsc_t *Image::get_lv_img_dsc() {
             break;
         }
 #else
-        this->dsc_.header.cf = this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGBA8888 : LV_IMG_CF_RGB888;
+        this->dsc_.header.cf =
+            this->transparency_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGBA8888 : LV_IMG_CF_RGB888;
 #endif
         break;
 
       case IMAGE_TYPE_RGB565:
 #if LV_COLOR_DEPTH == 16
-        switch (this->transparent_) {
+        switch (this->transparency_) {
           case TRANSPARENCY_ALPHA_CHANNEL:
             this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
             break;
@@ -137,11 +138,12 @@ Color Image::get_rgb_pixel_(int x, int y) const {
   Color color = Color(progmem_read_byte(this->data_start_ + pos + 0), progmem_read_byte(this->data_start_ + pos + 1),
                       progmem_read_byte(this->data_start_ + pos + 2), 0xFF);
 
-  switch (this->transparent_) {
+  switch (this->transparency_) {
     case TRANSPARENCY_CHROMA_KEY:
-      if (color.g == 1 && color.r == 0 && color.b == 0)
+      if (color.g == 1 && color.r == 0 && color.b == 0) {
         // (0, 1, 0) has been defined as transparent color for non-alpha images.
         color.w = 0;
+      }
       break;
     case TRANSPARENCY_ALPHA_CHANNEL:
       color.w = progmem_read_byte(this->data_start_ + (pos + 3));
@@ -153,7 +155,7 @@ Color Image::get_rgb_pixel_(int x, int y) const {
 }
 Color Image::get_rgb565_pixel_(int x, int y) const {
   const uint8_t *pos = this->data_start_;
-  if (this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL) {
+  if (this->transparency_ == TRANSPARENCY_ALPHA_CHANNEL) {
     pos += (x + y * this->width_) * 3;
   } else {
     pos += (x + y * this->width_) * 2;
@@ -163,7 +165,7 @@ Color Image::get_rgb565_pixel_(int x, int y) const {
   auto g = (rgb565 & 0x07E0) >> 5;
   auto b = rgb565 & 0x001F;
   auto a = 0xFF;
-  switch (this->transparent_) {
+  switch (this->transparency_) {
     case TRANSPARENCY_ALPHA_CHANNEL:
       a = progmem_read_byte(pos + 2);
       break;
@@ -180,14 +182,14 @@ Color Image::get_rgb565_pixel_(int x, int y) const {
 Color Image::get_grayscale_pixel_(int x, int y) const {
   const uint32_t pos = (x + y * this->width_);
   const uint8_t gray = progmem_read_byte(this->data_start_ + pos);
-  uint8_t alpha = (gray == 1 && this->transparent_ == TRANSPARENCY_CHROMA_KEY) ? 0 : 0xFF;
+  uint8_t alpha = (gray == 1 && this->transparency_ == TRANSPARENCY_CHROMA_KEY) ? 0 : 0xFF;
   return Color(gray, gray, gray, alpha);
 }
 int Image::get_width() const { return this->width_; }
 int Image::get_height() const { return this->height_; }
 ImageType Image::get_type() const { return this->type_; }
-Image::Image(const uint8_t *data_start, int width, int height, ImageType type, Transparency transparent)
-    : width_(width), height_(height), type_(type), data_start_(data_start), transparent_(transparent) {
+Image::Image(const uint8_t *data_start, int width, int height, ImageType type, Transparency transparency)
+    : width_(width), height_(height), type_(type), data_start_(data_start), transparency_(transparency) {
   switch (this->type_) {
     case IMAGE_TYPE_BINARY:
       this->bpp_ = 1;
@@ -196,10 +198,10 @@ Image::Image(const uint8_t *data_start, int width, int height, ImageType type, T
       this->bpp_ = 8;
       break;
     case IMAGE_TYPE_RGB565:
-      this->bpp_ = transparent == TRANSPARENCY_ALPHA_CHANNEL ? 24 : 16;
+      this->bpp_ = transparency == TRANSPARENCY_ALPHA_CHANNEL ? 24 : 16;
       break;
     case IMAGE_TYPE_RGB:
-      this->bpp_ = this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? 32 : 24;
+      this->bpp_ = this->transparency_ == TRANSPARENCY_ALPHA_CHANNEL ? 32 : 24;
       break;
   }
 }
