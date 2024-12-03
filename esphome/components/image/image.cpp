@@ -42,7 +42,7 @@ void Image::draw(int x, int y, display::Display *display, Color color_on, Color 
     case IMAGE_TYPE_RGB:
       for (int img_x = 0; img_x < width_; img_x++) {
         for (int img_y = 0; img_y < height_; img_y++) {
-          auto color = this->get_rgb_pixel(img_x, img_y);
+          auto color = this->get_rgb_pixel_(img_x, img_y);
           if (color.w >= 0x80) {
             display->draw_pixel_at(x + img_x, y + img_y, color);
           }
@@ -62,7 +62,7 @@ Color Image::get_pixel(int x, int y, const Color color_on, const Color color_off
     case IMAGE_TYPE_RGB565:
       return this->get_rgb565_pixel_(x, y);
     case IMAGE_TYPE_RGB:
-      return this->get_rgb_pixel(x, y);
+      return this->get_rgb_pixel_(x, y);
     default:
       return color_off;
   }
@@ -132,7 +132,7 @@ bool Image::get_binary_pixel_(int x, int y) const {
   const uint32_t pos = x + y * width_8;
   return progmem_read_byte(this->data_start_ + (pos / 8u)) & (0x80 >> (pos % 8u));
 }
-Color Image::get_rgb_pixel(int x, int y) const {
+Color Image::get_rgb_pixel_(int x, int y) const {
   const uint32_t pos = (x + y * this->width_) * this->bpp_ / 8;
   Color color = Color(progmem_read_byte(this->data_start_ + pos + 0), progmem_read_byte(this->data_start_ + pos + 1),
                       progmem_read_byte(this->data_start_ + pos + 2), 0xFF);
