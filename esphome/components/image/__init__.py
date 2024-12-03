@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 import re
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import puremagic
 from puremagic import PureError
 
@@ -317,11 +317,7 @@ def is_svg_file(file):
         return False
 
 
-def validate_cairosvg_installed(value):
-    """Validate that cairosvg is installed if the file is SVG"""
-    file = value.get(CONF_FILE)
-    if not is_svg_file(file):
-        return value
+def validate_cairosvg_installed():
     try:
         import cairosvg
     except ImportError as err:
@@ -336,8 +332,6 @@ def validate_cairosvg_installed(value):
             "Please update your cairosvg installation to at least 2.2.0. "
             "(pip install -U cairosvg)"
         )
-
-    return value
 
 
 def validate_file_shorthand(value):
@@ -413,7 +407,16 @@ def validate_settings(value):
         and CONF_INVERT_ALPHA not in allow_config
     ):
         raise cv.Invalid("No alpha channel to invert")
-    return validate_cairosvg_installed(value)
+    if file := value.get(CONF_FILE):
+        file = Path(file)
+        if is_svg_file(file):
+            validate_cairosvg_installed()
+        else:
+            try:
+                Image.open(file)
+            except UnidentifiedImageError as exc:
+                raise cv.Invalid(f"File can't be opened as image: {file}") from exc
+    return value
 
 
 IMAGE_SCHEMA = cv.Schema(
@@ -459,10 +462,12 @@ async def write_image(config, all_frames=False):
     if not path.is_file():
         raise core.EsphomeError(f"Could not load image file {path}")
 
-    resize = config.get(CONF_RESIZE, (None, None))
+    resize = config.get(CONF_RESIZE)
     if is_svg_file(path):
         from cairosvg import svg2png
 
+        if not resize:
+            resize = (None, None)
         with open(path, "rb") as file:
             image = svg2png(
                 file_obj=file,
