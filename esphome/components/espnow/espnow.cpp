@@ -24,6 +24,7 @@ namespace esphome {
 namespace espnow {
 
 static const char *const TAG = "espnow";
+const char *const ESPNowTAG::TAG = "espnow";
 
 static const size_t SEND_BUFFER_SIZE = 200;
 
@@ -563,8 +564,6 @@ bool ESPNowProtocol::send(uint64_t peer, const uint8_t *data, uint8_t len, uint8
   packet.set_sequents(this->get_next_sequents(peer));
   return this->parent_->send(packet);
 }
-
-const char *const SetChannel::TAG = "espnow.changechannel";
 
 }  // namespace espnow
 }  // namespace esphome

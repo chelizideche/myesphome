@@ -38,6 +38,12 @@ static const uint64_t FAILED = 0;
 
 struct ESPNowPacket;
 
+class ESPNowTAG {
+ public:
+  // could be made inline with C++17
+  static const char *const TAG;
+};
+
 template<typename T> std::string espnow_i2h(T i) { return sprintf("%04x", i); }
 
 std::string espnow_rdm(std::string::size_type length);
@@ -103,7 +109,10 @@ struct ESPNowPacket {
   inline uint8_t *get_content() const { return (uint8_t *) &(this->content); }
   inline uint8_t *get_payload() const { return (uint8_t *) &(this->content.payload); }
   inline uint8_t at(uint8_t pos) const {
-    assert(pos < this->size);
+    if (pos >= this->content_size()) {
+      esph_log_e(ESPNowTAG::TAG, "Trying to read out of space (%d of %d).", pos, this->content_size());
+      return 0;
+    }
     return *(((uint8_t *) &this->content) + pos);
   }
 
@@ -354,18 +363,12 @@ template<typename... Ts> class DelPeerAction : public Action<Ts...>, public Pare
   }
 };
 
-class SetChannel {
- public:
-  // could be made inline with C++17
-  static const char *const TAG;
-};
-
 template<typename... Ts> class SetChannelAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
   TEMPLATABLE_VALUE(int8_t, channel);
   void play(Ts... x) override {
 #ifdef USE_WIFI
-    esph_log_e(SetChannel::TAG, "Manual changing the channel is not possible with WIFI enabled.");
+    esph_log_e(ESPNowTAG::TAG, "Manual changing the channel is not possible with WIFI enabled.");
 #else
     int8_t value = this->channel_.value(x...);
     parent_->set_wifi_channel(value);
