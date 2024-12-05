@@ -284,7 +284,7 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer, int8_t channel) {
       result = esp_now_get_peer((const uint8_t *) &peer, &peer_info);
       if (result == ESP_OK) {
         peer_info.channel = (channel = -1) ? this->wifi_channel_ : channel;
-        result = esp_now_mod_peer((uint8_t *) &peer);
+        result = esp_now_mod_peer(&peer_info);
       }
     } else {
       memset(&peer_info, 0, sizeof(esp_now_peer_info_t));
