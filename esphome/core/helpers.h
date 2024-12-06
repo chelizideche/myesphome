@@ -420,6 +420,14 @@ template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::stri
   return format_hex_pretty(reinterpret_cast<uint8_t *>(&val), sizeof(T));
 }
 
+/// Format the byte array \p data of length \p len in binary.
+std::string format_bin(const uint8_t *data, size_t length);
+/// Format an unsigned integer in binary, starting with the most significant byte.
+template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_bin(T val) {
+  val = convert_big_endian(val);
+  return format_bin(reinterpret_cast<uint8_t *>(&val), sizeof(T));
+}
+
 /// Return values for parse_on_off().
 enum ParseOnOffState {
   PARSE_NONE = 0,

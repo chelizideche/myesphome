@@ -8,10 +8,9 @@
 #pragma once
 
 #include <string>
-#include <sstream>
-#include <iomanip>
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 #if defined(ESP32) || defined(USE_ESP_IDF)
 #include "driver/timer.h"
@@ -318,8 +317,8 @@ class OpenTherm {
 
   OperationMode get_mode() { return mode_; }
 
-  std::string debug_data(OpenthermData &data);
-  std::string debug_error(OpenThermError &error);
+  void debug_data(OpenthermData &data);
+  void debug_error(OpenThermError &error) const;
 
   const char *protocol_error_to_to_str(ProtocolErrorType error_type);
   const char *message_type_to_str(MessageType message_type);
