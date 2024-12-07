@@ -65,11 +65,11 @@ def validate_config(config):
         if esp32_rmt.new_rmt_driver():
             if CONF_CLOCK_DIVIDER in config:
                 raise cv.Invalid(
-                    "clock_divider has been deprecated in this version of the RMT drivers, please use clock_resolution"
+                    "clock_divider has been deprecated in this version of the RMT driver, please use clock_resolution"
                 )
         elif CONF_CLOCK_RESOLUTION in config:
             raise cv.Invalid(
-                "clock_resolution is not available in this version of the RMT drivers, please use clock_divider"
+                "clock_resolution is not available in this version of the RMT driver, please use clock_divider"
             )
 
 
