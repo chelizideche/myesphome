@@ -7,8 +7,6 @@ from pathlib import Path
 import re
 
 from PIL import Image, UnidentifiedImageError
-import puremagic
-from puremagic import PureError
 
 from esphome import core, external_files
 import esphome.codegen as cg
@@ -309,12 +307,8 @@ def download_image(value):
 def is_svg_file(file):
     if not file:
         return False
-    try:
-        file_type = puremagic.from_file(file, True)
-        return "svg" in file_type
-    except PureError:
-        # If not identified, then certainly not svg
-        return False
+    with open(file, "rb") as f:
+        return "<svg " in str(f.read(1024))
 
 
 def validate_cairosvg_installed():
