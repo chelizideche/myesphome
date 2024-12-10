@@ -4,27 +4,28 @@ from esphome import automation
 from esphome.components import display, uart
 from esphome.components import esp32
 from esphome.const import (
+    CONF_BRIGHTNESS,
     CONF_ID,
     CONF_LAMBDA,
-    CONF_BRIGHTNESS,
-    CONF_TRIGGER_ID,
     CONF_ON_TOUCH,
+    CONF_TRIGGER_ID,
 )
 from esphome.core import CORE
 from . import Nextion, nextion_ns, nextion_ref
 from .base_component import (
+    CONF_AUTO_WAKE_ON_TOUCH,
+    CONF_COMMAND_SPACING,
+    CONF_EXIT_REPARSE_ON_START,
     CONF_ON_BUFFER_OVERFLOW,
-    CONF_ON_SLEEP,
-    CONF_ON_WAKE,
     CONF_ON_SETUP,
+    CONF_ON_SLEEP,
     CONF_ON_PAGE,
+    CONF_ON_WAKE,
+    CONF_SKIP_CONNECTION_HANDSHAKE,
+    CONF_START_UP_PAGE,
     CONF_TFT_URL,
     CONF_TOUCH_SLEEP_TIMEOUT,
     CONF_WAKE_UP_PAGE,
-    CONF_START_UP_PAGE,
-    CONF_AUTO_WAKE_ON_TOUCH,
-    CONF_EXIT_REPARSE_ON_START,
-    CONF_SKIP_CONNECTION_HANDSHAKE,
 )
 
 CODEOWNERS = ["@senexcrenshaw", "@edwardtfn"]
@@ -85,6 +86,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_AUTO_WAKE_ON_TOUCH, default=True): cv.boolean,
             cv.Optional(CONF_EXIT_REPARSE_ON_START, default=False): cv.boolean,
             cv.Optional(CONF_SKIP_CONNECTION_HANDSHAKE, default=False): cv.boolean,
+            cv.Optional(CONF_COMMAND_SPACING, default="0ms"): cv.positive_time_period_milliseconds,
         }
     )
     .extend(cv.polling_component_schema("5s"))
@@ -96,8 +98,12 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await uart.register_uart_device(var, config)
 
+    if CONF_COMMAND_SPACING in config:
+        cg.add(var.set_command_spacing(config[CONF_COMMAND_SPACING]))
+
     if CONF_BRIGHTNESS in config:
         cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
+
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
             config[CONF_LAMBDA], [(nextion_ref, "it")], return_type=cg.void

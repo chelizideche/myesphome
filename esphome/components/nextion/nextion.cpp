@@ -31,11 +31,17 @@ bool Nextion::send_command_(const std::string &command) {
     return false;
   }
 
+  if (!this->command_pacer_.can_send()) {
+    return false;
+  }
+
   ESP_LOGN(TAG, "send_command %s", command.c_str());
 
   this->write_str(command.c_str());
   const uint8_t to_send[3] = {0xFF, 0xFF, 0xFF};
   this->write_array(to_send, sizeof(to_send));
+
+  this->command_pacer_.mark_sent();
   return true;
 }
 
