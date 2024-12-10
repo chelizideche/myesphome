@@ -32,7 +32,7 @@ bool Nextion::send_command_(const std::string &command) {
   }
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-  if (!this->command_pacer_.can_send()) {
+  if (!this->ignore_is_setup_ && !this->command_pacer_.can_send()) {
     return false;
   }
 #endif  // USE_NEXTION_COMMAND_SPACING
@@ -44,7 +44,9 @@ bool Nextion::send_command_(const std::string &command) {
   this->write_array(to_send, sizeof(to_send));
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-  this->command_pacer_.mark_sent();
+  if (!this->ignore_is_setup_) {
+    this->command_pacer_.mark_sent();
+  }
 #endif  // USE_NEXTION_COMMAND_SPACING
 
   return true;
@@ -169,6 +171,10 @@ void Nextion::dump_config() {
   if (this->start_up_page_ != -1) {
     ESP_LOGCONFIG(TAG, "  Start Up Page:    %" PRId16, this->start_up_page_);
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  ESP_LOGCONFIG(TAG, "  Command spacing:  %" PRIu8 "ms", this->command_pacer_.get_spacing());
+#endif  // USE_NEXTION_COMMAND_SPACING
 }
 
 float Nextion::get_setup_priority() const { return setup_priority::DATA; }
@@ -363,6 +369,12 @@ void Nextion::process_nextion_commands_() {
     return;
   }
 
+#ifdef USE_NEXTION_COMMAND_SPACING
+  if (!this->command_pacer_.can_send()) {
+    return;  // Will try again in next loop iteration
+  }
+#endif
+
   size_t to_process_length = 0;
   std::string to_process;
 
@@ -402,7 +414,9 @@ void Nextion::process_nextion_commands_() {
             this->setup_callback_.call();
           }
         }
-
+#ifdef USE_NEXTION_COMMAND_SPACING
+        this->command_pacer_.mark_sent();  // Here is where we should mark the command as sent
+#endif
         break;
       case 0x02:  // invalid Component ID or name was used
         ESP_LOGW(TAG, "Nextion reported component ID or name invalid!");

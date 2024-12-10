@@ -42,19 +42,19 @@ class NextionCommandPacer {
    * @brief Creates command pacer with initial spacing
    * @param initial_spacing Initial time between commands in milliseconds
    */
-  explicit NextionCommandPacer(uint32_t initial_spacing = 0) : spacing_ms_(initial_spacing) {}
+  explicit NextionCommandPacer(uint8_t initial_spacing = 0) : spacing_ms_(initial_spacing) {}
 
   /**
    * @brief Set the minimum time between commands
    * @param spacing_ms Spacing in milliseconds
    */
-  void set_spacing(uint32_t spacing_ms) { spacing_ms_ = spacing_ms; }
+  void set_spacing(uint8_t spacing_ms) { spacing_ms_ = spacing_ms; }
 
   /**
    * @brief Get current command spacing
    * @return Current spacing in milliseconds
    */
-  uint32_t get_spacing() const { return spacing_ms_; }
+  uint8_t get_spacing() const { return spacing_ms_; }
 
   /**
    * @brief Check if enough time has passed to send next command
@@ -68,7 +68,7 @@ class NextionCommandPacer {
   void mark_sent() { last_command_time_ = millis(); }
 
  private:
-  uint32_t spacing_ms_;
+  uint8_t spacing_ms_;
   uint32_t last_command_time_{0};
 };
 #endif  // USE_NEXTION_COMMAND_SPACING
