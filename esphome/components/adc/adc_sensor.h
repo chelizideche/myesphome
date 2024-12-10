@@ -13,6 +13,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include "driver/adc_types_legacy.h"
 #else
 #include <esp_adc_cal.h>
 #include "driver/adc.h"
@@ -24,7 +25,8 @@ namespace adc {
 
 #ifdef USE_ESP32
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-// Map old channel names to new ones for compatibility
+// Map old channel names to new ones for compatibility, if needed
+#ifndef ADC1_CHANNEL_0
 #define ADC1_CHANNEL_0 ADC_CHANNEL_0
 #define ADC1_CHANNEL_1 ADC_CHANNEL_1
 #define ADC1_CHANNEL_2 ADC_CHANNEL_2
@@ -34,7 +36,9 @@ namespace adc {
 #define ADC1_CHANNEL_6 ADC_CHANNEL_6
 #define ADC1_CHANNEL_7 ADC_CHANNEL_7
 #define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
+#endif  // ADC1_CHANNEL_0
 
+#ifndef ADC2_CHANNEL_0
 #define ADC2_CHANNEL_0 ADC_CHANNEL_0
 #define ADC2_CHANNEL_1 ADC_CHANNEL_1
 #define ADC2_CHANNEL_2 ADC_CHANNEL_2
@@ -46,6 +50,7 @@ namespace adc {
 #define ADC2_CHANNEL_8 ADC_CHANNEL_8
 #define ADC2_CHANNEL_9 ADC_CHANNEL_9
 #define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
+#endif  // ADC2_CHANNEL_0
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
 // clang-format off
