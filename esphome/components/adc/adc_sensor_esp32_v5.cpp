@@ -62,16 +62,16 @@ void ADCSensor::setup() {
     adc_cali_curve_fitting_config_t cali_config = {};  // Zero initialize first
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     cali_config.chan = this->channel_;  // Set chan first as it's the first field in v5.3+
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#endif                                  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     cali_config.unit_id = unit_id;
     cali_config.atten = this->attenuation_;
     cali_config.bitwidth = ADC_BITWIDTH_DEFAULT;
-    
+
     if (adc_cali_create_scheme_curve_fitting(&cali_config, &handle) == ESP_OK) {
       this->calibration_handle_ = handle;
       ESP_LOGV(TAG, "Using curve fitting calibration");
     }
-#else  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
+#else   // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
     // Other ESP32 variants use line fitting calibration
     adc_cali_line_fitting_config_t cali_config = {
         .unit_id = unit_id,
