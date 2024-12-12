@@ -4,6 +4,8 @@ from esphome.components import esp32, esp32_rmt, remote_base
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BUFFER_SIZE,
+    CONF_CLOCK_DIVIDER,
+    CONF_CLOCK_RESOLUTION,
     CONF_DUMP,
     CONF_FILTER,
     CONF_ID,
@@ -14,15 +16,13 @@ from esphome.const import (
     CONF_RMT_SYMBOLS,
     CONF_TOLERANCE,
     CONF_TYPE,
+    CONF_USE_DMA,
     CONF_VALUE,
 )
 from esphome.core import CORE, TimePeriod
 
-CONF_CLOCK_DIVIDER = "clock_divider"
-CONF_CLOCK_RESOLUTION = "clock_resolution"
 CONF_FILTER_SYMBOLS = "filter_symbols"
 CONF_RECEIVE_SYMBOLS = "receive_symbols"
-CONF_WITH_DMA = "with_dma"
 
 AUTO_LOAD = ["remote_base"]
 remote_receiver_ns = cg.esphome_ns.namespace("remote_receiver")
@@ -134,7 +134,7 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
             cv.Optional(CONF_RECEIVE_SYMBOLS): cv.All(
                 cv.only_with_esp_idf, cv.Range(min=2)
             ),
-            cv.Optional(CONF_WITH_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
+            cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         }
     ).extend(cv.COMPONENT_SCHEMA)
 )
@@ -146,8 +146,8 @@ async def to_code(config):
         if esp32_rmt.use_new_rmt_driver():
             var = cg.new_Pvariable(config[CONF_ID], pin)
             cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
-            if CONF_WITH_DMA in config:
-                cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+            if CONF_USE_DMA in config:
+                cg.add(var.set_with_dma(config[CONF_USE_DMA]))
             if CONF_CLOCK_RESOLUTION in config:
                 cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
             if CONF_FILTER_SYMBOLS in config:
