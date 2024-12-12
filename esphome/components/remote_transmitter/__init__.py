@@ -4,20 +4,20 @@ from esphome.components import esp32_rmt, remote_base
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CARRIER_DUTY_PERCENT,
+    CONF_CLOCK_DIVIDER,
+    CONF_CLOCK_RESOLUTION,
     CONF_ID,
     CONF_PIN,
     CONF_RMT_CHANNEL,
     CONF_RMT_SYMBOLS,
+    CONF_USE_DMA,
 )
 from esphome.core import CORE
 
 AUTO_LOAD = ["remote_base"]
 
-CONF_CLOCK_DIVIDER = "clock_divider"
-CONF_CLOCK_RESOLUTION = "clock_resolution"
 CONF_ON_TRANSMIT = "on_transmit"
 CONF_ON_COMPLETE = "on_complete"
-CONF_WITH_DMA = "with_dma"
 CONF_ONE_WIRE = "one_wire"
 
 remote_transmitter_ns = cg.esphome_ns.namespace("remote_transmitter")
@@ -42,7 +42,7 @@ CONFIG_SCHEMA = cv.Schema(
             cv.only_on_esp32, cv.only_with_arduino, cv.Range(min=1, max=255)
         ),
         cv.Optional(CONF_ONE_WIRE): cv.All(cv.only_with_esp_idf, cv.boolean),
-        cv.Optional(CONF_WITH_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
+        cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         cv.SplitDefault(CONF_RMT_SYMBOLS, esp32_idf=64): cv.All(
             cv.only_with_esp_idf, cv.Range(min=2)
         ),
@@ -63,8 +63,8 @@ async def to_code(config):
             cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
             if CONF_CLOCK_RESOLUTION in config:
                 cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
-            if CONF_WITH_DMA in config:
-                cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+            if CONF_USE_DMA in config:
+                cg.add(var.set_with_dma(config[CONF_USE_DMA]))
             if CONF_ONE_WIRE in config:
                 cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
         else:
