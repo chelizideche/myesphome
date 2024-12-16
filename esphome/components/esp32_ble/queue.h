@@ -26,6 +26,7 @@ template<class T> class Queue {
   void push(T *element) {
     if (element == nullptr)
       return;
+    // It is not called from main loop. Thus it won't block main thread.
     xSemaphoreTake(m_, portMAX_DELAY);
     q_.push(element);
     xSemaphoreGive(m_);
