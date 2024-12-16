@@ -26,6 +26,7 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   void setup() override;
   void loop() override;
   float get_setup_priority() const override;
+  void dump_config() override;
 
   void run_later(std::function<void()> &&f);  // NOLINT
   bool parse_device(const espbt::ESPBTDevice &device) override;
