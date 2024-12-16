@@ -12,6 +12,7 @@ AUTO_LOAD = ["image"]
 CODEOWNERS = ["@syndlex"]
 DEPENDENCIES = ["display"]
 MULTI_CONF = True
+MULTI_CONF_NO_DEFAULT = True
 
 CONF_LOOP = "loop"
 CONF_START_FRAME = "start_frame"
