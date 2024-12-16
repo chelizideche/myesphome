@@ -88,6 +88,9 @@ void ESP32BLETracker::loop() {
   int searching = 0;
   int disconnecting = 0;
   for (auto *client : this->clients_) {
+    if (clients_.is_failed()) {
+      continue;
+    }
     switch (client->state()) {
       case ClientState::DISCONNECTING:
         disconnecting++;
