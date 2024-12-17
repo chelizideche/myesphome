@@ -431,22 +431,6 @@ IMAGE_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = IMAGE_SCHEMA
 
 
-def load_svg_image(file, resize: tuple[int, int]):
-    from cairosvg import svg2png
-
-    if resize:
-        req_width, req_height = resize
-        svg_image = svg2png(
-            file,
-            output_width=req_width,
-            output_height=req_height,
-        )
-    else:
-        svg_image = svg2png(file)
-
-    return Image.open(io.BytesIO(svg_image))
-
-
 async def write_image(config, all_frames=False):
     path = Path(config[CONF_FILE])
     if not path.is_file():
