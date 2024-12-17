@@ -71,19 +71,20 @@ bool OnlineImage::resize_(int width_in, int height_in) {
     return false;
   }
   auto new_size = this->get_buffer_size_(width, height);
-  ESP_LOGV(TAG, "Allocating new buffer of %d Bytes...", new_size);
-  delay_microseconds_safe(2000);
+#if ESP_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
+  ESP_LOGD(TAG, "Allocating new buffer of %d bytes", new_size);
+  delay_microseconds_safe(2000);  // allow time for log line to appear
+#endif
   this->buffer_ = this->allocator_.allocate(new_size);
-  if (this->buffer_) {
-    this->buffer_width_ = width;
-    this->buffer_height_ = height;
-    this->width_ = width;
-    ESP_LOGV(TAG, "New size: (%d, %d)", width, height);
-  } else {
+  if (this->buffer_ == nullptr) {
     ESP_LOGE(TAG, "allocation of %d bytes failed", new_size);
     this->end_connection_();
     return false;
   }
+  this->buffer_width_ = width;
+  this->buffer_height_ = height;
+  this->width_ = width;
+  ESP_LOGV(TAG, "New size: (%d, %d)", width, height);
   return true;
 }
 
