@@ -31,7 +31,7 @@ void HttpRequestUpdate::setup() {
 void HttpRequestUpdate::update() {
   auto container = this->request_parent_->get(this->source_url_);
 
-  if (container == nullptr) {
+  if (container == nullptr || container->status_code != HTTP_STATUS_OK) {
     std::string msg = str_sprintf("Failed to fetch manifest from %s", this->source_url_.c_str());
     this->status_set_error(msg.c_str());
     return;
@@ -138,8 +138,8 @@ void HttpRequestUpdate::update() {
   this->publish_state();
 }
 
-void HttpRequestUpdate::perform() {
-  if (this->state_ != update::UPDATE_STATE_AVAILABLE) {
+void HttpRequestUpdate::perform(bool force) {
+  if (this->state_ != update::UPDATE_STATE_AVAILABLE && !force) {
     return;
   }
 
