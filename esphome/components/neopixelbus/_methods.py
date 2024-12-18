@@ -126,6 +126,7 @@ NeoEsp32RmtMethodBase = neo_ns.class_("NeoEsp32RmtMethodBase")
 NeoEsp32RmtSpeedBase = neo_ns.class_("NeoEsp32RmtSpeedBase")
 NeoEsp32RmtSpeed = neo_ns.class_("NeoEsp32RmtSpeed")
 
+
 def _bit_bang_to_code(config, chip: str, inverted: bool):
     # https://github.com/Makuna/NeoPixelBus/blob/master/src/internal/NeoEspBitBangMethod.h
     # Some chips are only aliases
@@ -279,7 +280,7 @@ def _esp32_rmt_to_code(config, chip: str, inverted: bool):
     # Resolve chip aliasing and use default speed settings if necessary
     chip = {
         CHIP_WS2813: CHIP_WS2812X,  # Alias WS2813 to WS2812X
-        CHIP_LC8812: CHIP_SK6812,   # Alias LC8812 to SK6812
+        CHIP_LC8812: CHIP_SK6812,  # Alias LC8812 to SK6812
         CHIP_WS2812: CHIP_800KBPS,  # Use generic 800Kbps for WS2812
     }.get(chip, chip)
 
@@ -306,7 +307,9 @@ def _esp32_rmt_to_code(config, chip: str, inverted: bool):
     }
 
     if (chip, inverted) not in lookup:
-        raise cv.Invalid(f"Unsupported chip {chip} with inverted={inverted} for RMT method.")
+        raise cv.Invalid(
+            f"Unsupported chip {chip} with inverted={inverted} for RMT method."
+        )
 
     speed = lookup[(chip, inverted)]
     return neo_ns.NeoEsp32RmtMethodBase.template(speed, channel)
@@ -327,7 +330,7 @@ def _esp32_i2s_to_code(config, chip: str, inverted: bool):
     chip = {
         CHIP_WS2811: CHIP_WS2812X,  # Alias WS2811 to WS2812X
         CHIP_WS2813: CHIP_WS2812X,  # Alias WS2813 to WS2812X
-        CHIP_LC8812: CHIP_SK6812,   # Alias LC8812 to SK6812
+        CHIP_LC8812: CHIP_SK6812,  # Alias LC8812 to SK6812
         CHIP_WS2812: CHIP_800KBPS,  # Use generic 800Kbps for WS2812
     }.get(chip, chip)
 
@@ -357,7 +360,9 @@ def _esp32_i2s_to_code(config, chip: str, inverted: bool):
         False: neo_ns.NeoEsp32I2sNotInverted,
         True: neo_ns.NeoEsp32I2sInverted,
     }[inverted != inv_inverted]
-    return neo_ns.NeoEsp32I2sMethodBase.template(speed, bus, inv, neo_ns.NeoEsp32I2sCadence)
+    return neo_ns.NeoEsp32I2sMethodBase.template(
+        speed, bus, inv, neo_ns.NeoEsp32I2sCadence
+    )
 
 
 def _spi_to_code(config, chip: str, inverted: bool):
