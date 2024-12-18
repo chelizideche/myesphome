@@ -704,13 +704,11 @@ template<class T> class RAMAllocator {
     size_t size = n * sizeof(T);
     T *ptr = nullptr;
 #ifdef USE_ESP32
-    // External allocation by default or if explicitely requested
     if (this->flags_ & Flags::ALLOC_EXTERNAL) {
       ptr = static_cast<T *>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     }
-    // Fallback to internal allocation if explicitly requested or no flag is specified
     if (ptr == nullptr && this->flags_ & Flags::ALLOC_INTERNAL) {
-      ptr = static_cast<T *>(malloc(size));  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
+      ptr = static_cast<T *>(heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
     }
 #else
     // Ignore ALLOC_EXTERNAL/ALLOC_INTERNAL flags if external allocation is not supported
