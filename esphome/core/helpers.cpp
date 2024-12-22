@@ -45,7 +45,7 @@
 #endif
 #ifdef USE_ESP32
 #include "esp32/rom/crc.h"
-
+#include "esp_mac.h"
 #include "esp_efuse.h"
 #include "esp_efuse_table.h"
 #endif
@@ -259,7 +259,7 @@ bool random_bytes(uint8_t *data, size_t len) {
 bool str_equals_case_insensitive(const std::string &a, const std::string &b) {
   return strcasecmp(a.c_str(), b.c_str()) == 0;
 }
-#if ESP_IDF_VERSION_MAJOR >= 5
+#if __cplusplus >= 202002L
 bool str_startswith(const std::string &str, const std::string &start) { return str.starts_with(start); }
 bool str_endswith(const std::string &str, const std::string &end) { return str.ends_with(end); }
 #else
