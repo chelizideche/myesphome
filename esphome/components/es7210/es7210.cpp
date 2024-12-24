@@ -68,14 +68,6 @@ void ES7210::setup() {
   ES7210_ERROR_FAILED(this->configure_sample_rate_());
   ES7210_ERROR_FAILED(this->configure_mic_gain_());
 
-  uint8_t ret;
-  uint8_t regv;
-  ES7210_ERROR_FAILED(this->read_byte(ES7210_CLOCK_OFF_REG01, &ret));
-  if ((ret != 0x7f) && (ret != 0xff)) {
-    ES7210_ERROR_FAILED(this->read_byte(ES7210_CLOCK_OFF_REG01, &regv));
-  }
-  ES7210_ERROR_FAILED(this->write_byte(ES7210_CLOCK_OFF_REG01, regv));
-
   // Power on mics 1 through 4
   ES7210_ERROR_FAILED(this->write_byte(ES7210_MIC1_POWER_REG47, 0x08));
   ES7210_ERROR_FAILED(this->write_byte(ES7210_MIC2_POWER_REG48, 0x08));
