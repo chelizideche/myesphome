@@ -36,15 +36,17 @@ void timerSetDivider(hw_timer_t *timer, uint16_t divider);
 
 #if (ESP_IDF_VERSION_MAJOR == 5)
 
-typedef void (*voidFuncPtr)(void);
-typedef void (*voidFuncPtrArg)(void *);
+using voidFuncPtr = void (*)();
+using voidFuncPtrArg = void (*)(void *);
 
-struct interrupt_config_t {
+// keep structure names as in SDK
+struct interrupt_config_t {  // NOLINT
   voidFuncPtr fn;
   void *arg;
 };
 
-struct hw_timer_t {
+// keep structure names as in SDK
+struct hw_timer_t {  // NOLINT
   gptimer_handle_t timer_handle;
   interrupt_config_t interrupt_handle;
   bool timer_started;
