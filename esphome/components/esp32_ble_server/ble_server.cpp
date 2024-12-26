@@ -71,14 +71,14 @@ void BLEServer::loop() {
     }
     case REGISTERING: {
       if (this->registered_) {
-        // Create all services previously created
-        for (auto &pair : this->services_) {
-          pair.second->do_create(this);
-        }
         if (this->device_information_service_ == nullptr) {
           this->device_information_service_ =
               this->create_service(ESPBTUUID::from_uint16(DEVICE_INFORMATION_SERVICE_UUID), false, 7);
           this->create_device_characteristics_();
+        }
+        // Create all services previously created
+        for (auto &pair : this->services_) {
+          pair.second->do_create(this);
         }
         this->state_ = STARTING_SERVICE;
       }
