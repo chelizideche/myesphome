@@ -10,13 +10,14 @@ from esphome.cpp_types import nullptr
 from .defines import (
     CONF_DISP_BG_COLOR,
     CONF_DISP_BG_IMAGE,
+    CONF_DISP_BG_OPA,
     CONF_EDITING,
     CONF_FREEZE,
     CONF_LVGL_ID,
     CONF_SHOW_SNOW,
     literal,
 )
-from .lv_validation import lv_bool, lv_color, lv_image
+from .lv_validation import lv_bool, lv_color, lv_image, opacity
 from .lvcode import (
     LVGL_COMP_ARG,
     UPDATE_EVENT,
@@ -119,13 +120,22 @@ async def lvgl_is_idle(config, condition_id, template_arg, args):
 
 
 async def disp_update(disp, config: dict):
-    if CONF_DISP_BG_COLOR not in config and CONF_DISP_BG_IMAGE not in config:
+    if (
+        CONF_DISP_BG_COLOR not in config
+        and CONF_DISP_BG_IMAGE not in config
+        and CONF_DISP_BG_OPA not in config
+    ):
         return
     with LocalVariable("lv_disp_tmp", lv_disp_t, disp) as disp_temp:
         if (bg_color := config.get(CONF_DISP_BG_COLOR)) is not None:
             lv.disp_set_bg_color(disp_temp, await lv_color.process(bg_color))
         if bg_image := config.get(CONF_DISP_BG_IMAGE):
-            lv.disp_set_bg_image(disp_temp, await lv_image.process(bg_image))
+            if bg_image == "none":
+                lv.disp_set_bg_image(disp_temp, static_cast("void *", "nullptr"))
+            else:
+                lv.disp_set_bg_image(disp_temp, await lv_image.process(bg_image))
+        if (bg_opa := config.get(CONF_DISP_BG_OPA)) is not None:
+            lv.disp_set_bg_opa(disp_temp, await opacity.process(bg_opa))
 
 
 @automation.register_action(
