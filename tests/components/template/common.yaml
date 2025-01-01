@@ -29,6 +29,11 @@ sensor:
       - timeout:
           timeout: 1d
 
+  - platform: template
+    id: climate_current_temperature
+    lambda: |-
+      return 42;
+
 esphome:
   on_boot:
     - sensor.template.publish:
@@ -125,6 +130,13 @@ number:
     max_value: 100
     step: 1
 
+  - platform: template
+    id: climate_target_temperature
+    optimistic: true
+    min_value: 10
+    max_value: 30
+    step: 0.1
+
 select:
   - platform: template
     name: "Template select"
@@ -134,6 +146,34 @@ select:
       - two
       - three
     initial_option: two
+
+  - platform: template
+    id: climate_mode
+    optimistic: true
+    options:
+      - "OFF"
+      - "HEAT"
+
+  - platform: template
+    id: climate_fan_mode
+    optimistic: true
+    options:
+      - "ON"
+      - "AUTO"
+
+  - platform: template
+    id: climate_swing_mode
+    optimistic: true
+    options:
+      - "OFF"
+      - "HORIZONTAL"
+
+  - platform: template
+    id: climate_preset
+    optimistic: true
+    options:
+      - "NONE"
+      - "ECO"
 
 lock:
   - platform: template
@@ -187,6 +227,10 @@ text:
             format: Template Text set to %s
             args: ["x.c_str()"]
 
+text_sensor:
+  - platform: template
+    id: climate_action
+
 alarm_control_panel:
   - platform: template
     name: Alarm Panel
@@ -239,6 +283,33 @@ datetime:
             - x.hour
             - x.minute
             - x.second
+
+climate:
+  - platform: template
+    name: Nice Climate Template Component
+    target_temperature_id: climate_target_temperature
+    current_temperature_id: climate_current_temperature
+    mode_id: climate_mode
+    fan_mode_id: climate_fan_mode
+    swing_mode_id: climate_swing_mode
+    preset_id: climate_preset
+    action_id: climate_action
+    supported_modes:
+      - "OFF"
+      - "COOL"
+      - "HEAT"
+      - "AUTO"
+    supported_fan_modes:
+      - "ON"
+      - "QUIET"
+    supported_swing_modes:
+      - "OFF"
+      - "HORIZONTAL"
+    supported_presets:
+      - "NONE"
+      - "ECO"
+    visual:
+      temperature_step: 0.1C
 
 time:
   - platform: sntp  # Required for datetime
