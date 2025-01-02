@@ -202,7 +202,7 @@ void SX127x::transmit_packet(const std::vector<uint8_t> &packet) {
   this->write_fifo_(packet);
   this->set_mode_tx();
   while (!this->store_.dio0_irq) {
-    continue;
+    // do nothing
   }
   this->store_.dio0_irq = false;
   if (this->rx_start_) {
