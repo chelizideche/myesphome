@@ -37,7 +37,7 @@ void HttpRequestUpdate::setup() {
 
 void HttpRequestUpdate::update() {
 #ifdef USE_ESP32
-  xTaskCreate(HttpRequestUpdate::update_task, "update_task", 4096, (void *) this, 1, &this->update_task_handle_);
+  xTaskCreate(HttpRequestUpdate::update_task, "update_task", 8192, (void *) this, 1, &this->update_task_handle_);
 #else
   this->update_task(this);
 #endif
