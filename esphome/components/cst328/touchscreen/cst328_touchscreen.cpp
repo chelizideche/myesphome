@@ -8,7 +8,7 @@ void CST328Touchscreen::setup() {
   if (this->reset_pin_ != nullptr) {
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(true);
-    delay(50);
+    delay(5);
     this->reset_pin_->digital_write(false);
     delay(5);
     this->reset_pin_->digital_write(true);
@@ -99,62 +99,70 @@ void CST328Touchscreen::dump_config() {
   ESP_LOGCONFIG(TAG, "  X/Y resolution: %d/%d", this->x_raw_max_, this->y_raw_max_);
 }
 
+void CST328Touchscreen::update_button_state_(bool state) {
+  if (this->button_touched_ == state)
+    return;
+  this->button_touched_ = state;
+  for (auto *listener : this->button_listeners_)
+    listener->update_button(state);
+}
+
 void CST328Touchscreen::update_touches() {
-  ESP_LOGV(TAG, "update_touches()...");
   uint8_t data[CST328_TOUCH_DATA_SIZE];
-  uint8_t clear{0};
-  uint8_t touch_cnt = 0;
-  this->skip_update_ = true;
-  auto err = this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1);
-  if (err != i2c::ERROR_OK) {
-    ESP_LOGV(TAG, "update_touches() cant read touch count");
-    this->status_set_warning();
-    return;
-  }
+  uint8_t clear_byte{0};
+  uint8_t sync_byte{0xAB};
+  uint8_t touch_cnt{0};
+
   this->status_clear_warning();
-
-  // number of fingers
-  touch_cnt = data[0] & 0x0F;
-
-  // no touch or error
-  if (touch_cnt == 0 || touch_cnt > CST328_TOUCH_MAX_POINTS) {
-    // clear touch
-    ESP_LOGV(TAG, "update_touches() no touch or error (count=%d)", touch_cnt);
-    this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear, 1);
-    return;
-  }
-  ESP_LOGV(TAG, "update_touches() touch count=%d", touch_cnt);
-
-  // read all points
-  err = this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data));
-  if (err != i2c::ERROR_OK) {
-    ESP_LOGV(TAG, "Failed to read touch data");
-    this->status_set_warning();
-    return;
-  }
-
-  // clear touch
-  //  this->writeRegister(MODE_NORMAL_0_REG, (uint8_t)0xAB); // sync signal ?
-  clear = 0xAB;
-  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &clear, 1);
-  clear = 0;
-  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear, 1);
-
   this->skip_update_ = false;
-  size_t index = 0;
-  for (uint8_t i = 0; i != touch_cnt; i++) {
-    uint8_t id = data[index] >> 4;
-    int16_t x = (data[index + 1] << 4) | ((data[index + 3] >> 4) & 0x0F);
-    int16_t y = (data[index + 2] << 4) | (data[index + 3] & 0x0F);
-    int16_t z = data[index + 4];
-    this->add_raw_touch_position_(id, x, y, z);
-    ESP_LOGV(TAG, "Read touch %d: %d/%d", id, x, y);
-    index += 5;
-    if (i == 0) {
-      index += 2;
+
+  if (!this->read16_(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1)) {
+    // Failed to read
+    ESP_LOGV(TAG, "update_touches() ERROR - Can't read touch count");
+    this->skip_update_ = true;
+    this->status_set_warning();
+
+  } else {
+    // number of touches
+    touch_cnt = data[0] & 0x0F;
+
+    if (touch_cnt == 0 || touch_cnt > CST328_TOUCH_MAX_POINTS) {
+      // No touches
+      this->update_button_state_(false);
+      ESP_LOGV(TAG, "update_touches() INFO: Zero touches");
+
+    } else {
+      // Touches
+      ESP_LOGD(TAG, "update_touches() INFO %d touches", touch_cnt);
+
+      // Read Touch Points
+      if (!this->read16_(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data))) {
+        ESP_LOGV(TAG, "update_touches() ERROR - Can't read touch data");
+        this->status_set_warning();
+
+      } else {
+        size_t index = 0;
+        for (uint8_t i = 0; i != touch_cnt; i++) {
+          uint8_t id = data[index] >> 4;
+          int16_t x = (data[index + 1] << 4) | ((data[index + 3] >> 4) & 0x0F);
+          int16_t y = (data[index + 2] << 4) | (data[index + 3] & 0x0F);
+          int16_t z = data[index + 4];
+
+          this->add_raw_touch_position_(id, x, y, z);
+          ESP_LOGD(TAG, "update_touches() INFO id:%d, x:%d, y:%d, z:%d", id, x, y, z);
+
+          index += 5;
+          if (i == 0) {
+            // first touch data block is 7 bytes, others are 5
+            index += 2;
+          }
+        }
+      }
     }
   }
-  ESP_LOGV(TAG, "update_touches() done - normal quit");
+
+  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
+  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear_byte, 1);
 }
 }  // namespace cst328
 }  // namespace esphome

@@ -12,6 +12,8 @@ CST328Touchscreen = cst328_ns.class_(
     i2c.I2CDevice,
 )
 
+CST328ButtonListener = cst328_ns.class_("CST328ButtonListener")
+
 CONFIG_SCHEMA = (
     touchscreen.touchscreen_schema("100ms")
     .extend(

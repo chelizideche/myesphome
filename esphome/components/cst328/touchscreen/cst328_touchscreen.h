@@ -38,10 +38,16 @@ enum class Cst328WorkModes : uint16_t {
   DEBUG_FACTORY_MODE_2 = 0xD120,
 };
 
+class CST328ButtonListener {
+ public:
+  virtual void update_button(bool state) = 0;
+};
+
 class CST328Touchscreen : public touchscreen::Touchscreen, public i2c::I2CDevice {
  public:
   void setup() override;
   void update_touches() override;
+  void register_button_listener(CST328ButtonListener *listener) { this->button_listeners_.push_back(listener); }
   void dump_config() override;
 
   void set_interrupt_pin(InternalGPIOPin *pin) { this->interrupt_pin_ = pin; }
@@ -52,16 +58,20 @@ class CST328Touchscreen : public touchscreen::Touchscreen, public i2c::I2CDevice
  protected:
   bool read16_(uint16_t addr, uint8_t *data, size_t len) {
     if (this->read_register16(addr, data, len) != i2c::ERROR_OK) {
-      esph_log_e(TAG, "Read data from 0x%04X failed", addr);
+      ESP_LOGE(TAG, "Read data from 0x%04X failed", addr);
       this->mark_failed();
       return false;
     }
     return true;
   }
   void continue_setup_();
+  void update_button_state_(bool state);
 
   InternalGPIOPin *interrupt_pin_{};
   GPIOPin *reset_pin_{};
+
+  std::vector<CST328ButtonListener *> button_listeners_;
+  bool button_touched_{};
 
   uint16_t chip_id_{};
   uint16_t project_id_{};
