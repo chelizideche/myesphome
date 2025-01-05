@@ -1,0 +1,29 @@
+esphome:
+  name: lc709203f_test
+  friendly_name: LC709203F Test
+
+esp32:
+  board: adafruit_feather_esp32s3
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+i2c:
+  sda: SDA
+  scl: SCL
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: lc709203f
+    size: 2000
+    voltage: 3.7
+    battery_voltage:
+      name: "Battery Voltage"
+    battery_level:
+      name: "Battery"
+    #temperature:
+    #  name: "Pack Temperature"
+    #  thermistor_b_constant: 0xA5A5
