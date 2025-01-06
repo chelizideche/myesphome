@@ -33,7 +33,7 @@ void Modbus::loop() {
   // If we're past the send_wait_time timeout and response buffer doesn't have the start of the expected response
   if (waiting_for_response_ != 0 && millis() - last_send_ > send_wait_time_ &&
       (rx_buffer_.empty() || rx_buffer_[0] != waiting_for_response_)) {
-    ESP_LOGV(TAG, "Stop waiting for response from %d", waiting_for_response_);
+    ESP_LOGV(TAG, "Stop waiting for response from %d %dms after last send", waiting_for_response_, millis() - last_send_);
     waiting_for_response_ = 0;
   }
 
@@ -58,9 +58,9 @@ void Modbus::receive_and_parse_modbus_bytes_() {
     uint8_t byte;
     this->read_byte(&byte);
     if (rx_buffer_.empty()) {
-      ESP_LOGV(TAG, "Modbus received first Byte  %d (0X%x) at %d", byte, byte, last_modbus_byte_);
+      ESP_LOGV(TAG, "Modbus received first Byte %d (0X%x) %dms after last send", byte, byte, millis() - last_send_);
     } else {
-      ESP_LOGVV(TAG, "Modbus received first Byte  %d (0X%x) at %d", byte, byte, last_modbus_byte_);
+      ESP_LOGVV(TAG, "Modbus received Byte %d (0X%x) %dms after last send", byte, byte, millis() - last_send_);
     }
 
     // If the bytes in the rx buffer do not parse, clear out the buffer
@@ -145,11 +145,11 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
     uint16_t remote_crc = uint16_t(raw[data_offset + data_len]) | (uint16_t(raw[data_offset + data_len + 1]) << 8);
     if (computed_crc != remote_crc) {
       if (this->disable_crc_) {
-        ESP_LOGD(TAG, "Modbus CRC Check failed, but ignored! %02X!=%02X  %s", computed_crc, remote_crc,
-                 format_hex_pretty(rx_buffer_).c_str());
+        ESP_LOGD(TAG, "Modbus CRC Check failed, but ignored! %02X!=%02X  %s %dms after last send", computed_crc,
+                 remote_crc, format_hex_pretty(rx_buffer_).c_str(), millis() - last_send_);
       } else {
-        ESP_LOGW(TAG, "Modbus CRC Check failed! %02X!=%02X %s at %d", computed_crc, remote_crc,
-                 format_hex_pretty(rx_buffer_).c_str(), millis());
+        ESP_LOGW(TAG, "Modbus CRC Check failed! %02X!=%02X %s %dms after last send", computed_crc, remote_crc,
+                 format_hex_pretty(rx_buffer_).c_str(), millis() - last_send_);
         return false;
       }
     }
@@ -301,7 +301,7 @@ void Modbus::send_raw(const std::vector<uint8_t> &payload) {
 void Modbus::clear_rx_buffer_(const std::string &reason) {
   size_t at = this->rx_buffer_.size();
   if (at > 0) {
-    ESP_LOGV(TAG, "Clearing buffer of %d bytes - %s at %d", at, reason.c_str(), millis());
+    ESP_LOGV(TAG, "Clearing buffer of %d bytes - %s %dms after last send", at, reason.c_str(), millis() - last_send_);
     this->rx_buffer_.clear();
   }
 }
