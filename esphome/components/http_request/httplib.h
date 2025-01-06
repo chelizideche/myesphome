@@ -5,6 +5,7 @@
 //  MIT License
 //
 
+#ifdef USE_HOST
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
@@ -9675,3 +9676,5 @@ inline SSL_CTX *Client::ssl_context() const {
 #endif
 
 #endif  // CPPHTTPLIB_HTTPLIB_H
+
+#endif

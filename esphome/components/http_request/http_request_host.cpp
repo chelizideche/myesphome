@@ -7,7 +7,6 @@
 #include "esphome/components/watchdog/watchdog.h"
 
 #include "esphome/core/application.h"
-#include "esphome/core/defines.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -52,7 +51,7 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   httplib::Result result;
   if (method == "GET") {
     result = client.Get(path, h_headers, [&](const char *data, size_t data_length) {
-      ESP_LOGD(TAG, "Got data length: %d", data_length);
+      ESP_LOGV(TAG, "Got data length: %zu", data_length);
       container->response_body_.insert(container->response_body_.end(), (const uint8_t *) data,
                                        (const uint8_t *) data + data_length);
       return true;
