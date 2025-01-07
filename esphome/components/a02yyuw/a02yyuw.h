@@ -9,16 +9,23 @@
 namespace esphome {
 namespace a02yyuw {
 
-class A02yyuwComponent : public sensor::Sensor, public Component, public uart::UARTDevice {
+enum Model {
+  A02YYUW,
+  A02YYTW,
+};
+
+class A02yyuwComponent : public sensor::Sensor, public PollingComponent, public uart::UARTDevice {
  public:
-  // Nothing really public.
+  void set_model(Model model) { this->model_ = model; }
 
   // ========== INTERNAL METHODS ==========
+  void update() override;
   void loop() override;
   void dump_config() override;
 
  protected:
   void check_buffer_();
+  Model model_;
 
   std::vector<uint8_t> buffer_;
 };

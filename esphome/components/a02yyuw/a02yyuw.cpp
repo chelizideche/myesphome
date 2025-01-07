@@ -1,4 +1,4 @@
-// Datasheet https://wiki.dfrobot.com/_A02YYUW_Waterproof_Ultrasonic_Sensor_SKU_SEN0311
+// Datasheet https://www.dypcn.com/uploads/A02-Datasheet.pdf
 
 #include "a02yyuw.h"
 #include "esphome/core/helpers.h"
@@ -8,6 +8,13 @@ namespace esphome {
 namespace a02yyuw {
 
 static const char *const TAG = "a02yyuw.sensor";
+
+void A02yyuwComponent::update() {
+  if (this->model_ == A02YYTW) {
+    this->write_byte(0xFF);
+    ESP_LOGV(TAG, "Request read out from sensor");
+  }
+}
 
 void A02yyuwComponent::loop() {
   uint8_t data;
@@ -37,7 +44,17 @@ void A02yyuwComponent::check_buffer_() {
   this->buffer_.clear();
 }
 
-void A02yyuwComponent::dump_config() { LOG_SENSOR("", "A02yyuw Sensor", this); }
+void A02yyuwComponent::dump_config() {
+  switch (this->model_) {
+    case A02YYUW:
+      ESP_LOGCONFIG(TAG, "  sensor model: a02yyuw");
+      break;
+    case A02YYTW:
+      ESP_LOGCONFIG(TAG, "  sensor model: a02yytw");
+      LOG_UPDATE_INTERVAL(this);
+      break;
+  }
+}
 
 }  // namespace a02yyuw
 }  // namespace esphome

@@ -1,0 +1,31 @@
+uart:
+  - id: uart_a02yyuw
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+    baud_rate: 9600
+
+sensor:
+  - platform: a02yyuw
+    id: a02yyuw_sensor
+    name: a02yyuw Distance
+    uart_id: uart_a02yyuw
+
+  - platform: a02yyuw
+    model: a02yyuw
+    id: a02yyuw_sensor_model
+    name: a02yyuw Distance Model
+    uart_id: uart_a02yyuw
+
+  - platform: a02yyuw
+    model: a02yytw
+    id: a02yytw_sensor_model
+    name: a02yytw Distance Model
+    uart_id: uart_a02yyuw
+
+  - platform: a02yyuw
+    model: a02yytw
+    update_interval: 500ms
+    id: a02yytw_sensor_model_interval
+    name: a02yyuw Distance Model Interval
+    uart_id: uart_a02yyuw
+
