@@ -1,6 +1,8 @@
 #include "modbus.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/components/uart/uart_component_esp32_arduino.h"
+#include "esphome/components/uart/uart_component_esp_idf.h"
 
 namespace esphome {
 namespace modbus {
@@ -15,6 +17,15 @@ void Modbus::setup() {
   this->frame_delay_ms_ = (3.5 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
   if (this->frame_delay_ms_ < 2)
     this->frame_delay_ms_ = 2;  // 1750us minimium per spec - rounded up to 2ms.
+
+#ifdef USE_ESP32_FRAMEWORK_ARDUINO
+  static_cast<uart::ESP32ArduinoUARTComponent*>(this->parent_)->get_hw_serial()->setRxFIFOFull(1);
+#endif // USE_ESP32_FRAMEWORK_ARDUINO
+
+#ifdef USE_ESP_IDF
+  uint8_t serial = static_cast<uart::IDFUARTComponent*>(this->parent_)->get_hw_serial_number();
+  uart_set_rx_full_threshold(serial, 1);
+#endif // USE_ESP_IDF
 }
 
 void Modbus::loop() {
