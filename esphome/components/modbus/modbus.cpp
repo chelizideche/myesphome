@@ -13,8 +13,6 @@ void Modbus::setup() {
   }
   // 3.5 characters * 11 bits per character * 1000ms/sec / (bits/sec) (Standard modbus frame delay)
   this->frame_delay_ms_ = (3.5 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
-  // 120 characters (default RxFIFOBuffer in HardwareSerial)
-  this->long_rx_buffer_delay_ms_ = (120 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
   if (this->frame_delay_ms_ < 2)
     this->frame_delay_ms_ = 2;  // 1750us minimium per spec - rounded up to 2ms.
 }
@@ -24,9 +22,7 @@ void Modbus::loop() {
   this->receive_and_parse_modbus_bytes_();
 
   // If the response frame is finished (including interframe delay) - we timeout.
-  // UART splits rx_buffer into 120 character chunks by default.
-  // We add in the long_rx_buffer_delay_ms_ to avoid timeing out when waiting for the buffer to transfer.
-  if (millis() - last_modbus_byte_ > frame_delay_ms_ + (rx_buffer_.size() > 100 ? long_rx_buffer_delay_ms_ : 0)) {
+  if (millis() - last_modbus_byte_ > frame_delay_ms_) {
     clear_rx_buffer_("timeout");
   }
 
@@ -228,7 +224,6 @@ void Modbus::dump_config() {
   ESP_LOGCONFIG(TAG, "  Send Wait Time: %d ms", this->send_wait_time_);
   ESP_LOGCONFIG(TAG, "  Turnaround Time: %d ms", this->turnaround_delay_ms_);
   ESP_LOGCONFIG(TAG, "  Frame Delay: %d ms", this->frame_delay_ms_);
-  ESP_LOGCONFIG(TAG, "  Long Rx Buffer Delay: %d ms", this->long_rx_buffer_delay_ms_);
   ESP_LOGCONFIG(TAG, "  CRC Disabled: %s", YESNO(this->disable_crc_));
 }
 float Modbus::get_setup_priority() const {
