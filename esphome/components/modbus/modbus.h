@@ -77,7 +77,7 @@ class ModbusDevice {
   }
   void send_raw(const std::vector<uint8_t> &payload) { this->parent_->send_raw(payload); }
   // If more than one device is connected block sending a new command before a response is received
-  bool waiting_for_response() { return !parent_->tx_buffer_empty() || parent_->tx_blocked(); }
+  bool ready_for_immediate_send() { return parent_->tx_buffer_empty() && !parent_->tx_blocked(); }
 
  protected:
   friend Modbus;
