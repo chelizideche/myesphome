@@ -256,6 +256,7 @@ void UDPComponent::setup() {
       this->status_set_error("Unable to bind socket");
       return;
     }
+#ifndef USE_HOST
     for (auto &host : this->providers_) {
       if (host.second.listen_address.is_multicast()) {
         struct ip_mreq imreq = {{0}};
@@ -271,6 +272,7 @@ void UDPComponent::setup() {
         }
       }
     }
+#endif
   }
 #endif
 #ifdef USE_SOCKET_IMPL_LWIP_TCP
