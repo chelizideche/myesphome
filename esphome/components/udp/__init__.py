@@ -63,7 +63,7 @@ ENCRYPTION_SCHEMA = {
 PROVIDER_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_NAME): cv.valid_name,
-        cv.Optional(CONF_LISTEN_ADDRESS, default="255.255.255.255"): cv.ipv4,
+        cv.Optional(CONF_LISTEN_ADDRESS, default="255.255.255.255"): cv.ipv4address,
     }
 ).extend(ENCRYPTION_SCHEMA)
 
@@ -109,7 +109,7 @@ SENSOR_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_REMOTE_ID): cv.string_strict,
         cv.Required(CONF_PROVIDER): cv.valid_name,
-        cv.Optional(CONF_LISTEN_ADDRESS, default="255.255.255.255"): cv.ipv4,
+        cv.Optional(CONF_LISTEN_ADDRESS, default="255.255.255.255"): cv.ipv4address,
         cv.GenerateID(CONF_UDP_ID): cv.use_id(UDPComponent),
     }
 )
