@@ -24,10 +24,26 @@ online_image:
     format: PNG
     type: RGB24
     use_transparency: true
+  - id: online_image_headers
+    url: http://www.libpng.org/pub/png/img_png/pnglogo-blk-tiny.png
+    format: PNG
+    type: RGBA
+    http_request_headers:
+      If-Modified-Since: !lambda |-
+        char age_buf[64];
+        auto now = id(sntp_time)->timestamp_now();
+        auto time = ESPTime::from_epoch_utc(now - 10 * 60);
+        auto age_len = time.strftime(age_buf, sizeof(age_buf), "%a, %d %b %Y %H:%M:%S %z");
+        if (age_len != 0) {
+          return age_buf;
+        } else {
+          return {};
+        }
 
 # Check the set_url action
 time:
   - platform: sntp
+    id: sntp_time
     on_time:
       - at: "13:37:42"
         then:

@@ -62,6 +62,8 @@ class OnlineImage : public PollingComponent,
     }
   }
 
+  void add_header(const char *key, std::function<optional<const char *>()> &&f) { this->headers_.insert({key, f}); }
+
   /**
    * @brief Set the image that needs to be shown as long as the downloaded image
    *  is not available.
@@ -122,6 +124,7 @@ class OnlineImage : public PollingComponent,
   image::Image *placeholder_{nullptr};
 
   std::string url_{""};
+  std::map<const char *, std::function<optional<const char *>()>> headers_{};
 
   /** width requested on configuration, or 0 if non specified. */
   const int fixed_width_;

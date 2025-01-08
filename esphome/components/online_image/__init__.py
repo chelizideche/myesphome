@@ -28,6 +28,7 @@ MULTI_CONF = True
 
 CONF_ON_DOWNLOAD_FINISHED = "on_download_finished"
 CONF_PLACEHOLDER = "placeholder"
+CONF_HTTP_REQUEST_HEADERS = "http_request_headers"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,6 +86,9 @@ ONLINE_IMAGE_SCHEMA = cv.Schema(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(DownloadErrorTrigger),
             }
+        ),
+        cv.Optional(CONF_HTTP_REQUEST_HEADERS): cv.All(
+            cv.Schema({cv.string: cv.templatable(cv.string)})
         ),
     }
 ).extend(cv.polling_component_schema("never"))
@@ -154,6 +158,14 @@ async def to_code(config):
     await cg.register_parented(var, config[CONF_HTTP_REQUEST_ID])
 
     cg.add(var.set_transparency(transparent))
+
+    for key in config.get(CONF_HTTP_REQUEST_HEADERS, []):
+        template_ = await cg.templatable(
+            config[CONF_HTTP_REQUEST_HEADERS][key],
+            [],
+            cg.optional.template(cg.const_char_ptr),
+        )
+        cg.add(var.add_header(key, template_))
 
     if placeholder_id := config.get(CONF_PLACEHOLDER):
         placeholder = await cg.get_variable(placeholder_id)
