@@ -193,6 +193,7 @@ esphome/components/hbridge/switch/* @dwmw2
 esphome/components/he60r/* @clydebarrow
 esphome/components/heatpumpir/* @rob-deutsch
 esphome/components/hitachi_ac424/* @sourabhjaiswal
+esphome/components/hlk_fm22x/* @OnFreund
 esphome/components/hm3301/* @freekode
 esphome/components/hmac_md5/* @dwmw2
 esphome/components/homeassistant/* @OttoWinter @esphome/core
