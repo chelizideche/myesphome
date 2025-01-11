@@ -24,7 +24,7 @@ class lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   void set_pack_voltage(LC709203FBatteryVoltage pack_voltage);
   void set_voltage_sensor(sensor::Sensor *voltage_sensor) { voltage_sensor_ = voltage_sensor; }
   void set_battery_remaining_sensor(sensor::Sensor *battery_remaining_sensor) {
-    battery_remaining_sensor_ = battery_remaining_sensor; 
+    battery_remaining_sensor_ = battery_remaining_sensor;
   }
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
 
@@ -45,7 +45,7 @@ class lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
 
   // A buffer to store error code messages. We put this here so as to not have to
   //  duplicate buffers in the different functions
-  char error_code_buffer [50];
+  char error_code_buffer[50];
 };
 
 }  // namespace lc709203f

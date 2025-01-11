@@ -97,7 +97,7 @@ void lc709203f::setup() {
   // Note: Initialization continues in the update() function.
 }
 
-void lc709203f::update(){
+void lc709203f::update() {
   uint16_t buffer;
 
   if (this->state_ == LC709203F_STATE_NORMAL) {
@@ -122,7 +122,7 @@ void lc709203f::update(){
       //  sets up the registers properly.
       if (this->get_register(LC709203F_CELL_TEMPERATURE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1 K
-        this->temperature_sensor_->publish_state( (static_cast<float>(buffer) / 10.0) - 273.15 );
+        this->temperature_sensor_->publish_state((static_cast<float>(buffer) / 10.0) - 273.15 );
         this->status_clear_warning();
       }
     }
@@ -219,12 +219,12 @@ uint8_t lc709203f::get_register(uint8_t register_to_read, uint16_t *register_val
                register_to_read);
       this->status_set_warning(this->error_code_buffer);
     } else {
-      if(this->CRC8(read_buffer, 5) != read_buffer[5]) {
+      if (this->CRC8(read_buffer, 5) != read_buffer[5]) {
         // I2C indicated OK, but the CRC of the data does not matcth.
         snprintf(this->error_code_buffer, 50, "CRC error reading from register 0x%02X", register_to_read);
         this->status_set_warning(this->error_code_buffer);
       } else {
-        *register_value = ((uint16_t)read_buffer[4] << 8) | (uint16_t)read_buffer[3];
+        *register_value = ((uint16_t) read_buffer[4] << 8) | (uint16_t) read_buffer[3];
         return i2c::NO_ERROR;
       }
     }
@@ -263,7 +263,7 @@ uint8_t lc709203f::set_register(uint8_t register_to_set, uint16_t value_to_set) 
     if (return_code == i2c::NO_ERROR) {
       return return_code;
     } else {
-      snprintf(this->error_code_buffer, 50, "Error code %d when writing to register 0x%02X", return_code, 
+      snprintf(this->error_code_buffer, 50, "Error code %d when writing to register 0x%02X", return_code,
                register_to_set);
       this->status_set_warning(this->error_code_buffer);
     }
@@ -294,7 +294,7 @@ void lc709203f::set_pack_size(uint16_t pack_size) {
   float slope;
   float intercept;
 
-  this->pack_size_ = pack_size; // Pack size in mAH
+  this->pack_size_ = pack_size;  // Pack size in mAH
 
   // The size is used to calculate the 'Adjustment Pack Application' number.
   // Here we assume a type 01 or type 03 battery and do a linear curve fit to find the APA.
@@ -303,7 +303,7 @@ void lc709203f::set_pack_size(uint16_t pack_size) {
       // If the pack size is exactly one of the values in the array.
       this->APA_ = APA_array[i];
       return;
-    } else if((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i-1] < pack_size)) {
+    } else if ((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i-1] < pack_size)) {
       // If the pack size is between the current array element and the previous. Do a linear
       //  Curve fit to determine the APA value.
 
@@ -312,7 +312,7 @@ void lc709203f::set_pack_size(uint16_t pack_size) {
               static_cast<float>(pack_size_array[i] - pack_size_array[i - 1]);
 
       // Type casting might not be needed here.
-      intercept = static_cast<float>(APA_array[i])-slope * static_cast<float>(pack_size_array[i]);
+      intercept = static_cast<float>(APA_array[i]) - slope * static_cast<float>(pack_size_array[i]);
 
       this->APA_ = static_cast<uint8_t>(slope * pack_size + intercept);
       return;
