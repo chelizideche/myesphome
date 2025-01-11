@@ -24,6 +24,6 @@ sensor:
       name: "Battery Voltage"
     battery_level:
       name: "Battery"
-    #temperature:
-    #  name: "Pack Temperature"
-    #  thermistor_b_constant: 0xA5A5
+    temperature:
+      name: "Pack Temperature"
+      thermistor_b_constant: 0xA5A5
