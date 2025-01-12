@@ -154,7 +154,7 @@ def add_idf_sdkconfig_option(name: str, value: SdkconfigValueType):
         and name in CORE.data[KEY_ESP32][KEY_SDKCONFIG_OPTIONS]
         and not CORE.data[KEY_ESP32][KEY_SDKCONFIG_OPTIONS][name]
     ):
-        # don't overwrite value already disabled
+        # don't overwrite value if it has been disabled
         return
     CORE.data[KEY_ESP32][KEY_SDKCONFIG_OPTIONS][name] = value
 
