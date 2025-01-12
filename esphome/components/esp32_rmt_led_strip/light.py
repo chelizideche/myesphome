@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from esphome import pins
 import esphome.codegen as cg
-from esphome.components import esp32_rmt, light
+from esphome.components import esp32, esp32_rmt, light
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CHIPSET,
@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_RMT_CHANNEL,
     CONF_RMT_SYMBOLS,
 )
+from esphome.core import CORE
 
 CODEOWNERS = ["@jesserockz"]
 DEPENDENCIES = ["esp32"]
@@ -167,6 +168,11 @@ async def to_code(config):
 
     if esp32_rmt.use_new_rmt_driver():
         cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
+        if CORE.using_esp_idf:
+            if config[CONF_USE_PSRAM]:
+                esp32.add_idf_sdkconfig_option("CONFIG_RMT_ISR_IRAM_SAFE", False)
+            else:
+                esp32.add_idf_sdkconfig_option("CONFIG_RMT_ISR_IRAM_SAFE", True)
     else:
         rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
         cg.add(

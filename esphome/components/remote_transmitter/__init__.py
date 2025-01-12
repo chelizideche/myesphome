@@ -1,6 +1,6 @@
 from esphome import automation, pins
 import esphome.codegen as cg
-from esphome.components import esp32_rmt, remote_base
+from esphome.components import esp32, esp32_rmt, remote_base
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CARRIER_DUTY_PERCENT,
@@ -82,6 +82,8 @@ async def to_code(config):
                 cg.add(var.set_eot_level(True))
             elif CONF_INVERTED in config[CONF_PIN] and config[CONF_PIN][CONF_INVERTED]:
                 cg.add(var.set_eot_level(True))
+            if CORE.using_esp_idf:
+                esp32.add_idf_sdkconfig_option("CONFIG_RMT_ISR_IRAM_SAFE", True)
         else:
             if (rmt_channel := config.get(CONF_RMT_CHANNEL, None)) is not None:
                 var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
