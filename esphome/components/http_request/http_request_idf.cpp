@@ -122,6 +122,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   App.feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
   App.feed_wdt();
+  container->chunked = container->content_length == 0? esp_http_client_is_chunked_response(client): 0;
+  App.feed_wdt();
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
     return container;
@@ -156,6 +158,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
       App.feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       App.feed_wdt();
+      container->chunked = container->content_length == 0? esp_http_client_is_chunked_response(client): 0;
+      App.feed_wdt();
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
@@ -177,9 +181,10 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
 int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   const uint32_t start = millis();
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
-
-  int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
-
+  
+  //int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  int bufsize = this->chunked? max_len:std::min(max_len, this->content_length - this->bytes_read_);
+  
   if (bufsize == 0) {
     this->duration_ms += (millis() - start);
     return 0;
