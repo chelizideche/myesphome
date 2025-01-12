@@ -74,13 +74,13 @@ void MAX31855Sensor::read_data_() {
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00000002) {
+  if ((mem & 0x00000002) && !this->ignore_short_circuit_errors_) {
     ESP_LOGW(TAG, "Thermocouple short circuit to ground fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00000004) {
+  if ((mem & 0x00000004) && !this->ignore_short_circuit_errors_) {
     ESP_LOGW(TAG, "Thermocouple short circuit to VCC fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();

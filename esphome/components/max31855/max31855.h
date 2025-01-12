@@ -15,6 +15,9 @@ class MAX31855Sensor : public sensor::Sensor,
                                              spi::CLOCK_PHASE_TRAILING, spi::DATA_RATE_4MHZ> {
  public:
   void set_reference_sensor(sensor::Sensor *temperature_sensor) { temperature_reference_ = temperature_sensor; }
+  void set_ignore_short_circuit_errors(bool ignore_short_circuit_errors) {
+    ignore_short_circuit_errors_ = ignore_short_circuit_errors;
+  }
 
   void setup() override;
   void dump_config() override;
@@ -25,6 +28,7 @@ class MAX31855Sensor : public sensor::Sensor,
  protected:
   void read_data_();
   sensor::Sensor *temperature_reference_{nullptr};
+  bool ignore_short_circuit_errors_{false};
 };
 
 }  // namespace max31855
