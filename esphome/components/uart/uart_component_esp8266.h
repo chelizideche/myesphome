@@ -63,6 +63,8 @@ class ESP8266UartComponent : public UARTComponent, public Component {
 
   uint32_t get_config();
 
+  HardwareSerial *get_hw_serial() { return this->hw_serial_; }
+
   /**
    * Load the UART with the current settings.
    * @param dump_config (Optional, default `true`): True for displaying new settings or
