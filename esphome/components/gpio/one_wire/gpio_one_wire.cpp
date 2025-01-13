@@ -53,9 +53,9 @@ bool HOT IRAM_ATTR GPIOOneWireBus::reset() {
 }
 
 void HOT IRAM_ATTR GPIOOneWireBus::strong_pullup() {
-	// drive bus high during convertion
-	pin_.pin_mode(gpio::FLAG_OUTPUT);
-	pin_.digital_write(true);
+  // drive bus high during convertion
+  pin_.pin_mode(gpio::FLAG_OUTPUT);
+  pin_.digital_write(true);
 }
 
 void HOT IRAM_ATTR GPIOOneWireBus::write_bit_(bool bit) {
