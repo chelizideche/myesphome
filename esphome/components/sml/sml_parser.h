@@ -11,12 +11,12 @@ namespace esphome {
 namespace sml {
 
 using bytes = std::vector<uint8_t>;
-using byte_span = span<uint8_t>;
+using byte_span = Span<const uint8_t>;
 
 class SmlNode {
  public:
-  SmlNode(uint8_t type_, byte_span bytes_) : type(type_), value_bytes(bytes_) {}
-  SmlNode(uint8_t type_, std::vector<SmlNode> &&nodes_) : type(type_), nodes(nodes_) {}
+  SmlNode(uint8_t type, byte_span bytes) : type(type), value_bytes(bytes) {}
+  SmlNode(uint8_t type, std::vector<SmlNode> &&nodes_) : type(type), nodes(nodes_) {}
 
   const uint8_t type;
   const byte_span value_bytes;

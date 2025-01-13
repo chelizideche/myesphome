@@ -68,8 +68,7 @@ bool SmlFile::setup_node(std::vector<SmlNode> &nodes) {
     // Value starts at the current position
     // Value ends "length" bytes later,
     // (since the TL field is counted but already subtracted from length)
-    auto value_begin = this->buffer_.begin() + this->pos_;
-    nodes.emplace_back(type, byte_span(value_begin, value_begin + length));
+    nodes.emplace_back(type, byte_span(this->buffer_.begin() + this->pos_, length));
     // Increment the pointer past all consumed bytes
     this->pos_ += length;
   }
