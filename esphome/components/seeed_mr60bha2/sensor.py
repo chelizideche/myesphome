@@ -19,7 +19,7 @@ DEPENDENCIES = ["seeed_mr60bha2"]
 
 CONF_BREATH_RATE = "breath_rate"
 CONF_HEART_RATE = "heart_rate"
-CONF_TARGET_NUM = "target_num"
+CONF_NUM_TARGETS = "num_targets"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -60,6 +60,6 @@ async def to_code(config):
     if distance_config := config.get(CONF_DISTANCE):
         sens = await sensor.new_sensor(distance_config)
         cg.add(mr60bha2_component.set_distance_sensor(sens))
-    if target_num_config := config.get(CONF_TARGET_NUM):
-        sens = await sensor.new_sensor(target_num_config)
-        cg.add(mr60bha2_component.set_target_num_sensor(sens))
+    if num_targets_config := config.get(CONF_NUM_TARGETS):
+        sens = await sensor.new_sensor(num_targets_config)
+        cg.add(mr60bha2_component.set_num_targets_sensor(sens))

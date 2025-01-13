@@ -11,7 +11,7 @@ seeed_mr60bha2:
 
 binary_sensor:
   - platform: seeed_mr60bha2
-    people_exist:
+    has_target:
       name: "Person Information"
 
 sensor:
@@ -22,5 +22,5 @@ sensor:
       name: "Real-time heart rate"
     distance:
       name: "Distance to detection object"
-    target_num:
+    num_targets:
       name: "Target Number"

@@ -14,13 +14,13 @@ static const char *const TAG = "seeed_mr60bha2";
 void MR60BHA2Component::dump_config() {
   ESP_LOGCONFIG(TAG, "MR60BHA2:");
 #ifdef USE_BINARY_SENSOR
-  LOG_BINARY_SENSOR(" ", "People Exist Binary Sensor", this->people_exist_binary_sensor_);
+  LOG_BINARY_SENSOR(" ", "People Exist Binary Sensor", this->has_target_binary_sensor_);
 #endif
 #ifdef USE_SENSOR
   LOG_SENSOR(" ", "Breath Rate Sensor", this->breath_rate_sensor_);
   LOG_SENSOR(" ", "Heart Rate Sensor", this->heart_rate_sensor_);
   LOG_SENSOR(" ", "Distance Sensor", this->distance_sensor_);
-  LOG_SENSOR(" ", "Target Number Sensor", this->target_num_sensor_);
+  LOG_SENSOR(" ", "Target Number Sensor", this->num_targets_sensor_);
 #endif
 }
 
@@ -151,14 +151,14 @@ void MR60BHA2Component::process_frame_(uint16_t frame_id, uint16_t frame_type, c
       }
       break;
     case PEOPLE_EXIST_TYPE_BUFFER:
-      if (this->people_exist_binary_sensor_ != nullptr && length >= 2) {
-        uint16_t people_exist_int = encode_uint16(data[1], data[0]);
-        this->people_exist_binary_sensor_->publish_state(people_exist_int);
-        if (people_exist_int == 0) {
+      if (this->has_target_binary_sensor_ != nullptr && length >= 2) {
+        uint16_t has_target_int = encode_uint16(data[1], data[0]);
+        this->has_target_binary_sensor_->publish_state(has_target_int);
+        if (has_target_int == 0) {
           this->breath_rate_sensor_->publish_state(0.0);
           this->heart_rate_sensor_->publish_state(0.0);
           this->distance_sensor_->publish_state(0.0);
-          this->target_num_sensor_->publish_state(0);
+          this->num_targets_sensor_->publish_state(0);
         }
       }
       break;
@@ -183,9 +183,9 @@ void MR60BHA2Component::process_frame_(uint16_t frame_id, uint16_t frame_type, c
       }
       break;
     case PRINT_CLOUD_BUFFER:
-      if (this->target_num_sensor_ != nullptr && length >= 4) {
-        uint32_t current_target_num_int = encode_uint32(data[3], data[2], data[1], data[0]);
-        this->target_num_sensor_->publish_state(current_target_num_int);
+      if (this->num_targets_sensor_ != nullptr && length >= 4) {
+        uint32_t current_num_targets_int = encode_uint32(data[3], data[2], data[1], data[0]);
+        this->num_targets_sensor_->publish_state(current_num_targets_int);
       }
       break;
     default:
