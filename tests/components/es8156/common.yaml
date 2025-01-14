@@ -7,9 +7,9 @@ esphome:
           volume: 50%
 
 i2c:
-  - id: i2c_es8311
+  - id: i2c_es8156
     scl: ${scl_pin}
     sda: ${sda_pin}
 
 audio_dac:
-  - platform: es8311
+  - platform: es8156
