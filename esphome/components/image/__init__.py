@@ -158,6 +158,7 @@ class ImageGrayscale(ImageEncoder):
                     path,
                     self.transparency,
                 )
+                self.transparency = CONF_ALPHA_CHANNEL
             image = image.split()[-1]
         return image.convert("LA")
 
@@ -579,7 +580,7 @@ async def write_image(config, all_frames=False):
     rhs = [HexInt(x) for x in encoder.data]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
     image_type = get_image_type_enum(type)
-    trans_value = get_transparency_enum(transparency)
+    trans_value = get_transparency_enum(encoder.transparency)
 
     return prog_arr, width, height, image_type, trans_value, frame_count
 

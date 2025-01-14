@@ -22,10 +22,27 @@ void Image::draw(int x, int y, display::Display *display, Color color_on, Color 
     case IMAGE_TYPE_GRAYSCALE:
       for (int img_x = 0; img_x < width_; img_x++) {
         for (int img_y = 0; img_y < height_; img_y++) {
-          auto color = this->get_grayscale_pixel_(img_x, img_y);
-          if (color.w >= 0x80) {
-            display->draw_pixel_at(x + img_x, y + img_y, color);
+          const uint32_t pos = (img_x + img_y * this->width_);
+          const uint8_t gray = progmem_read_byte(this->data_start_ + pos);
+          Color color = Color(gray, gray, gray, 0xFF);
+          switch (this->transparency_) {
+            case TRANSPARENCY_CHROMA_KEY:
+              if (gray == 1) {
+                continue;  // skip drawing
+              }
+              break;
+            case TRANSPARENCY_ALPHA_CHANNEL: {
+              auto on = (float) gray / 255.0f;
+              auto off = 1.0f - on;
+              // blend color_on and color_off
+              color = Color(color_on.r * on + color_off.r * off, color_on.g * on + color_off.g * off,
+                            color_on.b * on + color_off.b * off, 0xFF);
+              break;
+            }
+            default:
+              break;
           }
+          display->draw_pixel_at(x + img_x, y + img_y, color);
         }
       }
       break;
