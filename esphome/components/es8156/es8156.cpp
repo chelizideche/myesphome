@@ -15,11 +15,6 @@ static const char *const TAG = "es8156";
     this->mark_failed(); \
     return; \
   }
-// Return false; use outside of setup
-#define ES8156_ERROR_CHECK(func) \
-  if (!(func)) { \
-    return false; \
-  }
 
 void ES8156::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ES8156...");
