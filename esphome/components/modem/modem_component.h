@@ -91,7 +91,7 @@ class ModemComponent : public Component {
       {ModemComponentState::CONNECTED, ModemComponentStateTiming(5000, 0)},
   };
 
-  static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int event_id, void *event_data);
+  static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
   void modem_netif_init_();
   void dte_init_();
   void dce_init_();
