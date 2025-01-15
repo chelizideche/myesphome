@@ -1655,7 +1655,7 @@ void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *reques
 
     auto call = obj->make_call();
     if (request->hasParam("code")) {
-      call.set_code(request->getParam("code")->value().c_str());
+      call.set_code(request->getParam("code")->value().c_str());  // NOLINT
     }
 
     if (match.method == "disarm") {
