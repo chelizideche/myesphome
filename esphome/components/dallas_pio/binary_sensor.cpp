@@ -66,12 +66,6 @@ void DallasPioBinarySensor::update() {
     if (!this->dallas_pio_->read_state(state, this->pin_)) {
       return;
     }
-  } else if (this->reference_ == "DS2406") {
-    // Action pour DS2406
-  } else if (this->reference_ == "DS2408") {
-    // Action pour DS2408
-  } else {
-    // Action par défaut
   }
 
   if (this->pin_inverted_) {

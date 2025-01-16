@@ -123,6 +123,11 @@ bool DallasPio::ds2413_get_state_(uint8_t &state) {
     results = this->bus_->read8();
   }
   ok = (~results & 0x0F) == (results >> 4);
+  if (!ok) {
+    ESP_LOGW(TAG, "One-Wire checksum error.");
+    this->status_set_warning();
+    return false;
+  }
   // ESP_LOGD(TAG, "results1=%02x", results);
   results &= 0x0F;
   // ESP_LOGD(TAG, "results2=%02x", results);
@@ -255,7 +260,7 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   }
   if (use_crc) {
     ESP_LOGD(TAG, "CRC for Channel Info Byte: 0x%04X", use_crc);
-    if (!this->ds2406_verify_crc_(channel_control_byte_1, channel_control_byte_2, channel_info_byte, use_crc)) {
+    if (!this->ds2406_verify_crc_(channel_control_byte_1, channel_control_byte_2, channel_info_byte, received_crc)) {
       ESP_LOGW(TAG, "CRC verification failed!");
       this->status_set_warning();
       return false;
@@ -273,6 +278,16 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   bool pio_activity_latch;
   const bool has_channel_b = channel_info_byte & 0x40;
   const bool has_supply = channel_info_byte & 0x80;
+  if (!has_supply) {
+    ESP_LOGW(TAG, "DS2406 has no supply");
+    this->status_set_warning();
+    return false;
+  }
+  if ((this->pin_ == 0x02) && (!has_channel_b)) {
+    ESP_LOGW(TAG, "DS2406 has no channel PIOB");
+    this->status_set_warning();
+    return false;
+  }
   switch (this->pin_) {
     case 0x01:  // PIOA
       pio_flipflop = channel_info_byte & 0x01;
