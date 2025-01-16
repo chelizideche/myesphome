@@ -53,6 +53,6 @@ repos:
     hooks:
       - id: pylint
         name: pylint
-        entry: script/run-in-env.sh pylint
-        language: script
+        entry: python script/run-in-env pylint
+        language: system
         types: [python]
