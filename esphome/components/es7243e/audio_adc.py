@@ -10,13 +10,14 @@ DEPENDENCIES = ["i2c"]
 es7243e_ns = cg.esphome_ns.namespace("es7243e")
 ES7243E = es7243e_ns.class_("ES7243E", AudioAdc, cg.Component, i2c.I2CDevice)
 
+ES7243E_MIC_GAINS = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 34.5, 36, 37.5]
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(ES7243E),
             cv.Optional(CONF_MIC_GAIN, default="24db"): cv.All(
-                cv.decibel, cv.float_range(min=0, max=37.5)
+                cv.decibel, cv.one_of(*ES7243E_MIC_GAINS)
             ),
         }
     )
