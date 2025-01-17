@@ -31,7 +31,7 @@ from esphome.const import (
     CONF_LAMBDA,
     PLATFORM_HOST,
     KEY_CORE,
-    KEY_FRAMEWORK_VERSION
+    KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE
 
