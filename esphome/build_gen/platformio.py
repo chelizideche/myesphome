@@ -39,7 +39,8 @@ def format_ini(data: dict[str, Union[str, list[str]]]) -> str:
 def get_ini_content():
     CORE.add_platformio_option(
         "lib_deps",
-        [x.as_lib_dep for x in CORE.platformio_libraries] + ["${common.lib_deps}"],
+        [x.as_lib_dep for x in CORE.platformio_libraries.values()]
+        + ["${common.lib_deps}"],
     )
     # Sort to avoid changing build flags order
     CORE.add_platformio_option("build_flags", sorted(CORE.build_flags))

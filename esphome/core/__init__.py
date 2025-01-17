@@ -467,6 +467,57 @@ class Library:
             return self.as_tuple == other.as_tuple
         return NotImplemented
 
+    def reconcile_with(self, other):
+        """Merge two libraries, reconciling any conflicts."""
+
+        if self.name != other.name:
+            # Different libraries, no reconciliation possible
+            raise ValueError(
+                f"Cannot reconcile libraries with different names: {self.name} and {other.name}"
+            )
+
+        # repository specificity takes precedence over version specificity
+        match (self.repository, other.repository):
+            case (None, None):
+                pass  # No repositories, no conflict, continue on
+
+            case (None, _):
+                # incoming library has a repository, use it
+                self.repository = other.repository
+                self.version = other.version
+                return self
+
+            case (_, None):
+                return self  # use the repository/version already present
+
+            case (this_repo, other_repo):
+                if this_repo != other_repo:
+                    raise ValueError(
+                        f"Reconciliation failed! Libraries {self} and {other} requested with conflicting repositories!"
+                    )
+                pass  # Repositories match, continue on
+
+        match (self.version, other.version):
+            case (None, None):
+                return self  # Arduino library reconciled against another Arduino library, current is acceptable
+
+            case (None, _):
+                # incoming library has a version, use it
+                self.version = other.version
+                return self
+
+            case (_, None):
+                return self  # incoming library has no version, current is acceptable
+
+            # Same versions, current library is acceptable
+            case (this_version, other_version):
+                if this_version != other_version:
+                    raise ValueError(
+                        f"Version pinning failed! Libraries {other} and {self} "
+                        "requested with conflicting versions!"
+                    )
+                return self
+
 
 # pylint: disable=too-many-public-methods
 class EsphomeCore:
@@ -503,8 +554,8 @@ class EsphomeCore:
         self.main_statements: list[Statement] = []
         # A list of statements to insert in the global block (includes and global variables)
         self.global_statements: list[Statement] = []
-        # A set of platformio libraries to add to the project
-        self.platformio_libraries: list[Library] = []
+        # A map of platformio libraries to add to the project (shortname: (name, version, repository))
+        self.platformio_libraries: dict[str, Library] = {}
         # A set of build flags to set in the platformio project
         self.build_flags: set[str] = set()
         # A set of defines to set for the compile process in esphome/core/defines.h
@@ -705,54 +756,21 @@ class EsphomeCore:
         _LOGGER.debug("Adding global: %s", expression)
         return expression
 
-    def add_library(self, library):
+    def add_library(self, library: Library):
         if not isinstance(library, Library):
-            raise ValueError(
+            raise TypeError(
                 f"Library {library} must be instance of Library, not {type(library)}"
             )
-        for other in self.platformio_libraries[:]:
-            if other.name is None or library.name is None:
-                continue
-            library_name = (
-                library.name if "/" not in library.name else library.name.split("/")[1]
-            )
-            other_name = (
-                other.name if "/" not in other.name else other.name.split("/")[1]
-            )
-            if other_name != library_name:
-                continue
-            if other.repository is not None:
-                if library.repository is None or other.repository == library.repository:
-                    # Other is using a/the same repository, takes precedence
-                    break
-                raise ValueError(
-                    f"Adding named Library with repository failed! Libraries {library} and {other} "
-                    "requested with conflicting repositories!"
-                )
+        short_name = (
+            library.name if "/" not in library.name else library.name.split("/")[-1]
+        )
 
-            if library.repository is not None:
-                # This is more specific since its using a repository
-                self.platformio_libraries.remove(other)
-                continue
-
-            if library.version is None:
-                # Other requirement is more specific
-                break
-            if other.version is None:
-                # Found more specific version requirement
-                self.platformio_libraries.remove(other)
-                continue
-            if other.version == library.version:
-                break
-
-            raise ValueError(
-                f"Version pinning failed! Libraries {library} and {other} "
-                "requested with conflicting versions!"
-            )
-        else:
+        if short_name not in self.platformio_libraries:
             _LOGGER.debug("Adding library: %s", library)
-            self.platformio_libraries.append(library)
-        return library
+            self.platformio_libraries[short_name] = library
+            return library
+
+        self.platformio_libraries[short_name].reconcile_with(library)
 
     def add_build_flag(self, build_flag):
         self.build_flags.add(build_flag)
