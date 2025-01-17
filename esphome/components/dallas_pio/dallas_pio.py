@@ -17,7 +17,7 @@ CONF_CRC = "crc"
 def validate_crc_option(config_list):
     for conf in config_list:
         reference = conf.get("reference", "").upper()
-        if not reference:  # Si 'reference' n'est pas défini, on passe
+        if not reference or reference == "DS2413":
             continue
         if reference == "DS2406" and "crc" not in conf:
             raise cv.Invalid("Option 'crc' is required when 'reference' is DS2406.")
