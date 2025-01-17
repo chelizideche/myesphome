@@ -132,6 +132,7 @@ def validate_flow_control_support(config):
         raise cv.Invalid("Hardware does not support RS485 flow control.")
     return config
 
+
 def validate_invert_esp32(config):
     if (
         CORE.is_esp32
