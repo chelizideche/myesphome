@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cinttypes>
+
 namespace esphome {
 namespace es7210 {
 
@@ -120,10 +122,8 @@ static const ES7210Coefficient ES7210_COEFFICIENTS[] = {
     {19200000, 96000, 0x01, 0x05, 0x00, 0x01, 0x28, 0x00, 0x00, 0xc8},
 };
 
-static const uint8_t ES7210_MIC_GAIN_COUNT = 15;
-static const float ES7210_MIC_GAINS[ES7210_MIC_GAIN_COUNT] = {
-    0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0, 24.0, 27.0, 30.0, 33.0, 34.5, 36.0, 37.5,
-};
+static const float ES7210_MIC_GAIN_MIN = 0.0;
+static const float ES7210_MIC_GAIN_MAX = 37.5;
 
 }  // namespace es7210
 }  // namespace esphome

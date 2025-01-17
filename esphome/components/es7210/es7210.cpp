@@ -89,7 +89,7 @@ void ES7210::setup() {
 }
 
 bool ES7210::set_mic_gain(float mic_gain) {
-  this->mic_gain_ = clamp<float>(mic_gain, ES7210_MIC_GAINS[0], ES7210_MIC_GAINS[ES7210_MIC_GAIN_COUNT - 1]);
+  this->mic_gain_ = clamp<float>(mic_gain, ES7210_MIC_GAIN_MIN, ES7210_MIC_GAIN_MAX);
   if (this->setup_complete_) {
     return this->configure_mic_gain_();
   }
@@ -169,14 +169,18 @@ bool ES7210::configure_mic_gain_() {
 }
 
 uint8_t ES7210::es7210_gain_reg_value_(float mic_gain) {
-  for (uint8_t i = 0; i < ES7210_MIC_GAIN_COUNT; i++) {
-    if (mic_gain == ES7210_MIC_GAINS[i]) {
-      return i;
-    } else if (mic_gain < ES7210_MIC_GAINS[i]) {
-      return i - 1;
-    }
+  // reg: 12 - 34.5dB, 13 - 36dB, 14 - 37.5dB
+  mic_gain += 0.5;
+  if (mic_gain <= 33.0) {
+    return (uint8_t) mic_gain / 3;
   }
-  return ES7210_MIC_GAIN_COUNT - 1;
+  if (mic_gain < 36.0) {
+    return 12;
+  }
+  if (mic_gain < 37.0) {
+    return 13;
+  }
+  return 14;
 }
 
 bool ES7210::configure_i2s_format_() {

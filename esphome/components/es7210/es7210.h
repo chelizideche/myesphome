@@ -33,7 +33,6 @@ class ES7210 : public audio_adc::AudioAdc, public Component, public i2c::I2CDevi
   void set_sample_rate(uint32_t sample_rate) { this->sample_rate_ = sample_rate; }
 
   float mic_gain() override { return this->mic_gain_; };
-  float actual_mic_gain() { return ES7210_MIC_GAINS[this->es7210_gain_reg_value_(this->mic_gain_)]; }
 
  protected:
   /// @brief Updates an I2C registry address by modifying the current state
@@ -45,7 +44,7 @@ class ES7210 : public audio_adc::AudioAdc, public Component, public i2c::I2CDevi
 
   /// @brief Convert floating point mic gain value to register value
   /// @param mic_gain Gain value to convert
-  /// @return Corresponding register value closest to but not exceeding specified gain
+  /// @return Corresponding register value for specified gain
   uint8_t es7210_gain_reg_value_(float mic_gain);
 
   bool configure_i2s_format_();
