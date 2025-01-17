@@ -128,7 +128,7 @@ def validate_flow_control_support(config):
             raise cv.Invalid(
                 "ESP32 RS485 UART Flow Control requires Arduino framework version 2.0.8 or higher."
             )
-    elif not CORE.is_esp32:
+    elif not CORE.is_esp32 and CONF_FLOW_CONTROL_PIN in config:
         raise cv.Invalid("Hardware does not support RS485 flow control.")
     return config
 
