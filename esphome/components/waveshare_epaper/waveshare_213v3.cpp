@@ -72,7 +72,8 @@ void WaveshareEPaper2P13InV3::write_buffer_(uint8_t cmd, int top, int bottom) {
   this->set_window_(top, bottom);
   this->command(cmd);
   this->start_data_();
-  auto width_bytes = this->get_width_internal() / 8;
+
+  auto width_bytes = this->get_width_internal() / 8 + bool(this->get_width_internal() % 8);
   this->write_array(this->buffer_ + top * width_bytes, (bottom - top) * width_bytes);
   this->end_data_();
 }
