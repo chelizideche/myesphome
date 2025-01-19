@@ -188,7 +188,6 @@ void HOT WaveshareEPaper::draw_absolute_pixel_internal(int x, int y, Color color
 }
 
 uint32_t WaveshareEPaper::get_buffer_length_() {
-  ESP_LOGD("ew", "%d", this->get_buffer_length_());
   return this->get_width_controller() * this->get_height_internal() / 8u;
 }  // just a black buffer
 uint32_t WaveshareEPaperBWR::get_buffer_length_() {
