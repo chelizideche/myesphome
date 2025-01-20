@@ -43,9 +43,9 @@ class BLEDescriptor : public EventEmitter<BLEDescriptorEvt::VectorEvt, std::vect
   ESPBTUUID uuid_;
   uint16_t handle_{0xFFFF};
 
-  esp_attr_value_t value_;
+  esp_attr_value_t value_{};
 
-  esp_gatt_perm_t permissions_ = 0;
+  esp_gatt_perm_t permissions_{};
 
   enum State : uint8_t {
     FAILED = 0x00,

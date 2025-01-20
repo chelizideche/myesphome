@@ -14,19 +14,19 @@ esp32_ble_server:
       advertise: false
       characteristics:
         - id: test_notify_characteristic
-          description:
-            value: "Notify characteristic"
-            type: "encoded_string"
+          description: "Notify characteristic"
           uuid: cad48e28-7fbe-41cf-bae9-d77a6c233423
           read: true
           notify: true
-          value:
-            value: "{9, 9, 9}"
-            type: std::vector<uint8_t>
+          value: [1, 2, 3, 4]
           descriptors:
             - uuid: cad48e28-7fbe-41cf-bae9-d77a6c111111
+              on_write:
+                logger.log:
+                  format: "Descriptor write id %u, data %s"
+                  args: [id, 'format_hex_pretty(x.data(), x.size()).c_str()']
               value:
-                value: "123.1"
+                data: "123.1"
                 type: float
                 endianness: BIG
     - uuid: 2a24b789-7a1b-4535-af3e-ee76a35cc42d
@@ -36,15 +36,13 @@ esp32_ble_server:
           uuid: 2a24b789-7a1b-4535-af3e-ee76a35cc11c
           read: true
           value:
-            value: "Initial"
-            type: "encoded_string"
-          description:
-            value: "Change characteristic"
-            type: "encoded_string"
+            data: "Initial"
+            string_encoding: utf-8
+          description: Change characteristic
           descriptors:
             - uuid: 0x2312
               value:
-                value: "0x12"
+                data: 0x12
                 type: uint16_t
               on_write:
                 - lambda: |-
@@ -57,7 +55,6 @@ esp32_ble_server:
                   ESP_LOGD("BLE", "Characteristic received: %s from %d", std::string(x.begin(), x.end()).c_str(), id);
               - ble_server.characteristic.set_value:
                   id: test_change_characteristic
-                  value:
-                    value: !lambda 'return bytebuffer::ByteBuffer::wrap({0x00, 0x01, 0x02}).get_data();'
+                  value: !lambda 'return bytebuffer::ByteBuffer::wrap({0x00, 0x01, 0x02}).get_data();'
               - ble_server.characteristic.notify:
                   id: test_notify_characteristic

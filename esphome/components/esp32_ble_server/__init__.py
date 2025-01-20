@@ -136,6 +136,10 @@ def validate_descriptor(desc_config):
             )
         if isinstance(value, list):
             desc_config[CONF_MAX_LENGTH] = len(value)
+        elif isinstance(value, str):
+            desc_config[CONF_MAX_LENGTH] = len(
+                value.encode(desc_config[CONF_VALUE][CONF_STRING_ENCODING])
+            )
         else:
             desc_config[CONF_MAX_LENGTH] = VALUE_TYPES[
                 desc_config[CONF_VALUE][CONF_TYPE]
@@ -162,13 +166,15 @@ def create_description_cud(char_config):
             )
     # Manually add the CUD descriptor
     char_config[CONF_DESCRIPTORS].append(
-        {
-            CONF_ID: char_config[CONF_CUD_ID_],
-            CONF_UUID: 0x2901,
-            CONF_READ: True,
-            CONF_WRITE: False,
-            CONF_VALUE: char_config[CONF_DESCRIPTION],
-        }
+        DESCRIPTOR_SCHEMA(
+            {
+                CONF_ID: char_config[CONF_CUD_ID_].id,
+                CONF_UUID: 0x2901,
+                CONF_READ: True,
+                CONF_WRITE: False,
+                CONF_VALUE: char_config[CONF_DESCRIPTION],
+            }
+        )
     )
     return char_config
 
@@ -231,9 +237,6 @@ def validate_value_type(value_config):
         raise cv.Invalid(
             f'The "{CONF_TYPE}" property is required for the value "{value}"'
         )
-    if isinstance(value, str):
-        # If the value is a string, convert it to a list of bytes
-        value_config[CONF_DATA] = list(value.encode(value_config[CONF_STRING_ENCODING]))
     return value_config
 
 
@@ -241,11 +244,10 @@ VALUE_SCHEMA = cv.maybe_simple_value(
     cv.All(
         {
             cv.Required(CONF_DATA): cv.Any(
-                cv.templatable(cv.All(cv.ensure_list(cv.uint8_t), cv.Length(min=1))),
                 cv.string_strict,
                 cv.float_,
                 cv.int_,
-                [cv.uint8_t],
+                cv.templatable(cv.All([cv.uint8_t], cv.Length(min=1))),
             ),
             cv.Optional(CONF_TYPE): cv.one_of(*VALUE_TYPES, lower=True),
             cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.Any(
@@ -360,6 +362,8 @@ async def parse_value(value_config, args):
     if isinstance(value, cv.Lambda):
         return await cg.templatable(value, args, cg.std_vector.template(cg.uint8))
 
+    if isinstance(value, str):
+        value = list(value.encode(value_config[CONF_STRING_ENCODING]))
     if isinstance(value, list):
         return cg.std_vector.template(cg.uint8)(value)
     val = cg.RawExpression(f"{value_config[CONF_TYPE]}({cg.safe_exp(value)})")
