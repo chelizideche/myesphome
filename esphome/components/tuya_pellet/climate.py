@@ -1,5 +1,5 @@
-from esphome import pins
-from esphome.components import climate
+
+from esphome.components import climate, tuya
 import esphome.config_validation as cv
 import esphome.codegen as cg
 from esphome.const import (
@@ -8,7 +8,7 @@ from esphome.const import (
     CONF_SUPPORTS_HEAT,
     CONF_HEATER
 )
-from esphome.components.tuya import tuya_ns, CONF_TUYA_ID, Tuya
+from tuya import tuya_ns, CONF_TUYA_ID, Tuya
 
 DEPENDENCIES = ["tuya"]
 CODEOWNERS = ["@jshsltr"]
