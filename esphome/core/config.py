@@ -2,7 +2,6 @@ import logging
 import multiprocessing
 import os
 from pathlib import Path
-import re
 
 from esphome import automation
 import esphome.codegen as cg
@@ -30,7 +29,6 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VERSION,
     KEY_CORE,
-    TARGET_PLATFORMS,
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -232,7 +230,8 @@ def preload_core_config(config, result) -> str:
         )
 
     config[CONF_ESPHOME] = conf
-    return target_platform[0]
+    return target_platforms[0]
+
 
 def include_file(path, basename):
     parts = basename.split(os.path.sep)
