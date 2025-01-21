@@ -9,6 +9,7 @@ uart:
     rx_pin: 5
     baud_rate: 9600
     stop_bits: 2
+    rx_full_threshold: 1
 
 sensor:
   - platform: pzemdc

@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_ADDRESS,
     CONF_DISABLE_CRC,
 )
+from esphome.core import CORE
 from esphome import pins
 
 DEPENDENCIES = ["uart"]
@@ -53,7 +54,8 @@ CONFIG_SCHEMA = (
 
 
 def validate_rx_full_threshold_uart(config):
-    uart.final_validate_device_schema("modbus", rx_full_threshold=1)(config)
+    if CORE.is_esp32:
+        uart.final_validate_device_schema("modbus", rx_full_threshold=1)(config)
 
 
 FINAL_VALIDATE_SCHEMA = validate_rx_full_threshold_uart
