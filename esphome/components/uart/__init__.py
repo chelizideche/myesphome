@@ -172,6 +172,8 @@ UART_PARITY_OPTIONS = {
 CONF_STOP_BITS = "stop_bits"
 CONF_DATA_BITS = "data_bits"
 CONF_PARITY = "parity"
+CONF_RX_FULL_THRESHOLD = "rx_full_threshold"
+CONF_RX_TIMEOUT = "rx_timeout"
 
 UARTDirection = uart_ns.enum("UARTDirection")
 UART_DIRECTIONS = {
@@ -246,6 +248,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
                 UART_PARITY_OPTIONS, upper=True
             ),
+            cv.Optional(CONF_RX_FULL_THRESHOLD): cv.int_range(min=1, max=120),
+            cv.Optional(CONF_RX_TIMEOUT): cv.int_range(min=0, max=126),
             cv.Optional(CONF_INVERT): cv.invalid(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
@@ -301,7 +305,10 @@ async def to_code(config):
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
-    cg.add(var.set_parity(config[CONF_PARITY]))
+    if CONF_RX_FULL_THRESHOLD in config:
+        cg.add(var.set_rx_full_threshold(config[CONF_RX_FULL_THRESHOLD]))
+    if CONF_RX_TIMEOUT in config:
+        cg.add(var.set_rx_timeout(config[CONF_RX_TIMEOUT]))
 
     if CONF_DEBUG in config:
         await debug_to_code(config[CONF_DEBUG], var)
@@ -327,6 +334,8 @@ def final_validate_device_schema(
     data_bits: Optional[int] = None,
     parity: Optional[str] = None,
     stop_bits: Optional[int] = None,
+    rx_full_threshold: Optional[int] = None,
+    rx_timeout: Optional[int] = None,
 ):
     def validate_baud_rate(value):
         if value != baud_rate:
@@ -368,6 +377,20 @@ def final_validate_device_schema(
             )
         return value
 
+    def validate_rx_full_threshold(value):
+        if value != rx_full_threshold:
+            raise cv.Invalid(
+                f"Component {name} requires {rx_full_threshold} bytes TX Full Threshold for the uart referenced by {uart_bus}"
+            )
+        return value
+
+    def validate_rx_timeout(value):
+        if value != rx_timeout:
+            raise cv.Invalid(
+                f"Component {name} requires {rx_timeout} bytes TX Timeout for the uart referenced by {uart_bus}"
+            )
+        return value
+
     def validate_hub(hub_config):
         hub_schema = {}
         uart_id = hub_config[CONF_ID]
@@ -397,6 +420,10 @@ def final_validate_device_schema(
             hub_schema[cv.Required(CONF_PARITY)] = validate_parity
         if stop_bits is not None:
             hub_schema[cv.Required(CONF_STOP_BITS)] = validate_stop_bits
+        if rx_full_threshold is not None:
+            hub_schema[cv.Required(CONF_RX_FULL_THRESHOLD)] = validate_rx_full_threshold
+        if rx_timeout is not None:
+            hub_schema[cv.Required(CONF_RX_TIMEOUT)] = validate_rx_timeout
         return cv.Schema(hub_schema, extra=cv.ALLOW_EXTRA)(hub_config)
 
     return cv.Schema(

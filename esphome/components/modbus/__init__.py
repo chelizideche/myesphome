@@ -51,6 +51,13 @@ CONFIG_SCHEMA = (
     .extend(uart.UART_DEVICE_SCHEMA)
 )
 
+def validate_rx_full_threshold_uart(config):
+    uart.final_validate_device_schema(
+        "modbus", rx_full_threshold=1
+    )(config)
+
+
+FINAL_VALIDATE_SCHEMA = validate_rx_full_threshold_uart
 
 async def to_code(config):
     cg.add_global(modbus_ns.using)
