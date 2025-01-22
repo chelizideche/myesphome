@@ -26,7 +26,8 @@ void Modbus::loop() {
   }
 
   // If we're past the send_wait_time timeout and response buffer doesn't have the start of the expected response
-  if (this->waiting_for_response_ != 0 && millis() - this->last_send_ > this->send_wait_time_ &&
+  if (this->waiting_for_response_ != 0 &&
+      millis() - this->last_send_ > this->last_send_tx_offset_ + this->send_wait_time_ &&
       (this->rx_buffer_.empty() || this->rx_buffer_[0] != this->waiting_for_response_)) {
     ESP_LOGV(TAG, "Stop waiting for response from %d %dms after last send", this->waiting_for_response_,
              millis() - this->last_send_);
@@ -50,8 +51,8 @@ bool Modbus::tx_blocked() {
   // 5. The last received byte isn't more than frame_delay ms ago (i.e. wait to be sure there isn't more Rx coming)
   // 6. If we're a client - also wait for the turnaround delay, to give the servers time to process the previous message
   return this->available() || !this->rx_buffer_.empty() || (this->waiting_for_response_ != 0) ||
-         (now - this->last_send_ <
-          this->frame_delay_ms_ + (this->role == ModbusRole::CLIENT ? this->turnaround_delay_ms_ : 0)) ||
+         (now - this->last_send_ < this->last_send_tx_offset_ + this->frame_delay_ms_ +
+                                       (this->role == ModbusRole::CLIENT ? this->turnaround_delay_ms_ : 0)) ||
          (now - this->last_modbus_byte_ <
           this->frame_delay_ms_ + (this->role == ModbusRole::CLIENT ? this->turnaround_delay_ms_ : 0));
 }
@@ -213,14 +214,16 @@ void Modbus::send_next_frame_() {
     this->waiting_for_response_ = data[0];
   }
 
-  if (this->flow_control_pin_ != nullptr)
+  if (this->flow_control_pin_ != nullptr) {
     this->flow_control_pin_->digital_write(true);
-
-  this->write_array(data);
-  this->flush();
-
-  if (this->flow_control_pin_ != nullptr)
+    this->write_array(data);
+    this->flush();
     this->flow_control_pin_->digital_write(false);
+    this->last_send_tx_offset_ = 0;
+  } else {
+    this->write_array(data);
+    this->last_send_tx_offset_ = data.size() * 11 * 1000 / this->parent_->get_baud_rate() + 1;
+  }
 
   this->tx_buffer_.pop_front();
 

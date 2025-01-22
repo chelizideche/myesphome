@@ -59,6 +59,7 @@ class Modbus : public uart::UARTDevice, public Component {
   void clear_rx_buffer_(const std::string &reason);
   uint32_t last_modbus_byte_{0};
   uint32_t last_send_{0};
+  uint32_t last_send_tx_offset_{0};
   std::vector<ModbusDevice *> devices_;
   std::deque<std::vector<uint8_t>> tx_buffer_;
   void send_next_frame_();
