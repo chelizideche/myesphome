@@ -36,7 +36,7 @@ ATTENUATION_MODES = {
     "auto": "auto",
 }
 
-sampling_mode = adc_ns.enum("SamplingMode")
+sampling_mode = adc_ns.enum("SamplingMode", is_class=True)
 
 SAMPLING_MODES = {
     "avg": sampling_mode.AVG,
