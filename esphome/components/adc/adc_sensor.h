@@ -83,7 +83,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   InternalGPIOPin *pin_;
   bool output_raw_{false};
   uint8_t sample_count_{1};
-  SamplingMode sampling_mode_{0};
+  SamplingMode sampling_mode_{SamplingMode::AVG};
 
 #ifdef USE_RP2040
   bool is_temperature_{false};
