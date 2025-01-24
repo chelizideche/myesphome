@@ -32,10 +32,10 @@ class Aggregator {
  public:
   void add_sample(uint32_t value);
   uint32_t aggregate();
-  Aggregator(uint8_t mode);
+  Aggregator(SamplingMode mode);
 
  protected:
-  uint8_t mode_{0};
+  SamplingMode mode_{0};
   uint32_t aggr_{0};
   uint32_t samples_{0};
 };
@@ -66,7 +66,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
   void set_output_raw(bool output_raw) { this->output_raw_ = output_raw; }
   void set_sample_count(uint8_t sample_count);
-  void set_sampling_mode(uint8_t sampling_mode);
+  void set_sampling_mode(SamplingMode sampling_mode);
   float sample() override;
 
 #ifdef USE_ESP8266
@@ -81,7 +81,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   InternalGPIOPin *pin_;
   bool output_raw_{false};
   uint8_t sample_count_{1};
-  uint8_t sampling_mode_{0};
+  SamplingMode sampling_mode_{0};
 
 #ifdef USE_RP2040
   bool is_temperature_{false};

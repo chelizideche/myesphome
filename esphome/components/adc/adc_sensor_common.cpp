@@ -6,19 +6,21 @@ namespace adc {
 
 static const char *const TAG = "adc.common";
 
-Aggregator::Aggregator(uint8_t mode) {
+enum class SamplingMode : uint8_t { AVG = 0, MIN = 1, MAX = 2 };
+
+Aggregator::Aggregator(SamplingMode mode) {
   mode_ = mode;
   // set to max uint if mode is "min"
-  if (mode == 1) {
+  if (mode == SamplingMode::MIN) {
     aggr_ = UINT32_MAX;
   }
 }
 
 void Aggregator::add_sample(uint32_t value) {
-  if (mode_ == 0) {
+  if (mode_ == SamplingMode::AVG) {
     // avg
     aggr_ += value;
-  } else if (mode_ == 1) {
+  } else if (mode_ == SamplingMode::MIN) {
     // min
     if (value < aggr_) {
       aggr_ = value;
@@ -34,7 +36,7 @@ void Aggregator::add_sample(uint32_t value) {
 }
 
 uint32_t Aggregator::aggregate() {
-  if (this->mode_ == 0) {
+  if (this->mode_ == SamplingMode::AVG) {
     return (aggr_ + (this->samples_ >> 1)) / this->samples_;  // NOLINT(clang-analyzer-core.DivideZero)
   }
 
@@ -53,11 +55,7 @@ void ADCSensor::set_sample_count(uint8_t sample_count) {
   }
 }
 
-void ADCSensor::set_sampling_mode(uint8_t sampling_mode) {
-  if (sampling_mode >= 0 && sampling_mode <= 2) {
-    this->sampling_mode_ = sampling_mode;
-  }
-}
+void ADCSensor::set_sampling_mode(SamplingMode sampling_mode) { this->sampling_mode_ = sampling_mode; }
 
 float ADCSensor::get_setup_priority() const { return setup_priority::DATA; }
 

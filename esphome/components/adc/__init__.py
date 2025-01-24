@@ -36,10 +36,12 @@ ATTENUATION_MODES = {
     "auto": "auto",
 }
 
+sampling_mode = adc_ns.enum("SamplingMode")
+
 SAMPLING_MODES = {
-    "avg": 0,
-    "min": 1,
-    "max": 2,
+    "avg": sampling_mode.AVG,
+    "min": sampling_mode.MIN,
+    "max": sampling_mode.MAX,
 }
 
 adc1_channel_t = cg.global_ns.enum("adc1_channel_t")
