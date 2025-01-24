@@ -7,38 +7,40 @@ namespace adc {
 static const char *const TAG = "adc.common";
 
 Aggregator::Aggregator(SamplingMode mode) {
-  mode_ = mode;
+  this->mode_ = mode;
   // set to max uint if mode is "min"
   if (mode == SamplingMode::MIN) {
-    aggr_ = UINT32_MAX;
+    this->aggr_ = UINT32_MAX;
   }
 }
 
 void Aggregator::add_sample(uint32_t value) {
-  if (mode_ == SamplingMode::AVG) {
-    // avg
-    aggr_ += value;
-  } else if (mode_ == SamplingMode::MIN) {
-    // min
-    if (value < aggr_) {
-      aggr_ = value;
-    }
-  } else {
-    // max
-    if (value > aggr_) {
-      aggr_ = value;
-    }
-  }
+  this->samples_ += 1;
 
-  samples_ += 1;
+  switch (this->mode_) {
+    case SamplingMode::AVG:
+      this->aggr_ += value;
+      break;
+
+    case SamplingMode::MIN:
+      if (value < this->aggr_) {
+        this->aggr_ = value;
+      }
+      break;
+
+    case SamplingMode::MAX:
+      if (value > this->aggr_) {
+        this->aggr_ = value;
+      }
+  }
 }
 
 uint32_t Aggregator::aggregate() {
   if (this->mode_ == SamplingMode::AVG) {
-    return (aggr_ + (this->samples_ >> 1)) / this->samples_;  // NOLINT(clang-analyzer-core.DivideZero)
+    return (this->aggr_ + (this->samples_ >> 1)) / this->samples_;  // NOLINT(clang-analyzer-core.DivideZero)
   }
 
-  return aggr_;
+  return this->aggr_;
 }
 
 void ADCSensor::update() {
