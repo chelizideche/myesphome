@@ -4,4 +4,5 @@ sensor:
     dout_pin: 14
     clk_pin: 15
     gain: 128
+    settling_time: 400ms
     update_interval: 15s
