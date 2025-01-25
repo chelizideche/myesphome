@@ -371,7 +371,7 @@ void DallasPio::ds2406_write_state_(bool state, bool use_crc = false) {
   uint8_t channel_control_byte_2 = 0xFF;
   uint8_t channel_info_byte;
   uint16_t received_crc = 0;
-  uint8_t ds2406_write_state = state ? 0xFF : 0x00;
+  uint8_t ds2406_write_state = (state ^ this->pin_inverted_) ? 0xFF : 0x00;
   {
     InterruptLock lock;
     this->send_command_(DALLAS_DS2406_COMMAND_CHANNEL_ACCESS);

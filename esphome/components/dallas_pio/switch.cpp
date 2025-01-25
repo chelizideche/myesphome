@@ -62,10 +62,7 @@ void DallasPioSwitch::write_state(bool state) {
     return;
   }
   this->status_clear_warning();
-
-  if (!this->dallas_pio_->write_state(state, this->pin_, this->pin_inverted_)) {
-    return;
-  }
+  this->dallas_pio_->write_state(state, this->pin_, this->pin_inverted_);
   this->publish_state(state);  // Set state in ESPHome
 }
 
