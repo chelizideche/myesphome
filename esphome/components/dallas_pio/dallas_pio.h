@@ -77,7 +77,7 @@ class DallasPio : public Component, public one_wire::OneWireDevice {
   void ds2408_write_state_(bool state, bool use_crc);
   uint16_t crc_;
   bool crc_enabled_ = false;
-  bool ds2406_verify_crc_(uint8_t control1, uint8_t control2, uint8_t info, uint16_t received_crc);
+  bool ds2406_verify_crc_(uint8_t control1, uint8_t control2, uint8_t info, uint8_t io_state, uint16_t received_crc);
   void crc_reset_();
   void crc_shift_byte_(uint8_t byte);
   uint16_t crc_read_() const;

@@ -67,28 +67,32 @@ void DallasPio::dump_config() {
 bool DallasPio::read_state(uint8_t &state, uint8_t pin) {
   this->pin_ = pin;
   if (this->reference_ == "DS2413") {
-    // ESP_LOGD(TAG, "DallasPio read_state %u pin %u", state, this->pin_);
+    // ESP_LOGD(TAG, "DallasPio DS2413 read_state %u pin %u", state, this->pin_);
     return this->ds2413_get_state_(state);
   } else if (this->reference_ == "DS2406") {
+    // ESP_LOGD(TAG, "DallasPio DS2406 read_state %u pin %u", state, this->pin_);
     return this->ds2406_get_state_(state, this->crc_enabled_);
+    // ESP_LOGD(TAG, "DallasPio DS2408 read_state %u pin %u", state, this->pin_);
   } else if (this->reference_ == "DS2408") {
     return this->ds2408_get_state_(state, this->crc_enabled_);
   }
-  return true;
+  return false;
 }
 
 bool DallasPio::write_state(bool state, uint8_t pin, bool pin_inverted) {
   this->pin_ = pin;
   this->pin_inverted_ = pin_inverted;
-  // ESP_LOGW(TAG, "DallasPio write_state %u pin %u pin_ %u", state, pin, this->pin_);
   if (this->reference_ == "DS2413") {
+    // ESP_LOGD(TAG, "DallasPio DS2413 write_state %u pin %u pin_ %u", state, pin, this->pin_);
     this->ds2413_write_state_(state);
   } else if (this->reference_ == "DS2406") {
+    ESP_LOGD(TAG, "DallasPio DS2406 write_state %u pin %u pin_ %u", state, pin, this->pin_);
     this->ds2406_write_state_(state, this->crc_enabled_);
   } else if (this->reference_ == "DS2408") {
+    // ESP_LOGD(TAG, "DallasPio DS2408 write_state %u pin %u pin_ %u", state, pin, this->pin_);
     this->ds2408_write_state_(state, this->crc_enabled_);
   }
-  return true;
+  return false;
 }
 
 /************/
@@ -115,7 +119,7 @@ bool DallasPio::ds2413_get_state_(uint8_t &state) {
   }
   {
     InterruptLock lock;
-    this->send_command_(DALLAS_COMMAND_PIO_ACCESS_READ);
+    this->send_command_(DALLAS_DS2413_COMMAND_PIO_ACCESS_READ);
     results = this->bus_->read8();
   }
   ok = (~results & 0x0F) == (results >> 4);
@@ -174,12 +178,12 @@ void DallasPio::ds2413_write_state_(bool state) {
   }
   {
     InterruptLock lock;
-    this->send_command_(DALLAS_COMMAND_PIO_ACCESS_WRITE);
+    this->send_command_(DALLAS_DS2413_COMMAND_PIO_ACCESS_WRITE);
     this->bus_->write8(this->pio_output_register_);   // Send data
     this->bus_->write8(~this->pio_output_register_);  // Invert data and resend
     ack = this->bus_->read8();                        // 0xAA=success, 0xFF=failure
   }
-  if (ack == DALLAS_COMMAND_PIO_ACK_SUCCESS) {
+  if (ack == DALLAS_DS2413_COMMAND_PIO_ACK_SUCCESS) {
     this->bus_->read8();  // Read the PIOA PIOB status byte
   } else {
     return;
@@ -218,7 +222,8 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   uint8_t channel_control_byte_1;
   uint8_t channel_control_byte_2 = 0xFF;
   uint8_t channel_info_byte;
-  uint8_t received_crc = 0;
+  uint8_t pio_input_state;
+  uint16_t received_crc = 0;
   const char *str_pio = nullptr;
   // Initialize One-Wire bus for this device
   if (!this->check_address_()) {
@@ -243,21 +248,29 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   }
   {
     InterruptLock lock;
-    this->send_command_(DALLAS_COMMAND_PIO_ACCESS_READ);
+    this->send_command_(DALLAS_DS2406_COMMAND_CHANNEL_ACCESS);
     // write CHANNEL CONTROL BYTE 1
     this->bus_->write8(channel_control_byte_1);
     // write CHANNEL CONTROL BYTE 2
     this->bus_->write8(channel_control_byte_2);
     // read CHANNEL INFO BYTE
     channel_info_byte = this->bus_->read8();
+    // Read Bits from PioA and PioB
+    pio_input_state = this->bus_->read8();
     if (use_crc) {
       received_crc = this->bus_->read8();
+      received_crc |= ((unsigned int) (this->bus_->read8())) << 8;
     }
   }
   if (use_crc) {
-    ESP_LOGD(TAG, "CRC for Channel Info Byte: 0x%04X", use_crc);
-    if (!this->ds2406_verify_crc_(channel_control_byte_1, channel_control_byte_2, channel_info_byte, received_crc)) {
-      ESP_LOGW(TAG, "CRC verification failed!");
+    if (!this->ds2406_verify_crc_(channel_control_byte_1, channel_control_byte_2, channel_info_byte, pio_input_state,
+                                  received_crc)) {
+      ESP_LOGD(TAG, "channel_control_byte_1: 0x%04X", channel_control_byte_1);
+      ESP_LOGD(TAG, "channel_control_byte_2: 0x%04X", channel_control_byte_2);
+      ESP_LOGD(TAG, "channel_info_byte: 0x%04X", channel_info_byte);
+      ESP_LOGD(TAG, "pio_input_state: 0x%04X", pio_input_state);
+      ESP_LOGD(TAG, "Received CRC: 0x%04X", received_crc);
+      ESP_LOGW(TAG, "Read CRC verification failed!");
       this->status_set_warning();
       return false;
     }
@@ -357,15 +370,34 @@ void DallasPio::ds2406_write_state_(bool state, bool use_crc = false) {
   }
   uint8_t channel_control_byte_2 = 0xFF;
   uint8_t channel_info_byte;
+  uint16_t received_crc = 0;
+  uint8_t ds2406_write_state = state ? 0xFF : 0x00;
   {
     InterruptLock lock;
-    this->send_command_(DALLAS_COMMAND_PIO_ACCESS_READ);
+    this->send_command_(DALLAS_DS2406_COMMAND_CHANNEL_ACCESS);
     // write CHANNEL CONTROL BYTE 1
     this->bus_->write8(channel_control_byte_1);
     // write CHANNEL CONTROL BYTE 2
     this->bus_->write8(channel_control_byte_2);
     channel_info_byte = this->bus_->read8();
-    this->bus_->write8(state ? 0xFF : 0x00);
+    this->bus_->write8(ds2406_write_state);
+    if (use_crc) {
+      received_crc = this->bus_->read8();
+      received_crc |= ((unsigned int) (this->bus_->read8())) << 8;
+    }
+  }
+  if (use_crc) {
+    if (!this->ds2406_verify_crc_(channel_control_byte_1, channel_control_byte_2, channel_info_byte, ds2406_write_state,
+                                  received_crc)) {
+      ESP_LOGD(TAG, "channel_control_byte_1: 0x%04X", channel_control_byte_1);
+      ESP_LOGD(TAG, "channel_control_byte_2: 0x%04X", channel_control_byte_2);
+      ESP_LOGD(TAG, "channel_info_byte: 0x%04X", channel_info_byte);
+      ESP_LOGD(TAG, "ds2406_write_state: 0x%04X", ds2406_write_state);
+      ESP_LOGD(TAG, "Received CRC: 0x%04X", received_crc);
+      ESP_LOGW(TAG, "Write CRC verification failed!");
+      this->status_set_warning();
+      return;
+    }
   }
   ESP_LOGD(TAG, "channel_info_byte=%d", channel_info_byte);
   if (!this->bus_->reset()) {
@@ -375,16 +407,20 @@ void DallasPio::ds2406_write_state_(bool state, bool use_crc = false) {
   }
 }  // ds2406_write_state_
 
-bool DallasPio::ds2406_verify_crc_(uint8_t control1, uint8_t control2, uint8_t info, uint16_t received_crc) {
+bool DallasPio::ds2406_verify_crc_(uint8_t control1, uint8_t control2, uint8_t channel_info_byte, uint8_t io_state,
+                                   uint16_t received_crc) {
   uint16_t computed_crc = 0;
   this->crc_reset_();
-  this->crc_shift_byte_(DALLAS_COMMAND_PIO_ACCESS_READ);
+  this->crc_shift_byte_(DALLAS_DS2406_COMMAND_CHANNEL_ACCESS);
   this->crc_shift_byte_(control1);
   this->crc_shift_byte_(control2);
-  this->crc_shift_byte_(info);
+  this->crc_shift_byte_(channel_info_byte);
+  this->crc_shift_byte_(io_state);
   computed_crc = this->crc_read_();
-
-  ESP_LOGD(TAG, "Computed CRC: 0x%04X", computed_crc);
+  computed_crc = ~computed_crc;
+  if (computed_crc != received_crc) {
+    ESP_LOGD(TAG, "Computed CRC: 0x%04X", computed_crc);
+  }
   return computed_crc == received_crc;
 }
 
@@ -498,7 +534,7 @@ void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
     this->bus_->write8(~new_state);
     ack = this->bus_->read8();  // 0xAA=success, 0xFF=failure
   }
-  if (ack != DALLAS_COMMAND_PIO_ACK_SUCCESS) {
+  if (ack != DALLAS_DS2413_COMMAND_PIO_ACK_SUCCESS) {
     ESP_LOGW(TAG, "Failed to write One-Wire bus.");
     this->status_set_warning();
     return;

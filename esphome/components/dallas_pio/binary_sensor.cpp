@@ -62,10 +62,8 @@ void DallasPioBinarySensor::update() {
   }
   this->status_clear_warning();
 
-  if (this->reference_ == "DS2413") {
-    if (!this->dallas_pio_->read_state(state, this->pin_)) {
-      return;
-    }
+  if (!this->dallas_pio_->read_state(state, this->pin_)) {
+    return;
   }
 
   if (this->pin_inverted_) {
