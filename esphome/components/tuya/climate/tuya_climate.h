@@ -39,10 +39,10 @@ class TuyaClimate : public climate::Climate, public Component {
   void set_eco_mode_e1_value(uint8_t eco_mode_on_value) { this->eco_mode_on_value_ = eco_mode_on_value; }
   void set_eco_mode_e2_value(uint8_t eco_mode_off_value) { this->eco_mode_off_value_ = eco_mode_off_value; }
   void set_pellet_rate_id(uint8_t pellet_rate_id) { this->pellet_rate_id_ = pellet_rate_id; }
-  void set_pellet_rate_r1_value(uint8_t pellet_rate_low_value) { this->pellet_rate_low_value_ = pellet_rate_low_value; }
-  void set_pellet_rate_r2_value(uint8_t pellet_rate_med_value) { this->pellet_rate_med_value_ = pellet_rate_med_value; }
-  void set_pellet_rate_r3_value(uint8_t pellet_rate_high_value) { this->pellet_rate_high_value_ = pellet_rate_high_value; }
-  void set_pellet_rate_r4_value(uint8_t pellet_rate_max_value) { this->pellet_rate_max_value_ = pellet_rate_max_value; }
+  void set_pellet_rate_low_value(uint8_t pellet_rate_low_value) { this->pellet_rate_low_value_ = pellet_rate_low_value; }
+  void set_pellet_rate_med_value(uint8_t pellet_rate_med_value) { this->pellet_rate_med_value_ = pellet_rate_med_value; }
+  void set_pellet_rate_high_value(uint8_t pellet_rate_high_value) { this->pellet_rate_high_value_ = pellet_rate_high_value; }
+  void set_pellet_rate_max_value(uint8_t pellet_rate_max_value) { this->pellet_rate_max_value_ = pellet_rate_max_value; }
   void set_target_temperature_id(uint8_t target_temperature_id) {
     this->target_temperature_id_ = target_temperature_id;
   }
