@@ -130,6 +130,8 @@ class ClimateCall {
   optional<float> target_temperature_high_;
   optional<float> target_humidity_;
   optional<ClimateFanMode> fan_mode_;
+  optional<ClimateEcoMode> eco_mode_;
+  optional<ClimatePelletRate> pellet_rate_;
   optional<ClimateSwingMode> swing_mode_;
   optional<std::string> custom_fan_mode_;
   optional<ClimatePreset> preset_;
