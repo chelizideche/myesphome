@@ -20,7 +20,7 @@ DIM_METHODS = {
 CONF_GATE_PIN = "gate_pin"
 CONF_ZERO_CROSS_PIN = "zero_cross_pin"
 CONF_INIT_WITH_HALF_CYCLE = "init_with_half_cycle"
-CONF_MAX_DIM = "max_dimmer" # don't allow dimming more than this amount
+CONF_MAX_DIM = "max_dimmer"  # don't allow dimming more than this amount
 CONFIG_SCHEMA = cv.All(
     output.FLOAT_OUTPUT_SCHEMA.extend(
         {
