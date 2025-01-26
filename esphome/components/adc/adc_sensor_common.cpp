@@ -6,17 +6,16 @@ namespace adc {
 
 static const char *const TAG = "adc.common";
 
-const char *sampling_mode_str(SamplingMode mode) {
+const LogString *sampling_mode_to_str(SamplingMode mode) {
   switch (mode) {
     case SamplingMode::AVG:
-      return "average";
+      return LOG_STR("average");
     case SamplingMode::MIN:
-      return "minimum";
+      return LOG_STR("minimum");
     case SamplingMode::MAX:
-      return "maximum";
+      return LOG_STR("maximum");
   }
-
-  return "unknown";
+  return LOG_STR("unknown");
 }
 
 Aggregator::Aggregator(SamplingMode mode) {

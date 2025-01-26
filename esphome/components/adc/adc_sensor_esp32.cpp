@@ -78,7 +78,7 @@ void ADCSensor::dump_config() {
     }
   }
   ESP_LOGCONFIG(TAG, "  Samples: %i", this->sample_count_);
-  ESP_LOGCONFIG(TAG, "  Sampling mode: %s", sampling_mode_str(this->sampling_mode_));
+  ESP_LOGCONFIG(TAG, "  Sampling mode: %s", LOG_STR_ARG(sampling_mode_to_str(this->sampling_mode_)));
   LOG_UPDATE_INTERVAL(this);
 }
 

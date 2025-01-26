@@ -29,7 +29,7 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 #endif  // USE_ESP32
 
 enum class SamplingMode : uint8_t { AVG = 0, MIN = 1, MAX = 2 };
-const char *sampling_mode_str(SamplingMode mode);
+const LogString *sampling_mode_to_str(SamplingMode mode);
 
 class Aggregator {
  public:
