@@ -660,55 +660,55 @@ ClimateCall ClimateDeviceRestoreState::to_call(Climate *climate) {
       return set_alternative(this->custom_preset, this->preset, preset);
     }
 
-    void Climate::dump_traits_(const char *tag) {
-      auto traits = this->get_traits();
-      ESP_LOGCONFIG(tag, "ClimateTraits:");
-      ESP_LOGCONFIG(tag, "  [x] Visual settings:");
-      ESP_LOGCONFIG(tag, "      - Min temperature: %.1f", traits.get_visual_min_temperature());
-      ESP_LOGCONFIG(tag, "      - Max temperature: %.1f", traits.get_visual_max_temperature());
-      ESP_LOGCONFIG(tag, "      - Temperature step:");
-      ESP_LOGCONFIG(tag, "          Target: %.1f", traits.get_visual_target_temperature_step());
-      if (traits.get_supports_current_temperature()) {
-        ESP_LOGCONFIG(tag, "          Current: %.1f", traits.get_visual_current_temperature_step());
-      }
-      if (traits.get_supports_target_humidity() || traits.get_supports_current_humidity()) {
-        ESP_LOGCONFIG(tag, "      - Min humidity: %.0f", traits.get_visual_min_humidity());
-        ESP_LOGCONFIG(tag, "      - Max humidity: %.0f", traits.get_visual_max_humidity());
-      }
-      if (traits.get_supports_two_point_target_temperature()) {
-        ESP_LOGCONFIG(tag, "  [x] Supports two-point target temperature");
-      }
-      if (traits.get_supports_current_temperature()) {
-        ESP_LOGCONFIG(tag, "  [x] Supports current temperature");
-      }
-      if (traits.get_supports_target_humidity()) {
-        ESP_LOGCONFIG(tag, "  [x] Supports target humidity");
-      }
-      if (traits.get_supports_current_humidity()) {
-        ESP_LOGCONFIG(tag, "  [x] Supports current humidity");
-      }
-      if (traits.get_supports_action()) {
-        ESP_LOGCONFIG(tag, "  [x] Supports action");
-      }
-      if (!traits.get_supported_modes().empty()) {
-        ESP_LOGCONFIG(tag, "  [x] Supported modes:");
-        for (ClimateMode m : traits.get_supported_modes())
-          ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_mode_to_string(m)));
-      }
-      if (!traits.get_supported_fan_modes().empty()) {
-        ESP_LOGCONFIG(tag, "  [x] Supported fan modes:");
-        for (ClimateFanMode m : traits.get_supported_fan_modes())
-          ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_fan_mode_to_string(m)));
-      }
-      if (!traits.get_supported_eco_modes().empty()) {
-        ESP_LOGCONFIG(tag, "  [x] Supported pellet eco modes:");
-        for (ClimateEcoMode m : traits.get_supported_eco_modes())
-          ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_eco_mode_to_string(m)));
-      }
-      if (!traits.get_supported_pellet_rates().empty()) {
-        ESP_LOGCONFIG(tag, "  [x] Supported pellet rates:");
-        for (ClimatePelletRate m : traits.get_supported_pellet_rates())
-          ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_pellet_rate_to_string(m)));
+void Climate::dump_traits_(const char *tag) {
+  auto traits = this->get_traits();
+  ESP_LOGCONFIG(tag, "ClimateTraits:");
+  ESP_LOGCONFIG(tag, "  [x] Visual settings:");
+  ESP_LOGCONFIG(tag, "      - Min temperature: %.1f", traits.get_visual_min_temperature());
+  ESP_LOGCONFIG(tag, "      - Max temperature: %.1f", traits.get_visual_max_temperature());
+  ESP_LOGCONFIG(tag, "      - Temperature step:");
+  ESP_LOGCONFIG(tag, "          Target: %.1f", traits.get_visual_target_temperature_step());
+  if (traits.get_supports_current_temperature()) {
+    ESP_LOGCONFIG(tag, "          Current: %.1f", traits.get_visual_current_temperature_step());
+  }
+  if (traits.get_supports_target_humidity() || traits.get_supports_current_humidity()) {
+    ESP_LOGCONFIG(tag, "      - Min humidity: %.0f", traits.get_visual_min_humidity());
+    ESP_LOGCONFIG(tag, "      - Max humidity: %.0f", traits.get_visual_max_humidity());
+  }
+  if (traits.get_supports_two_point_target_temperature()) {
+    ESP_LOGCONFIG(tag, "  [x] Supports two-point target temperature");
+  }
+  if (traits.get_supports_current_temperature()) {
+    ESP_LOGCONFIG(tag, "  [x] Supports current temperature");
+  }
+  if (traits.get_supports_target_humidity()) {
+    ESP_LOGCONFIG(tag, "  [x] Supports target humidity");
+  }
+  if (traits.get_supports_current_humidity()) {
+    ESP_LOGCONFIG(tag, "  [x] Supports current humidity");
+  }
+  if (traits.get_supports_action()) {
+    ESP_LOGCONFIG(tag, "  [x] Supports action");
+  }
+  if (!traits.get_supported_modes().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported modes:");
+    for (ClimateMode m : traits.get_supported_modes())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_mode_to_string(m)));
+  }
+  if (!traits.get_supported_fan_modes().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported fan modes:");
+    for (ClimateFanMode m : traits.get_supported_fan_modes())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_fan_mode_to_string(m)));
+  }
+  if (!traits.get_supported_eco_modes().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported pellet eco modes:");
+    for (ClimateEcoMode m : traits.get_supported_eco_modes())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_eco_mode_to_string(m)));
+  }
+  if (!traits.get_supported_pellet_rates().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported pellet rates:");
+    for (ClimatePelletRate m : traits.get_supported_pellet_rates())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_pellet_rate_to_string(m)));
 
-      }  // namespace climate
-    }    // namespace esphome
+  }  // namespace climate
+}  // namespace esphome
