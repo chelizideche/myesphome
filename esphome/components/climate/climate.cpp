@@ -696,15 +696,6 @@ void Climate::dump_traits_(const char *tag) {
     for (ClimateFanMode m : traits.get_supported_fan_modes())
       ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_fan_mode_to_string(m)));
   }
-  if (!traits.get_supported_eco_modes().empty()) {
-    ESP_LOGCONFIG(tag, "  [x] Supported pellet eco modes:");
-    for (ClimateEcoMode m : traits.get_supported_eco_modes())
-      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_eco_mode_to_string(m)));
-  }
-  if (!traits.get_supported_pellet_rates().empty()) {
-    ESP_LOGCONFIG(tag, "  [x] Supported pellet rates:");
-    for (ClimatePelletRate m : traits.get_supported_pellet_rates())
-      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_pellet_rate_to_string(m)));
-
-  }  // namespace climate
+ }
+ }  // namespace climate
 }  // namespace esphome
