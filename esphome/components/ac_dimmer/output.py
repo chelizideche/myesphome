@@ -12,6 +12,7 @@ AcDimmer = ac_dimmer_ns.class_("AcDimmer", output.FloatOutput, cg.Component)
 DimMethod = ac_dimmer_ns.enum("DimMethod")
 DIM_METHODS = {
     "LEADING_PULSE": DimMethod.DIM_METHOD_LEADING_PULSE,
+    "LEADING_PULSE_DOUBLE": DimMethod.DIM_METHOD_LEADING_PULSE_DOUBLE,
     "LEADING": DimMethod.DIM_METHOD_LEADING,
     "TRAILING": DimMethod.DIM_METHOD_TRAILING,
 }
@@ -19,6 +20,7 @@ DIM_METHODS = {
 CONF_GATE_PIN = "gate_pin"
 CONF_ZERO_CROSS_PIN = "zero_cross_pin"
 CONF_INIT_WITH_HALF_CYCLE = "init_with_half_cycle"
+CONF_MAX_DIM = "max_dimmer" # don't allow dimming more than this amount
 CONFIG_SCHEMA = cv.All(
     output.FLOAT_OUTPUT_SCHEMA.extend(
         {
@@ -26,6 +28,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_GATE_PIN): pins.internal_gpio_output_pin_schema,
             cv.Required(CONF_ZERO_CROSS_PIN): pins.internal_gpio_input_pin_schema,
             cv.Optional(CONF_INIT_WITH_HALF_CYCLE, default=True): cv.boolean,
+            cv.Optional(CONF_MAX_DIM, default=0): cv.float_range(min=0, max=1),
             cv.Optional(CONF_METHOD, default="leading pulse"): cv.enum(
                 DIM_METHODS, upper=True, space="_"
             ),
@@ -49,4 +52,5 @@ async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_ZERO_CROSS_PIN])
     cg.add(var.set_zero_cross_pin(pin))
     cg.add(var.set_init_with_half_cycle(config[CONF_INIT_WITH_HALF_CYCLE]))
+    cg.add(var.set_max_dim(config[CONF_MAX_DIM]))
     cg.add(var.set_method(config[CONF_METHOD]))

@@ -37,16 +37,43 @@ uint32_t IRAM_ATTR HOT AcDimmerDataStore::timer_intr(uint32_t now) {
     return 0;
 
   uint32_t time_since_zc = now - this->crossed_zero_at;
-  if (this->value == 65535 || this->value == 0) {
+  if (this->value == 65535) {
+    // the light has gone to 100%, immediately turn on the output to prevent flicker
+    this->gate_pin.digital_write(true);
+    return 0;
+  } else if (this->value == 0) {
     return 0;
   }
 
   if (this->enable_time_us != 0 && time_since_zc >= this->enable_time_us) {
-    this->enable_time_us = 0;
+
+    // If we're doing a double time pulse, see if we've done the second one yet
+    if (this->method == DIM_METHOD_LEADING_PULSE_DOUBLE) {
+      if (!this->first_cycle_done) {
+        // Mark that we've done the first cycle
+        this->first_cycle_done = true;
+
+        // Increase the enable time by half of the cycle time, to trigger it again for the 2nd cycle
+        this->enable_time_us += this->cycle_time_us * 0.5;
+      } else {
+        this->enable_time_us = 0;
+      }
+      // Set the disable time to 1 -- it will be reset at the end of this loop to GATE_ENABLE_TIME plus time_since.
+      this->disable_time_us = 1;
+
+    } else {
+      // Normal case.  Turn off the Enable time.
+      this->enable_time_us = 0;
+    }
+
+    // Actually sent an output to the gate to enable power
     this->gate_pin.digital_write(true);
+
     // Prevent too short pulses
     this->disable_time_us = std::max(this->disable_time_us, time_since_zc + GATE_ENABLE_TIME);
   }
+
+  // If it is time to disable the gate pin, do that now.
   if (this->disable_time_us != 0 && time_since_zc >= this->disable_time_us) {
     this->disable_time_us = 0;
     this->gate_pin.digital_write(false);
@@ -105,28 +132,57 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
   if (this->value == 65535) {
     // fully on, enable output immediately
     this->gate_pin.digital_write(true);
+
   } else if (this->init_cycle) {
     // send a full cycle
     this->init_cycle = false;
     this->enable_time_us = 0;
     this->disable_time_us = cycle_time_us;
+
   } else if (this->value == 0) {
     // fully off, disable output immediately
     this->gate_pin.digital_write(false);
+
   } else {
     if (this->method == DIM_METHOD_TRAILING) {
       this->enable_time_us = 1;  // cannot be 0
       this->disable_time_us = std::max((uint32_t) 10, this->value * this->cycle_time_us / 65535);
+
     } else {
       // calculate time until enable in µs: (1.0-value)*cycle_time, but with integer arithmetic
       // also take into account min_power
-      auto min_us = this->cycle_time_us * this->min_power / 1000;
+      auto min_us = this->cycle_time_us * this->min_power / 1000; // this will be a minimum cycle length
       this->enable_time_us = std::max((uint32_t) 1, ((65535 - this->value) * (this->cycle_time_us - min_us)) / 65535);
+
+      // Some dimmers don't work correctly when the
+      if (this->max_dimmer > 0) {
+        auto max_us = (this->cycle_time_us * (1000 - this->max_dimmer)) / 1000; // this will be a minimum cycle length
+        // if we are in LEADING_PULSE_DOUBLE mode, double the calculated number
+        if (this->method == DIM_METHOD_LEADING_PULSE_DOUBLE) {
+          max_us *= 2;
+        }
+        // calculate the max we can dim -- for example, some dimmers and LED bulbs get weird when the dimmer is
+        // at less than 100% but more than 90%
+        this->enable_time_us = std::max(max_us, this->enable_time_us);
+      }
+
 
       if (this->method == DIM_METHOD_LEADING_PULSE) {
         // Minimum pulse time should be enough for the triac to trigger when it is close to the ZC zone
         // this is for brightness near 99%
         this->disable_time_us = std::max(this->enable_time_us + GATE_ENABLE_TIME, (uint32_t) cycle_time_us / 10);
+
+      } else if (this->method == DIM_METHOD_LEADING_PULSE_DOUBLE) {
+        // Cut the enable time in half, since each half is done per half cycle
+        this->enable_time_us *= 0.5;
+
+        // For a double pulse (once for each zero crossing, simply set the Disable Time to the min gate time
+        // It will be reset in the timer function above.
+        this->disable_time_us = this->enable_time_us + GATE_ENABLE_TIME;
+
+        // Also mark that we haven't yet seen the first pulse.
+        this->first_cycle_done = false;
+
       } else {
         this->gate_pin.digital_write(false);
         this->disable_time_us = this->cycle_time_us;
@@ -177,6 +233,7 @@ void AcDimmer::setup() {
   this->store_.zero_cross_pin_number = this->zero_cross_pin_->get_pin();
   this->store_.min_power = static_cast<uint16_t>(this->min_power_ * 1000);
   this->min_power_ = 0;
+  this->store_.max_dimmer = static_cast<uint16_t>(this->max_dim_ * 1000);
   this->store_.method = this->method_;
 
   if (setup_zero_cross_pin) {
@@ -214,9 +271,12 @@ void AcDimmer::dump_config() {
   LOG_PIN("  Output Pin: ", this->gate_pin_);
   LOG_PIN("  Zero-Cross Pin: ", this->zero_cross_pin_);
   ESP_LOGCONFIG(TAG, "   Min Power: %.1f%%", this->store_.min_power / 10.0f);
+  ESP_LOGCONFIG(TAG, "   Max Dim: %.1f%%", this->max_dim_ / 10.0f);
   ESP_LOGCONFIG(TAG, "   Init with half cycle: %s", YESNO(this->init_with_half_cycle_));
   if (method_ == DIM_METHOD_LEADING_PULSE) {
     ESP_LOGCONFIG(TAG, "   Method: leading pulse");
+  } else if (method_ == DIM_METHOD_LEADING_PULSE_DOUBLE) {
+    ESP_LOGCONFIG(TAG, "   Method: leading pulse double");
   } else if (method_ == DIM_METHOD_LEADING) {
     ESP_LOGCONFIG(TAG, "   Method: leading");
   } else {
