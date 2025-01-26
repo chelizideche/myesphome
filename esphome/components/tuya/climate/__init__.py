@@ -353,4 +353,4 @@ async def to_code(config):
             cg.add(var.set_pellet_rate_high_value(pellet_rate_high_value))
         if (pellet_rate_max_value := pellet_rate_config.get(CONF_PELLET_RATE_MAX_VALUE)) is not None:
             cg.add(var.set_pellet_rate_max_value(pellet_rate_max_value))
-            
+#
