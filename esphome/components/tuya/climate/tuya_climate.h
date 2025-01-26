@@ -43,7 +43,7 @@ class TuyaClimate : public climate::Climate, public Component {
     this->fan_speed_medium_value_ = fan_speed_medium_value;
   }
   void set_fan_speed_middle_value(uint8_t fan_speed_middle_value) {
-    this->fan_speed_middle_value_ = fan_speed_middle_value; 
+    this->fan_speed_middle_value_ = fan_speed_middle_value;
   }
   void set_fan_speed_high_value(uint8_t fan_speed_high_value) { this->fan_speed_high_value_ = fan_speed_high_value; }
   void set_fan_speed_auto_value(uint8_t fan_speed_auto_value) { this->fan_speed_auto_value_ = fan_speed_auto_value; }
