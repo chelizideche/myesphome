@@ -12,24 +12,12 @@ class TuyaClimate : public climate::Climate, public Component {
   void setup() override;
   void loop() override;
   void dump_config() override;
-  void set_supports_heat(bool supports_heat) {
-    this->supports_heat_ = supports_heat;
-  }
-  void set_supports_cool(bool supports_cool) {
-    this->supports_cool_ = supports_cool;
-  }
-  void set_supports_pellet(bool supports_pellet) {
-    this->supports_pellet_ = supports_pellet;
-  }
-  void set_switch_id(uint8_t switch_id) {
-    this->switch_id_ = switch_id;
-  }
-  void set_active_state_id(uint8_t state_id) {
-    this->active_state_id_ = state_id;
-  }
-  void set_active_state_heating_value(uint8_t value) {
-    this->active_state_heating_value_ = value;
-  }
+  void set_supports_heat(bool supports_heat) { this->supports_heat_ = supports_heat; }
+  void set_supports_cool(bool supports_cool) { this->supports_cool_ = supports_cool; }
+  void set_supports_pellet(bool supports_pellet) { this->supports_pellet_ = supports_pellet; }
+  void set_switch_id(uint8_t switch_id) { this->switch_id_ = switch_id; }
+  void set_active_state_id(uint8_t state_id) { this->active_state_id_ = state_id; }
+  void set_active_state_heating_value(uint8_t value) { this->active_state_heating_value_ = value; }
   void set_active_state_cooling_value(uint8_t value) { this->active_state_cooling_value_ = value; }
   void set_active_state_drying_value(uint8_t value) { this->active_state_drying_value_ = value; }
   void set_active_state_fanonly_value(uint8_t value) { this->active_state_fanonly_value_ = value; }
