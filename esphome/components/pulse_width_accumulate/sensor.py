@@ -7,6 +7,7 @@ from esphome.const import (
     ICON_TIMER,
     ICON_PULSE,
     STATE_CLASS_TOTAL_INCREASING,
+    CONF_FREQUENCY,
     STATE_CLASS_MEASUREMENT,
     UNIT_SECOND,
     UNIT_HERTZ,
@@ -17,8 +18,6 @@ pulse_width_ns = cg.esphome_ns.namespace("pulse_width_accumulate")
 PulseWidthAccumulateSensor = pulse_width_ns.class_(
     "PulseWidthAccumulateSensor", sensor.Sensor, cg.PollingComponent
 )
-
-CONF_FREQUENCY = "frequency"
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
@@ -42,21 +41,14 @@ CONFIG_SCHEMA = (
     .extend(cv.polling_component_schema("60s"))
 )
 
-
-
-
 async def to_code(config):
     # Register the main sensor
     var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
-
     # Configure the GPIO pin
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     cg.add(var.set_pin(pin))
-
     # Register the frequency sub-sensor if configured
     if conf_freq := config.get(CONF_FREQUENCY):
         sens = await sensor.new_sensor(conf_freq)
         cg.add(var.set_frequency_sensor(sens))
-
-
