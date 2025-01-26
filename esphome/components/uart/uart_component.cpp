@@ -24,10 +24,9 @@ void UARTComponent::set_rx_full_threshold_ms(uint8_t time) {
   uint8_t bytelength = this->data_bits_ + this->stop_bits_ + 1;
   if (this->parity_ != UARTParityOptions::UART_CONFIG_PARITY_NONE)
     bytelength += 1;
-  uint8_t val = (this->baud_rate_ / (bytelength * 1000 / time)) - 1;
-  if (val <= 1) {
+  int32_t val = (this->baud_rate_ / (bytelength * 1000 / time)) - 1;
+  if (val < 1) {
     val = 1;
-    this->set_rx_timeout(0);
   } else if (val > 120) {
     val = 120;
   }
