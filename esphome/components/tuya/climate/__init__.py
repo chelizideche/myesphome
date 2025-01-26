@@ -53,6 +53,7 @@ CONF_PELLET_RATE_MAX_VALUE = "max_value"
 
 TuyaClimate = tuya_ns.class_("TuyaClimate", climate.Climate, cg.Component)
 
+
 def validate_temperature_multipliers(value):
     if CONF_TEMPERATURE_MULTIPLIER in value:
         if (
@@ -115,6 +116,7 @@ def validate_cooling_values(value):
                 )
     return value
 
+
 def validate_heating_values(value):
     if CONF_SUPPORTS_HEAT in value:
         heating_supported = value[CONF_SUPPORTS_HEAT]
@@ -143,6 +145,7 @@ def validate_heating_values(value):
                     f" Please add {CONF_SUPPORTS_PELLET} to your configuration."
                 )
     return value
+
 
 ACTIVE_STATES = cv.Schema(
     {
