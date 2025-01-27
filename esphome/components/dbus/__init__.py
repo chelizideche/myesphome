@@ -10,7 +10,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, PLATFORM_HOST
 from esphome.coroutine import coroutine_with_priority
 
-CODEOWNERS = ["@esphome/core"]
+CODEOWNERS = ["@ferbar"]
 
 CONF_DBUS_SYSTEM = "dbus_system"
 CONF_DBUS_DESTINATION = "dbus_destination"
