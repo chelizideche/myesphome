@@ -15,7 +15,6 @@ from esphome.const import (
     CONF_TIMEOUT,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
-    PLATFORM_NRF52,
     PLATFORM_RP2040,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -49,6 +48,7 @@ pin_with_input_and_output_support = pins.internal_gpio_pin_number(
     {CONF_OUTPUT: True, CONF_INPUT: True}
 )
 
+PLATFORM_NRF52 = "nrf52"
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
