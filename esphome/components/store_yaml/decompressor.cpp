@@ -18,7 +18,8 @@ void Decompressor::reset() {
   this->size_ = 0;
   this->buff_ = 0;
   this->codes_.clear();
-  for (uint32_t i = 0; i < 256; i++) {
+  this->codes_.reserve(256);
+  for (uint16_t i = 0; i < 256; i++) {
     this->codes_.push_back(Entry{.p = 0, .c = (uint8_t) i});
   }
   this->code_width_ = 9;  // log2next + 1
@@ -60,7 +61,7 @@ std::string Decompressor::get_string_(const Entry *entry) const {
   std::string s(1, (char) entry->c);
   while (entry->p != 0) {
     if (entry->p >= this->codes_.size()) {
-      ESP_LOGE(TAG, "entry->p %d not found", entry->p);
+      ESP_LOGE(TAG, "entry->p %" PRIu16 " not found", entry->p);
       break;
     }
     entry = &this->codes_[entry->p];

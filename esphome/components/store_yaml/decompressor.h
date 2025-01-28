@@ -14,6 +14,7 @@ struct Entry {
 } __attribute__((packed));
 
 class Decompressor {
+ protected:
   const uint8_t *data_ptr_;
   size_t data_len_;
   std::vector<Entry> codes_;
@@ -37,6 +38,7 @@ class Decompressor {
 };
 
 class RowDecompressor : public Decompressor {
+ protected:
   std::string yaml_;
 
  public:
