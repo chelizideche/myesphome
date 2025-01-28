@@ -370,9 +370,7 @@ jobs:
       - name: Find changed components
         id: list-components
         run: |
-          set -x
           . venv/bin/activate
-          pip install .
           components=$(script/list-components.py --changed --branch ${{ steps.target-branch.outputs.branch }})
           output_components=$(echo "$components" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
           count=$(echo "$output_components" | jq length)
