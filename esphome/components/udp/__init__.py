@@ -159,6 +159,6 @@ async def to_code(config):
         name = provider[CONF_NAME]
         cg.add(var.add_provider(name))
         if (listen_address := str(config[CONF_LISTEN_ADDRESS])) != "255.255.255.255":
-            cg.add(var.add_listen_address(listen_address))
+            cg.add(var.set_listen_address(listen_address))
         if encryption := provider.get(CONF_ENCRYPTION):
             cg.add(var.set_provider_encryption(name, hash_encryption_key(encryption)))
