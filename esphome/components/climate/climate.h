@@ -115,6 +115,8 @@ class ClimateCall {
   const optional<float> &get_target_temperature_high() const;
   const optional<float> &get_target_humidity() const;
   const optional<ClimateFanMode> &get_fan_mode() const;
+  const optional<ClimateEcoMode> &get_eco_mode() const;
+  const optional<ClimatePelletRate> &get_pellet_rate() const;
   const optional<ClimateSwingMode> &get_swing_mode() const;
   const optional<std::string> &get_custom_fan_mode() const;
   const optional<ClimatePreset> &get_preset() const;
@@ -161,6 +163,7 @@ struct ClimateDeviceRestoreState {
     };
   } __attribute__((packed));
   float target_humidity;
+
 
   /// Convert this struct to a climate call that can be performed.
   ClimateCall to_call(Climate *climate);
