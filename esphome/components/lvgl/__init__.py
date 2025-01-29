@@ -7,6 +7,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
     CONF_BUFFER_SIZE,
+    CONF_GROUP,
     CONF_ID,
     CONF_LAMBDA,
     CONF_ON_IDLE,
@@ -22,10 +23,16 @@ from esphome.helpers import write_file_if_changed
 
 from . import defines as df, helpers, lv_validation as lvalid
 from .automation import disp_update, focused_widgets, update_to_code
-from .defines import add_define
-from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
+from .defines import CONF_DRAW_ROUNDING, add_define
+from .encoders import (
+    ENCODERS_CONFIG,
+    encoders_to_code,
+    get_default_group,
+    initial_focus_to_code,
+)
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
+from .keypads import KEYPADS_CONFIG, keypads_to_code
 from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
@@ -158,6 +165,13 @@ def multi_conf_validate(configs: list[dict]):
     display_list = [disp for disps in displays for disp in disps]
     if len(display_list) != len(set(display_list)):
         raise cv.Invalid("A display ID may be used in only one LVGL instance")
+    for config in configs:
+        for item in (df.CONF_ENCODERS, df.CONF_KEYPADS):
+            for enc in config.get(item, ()):
+                if CONF_GROUP not in enc:
+                    raise cv.Invalid(
+                        f"'{item}' must have an explicit group set when using multiple LVGL instances"
+                    )
     base_config = configs[0]
     for config in configs[1:]:
         for item in (
@@ -173,7 +187,8 @@ def multi_conf_validate(configs: list[dict]):
 
 
 def final_validation(configs):
-    multi_conf_validate(configs)
+    if len(configs) != 1:
+        multi_conf_validate(configs)
     global_config = full_config.get()
     for config in configs:
         if pages := config.get(CONF_PAGES):
@@ -182,13 +197,17 @@ def final_validation(configs):
         for display_id in config[df.CONF_DISPLAYS]:
             path = global_config.get_path_for_id(display_id)[:-1]
             display = global_config.get_config_for_path(path)
-            if CONF_LAMBDA in display:
+            if CONF_LAMBDA in display or CONF_PAGES in display:
                 raise cv.Invalid(
-                    "Using lambda: in display config not compatible with LVGL"
+                    "Using lambda: or pages: in display config is not compatible with LVGL"
                 )
-            if display[CONF_AUTO_CLEAR_ENABLED]:
+            if display.get(CONF_AUTO_CLEAR_ENABLED) is True:
                 raise cv.Invalid(
                     "Using auto_clear_enabled: true in display config not compatible with LVGL"
+                )
+            if draw_rounding := display.get(CONF_DRAW_ROUNDING):
+                config[CONF_DRAW_ROUNDING] = max(
+                    draw_rounding, config[CONF_DRAW_ROUNDING]
                 )
         buffer_frac = config[CONF_BUFFER_SIZE]
         if CORE.is_esp32 and buffer_frac > 0.5 and "psram" not in global_config:
@@ -275,6 +294,7 @@ async def to_code(configs):
     else:
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
+    default_group = get_default_group(config_0)
 
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
@@ -303,10 +323,11 @@ async def to_code(configs):
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
             await touchscreens_to_code(lv_component, config)
-            await encoders_to_code(lv_component, config)
+            await encoders_to_code(lv_component, config, default_group)
+            await keypads_to_code(lv_component, config, default_group)
             await theme_to_code(config)
-            await styles_to_code(config)
             await gradients_to_code(config)
+            await styles_to_code(config)
             await set_obj_properties(lv_scr_act, config)
             await add_widgets(lv_scr_act, config)
             await add_pages(lv_component, config)
@@ -430,6 +451,7 @@ LVGL_SCHEMA = (
             cv.Optional(df.CONF_GRADIENTS): GRADIENT_SCHEMA,
             cv.Optional(df.CONF_TOUCHSCREENS, default=None): touchscreen_schema,
             cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
+            cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
             cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
             cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
         }
