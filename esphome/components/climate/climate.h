@@ -144,6 +144,8 @@ class ClimateCall {
 /// Make sure to update RESTORE_STATE_VERSION when changing the struct entries.
 struct ClimateDeviceRestoreState {
   ClimateMode mode;
+  ClimateEcoMode eco_mode;
+  ClimatePelletRate pellet_rate;
   bool uses_custom_fan_mode{false};
   union {
     ClimateFanMode fan_mode;
