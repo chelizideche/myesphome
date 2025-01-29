@@ -107,6 +107,16 @@ class ClimateTraits {
   bool get_supports_fan_modes() const { return !supported_fan_modes_.empty() || !supported_custom_fan_modes_.empty(); }
   const std::set<ClimateFanMode> &get_supported_fan_modes() const { return supported_fan_modes_; }
 
+  void set_supported_eco_modes(std::set<ClimateEcoMode> modes) { supported_eco_modes_ = std::move(modes); }
+  bool supports_eco_mode(ClimateEcoMode eco_mode) const { return supported_eco_modes_.count(eco_mode); }
+  bool get_supports_eco_modes() const { return !supported_eco_modes_.empty(); }
+  const std::set<ClimateEcoMode> &get_supported_eco_modes() const { return supported_eco_modes_; }
+
+  void set_supported_pellet_rates(std::set<ClimatePelletRate> modes) { supported_pellet_rates_ = std::move(modes); }
+  bool supports_pellet_rate(ClimatePelletRate pellet_rate) const { return supported_pellet_rates_.count(pellet_rate); }
+  bool get_supports_pellet_rates() const { return !supported_pellet_rates_.empty(); }
+  const std::set<ClimatePelletRate> &get_supported_pellet_rates() const { return supported_pellet_rates_; }
+
   void set_supported_custom_fan_modes(std::set<std::string> supported_custom_fan_modes) {
     supported_custom_fan_modes_ = std::move(supported_custom_fan_modes);
   }
@@ -185,6 +195,20 @@ class ClimateTraits {
       supported_fan_modes_.erase(mode);
     }
   }
+  void set_eco_mode_support_(climate::ClimateEcoMode mode, bool supported) {
+    if (supported) {
+      supported_eco_modes_.insert(mode);
+    } else {
+      supported_eco_modes_.erase(mode);
+    }
+  }
+  void set_pellet_rate_support_(climate::ClimatePelletRate mode, bool supported) {
+    if (supported) {
+      supported_pellet_rates_.insert(mode);
+    } else {
+      supported_pellet_rates_.erase(mode);
+    }
+  }
   void set_swing_mode_support_(climate::ClimateSwingMode mode, bool supported) {
     if (supported) {
       supported_swing_modes_.insert(mode);
@@ -202,6 +226,8 @@ class ClimateTraits {
   std::set<climate::ClimateMode> supported_modes_ = {climate::CLIMATE_MODE_OFF};
   bool supports_action_{false};
   std::set<climate::ClimateFanMode> supported_fan_modes_;
+  std::set<climate::ClimateEcoMode> supported_eco_modes_;
+  std::set<climate::ClimatePelletRate> supported_pellet_rates_;
   std::set<climate::ClimateSwingMode> supported_swing_modes_;
   std::set<climate::ClimatePreset> supported_presets_;
   std::set<std::string> supported_custom_fan_modes_;

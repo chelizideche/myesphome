@@ -498,11 +498,11 @@ void Climate::publish_state() {
   if (traits.get_supports_target_humidity()) {
     ESP_LOGD(TAG, "  Target Humidity: %.0f%%", this->target_humidity);
   }
-  if (traits.get_supports_eco_modes()) {
-    ESP_LOGD(TAG, "  Pellet ECO Mode: %.0f%%", this->eco_mode);
+  if (traits.get_supports_eco_modes() && this->eco_mode.has_value()) {
+    ESP_LOGD(TAG, "  Pellet Eco Mode: %s", LOG_STR_ARG(climate_eco_mode_to_string(this->eco_mode.value())));
   }
-  if (traits.get_supports_pellet_rates()) {
-    ESP_LOGD(TAG, "  Pellet Rate: %.0f%%", this->pellet_rate);
+  if (traits.get_supports_pellet_rates() && this->pellet_rate.has_value()) {
+    ESP_LOGD(TAG, "  Pellet Feed Rate: %s", LOG_STR_ARG(climate_pellet_rate_to_string(this->pellet_rate.value())));
   }
 
   // Send state to frontend
@@ -696,6 +696,16 @@ void Climate::dump_traits_(const char *tag) {
     ESP_LOGCONFIG(tag, "  [x] Supported fan modes:");
     for (ClimateFanMode m : traits.get_supported_fan_modes())
       ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_fan_mode_to_string(m)));
+  }
+  if (!traits.get_supported_eco_modes().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported pellet eco modes:");
+    for (ClimateEcoMode m : traits.get_supported_eco_modes())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_eco_mode_to_string(m)));
+  }
+  if (!traits.get_supported_pellet_rates().empty()) {
+    ESP_LOGCONFIG(tag, "  [x] Supported pellet feed rates:");
+    for (ClimatePelletRate m : traits.get_supported_pellet_rates())
+      ESP_LOGCONFIG(tag, "      - %s", LOG_STR_ARG(climate_pellet_rate_to_string(m)));
   }
 }
 }  // namespace climate
