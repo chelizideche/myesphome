@@ -319,21 +319,32 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
   sta.set_ssid(ssid);
   sta.set_password(password);
   this->set_sta(sta);
-}
-else {
-  this->clear_sta();
-  this->selected_ap_ = WiFiAP{};
+
+  if (ssid.length()) {
+    ESP_LOGV(TAG, "ssid.length()");
+    snprintf(save.ssid, sizeof(save.ssid), "%s", ssid.c_str());
+    snprintf(save.password, sizeof(save.password), "%s", password.c_str());
+
+    WiFiAP sta{};
+    sta.set_ssid(ssid);
+    sta.set_password(password);
+    this->set_sta(sta);
+  } else {
+    // TODO check if ap is enabled in conf and only start it if enabled
+    this->clear_sta();
+    this->selected_ap_ = WiFiAP{};
 #ifdef USE_WEBSERVER
-  if (this->is_captive_portal_active_()) {
-    captive_portal::global_captive_portal->end();
-    captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
-  }
+    if (this->is_captive_portal_active_()) {
+      captive_portal::global_captive_portal->end();
+      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
+    }
 #endif
-}
-this->pref_.save(&save);
-// ensure it's written immediately
-global_preferences->sync();
-this->ap_setup_ = 0;
+  }
+
+  this->pref_.save(&save);
+  // ensure it's written immediately
+  global_preferences->sync();
+  this->ap_setup_ = 0;
 }
 
 void WiFiComponent::start_connecting(const WiFiAP &ap, bool two) {
