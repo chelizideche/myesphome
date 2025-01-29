@@ -127,7 +127,7 @@ const LogString *climate_fan_mode_to_string(ClimateFanMode mode);
 /// Convert the given ClimateEcoMode to a human-readable string.
 const LogString *climate_eco_mode_to_string(ClimateEcoMode mode);
 
-/// Convert the given ClimateFanMode to a human-readable string.
+/// Convert the given ClimatePelletRate to a human-readable string.
 const LogString *climate_pellet_rate_to_string(ClimatePelletRate mode);
 
 /// Convert the given ClimateSwingMode to a human-readable string.

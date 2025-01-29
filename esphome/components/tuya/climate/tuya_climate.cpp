@@ -402,9 +402,9 @@ climate::ClimateTraits TuyaClimate::traits() {
 
   if (eco_mode_id_) {
     if (eco_mode_on_value_)
-      traits.add_supported_pellet_eco_mode(climate::CLIMATE_PELLET_ECO_ON);
+      traits.add_supported_eco_mode(climate::CLIMATE_PELLET_ECO_ON);
     if (eco_mode_off_value_)
-      traits.add_supported_pellet_eco_mode(climate::CLIMATE_PELLET_ECO_OFF);
+      traits.add_supported_eco_mode(climate::CLIMATE_PELLET_ECO_OFF);
   }
 
   if (pellet_rate_id_) {
