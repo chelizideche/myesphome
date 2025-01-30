@@ -81,8 +81,6 @@ enum WiFiComponentState {
   WIFI_COMPONENT_STATE_STA_CONNECTING_2,
   /** WiFi is in STA(+AP) mode and successfully connected. */
   WIFI_COMPONENT_STATE_STA_CONNECTED,
-  /** WiFi is in AP-only mode and internal AP is not started yet. */
-  WIFI_COMPONENT_STATE_START_AP,
   /** WiFi is in AP-only mode and internal AP is already enabled. */
   WIFI_COMPONENT_STATE_AP,
 };

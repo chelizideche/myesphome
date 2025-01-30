@@ -20,6 +20,7 @@ void CaptivePortal::handle_config(AsyncWebServerRequest *request) {
   stream->addHeader("cache-control", "public, max-age=0, must-revalidate");
   stream->printf(R"({"mac":"%s","name":"%s","aps":[{})", get_mac_address_pretty().c_str(), App.get_name().c_str());
 
+  // Todo Test this if it is needed!
   bool passive_scan = request->url() == "/" ? false : true;
 
   wifi::global_wifi_component->start_scanning(passive_scan);
@@ -42,10 +43,7 @@ void CaptivePortal::handle_wifisave(AsyncWebServerRequest *request) {
   ESP_LOGI(TAG, "  SSID='%s'", ssid.c_str());
   ESP_LOGI(TAG, "  Password=" LOG_SECRET("'%s'"), psk.c_str());
   wifi::global_wifi_component->save_wifi_sta(ssid, psk);
-  // wifi::global_wifi_component->start_scanning();
   request->redirect("/?save");
-  // if (wifi::global_wifi_component->is_connected())
-  //   wifi::global_wifi_component->disconnect();
 }
 
 void CaptivePortal::handleRequest(AsyncWebServerRequest *req) {

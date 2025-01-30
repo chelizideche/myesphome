@@ -138,7 +138,7 @@ void WiFiComponent::loop() {
       }
       this->handled_connected_state_ = this->is_connected();
     }
-    // ESP_LOGD(TAG, "this->state_: %n", this->state_);
+
     switch (this->state_) {
       case WIFI_COMPONENT_STATE_COOLDOWN: {
         this->status_set_warning("waiting to reconnect");
@@ -310,8 +310,6 @@ void WiFiComponent::start_ap() {
 
 #ifdef USE_CAPTIVE_PORTAL
   if (captive_portal::global_captive_portal != nullptr) {
-    // this->wifi_sta_pre_setup_();
-    // this->start_scanning();
 #ifdef USE_WEBSERVER
     captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #elif
@@ -357,7 +355,6 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
     sta.set_password(password);
     this->set_sta(sta);
     this->start_scanning();
-    // this->state_ = WIFI_COMPONENT_STATE_STA_SCANNING;
   } else {
     ESP_LOGV(TAG, "no ssid set");
     // TODO check if ap is enabled in conf and only start it if enabled
