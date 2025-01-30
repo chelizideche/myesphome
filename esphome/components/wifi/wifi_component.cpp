@@ -311,14 +311,6 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
   SavedWifiSettings save{};
   snprintf(save.ssid, sizeof(save.ssid), "%s", ssid.c_str());
   snprintf(save.password, sizeof(save.password), "%s", password.c_str());
-  this->pref_.save(&save);
-  // ensure it's written immediately
-  global_preferences->sync();
-
-  WiFiAP sta{};
-  sta.set_ssid(ssid);
-  sta.set_password(password);
-  this->set_sta(sta);
 
   if (ssid.length()) {
     ESP_LOGV(TAG, "ssid.length()");
