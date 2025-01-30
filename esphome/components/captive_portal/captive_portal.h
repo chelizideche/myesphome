@@ -33,6 +33,8 @@ class CaptivePortal : public AsyncWebHandler, public Component {
 
   void setMode(Mode _mode) { this->mode = _mode; }
 
+  String getCaptivePortalPath() { return portal_path_; }
+
   void start(const String path);
   bool is_active() const { return this->active_; }
   void end();

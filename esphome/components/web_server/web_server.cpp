@@ -1719,7 +1719,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 
 #ifdef USE_CAPTIVE_PORTAL
-  if (request->url() == captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH) {
+  if (request->url() == captive_portal::global_captive_portal->getCaptivePortalPath()) {
     captive_portal::global_captive_portal->handleRequest(request);
     return;
   } else if (request->url() == "/wifisave") {
