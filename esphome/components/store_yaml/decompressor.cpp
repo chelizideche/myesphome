@@ -1,6 +1,7 @@
 #include "decompressor.h"
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include <cinttypes>
 
 namespace esphome {
 namespace store_yaml {
