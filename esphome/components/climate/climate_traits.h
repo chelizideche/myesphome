@@ -110,7 +110,7 @@ class ClimateTraits {
   const std::set<ClimateEcoMode> &get_supported_eco_modes() const { return supported_eco_modes_; }
   void set_supports_eco_modes(bool supports_eco_modes) { supports_eco_modes_ = supports_eco_modes; }
 
-  void set_supported_pellet_rates(std::set<ClimatePelletRate> rates) { supported_pellet_rates_ = std::move(rates); }
+  void set_supported_pellet_rates(std::set<ClimatePelletRate> modes) { supported_pellet_rates_ = std::move(modes); }
   void add_supported_pellet_rate(ClimatePelletRate mode) { supported_pellet_rates_.insert(mode); }
   bool supports_pellet_rates(ClimatePelletRate pellet_rate) const { return supported_pellet_rates_.count(pellet_rate); }
   bool get_supports_pellet_rates() const { return !supported_pellet_rates_.empty(); }
@@ -202,11 +202,11 @@ class ClimateTraits {
       supported_eco_modes_.erase(mode);
     }
   }
-  void set_pellet_rate_support_(climate::ClimatePelletRate rate, bool supported) {
+  void set_pellet_rate_support_(climate::ClimatePelletRate mode, bool supported) {
     if (supported) {
-      supported_pellet_rates_.insert(rate);
+      supported_pellet_rates_.insert(mode);
     } else {
-      supported_pellet_rates_.erase(rate);
+      supported_pellet_rates_.erase(mode);
     }
   }
   void set_swing_mode_support_(climate::ClimateSwingMode mode, bool supported) {
