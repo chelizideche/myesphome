@@ -2,7 +2,6 @@
 #include "tuya_climate.h"
 #include "esphome/core/log.h"
 
-
 namespace esphome {
 namespace tuya {
 
