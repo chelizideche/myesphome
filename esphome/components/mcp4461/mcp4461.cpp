@@ -92,7 +92,7 @@ void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_con
   }
   uint8_t terminal_data;
   terminal_data = this->get_terminal_register_(terminal_connector);
-  ESP_LOGV(TAG, "Got terminal register %d data %0xh", terminal_connector, terminal_data);
+  ESP_LOGV(TAG, "Got terminal register %d data %0xh", (uint8_t) terminal_connector, terminal_data);
   uint8_t wiper_index = 0;
   if ((uint8_t) terminal_connector == 1) {
     wiper_index = 2;
