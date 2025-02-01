@@ -3,11 +3,8 @@
 #include "esphome/core/component.h"
 #include "esphome/components/i2c/i2c.h"
 
-#define bitRead(value, bit)            (((value) >> (bit)) & 0x01)
-#define bitSet(value, bit)             ((value) |= (1UL << (bit)))
-#define bitClear(value, bit)           ((value) &= ~(1UL << (bit)))
-#define bitToggle(value, bit)          ((value) ^= (1UL << (bit)))
-#define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+#define get_single_bit(value, bit)            (((value) >> (bit)) & 0x01)
+#define set_single_bit(value, bit)             ((value) |= (1UL << (bit)))
 
 namespace esphome {
 namespace mcp4461 {
