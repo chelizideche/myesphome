@@ -86,24 +86,6 @@ CLIMATE_FAN_MODES = {
 
 validate_climate_fan_mode = cv.enum(CLIMATE_FAN_MODES, upper=True)
 
-ClimateEcoMode = climate_ns.enum("ClimateEcoMode")
-CLIMATE_PELLET_ECO_MODES = {
-    "ON": ClimateEcoMode.CLIMATE_PELLET_ECO_ON,
-    "OFF": ClimateEcoMode.CLIMATE_PELLET_ECO_OFF,
-}
-
-validate_climate_eco_mode = cv.enum(CLIMATE_PELLET_ECO_MODES, upper=True)
-
-ClimatePelletRate = climate_ns.enum("ClimatePelletRate")
-CLIMATE_PELLET_RATES = {
-    "LOW": ClimatePelletRate.CLIMATE_PELLET_RATE_LOW,
-    "MED": ClimatePelletRate.CLIMATE_PELLET_RATE_MED,
-    "HIGH": ClimatePelletRate.CLIMATE_PELLET_RATE_HIGH,
-    "MAX": ClimatePelletRate.CLIMATE_PELLET_RATE_MAX,
-}
-
-validate_climate_pellet_rate = cv.enum(CLIMATE_PELLET_RATES, upper=True)
-
 ClimatePreset = climate_ns.enum("ClimatePreset")
 CLIMATE_PRESETS = {
     "NONE": ClimatePreset.CLIMATE_PRESET_NONE,
@@ -451,9 +433,6 @@ CLIMATE_CONTROL_ACTION_SCHEMA = cv.Schema(
         cv.Exclusive(CONF_FAN_MODE, "fan_mode"): cv.templatable(
             validate_climate_fan_mode
         ),
-        cv.Exclusive(CONF_PELLET_ECO_MODE, "pellet_eco_mode"): cv.templatable(
-            validate_climate_eco_mode
-        ),
         cv.Exclusive(CONF_CUSTOM_FAN_MODE, "fan_mode"): cv.templatable(
             cv.string_strict
         ),
@@ -500,9 +479,6 @@ async def climate_control_to_code(config, action_id, template_arg, args):
     if (swing_mode := config.get(CONF_SWING_MODE)) is not None:
         template_ = await cg.templatable(swing_mode, args, ClimateSwingMode)
         cg.add(var.set_swing_mode(template_))
-    if (eco_mode := config.get(CONF_PELLET_ECO_MODE)) is not None:
-        template_ = await cg.templatable(eco_mode, args, ClimateEcoMode)
-        cg.add(var.set_eco_mode(template_))
     return var
 
 

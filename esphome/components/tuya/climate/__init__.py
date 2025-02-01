@@ -191,6 +191,13 @@ ECO_MODES = cv.Schema(
     }
 )
 
+ClimateEcoMode = tuya_ns.enum("ClimateEcoMode")
+CLIMATE_PELLET_ECO_MODES = {
+    "ON": ClimateEcoMode.CLIMATE_PELLET_ECO_ON_VALUE,
+    "OFF": ClimateEcoMode.CLIMATE_PELLET_ECO_OFF_VALUE,
+}
+
+validate_climate_eco_mode = cv.enum(CLIMATE_PELLET_ECO_MODES, upper=True)
 PELLET_RATES = cv.Schema(
     {
         cv.Required(CONF_DATAPOINT): cv.uint8_t,
@@ -200,6 +207,16 @@ PELLET_RATES = cv.Schema(
         cv.Optional(CONF_PELLET_RATE_MAX_VALUE): cv.uint8_t,
     }
 )
+
+ClimatePelletRate = tuya_ns.enum("ClimatePelletRate")
+CLIMATE_PELLET_RATES = {
+    "LOW": ClimatePelletRate.CLIMATE_PELLET_RATE_LOW_VALUE,
+    "MED": ClimatePelletRate.CLIMATE_PELLET_RATE_MED_VALUE,
+    "HIGH": ClimatePelletRate.CLIMATE_PELLET_RATE_HIGH_VALUE,
+    "MAX": ClimatePelletRate.CLIMATE_PELLET_RATE_MAX_VALUE,
+}
+
+validate_climate_pellet_rate = cv.enum(CLIMATE_PELLET_RATES, upper=True)
 
 CONFIG_SCHEMA = cv.All(
     climate.CLIMATE_SCHEMA.extend(
