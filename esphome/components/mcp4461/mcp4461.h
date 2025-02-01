@@ -15,10 +15,10 @@ struct WiperState {
   bool enabled = true;
 };
 
-enum class MCP4461_DEFAULTS { WIPER_VALUE = 0x80 };
-enum class MCP4461_COMMANDS { WRITE = 0x0, INCREMENT = 0x4, DECREMENT = 0x8, READ = 0xC };
+enum class mcp4461Defaults { WIPER_VALUE = 0x80 };
+enum class mcp4461Commands { WRITE = 0x0, INCREMENT = 0x4, DECREMENT = 0x8, READ = 0xC };
 
-enum class MCP4461_ADDRESSES {
+enum class mcp4461Adresses {
   MCP4461_VW0 = 0x00,
   MCP4461_VW1 = 0x10,
   MCP4461_VW2 = 0x60,
@@ -48,14 +48,14 @@ enum MCP4461EEPRomLocation {
   MCP4461_EEPROM_4 = 4
 };
 
-enum class MCP4461TerminalIdx { MCP4461_TERMINAL_0 = 0, MCP4461_TERMINAL_1 = 1 };
+enum class mcp4461TerminalIdx { MCP4461_TERMINAL_0 = 0, MCP4461_TERMINAL_1 = 1 };
 
-class MCP4461Wiper;
+class mcp4461Wiper;
 
-/// MCP4461 component.
-class MCP4461Component : public Component, public i2c::I2CDevice {
+/// mcp4461 component.
+class mcp4461Component : public Component, public i2c::I2CDevice {
  public:
-  MCP4461Component(bool disable_wiper_0, bool disable_wiper_1, bool disable_wiper_2, bool disable_wiper_3)
+  mcp4461Component(bool disable_wiper_0, bool disable_wiper_1, bool disable_wiper_2, bool disable_wiper_3)
       : wiper_0_enabled_(false), wiper_1_enabled_(false), wiper_2_enabled_(false), wiper_3_enabled_(false) {
     this->reg_[0].enabled = this->wiper_0_enabled_;
     this->reg_[1].enabled = this->wiper_1_enabled_;
@@ -80,12 +80,12 @@ class MCP4461Component : public Component, public i2c::I2CDevice {
   void increase_wiper_(uint8_t wiper);
   void decrease_wiper_(uint8_t wiper);
   void mcp4461_write_(uint8_t addr, uint16_t data);
-  uint8_t calc_terminal_connector_byte_(MCP4461TerminalIdx terminal_connector);
-  void update_terminal_register_(MCP4461TerminalIdx terminal_connector);
+  uint8_t calc_terminal_connector_byte_(mcp4461TerminalIdx terminal_connector);
+  void update_terminal_register_(mcp4461TerminalIdx terminal_connector);
   void enable_terminal_(uint8_t wiper, char terminal);
   void disable_terminal_(uint8_t wiper, char terminal);
-  uint8_t get_terminal_register_(MCP4461TerminalIdx terminal_connector);
-  void set_terminal_register_(MCP4461TerminalIdx terminal_connector, uint8_t data);
+  uint8_t get_terminal_register_(mcp4461TerminalIdx terminal_connector);
+  void set_terminal_register_(mcp4461TerminalIdx terminal_connector, uint8_t data);
   uint16_t get_status_register_();
   uint16_t get_wiper_level_(uint8_t wiper);
   void set_wiper_level_(uint8_t wiper, uint16_t value);
