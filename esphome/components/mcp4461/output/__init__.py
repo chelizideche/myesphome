@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import output
-from esphome.const import CONF_CHANNEL, CONF_ID
+from esphome.const import CONF_CHANNEL, CONF_ID, CONF_INITIAL_VALUE
 from .. import MCP4461Component, CONF_MCP4461_ID, mcp4461_ns
 
 DEPENDENCIES = ["mcp4461"]
@@ -22,7 +22,6 @@ CHANNEL_OPTIONS = {
 
 CONF_ENABLE = "enable"
 CONF_AUTOSAVE = "autosave"
-CONF_INITIAL_STATE = "initial_state"
 CONF_TERMINAL_A = "terminal_a"
 CONF_TERMINAL_B = "terminal_b"
 CONF_TERMINAL_W = "terminal_w"
@@ -33,7 +32,9 @@ CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
         cv.GenerateID(CONF_MCP4461_ID): cv.use_id(MCP4461Component),
         cv.Required(CONF_CHANNEL): cv.enum(CHANNEL_OPTIONS, upper=True),
         cv.Optional(CONF_ENABLE, default=True): cv.boolean,
-        cv.Optional(CONF_INITIAL_STATE, default=257): cv.uint16_t,
+        cv.Optional(CONF_INITIAL_VALUE, default=1.0): cv.float_range(
+            min=0.001, max=0.256
+        ),
         cv.Optional(CONF_TERMINAL_A, default=True): cv.boolean,
         cv.Optional(CONF_TERMINAL_B, default=True): cv.boolean,
         cv.Optional(CONF_TERMINAL_W, default=True): cv.boolean,
@@ -48,9 +49,10 @@ async def to_code(config):
         parent,
         config[CONF_CHANNEL],
         config[CONF_ENABLE],
-        config[CONF_INITIAL_STATE],
         config[CONF_TERMINAL_A],
         config[CONF_TERMINAL_B],
         config[CONF_TERMINAL_W],
     )
     await output.register_output(var, config)
+
+    cg.add(var.set_initial_value(config[CONF_INITIAL_VALUE]))
