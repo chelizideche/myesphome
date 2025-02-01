@@ -8,9 +8,9 @@
 namespace esphome {
 namespace mcp4461 {
 
-class MCP4461Wiper : public output::FloatOutput {
+class mcp4461Wiper : public output::FloatOutput {
  public:
-  MCP4461Wiper(MCP4461Component *parent, MCP4461WiperIdx wiper, bool enable, bool terminal_a, bool terminal_b,
+  mcp4461Wiper(mcp4461Component *parent, MCP4461WiperIdx wiper, bool enable, bool terminal_a, bool terminal_b,
                bool terminal_w)
       : parent_(parent),
         wiper_(wiper),
@@ -41,7 +41,7 @@ class MCP4461Wiper : public output::FloatOutput {
 
  protected:
   void write_state(float state) override;
-  MCP4461Component *parent_;
+  mcp4461Component *parent_;
   MCP4461WiperIdx wiper_;
   bool enable_;
   uint16_t initial_state_;
