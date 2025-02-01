@@ -44,7 +44,8 @@ enum MCP4461EEPRomLocation {
   MCP4461_EEPROM_0 = 0,
   MCP4461_EEPROM_1 = 1,
   MCP4461_EEPROM_2 = 2,
-  MCP4461_EEPROM_3 = 3, MCP4461_EEPROM_4 = 4
+  MCP4461_EEPROM_3 = 3,
+  MCP4461_EEPROM_4 = 4
 };
 
 enum class MCP4461TerminalIdx { MCP4461_TERMINAL_0 = 0, MCP4461_TERMINAL_1 = 1 };
@@ -53,7 +54,7 @@ class MCP4461Wiper;
 
 /// MCP4461 component.
 class MCP4461Component : public Component, public i2c::I2CDevice {
-public:
+ public:
   MCP4461Component(bool disable_wiper_0, bool disable_wiper_1, bool disable_wiper_2, bool disable_wiper_3)
       : wiper_0_enabled_(false), wiper_1_enabled_(false), wiper_2_enabled_(false), wiper_3_enabled_(false) {
     this->reg_[0].enabled = this->wiper_0_enabled_;
@@ -69,7 +70,7 @@ public:
   uint16_t get_eeprom_value(MCP4461EEPRomLocation location);
   void set_eeprom_value(MCP4461EEPRomLocation location, uint16_t value);
 
-protected:
+ protected:
   friend MCP4461Wiper;
   uint8_t get_wiper_address_(uint8_t wiper);
   void update_wiper_state_(uint8_t wiper);
@@ -90,7 +91,7 @@ protected:
   void set_wiper_level_(uint8_t wiper, uint16_t value);
   bool is_writing_();
 
-private:
+ private:
   WiperState reg_[8];
   void begin_();
   bool update_ = false;
@@ -99,5 +100,5 @@ private:
   bool wiper_2_enabled_ = true;
   bool wiper_3_enabled_ = true;
 };
-}
-}
+}  // namespace mcp4461
+}  // namespace esphome
