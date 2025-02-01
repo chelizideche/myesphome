@@ -104,7 +104,7 @@ void Mcp4461Component::update_terminal_register_(mcp4461TerminalIdx terminal_con
 
 uint16_t Mcp4461Component::get_status_register_() {
   uint8_t reg = 0;
-  reg |= (uint8_t) mcp4461Addresses::MCP4461_STATUS;
+  reg |= (uint8_t) Mcp4461Addresses::MCP4461_STATUS;
   reg |= (uint8_t) Mcp4461Commands::READ;
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
@@ -120,9 +120,9 @@ bool Mcp4461Component::is_writing_() { return (bool) ((this->get_status_register
 uint8_t Mcp4461Component::get_terminal_register_(mcp4461TerminalIdx terminal_connector) {
   uint8_t reg = 0;
   if ((uint8_t) terminal_connector == 0)
-    reg |= (uint8_t) mcp4461Addresses::MCP4461_TCON0;
+    reg |= (uint8_t) Mcp4461Addresses::MCP4461_TCON0;
   else
-    reg |= (uint8_t) mcp4461Addresses::MCP4461_TCON1;
+    reg |= (uint8_t) Mcp4461Addresses::MCP4461_TCON1;
   reg |= (uint8_t) Mcp4461Commands::READ;
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
@@ -136,9 +136,9 @@ uint8_t Mcp4461Component::get_terminal_register_(mcp4461TerminalIdx terminal_con
 void Mcp4461Component::set_terminal_register_(mcp4461TerminalIdx terminal_connector, uint8_t data) {
   uint8_t addr;
   if ((uint8_t) terminal_connector == 0)
-    addr = (uint8_t) mcp4461Addresses::MCP4461_TCON0;
+    addr = (uint8_t) Mcp4461Addresses::MCP4461_TCON0;
   else if ((uint8_t) terminal_connector == 1)
-    addr = (uint8_t) mcp4461Addresses::MCP4461_TCON1;
+    addr = (uint8_t) Mcp4461Addresses::MCP4461_TCON1;
   else
     return;
   this->mcp4461_write_(addr, data);
@@ -203,16 +203,16 @@ uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
   }
   switch (wiper) {
     case 0:
-      addr = (uint8_t) mcp4461Addresses::MCP4461_VW0;
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW0;
       break;
     case 1:
-      addr = (uint8_t) mcp4461Addresses::MCP4461_VW1;
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW1;
       break;
     case 2:
-      addr = (uint8_t) mcp4461Addresses::MCP4461_VW2;
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW2;
       break;
     case 3:
-      addr = (uint8_t) mcp4461Addresses::MCP4461_VW3;
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW3;
       break;
     default:
       ESP_LOGE(TAG, "unknown wiper specified");
