@@ -21,7 +21,6 @@ CHANNEL_OPTIONS = {
 }
 
 CONF_ENABLE = "enable"
-CONF_AUTOSAVE = "autosave"
 CONF_TERMINAL_A = "terminal_a"
 CONF_TERMINAL_B = "terminal_b"
 CONF_TERMINAL_W = "terminal_w"
