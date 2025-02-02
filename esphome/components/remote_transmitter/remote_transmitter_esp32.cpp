@@ -3,6 +3,7 @@
 #include "esphome/core/application.h"
 
 #ifdef USE_ESP32
+#include <driver/gpio.h>
 
 namespace esphome {
 namespace remote_transmitter {
@@ -90,6 +91,14 @@ void RemoteTransmitterComponent::configure_rmt_() {
       }
       this->mark_failed();
       return;
+    }
+    if (this->pin_->get_flags() & gpio::FLAG_PULLUP) {
+      gpio_pullup_en(gpio_num_t(this->pin_->get_pin()));
+    } else {
+      if (this->one_wire_) {
+        ESP_LOGW(TAG, "Disabling pull-up in open-drain mode");
+      }
+      gpio_pullup_dis(gpio_num_t(this->pin_->get_pin()));
     }
 
     rmt_copy_encoder_config_t encoder;
