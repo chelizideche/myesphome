@@ -59,7 +59,7 @@ class GPIOPin {
    * @note This is currently optional to limit changes but will be mandatory in a future update.
    * It is primarily applied to internal pins for now.
    *
-   * @return The GPIO flags describing the pin mode and properties.
+   * @return The GPIO flags describing the pin mode and properties. Returns `gpio::Flags::FLAG_NONE` if not overridden.
    */
   virtual gpio::Flags get_flags() const { return gpio::Flags::FLAG_NONE; }
 
