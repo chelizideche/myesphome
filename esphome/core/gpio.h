@@ -61,7 +61,7 @@ class GPIOPin {
    *
    * @return The GPIO flags describing the pin mode and properties.
    */
-  virtual gpio::Flags get_flags() { return gpio::Flags::FLAG_NONE; }
+  virtual gpio::Flags get_flags() const { return gpio::Flags::FLAG_NONE; }
 
   virtual bool digital_read() = 0;
 
