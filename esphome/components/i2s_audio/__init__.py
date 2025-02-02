@@ -170,7 +170,6 @@ def i2s_audio_component_schema(
 async def register_i2s_audio_component(var, config):
     await cg.register_parented(var, config[CONF_I2S_AUDIO_ID])
     if use_legacy():
-        print("Use legacy")
         cg.add(var.set_i2s_mode(I2S_MODE_OPTIONS[config[CONF_I2S_MODE]]))
         cg.add(var.set_channel(I2S_CHANNELS[config[CONF_CHANNEL]]))
         cg.add(
@@ -181,7 +180,6 @@ async def register_i2s_audio_component(var, config):
                 I2S_BITS_PER_CHANNEL[config[CONF_BITS_PER_CHANNEL]]
             )
         )
-        cg.add(var.set_use_apll(config[CONF_USE_APLL]))
     else:
         cg.add(var.set_i2s_role(I2S_ROLE_OPTIONS[config[CONF_I2S_MODE]]))
         slot_mode = config[CONF_CHANNEL]
@@ -196,9 +194,8 @@ async def register_i2s_audio_component(var, config):
         cg.add(
             var.set_slot_bit_width(I2S_SLOT_BIT_WIDTH[config[CONF_BITS_PER_CHANNEL]])
         )
-        # cg.add(var.set_use_apll(config[CONF_USE_APLL]))
-        cg.add_define("USE_I2S_APLL")
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
+    cg.add(var.set_use_apll(config[CONF_USE_APLL]))
 
 
 def validate_use_legacy(value):

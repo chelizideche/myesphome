@@ -1,6 +1,7 @@
 i2s_audio:
   i2s_lrclk_pin: GPIO18
   i2s_bclk_pin: GPIO19
+  use_legacy: true
 
 microphone:
   - platform: i2s_audio

@@ -49,7 +49,7 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
 #endif
 #else
   gpio_num_t din_pin_{I2S_GPIO_UNUSED};
-  i2s_chan_handle_t rx_handle;
+  i2s_chan_handle_t rx_handle_;
 #endif
   bool pdm_{false};
 

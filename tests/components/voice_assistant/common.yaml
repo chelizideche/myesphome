@@ -15,6 +15,7 @@ i2s_audio:
   i2s_lrclk_pin: ${i2s_lrclk_pin}
   i2s_bclk_pin: ${i2s_bclk_pin}
   i2s_mclk_pin: ${i2s_mclk_pin}
+  use_legacy: true
 
 microphone:
   - platform: i2s_audio
