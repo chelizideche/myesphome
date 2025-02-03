@@ -311,6 +311,7 @@ esphome/components/online_image/* @clydebarrow @guillempages
 esphome/components/opentherm/* @olegtarasov
 esphome/components/ota/* @esphome/core
 esphome/components/output/* @esphome/core
+esphome/components/packet_encoding/* @clydebarrow
 esphome/components/pca6416a/* @Mat931
 esphome/components/pca9554/* @clydebarrow @hwstar
 esphome/components/pcf85063/* @brogon
@@ -497,5 +498,6 @@ esphome/components/xiaomi_mhoc401/* @vevsvevs
 esphome/components/xiaomi_rtcgq02lm/* @jesserockz
 esphome/components/xl9535/* @mreditor97
 esphome/components/xpt2046/touchscreen/* @nielsnl68 @numo68
+esphome/components/xxtea/* @clydebarrow
 esphome/components/zhlt01/* @cfeenstra1024
 esphome/components/zio_ultrasonic/* @kahrendt
