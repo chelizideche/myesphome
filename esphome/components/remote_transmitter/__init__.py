@@ -75,9 +75,12 @@ async def to_code(config):
                 cg.add(var.set_with_dma(config[CONF_USE_DMA]))
             if CONF_EOT_LEVEL in config:
                 cg.add(var.set_eot_level(config[CONF_EOT_LEVEL]))
-            elif config[CONF_PIN][CONF_OPEN_DRAIN]:
+            elif (
+                CONF_OPEN_DRAIN in config[CONF_PIN]
+                and config[CONF_PIN][CONF_OPEN_DRAIN]
+            ):
                 cg.add(var.set_eot_level(True))
-            elif config[CONF_PIN][CONF_INVERTED]:
+            elif CONF_INVERTED in config[CONF_PIN] and config[CONF_PIN][CONF_INVERTED]:
                 cg.add(var.set_eot_level(True))
         else:
             if (rmt_channel := config.get(CONF_RMT_CHANNEL, None)) is not None:
