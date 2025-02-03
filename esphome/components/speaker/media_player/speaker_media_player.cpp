@@ -314,14 +314,14 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           this->set_volume_(std::max(0.0f, this->volume - this->volume_increment_));
           this->publish_state();
           break;
-        case media_player::MEDIA_PLAYER_COMMAND_REPEAT_ENABLE:
+        case media_player::MEDIA_PLAYER_COMMAND_REPEAT_ONE:
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
             this->announcement_repeat_ = true;
           } else {
             this->media_repeat_ = true;
           }
           break;
-        case media_player::MEDIA_PLAYER_COMMAND_REPEAT_DISABLE:
+        case media_player::MEDIA_PLAYER_COMMAND_REPEAT_OFF:
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
             this->announcement_repeat_ = false;
           } else {

@@ -43,10 +43,10 @@ const char *media_player_command_to_string(MediaPlayerCommand command) {
       return "VOLUME_DOWN";
     case MEDIA_PLAYER_COMMAND_ENQUEUE:
       return "ENQUEUE";
-    case MEDIA_PLAYER_COMMAND_REPEAT_ENABLE:
-      return "REPEAT_ENABLE";
-    case MEDIA_PLAYER_COMMAND_REPEAT_DISABLE:
-      return "REPEAT_DISABLE";
+    case MEDIA_PLAYER_COMMAND_REPEAT_ONE:
+      return "REPEAT_ONE";
+    case MEDIA_PLAYER_COMMAND_REPEAT_OFF:
+      return "REPEAT_OFF";
     default:
       return "UNKNOWN";
   }
