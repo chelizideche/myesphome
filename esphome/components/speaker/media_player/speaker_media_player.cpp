@@ -90,59 +90,81 @@ void SpeakerMediaPlayer::setup() {
   ESP_LOGI(TAG, "Set up speaker media player");
 }
 
-esp_err_t SpeakerMediaPlayer::create_pipeline_(AudioPipelineType type) {
-  if (type == AudioPipelineType::ANNOUNCEMENT) {
-    if (this->announcement_pipeline_ == nullptr) {
-      this->announcement_pipeline_ =
-          make_unique<AudioPipeline>(this->announcement_speaker_, this->buffer_size_, this->task_stack_in_psram_);
-
-      if (this->announcement_pipeline_ == nullptr) {
-        return ESP_FAIL;
-      }
-    }
-  } else if (type == AudioPipelineType::MEDIA) {
-    if (this->media_pipeline_ == nullptr) {
-      this->media_pipeline_ =
-          make_unique<AudioPipeline>(this->media_speaker_, this->buffer_size_, this->task_stack_in_psram_);
-      if (this->media_pipeline_ == nullptr) {
-        return ESP_FAIL;
-      }
-
-      this->media_speaker_->add_audio_output_callback(
-          [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
-            this->playback_ms_ += new_playback_ms;
-            this->remainder_us_ = remainder_us;
-            this->pending_ms_ = pending_ms;
-            this->last_audio_write_timestamp_ = write_timestamp;
-            this->playback_us_ = this->playback_ms_ * 1000 + this->remainder_us_;
-          });
-    }
+void SpeakerMediaPlayer::set_playlist_delay_ms(AudioPipelineType pipeline_type, uint32_t delay_ms) {
+  switch (pipeline_type) {
+    case AudioPipelineType::ANNOUNCEMENT:
+      this->announcement_playlist_delay_ms_ = delay_ms;
+      break;
+    case AudioPipelineType::MEDIA:
+      this->media_playlist_delay_ms_ = delay_ms;
+      break;
   }
+}
+
+esp_err_t SpeakerMediaPlayer::create_pipeline_(AudioPipelineType type) {
+  switch (type) {
+    case AudioPipelineType::ANNOUNCEMENT:
+      if (this->announcement_pipeline_ == nullptr) {
+        this->announcement_pipeline_ =
+            make_unique<AudioPipeline>(this->announcement_speaker_, this->buffer_size_, this->task_stack_in_psram_,
+                                       "ann", ANNOUNCEMENT_PIPELINE_TASK_PRIORITY);
+
+        if (this->announcement_pipeline_ == nullptr) {
+          return ESP_FAIL;
+        }
+      }
+      break;
+    case AudioPipelineType::MEDIA:
+      if (this->media_pipeline_ == nullptr) {
+        this->media_pipeline_ =
+            make_unique<AudioPipeline>(this->media_speaker_, this->buffer_size_, this->task_stack_in_psram_, "media",
+                                       MEDIA_PIPELINE_TASK_PRIORITY);
+        if (this->media_pipeline_ == nullptr) {
+          return ESP_FAIL;
+        }
+
+        this->media_speaker_->add_audio_output_callback(
+            [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
+              this->playback_ms_ += new_playback_ms;
+              this->remainder_us_ = remainder_us;
+              this->pending_ms_ = pending_ms;
+              this->last_audio_write_timestamp_ = write_timestamp;
+              this->playback_us_ = this->playback_ms_ * 1000 + this->remainder_us_;
+            });
+      }
+      break;
+  }
+
   return ESP_OK;
 }
 
 esp_err_t SpeakerMediaPlayer::start_pipeline_(AudioPipelineType type, std::string &url) {
   esp_err_t err = ESP_OK;
 
-  if (this->single_pipeline_() || (type == AudioPipelineType::ANNOUNCEMENT)) {
-    this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
-    err = this->announcement_pipeline_->start_url(url, "ann", ANNOUNCEMENT_PIPELINE_TASK_PRIORITY);
-  } else if (type == AudioPipelineType::MEDIA) {
-    this->create_pipeline_(AudioPipelineType::MEDIA);
-    err = this->media_pipeline_->start_url(url, "media", MEDIA_PIPELINE_TASK_PRIORITY);
+  switch (type) {
+    case AudioPipelineType::ANNOUNCEMENT:
+      this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
+      err = this->announcement_pipeline_->start_url(url);
+      break;
+    case AudioPipelineType::MEDIA:
+      this->create_pipeline_(AudioPipelineType::MEDIA);
+      err = this->media_pipeline_->start_url(url);
   }
 
   return err;
 }
+
 esp_err_t SpeakerMediaPlayer::start_pipeline_(AudioPipelineType type, audio::AudioFile *file) {
   esp_err_t err = ESP_OK;
 
-  if (this->single_pipeline_() || (type == AudioPipelineType::ANNOUNCEMENT)) {
-    this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
-    err = this->announcement_pipeline_->start_file(file, "ann", ANNOUNCEMENT_PIPELINE_TASK_PRIORITY);
-  } else if (type == AudioPipelineType::MEDIA) {
-    this->create_pipeline_(AudioPipelineType::MEDIA);
-    err = this->media_pipeline_->start_file(file, "media", MEDIA_PIPELINE_TASK_PRIORITY);
+  switch (type) {
+    case AudioPipelineType::ANNOUNCEMENT:
+      this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
+      err = this->announcement_pipeline_->start_file(file);
+      break;
+    case AudioPipelineType::MEDIA:
+      this->create_pipeline_(AudioPipelineType::MEDIA);
+      err = this->media_pipeline_->start_file(file);
   }
 
   return err;
@@ -166,35 +188,55 @@ void SpeakerMediaPlayer::watch_media_commands_() {
       if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
         // Announcement queue/pipeline
 
-        if (!enqueue) {
-          this->announcement_queue_.clear();
-          if (this->announcement_pipeline_ != nullptr) {
-            this->announcement_pipeline_->stop();
-          }
+        if (this->announcement_pipeline_ == nullptr) {
+          this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
         }
 
-        MediaFile media_file;
-        if (new_url) {
-          media_file.url = this->announcement_url_;
-        } else {
-          media_file.file = this->announcement_file_;
+        if (!enqueue) {
+          this->cancel_timeout("next_ann");
+          this->announcement_queue_.clear();
         }
-        this->announcement_queue_.push_back(media_file);
+
+        MediaFile audio_file;
+        if (new_url) {
+          audio_file.url = this->announcement_url_;
+          if (!enqueue) {
+            this->announcement_pipeline_->start_url(audio_file.url.value());
+            this->announcement_pipeline_->set_pause_state(false);
+          }
+        } else {
+          audio_file.file = this->announcement_file_;
+          if (!enqueue) {
+            this->announcement_pipeline_->start_file(audio_file.file.value());
+            this->announcement_pipeline_->set_pause_state(false);
+          }
+        }
+        this->announcement_queue_.push_back(audio_file);
       } else {
+        if (this->media_pipeline_ == nullptr) {
+          this->create_pipeline_(AudioPipelineType::MEDIA);
+        }
+
         // Media queue/pipeline
         if (!enqueue) {
+          this->cancel_timeout("next_media");
           this->media_queue_.clear();
-          if (this->media_pipeline_ != nullptr) {
-            this->media_pipeline_->stop();
-          }
-          this->is_paused_ = false;
         }
 
+        this->is_paused_ = false;
         MediaFile media_file;
         if (new_url) {
           media_file.url = this->media_url_;
+          if (!enqueue) {
+            this->media_pipeline_->start_url(media_file.url.value());
+            this->media_pipeline_->set_pause_state(false);
+          }
         } else {
           media_file.file = this->media_file_;
+          if (!enqueue) {
+            this->media_pipeline_->start_file(media_file.file.value());
+            this->media_pipeline_->set_pause_state(false);
+          }
         }
         this->media_queue_.push_back(media_file);
       }
@@ -231,10 +273,14 @@ void SpeakerMediaPlayer::watch_media_commands_() {
         case media_player::MEDIA_PLAYER_COMMAND_STOP:
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
             if (this->announcement_pipeline_ != nullptr) {
+              this->cancel_timeout("next_ann");
+              this->announcement_queue_.clear();
               this->announcement_pipeline_->stop();
             }
           } else {
             if (this->media_pipeline_ != nullptr) {
+              this->cancel_timeout("next_media");
+              this->media_queue_.clear();
               this->media_pipeline_->stop();
             }
           }
@@ -295,6 +341,7 @@ void SpeakerMediaPlayer::loop() {
   // Determine state of the media player
   media_player::MediaPlayerState old_state = this->state;
 
+  AudioPipelineState old_media_pipeline_state = this->media_pipeline_state_;
   if (this->media_pipeline_ != nullptr) {
     this->media_pipeline_state_ = this->media_pipeline_->get_state();
     this->decoded_playback_ms_ = this->media_pipeline_->get_playback_ms();
@@ -306,8 +353,10 @@ void SpeakerMediaPlayer::loop() {
     ESP_LOGE(TAG, "The media pipeline's audio decoder encountered an error.");
   }
 
-  if (this->announcement_pipeline_ != nullptr)
+  AudioPipelineState old_announcement_pipeline_state = this->announcement_pipeline_state_;
+  if (this->announcement_pipeline_ != nullptr) {
     this->announcement_pipeline_state_ = this->announcement_pipeline_->get_state();
+  }
 
   if (this->announcement_pipeline_state_ == AudioPipelineState::ERROR_READING) {
     ESP_LOGE(TAG, "The announcement pipeline's file reader encountered an error.");
@@ -319,35 +368,61 @@ void SpeakerMediaPlayer::loop() {
     this->state = media_player::MEDIA_PLAYER_STATE_ANNOUNCING;
   } else {
     if (!this->announcement_queue_.empty()) {
-      if (this->state == media_player::MEDIA_PLAYER_STATE_ANNOUNCING) {
-        // Finished the current announcement file. Pop it off the dequeue if repeat is disabled
+      uint32_t timeout_ms = 0;
+      if (old_announcement_pipeline_state == AudioPipelineState::PLAYING) {
+        // Finished the current announcement file. Pop it off the deque if repeat is disabled
         if (!this->announcement_repeat_) {
           this->announcement_queue_.pop_front();
         }
+        timeout_ms = this->announcement_playlist_delay_ms_;
       }
+
       if (!this->announcement_queue_.empty()) {
         // Start the next announcement file
-        MediaFile media_file = this->announcement_queue_.front();
-        if (media_file.url.has_value()) {
-          this->start_pipeline_(AudioPipelineType::ANNOUNCEMENT, media_file.url.value());
-        } else if (media_file.file.has_value()) {
-          this->start_pipeline_(AudioPipelineType::ANNOUNCEMENT, media_file.file.value());
+        MediaFile audio_file = this->announcement_queue_.front();
+        if (audio_file.url.has_value()) {
+          this->start_pipeline_(AudioPipelineType::ANNOUNCEMENT, audio_file.url.value());
+        } else if (audio_file.file.has_value()) {
+          this->start_pipeline_(AudioPipelineType::ANNOUNCEMENT, audio_file.file.value());
         }
+        this->announcement_pipeline_->set_pause_state(true);
       }
+
+      this->set_timeout("next_ann", timeout_ms, [this]() { this->announcement_pipeline_->set_pause_state(false); });
+
     } else {
       if (this->is_paused_) {
         this->state = media_player::MEDIA_PLAYER_STATE_PAUSED;
       } else if (this->media_pipeline_state_ == AudioPipelineState::PLAYING) {
         this->state = media_player::MEDIA_PLAYER_STATE_PLAYING;
       } else if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
+        // Reset playback durations
+        this->decoded_playback_ms_ = 0;
+        this->playback_us_ = 0;
+        this->playback_ms_ = 0;
+        this->remainder_us_ = 0;
+        this->pending_ms_ = 0;
+
         if (!media_queue_.empty()) {
-          MediaFile media_file = this->media_queue_.front();
-          if (media_file.url.has_value()) {
-            this->start_pipeline_(AudioPipelineType::MEDIA, media_file.url.value());
-          } else if (media_file.file.has_value()) {
-            this->start_pipeline_(AudioPipelineType::MEDIA, media_file.file.value());
+          uint32_t timeout_ms = 0;
+          if (old_media_pipeline_state == AudioPipelineState::PLAYING) {
+            // Finished the current media file. Pop it off the deque if repeat is disabled
+            if (!this->media_repeat_) {
+              this->media_queue_.pop_front();
+            }
+            timeout_ms = this->announcement_playlist_delay_ms_;
           }
-          this->media_queue_.pop_front();
+          if (!this->media_queue_.empty()) {
+            MediaFile media_file = this->media_queue_.front();
+            if (media_file.url.has_value()) {
+              this->start_pipeline_(AudioPipelineType::MEDIA, media_file.url.value());
+            } else if (media_file.file.has_value()) {
+              this->start_pipeline_(AudioPipelineType::MEDIA, media_file.file.value());
+            }
+            this->media_pipeline_->set_pause_state(true);
+          }
+          this->set_timeout("next_media", timeout_ms,
+                            [this]() { this->media_pipeline_->set_pause_state(this->is_paused_); });
         } else {
           this->state = media_player::MEDIA_PLAYER_STATE_IDLE;
         }

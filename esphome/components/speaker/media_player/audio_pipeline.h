@@ -27,7 +27,10 @@ enum class AudioPipelineType : uint8_t {
 };
 
 enum class AudioPipelineState : uint8_t {
+  STARTING_FILE,
+  STARTING_URL,
   PLAYING,
+  STOPPING,
   STOPPED,
   PAUSED,
   ERROR_READING,
@@ -56,25 +59,31 @@ struct InfoErrorEvent {
 
 class AudioPipeline {
  public:
-  AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram)
-      : task_stack_in_psram_(task_stack_in_psram), speaker_(speaker), buffer_size_(buffer_size) {
+  /// @param speaker ESPHome speaker component for pipeline's audio output
+  /// @param buffer_size Size of the buffer in bytes between the reader and decoder
+  /// @param task_stack_in_psram True if the task stack should be allocated in PSRAM, false otherwise
+  /// @param task_name FreeRTOS task base name
+  /// @param priority FreeRTOS task priority
+  AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram, const std::string &base_name,
+                UBaseType_t priority)
+      : task_stack_in_psram_(task_stack_in_psram),
+        speaker_(speaker),
+        buffer_size_(buffer_size),
+        base_name_(base_name),
+        priority_(priority) {
     this->allocate_buffers_();
     this->transfer_buffer_size_ = std::min(buffer_size_ / 4, DEFAULT_TRANSFER_BUFFER_SIZE);
   };
 
   /// @brief Starts an audio pipeline given a media url
   /// @param uri media file url
-  /// @param task_name FreeRTOS task names
-  /// @param priority FreeRTOS task priority
   /// @return ESP_OK if successful or an appropriate error if not
-  esp_err_t start_url(const std::string &uri, const std::string &task_name, UBaseType_t priority = 1);
+  esp_err_t start_url(const std::string &uri);
 
   /// @brief Starts an audio pipeline given a AudioFile pointer
-  /// @param audio_file pointer to a AudioFile object
-  /// @param task_name FreeRTOS task name
-  /// @param priority FreeRTOS task priority
+  /// @param audio_file pointer to an AudioFile object
   /// @return ESP_OK if successful or an appropriate error if not
-  esp_err_t start_file(audio::AudioFile *audio_file, const std::string &task_name, UBaseType_t priority = 1);
+  esp_err_t start_file(audio::AudioFile *audio_file);
 
   /// @brief Stops the pipeline. Sends a stop signal to each task (if running) and clears the ring buffers.
   /// @return ESP_OK if successful or ESP_ERR_TIMEOUT if the tasks did not indicate they stopped
@@ -99,19 +108,24 @@ class AudioPipeline {
   esp_err_t allocate_buffers_();
 
   /// @brief Common start code for the pipeline, regardless if the source is a file or url.
-  /// @param task_name FreeRTOS task name
-  /// @param priority FreeRTOS task priority
   /// @return ESP_OK if successful or an appropriate error if not
-  esp_err_t common_start_(const std::string &task_name, UBaseType_t priority);
+  esp_err_t start_tasks_();
 
   /// @brief Resets the task related pointers and deallocates their stack.
   void delete_tasks_();
 
+  std::string base_name_;
+  UBaseType_t priority_;
+
   uint32_t playback_ms_{0};
 
-  bool start_in_progress_{false};
+  bool is_playing_{false};
   bool pause_state_{false};
   bool task_stack_in_psram_;
+
+  // Pending file start state used to ensure the pipeline fully stops before attempting to start the next file
+  bool pending_url_{false};
+  bool pending_file_{false};
 
   speaker::Speaker *speaker_{nullptr};
 

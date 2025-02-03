@@ -77,6 +77,8 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   uint32_t get_playback_us() const { return this->playback_us_; }
   uint32_t get_decoded_playback_ms() const { return this->decoded_playback_ms_; }
 
+  void set_playlist_delay_ms(AudioPipelineType pipeline_type, uint32_t delay_ms);
+
  protected:
   // Receives commands from HA or from the voice assistant component
   // Sends commands to the media_control_commanda_queue_
@@ -98,27 +100,29 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   // Reads commands from media_control_command_queue_. Starts pipelines and mixer if necessary.
   void watch_media_commands_();
 
-  std::unique_ptr<AudioPipeline> announcement_pipeline_;
-  std::unique_ptr<AudioPipeline> media_pipeline_;
-  Speaker *media_speaker_{nullptr};
-  Speaker *announcement_speaker_{nullptr};
-
   esp_err_t start_pipeline_(AudioPipelineType type, std::string &url);
   esp_err_t start_pipeline_(AudioPipelineType type, audio::AudioFile *audio_file);
 
   esp_err_t create_pipeline_(AudioPipelineType type);
+
+  std::unique_ptr<AudioPipeline> announcement_pipeline_;
+  std::unique_ptr<AudioPipeline> media_pipeline_;
+  Speaker *media_speaker_{nullptr};
+  Speaker *announcement_speaker_{nullptr};
 
   optional<media_player::MediaPlayerSupportedFormat> media_format_;
   AudioPipelineState media_pipeline_state_{AudioPipelineState::STOPPED};
   std::string media_url_{};         // only modified by control function
   audio::AudioFile *media_file_{};  // only modified by play_file function
   bool media_repeat_{false};
+  uint32_t media_playlist_delay_ms_{0};
 
   optional<media_player::MediaPlayerSupportedFormat> announcement_format_;
   AudioPipelineState announcement_pipeline_state_{AudioPipelineState::STOPPED};
   std::string announcement_url_{};         // only modified by control function
   audio::AudioFile *announcement_file_{};  // only modified by play_file function
   bool announcement_repeat_{false};
+  uint32_t announcement_playlist_delay_ms_{0};
 
   QueueHandle_t media_control_command_queue_;
 
