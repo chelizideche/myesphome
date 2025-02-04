@@ -61,7 +61,14 @@ from .types import (
     lv_style_t,
     lvgl_ns,
 )
-from .widgets import Widget, add_widgets, get_scr_act, set_obj_properties, styles_used
+from .widgets import (
+    LvScrActType,
+    Widget,
+    add_widgets,
+    get_scr_act,
+    set_obj_properties,
+    styles_used,
+)
 from .widgets.animimg import animimg_spec
 from .widgets.arc import arc_spec
 from .widgets.button import button_spec
@@ -318,7 +325,7 @@ async def to_code(configs):
             config[df.CONF_RESUME_ON_INPUT],
         )
         await cg.register_component(lv_component, config)
-        Widget.create(config[CONF_ID], lv_component, obj_spec, config)
+        Widget.create(config[CONF_ID], lv_component, LvScrActType(), config)
 
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
