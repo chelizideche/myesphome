@@ -1,6 +1,14 @@
 from esphome import automation
 from esphome.automation import Trigger
 import esphome.codegen as cg
+from esphome.components.packet_transport import (
+    CONF_BINARY_SENSORS,
+    CONF_ENCRYPTION,
+    CONF_PING_PONG_ENABLE,
+    CONF_PROVIDERS,
+    CONF_ROLLING_CODE_ENABLE,
+    CONF_SENSORS,
+)
 import esphome.config_validation as cv
 from esphome.const import CONF_DATA, CONF_ID, CONF_PORT, CONF_TRIGGER_ID
 from esphome.core import Lambda
@@ -27,6 +35,28 @@ UDP_SCHEMA = cv.Schema(
     }
 )
 
+
+def is_relocated(option):
+    def validator(value):
+        raise cv.Invalid(
+            f"The '{option}' option should now be configured in the 'packet_transport' component"
+        )
+
+    return validator
+
+
+RELOCATED = {
+    cv.Optional(x): is_relocated(x)
+    for x in (
+        CONF_PROVIDERS,
+        CONF_ENCRYPTION,
+        CONF_PING_PONG_ENABLE,
+        CONF_ROLLING_CODE_ENABLE,
+        CONF_SENSORS,
+        CONF_BINARY_SENSORS,
+    )
+}
+
 CONFIG_SCHEMA = cv.COMPONENT_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(UDPComponent),
@@ -45,7 +75,7 @@ CONFIG_SCHEMA = cv.COMPONENT_SCHEMA.extend(
             }
         ),
     }
-)
+).extend(RELOCATED)
 
 
 async def register_udp_client(var, config):
