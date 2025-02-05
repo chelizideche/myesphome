@@ -29,7 +29,7 @@ struct MediaCallCommand {
   optional<bool> enqueue;
 };
 
-struct MediaFile {
+struct PlaylistItem {
   optional<std::string> url;
   optional<audio::AudioFile *> file;
 };
@@ -103,8 +103,6 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   esp_err_t start_pipeline_(AudioPipelineType type, std::string &url);
   esp_err_t start_pipeline_(AudioPipelineType type, audio::AudioFile *audio_file);
 
-  esp_err_t create_pipeline_(AudioPipelineType type);
-
   std::unique_ptr<AudioPipeline> announcement_pipeline_;
   std::unique_ptr<AudioPipeline> media_pipeline_;
   Speaker *media_speaker_{nullptr};
@@ -126,8 +124,8 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
 
   QueueHandle_t media_control_command_queue_;
 
-  std::deque<MediaFile> announcement_queue_;
-  std::deque<MediaFile> media_queue_;
+  std::deque<PlaylistItem> announcement_queue_;
+  std::deque<PlaylistItem> media_queue_;
 
   size_t buffer_size_;
 
