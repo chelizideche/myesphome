@@ -164,15 +164,14 @@ void PacketTransport::flush_() {
     return;
   auto header_len = round4(this->header_.size());
   auto len = round4(data_.size());
-  auto encode_buffer_ = std::vector<uint8_t>(round4(this->get_max_packet_size()));
-  memcpy(encode_buffer_.data(), this->header_.data(), this->header_.size());
-  memcpy(encode_buffer_.data() + header_len, this->data_.data(), this->data_.size());
+  auto encode_buffer = std::vector<uint8_t>(round4(header_len + len));
+  memcpy(encode_buffer.data(), this->header_.data(), this->header_.size());
+  memcpy(encode_buffer.data() + header_len, this->data_.data(), this->data_.size());
   if (this->is_encrypted_()) {
-    xxtea::encrypt((uint32_t *) (encode_buffer_.data() + header_len), len / 4,
+    xxtea::encrypt((uint32_t *) (encode_buffer.data() + header_len), len / 4,
                    (uint32_t *) this->encryption_key_.data());
   }
-  auto send_buffer = std::vector<uint8_t>(header_len + len);
-  this->send_packet(encode_buffer_);
+  this->send_packet(encode_buffer);
 }
 
 void PacketTransport::add_binary_data_(uint8_t key, const char *id, bool data) {
