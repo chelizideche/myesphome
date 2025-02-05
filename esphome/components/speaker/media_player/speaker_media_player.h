@@ -95,6 +95,8 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   /// @brief Saves the current volume and mute state to the flash for restoration.
   void save_volume_restore_state_();
 
+  /// Returns true if the media player has only the announcement pipeline defined, false if both the announcement and
+  /// media pipelines are defined.
   inline bool single_pipeline_() { return (this->media_speaker_ == nullptr); }
 
   // Processes commands from media_control_command_queue_.
