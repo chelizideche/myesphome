@@ -202,7 +202,7 @@ AudioPipelineState AudioPipeline::process_state() {
   return AudioPipelineState::PLAYING;
 }
 
-esp_err_t AudioPipeline::allocate_buffers_() {
+esp_err_t AudioPipeline::allocate_communications_() {
   if (this->event_group_ == nullptr)
     this->event_group_ = xEventGroupCreate();
 

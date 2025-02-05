@@ -71,7 +71,7 @@ class AudioPipeline {
         buffer_size_(buffer_size),
         base_name_(base_name),
         priority_(priority) {
-    this->allocate_buffers_();
+    this->allocate_communications_();
     this->transfer_buffer_size_ = std::min(buffer_size_ / 4, DEFAULT_TRANSFER_BUFFER_SIZE);
   };
 
@@ -104,15 +104,15 @@ class AudioPipeline {
   void set_pause_state(bool pause_state);
 
  protected:
-  /// @brief Allocates the ring buffers, event group, and info error queue.
+  /// @brief Allocates the event group and info error queue.
   /// @return ESP_OK if successful or ESP_ERR_NO_MEM if it is unable to allocate all parts
-  esp_err_t allocate_buffers_();
+  esp_err_t allocate_communications_();
 
   /// @brief Common start code for the pipeline, regardless if the source is a file or url.
   /// @return ESP_OK if successful or an appropriate error if not
   esp_err_t start_tasks_();
 
-  /// @brief Resets the task related pointers and deallocates their stack.
+  /// @brief Resets the task related pointers and deallocates their stacks.
   void delete_tasks_();
 
   std::string base_name_;
