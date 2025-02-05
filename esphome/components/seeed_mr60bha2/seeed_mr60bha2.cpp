@@ -129,7 +129,7 @@ bool MR60BHA2Component::validate_message_() {
 }
 
 void MR60BHA2Component::process_frame_(uint16_t frame_id, uint16_t frame_type, const uint8_t *data, size_t length) {
-  if (this->has_target_binary_sensor_ != nullptr && this->has_target_binary_sensor_->state == false &&
+  if (this->has_target_binary_sensor_ != nullptr && !this->has_target_binary_sensor_->state &&
       frame_type != PEOPLE_EXIST_TYPE_BUFFER) {
     // Do not process other frames while people exists sensor is still false
     return;
