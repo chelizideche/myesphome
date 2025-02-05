@@ -20,7 +20,7 @@ CONFIG_SCHEMA = transport_schema(UDPTransport).extend(UDP_SCHEMA)
 async def to_code(config):
     var = await new_packet_transport(config)
     udp_var = await register_udp_client(var, config)
-    if CONF_ENCRYPTION in config or config[CONF_PROVIDERS]:
+    if CONF_ENCRYPTION in config or config.get(CONF_PROVIDERS):
         cg.add(udp_var.set_should_listen())
     if (
         config[CONF_PING_PONG_ENABLE]
