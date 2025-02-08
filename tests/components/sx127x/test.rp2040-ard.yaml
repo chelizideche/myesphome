@@ -1,9 +1,9 @@
 substitutions:
-  clk_pin: 2
-  mosi_pin: 3
-  miso_pin: 4
-  cs_pin: 5
-  rst_pin: 6
-  dio0_pin: 7
+  clk_pin: GPIO2
+  mosi_pin: GPIO3
+  miso_pin: GPIO4
+  cs_pin: GPIO5
+  rst_pin: GPIO6
+  dio0_pin: GPIO7
 
 <<: !include common.yaml
