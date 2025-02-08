@@ -105,11 +105,10 @@ void SX127x::configure() {
   uint8_t trigger = (this->preamble_size_ > 0) ? TRIGGER_PREAMBLE : TRIGGER_RSSI;
   this->write_register_(REG_AFC_FEI, AFC_AUTO_CLEAR_ON);
   if (this->modulation_ == MOD_FSK) {
-    this->rx_config_ = AFC_AUTO_ON | AGC_AUTO_ON | trigger;
+    this->write_register_(REG_RX_CONFIG, AFC_AUTO_ON | AGC_AUTO_ON | trigger);
   } else {
-    this->rx_config_ = AGC_AUTO_ON | trigger;
+    this->write_register_(REG_RX_CONFIG, AGC_AUTO_ON | trigger);
   }
-  this->write_register_(REG_RX_CONFIG, this->rx_config_);
 
   // configure packet mode
   if (this->crc_enable_) {
@@ -140,12 +139,12 @@ void SX127x::configure() {
   uint8_t polarity = (this->preamble_polarity_ == 0xAA) ? PREAMBLE_AA : PREAMBLE_55;
   if (!this->sync_value_.empty()) {
     uint8_t size = this->sync_value_.size() - 1;
-    this->write_register_(REG_SYNC_CONFIG, polarity | SYNC_ON | size);
+    this->write_register_(REG_SYNC_CONFIG, AUTO_RESTART_PLL_LOCK | polarity | SYNC_ON | size);
     for (uint32_t i = 0; i < this->sync_value_.size(); i++) {
       this->write_register_(REG_SYNC_VALUE1 + i, this->sync_value_[i]);
     }
   } else {
-    this->write_register_(REG_SYNC_CONFIG, polarity | SYNC_OFF);
+    this->write_register_(REG_SYNC_CONFIG, AUTO_RESTART_PLL_LOCK | polarity | SYNC_OFF);
   }
 
   // config preamble detector
@@ -208,7 +207,6 @@ void SX127x::loop() {
     std::vector<uint8_t> packet(this->payload_length_);
     this->store_.dio0_irq = false;
     this->read_fifo_(packet);
-    this->write_register_(REG_RX_CONFIG, RESTART_PLL_LOCK | this->rx_config_);
     this->packet_trigger_->trigger(packet);
   }
 }
@@ -255,10 +253,10 @@ void SX127x::dump_config() {
   }
   if (this->payload_length_ > 0) {
     ESP_LOGCONFIG(TAG, "  Payload Length: %" PRIu32, this->payload_length_);
+    ESP_LOGCONFIG(TAG, "  CRC Enable: %s", TRUEFALSE(this->crc_enable_));
     if (!this->sync_value_.empty()) {
       ESP_LOGCONFIG(TAG, "  Sync Value: 0x%s", format_hex(this->sync_value_).c_str());
     }
-    ESP_LOGCONFIG(TAG, "  CRC Enable: %s", TRUEFALSE(this->crc_enable_));
   }
   if (this->modulation_ == MOD_FSK) {
     static const char *shaping_lut[4] = {"NONE", "GAUSSIAN_BT_1_0", "GAUSSIAN_BT_0_5", "GAUSSIAN_BT_0_3"};

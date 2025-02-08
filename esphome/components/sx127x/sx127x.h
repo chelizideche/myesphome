@@ -52,6 +52,7 @@ enum SX127xReg : uint8_t {
 };
 
 enum SX127xRxConfig : uint8_t {
+  RESTART_ON_COLLISION = 0x80,
   RESTART_NO_LOCK = 0x40,
   RESTART_PLL_LOCK = 0x20,
   AFC_AUTO_ON = 0x10,
@@ -72,9 +73,9 @@ enum SX127xAfcFei : uint8_t {
 };
 
 enum SX127xSyncConfig : uint8_t {
+  AUTO_RESTART_PLL_LOCK = 0x80,
+  AUTO_RESTART_NO_LOCK = 0x40,
   AUTO_RESTART_OFF = 0x00,
-  AUTO_RESTART_NO_LOCK = 0x80,
-  AUTO_RESTART_PLL_LOCK = 0x40,
   PREAMBLE_AA = 0x00,
   PREAMBLE_55 = 0x20,
   SYNC_OFF = 0x00,
@@ -292,7 +293,6 @@ class SX127x : public Component,
   uint8_t preamble_polarity_;
   uint8_t preamble_size_;
   uint8_t preamble_errors_;
-  uint8_t rx_config_;
   float rx_floor_;
   bool rx_start_;
   bool bitsync_;
