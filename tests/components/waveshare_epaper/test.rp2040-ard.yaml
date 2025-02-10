@@ -1,7 +1,6 @@
 substitutions:
-  spi_clk_pin: GPIO2
-  spi_mosi_pin: GPIO3
-  spi_miso_pin: GPIO4
+  clk_pin: GPIO2
+  mosi_pin: GPIO3
   cs_pin: GPIO5
   dc_pin: GPIO6
   busy_pin: GPIO7
