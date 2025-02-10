@@ -36,7 +36,6 @@ from esphome.const import (
     PLATFORM_RTL87XX,
 )
 from esphome.core import CORE, Lambda, coroutine_with_priority
-from esphome.cpp_generator import MockObj
 
 CODEOWNERS = ["@esphome/core"]
 logger_ns = cg.esphome_ns.namespace("logger")
@@ -79,6 +78,7 @@ USB_CDC = "USB_CDC"
 DEFAULT = "DEFAULT"
 
 CONF_INITIAL_LEVEL = "initial_level"
+CONF_LOGGER_ID = "logger_id"
 
 UART_SELECTION_ESP32 = {
     VARIANT_ESP32: [UART0, UART1, UART2],
@@ -384,6 +384,7 @@ async def logger_log_action_to_code(config, action_id, template_arg, args):
     LambdaAction,
     cv.maybe_simple_value(
         {
+            cv.GenerateID(CONF_LOGGER_ID): cv.use_id(Logger),
             cv.Required(CONF_LEVEL): is_log_level,
             cv.Optional(CONF_TAG): cv.string,
         },
@@ -392,11 +393,11 @@ async def logger_log_action_to_code(config, action_id, template_arg, args):
 )
 async def logger_set_level_to_code(config, action_id, template_arg, args):
     level = LOG_LEVELS[config[CONF_LEVEL]]
-    global_logger = MockObj(logger_ns.global_logger, "->")
+    logger = await cg.get_variable(config[CONF_LOGGER_ID])
     if tag := config.get(CONF_TAG):
-        text = str(cg.statement(global_logger.set_log_level(tag, level)))
+        text = str(cg.statement(logger.set_log_level(tag, level)))
     else:
-        text = str(cg.statement(global_logger.set_log_level(level)))
+        text = str(cg.statement(logger.set_log_level(level)))
 
     lambda_ = await cg.process_lambda(Lambda(text), args, return_type=cg.void)
     return cg.new_Pvariable(action_id, template_arg, lambda_)
