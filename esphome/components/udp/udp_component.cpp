@@ -94,7 +94,7 @@ void UDPComponent::setup() {
     this->ipaddrs_.push_back(ipaddr);
   }
   if (this->should_listen_)
-    this->udp_client_.begin(this->port_);
+    this->udp_client_.begin(this->listen_port_);
 #endif
 }
 
@@ -143,7 +143,7 @@ void UDPComponent::send_packet(std::vector<uint8_t> &buf) {
 #ifdef USE_SOCKET_IMPL_LWIP_TCP
   auto iface = IPAddress(0, 0, 0, 0);
   for (const auto &saddr : this->ipaddrs_) {
-    if (this->udp_client_.beginPacketMulticast(saddr, this->port_, iface, 128) != 0) {
+    if (this->udp_client_.beginPacketMulticast(saddr, this->broadcast_port_, iface, 128) != 0) {
       this->udp_client_.write(buf.data(), buf.size());
       auto result = this->udp_client_.endPacket();
       if (result == 0)
