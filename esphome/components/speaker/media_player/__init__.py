@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 AUTO_LOAD = ["audio", "psram"]
 
 CODEOWNERS = ["@kahrendt", "@synesthesiam"]
-DOMAIN = "file"
+DOMAIN = "media_player"
 
 TYPE_LOCAL = "local"
 TYPE_WEB = "web"
