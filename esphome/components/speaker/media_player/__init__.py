@@ -433,7 +433,7 @@ async def to_code(config):
 
 
 @automation.register_action(
-    "speaker_media_player.play_on_device_media_file",
+    "media_player.speaker.play_on_device_media_file",
     PlayOnDeviceMediaAction,
     cv.maybe_simple_value(
         {
