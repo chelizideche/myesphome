@@ -196,7 +196,7 @@ void Logger::set_log_level(int level) {
     level = ESPHOME_LOG_LEVEL;
     ESP_LOGW(TAG, "Cannot set log level higher than pre-compiled %s", LOG_LEVELS[ESPHOME_LOG_LEVEL]);
   }
-  current_level_ = level;
+  this->current_level_ = level;
   this->level_callback_.call(level);
 }
 

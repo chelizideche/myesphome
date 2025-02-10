@@ -17,7 +17,6 @@ CONFIG_SCHEMA = select.select_schema(
     LoggerLevelSelect, icon=ICON_BUG, entity_category=ENTITY_CATEGORY_CONFIG
 ).extend(
     {
-        cv.GenerateID(): cv.declare_id(LoggerLevelSelect),
         cv.GenerateID(CONF_LOGGER_ID): cv.use_id(Logger),
     }
 )

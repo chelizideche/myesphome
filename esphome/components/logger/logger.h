@@ -93,7 +93,7 @@ class Logger : public Component {
   void add_on_log_callback(std::function<void(int, const char *, const char *)> &&callback);
 
   // add a listener for log level changes
-  void add_listener(std::function<void(int)> &&callback) { level_callback_.add(std::move(callback)); }
+  void add_listener(std::function<void(int)> &&callback) { this->level_callback_.add(std::move(callback)); }
 
   float get_setup_priority() const override;
 
