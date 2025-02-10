@@ -169,7 +169,7 @@ async def register_packet_transport(var, config):
     # Get directly configured providers, plus those from sensors and binary sensors
     providers = {
         sensor[CONF_PROVIDER] for sensor in get_sensors(config[CONF_ID])
-    }.union(config[CONF_PROVIDERS])
+    }.union(x[CONF_NAME] for x in config[CONF_PROVIDERS])
     for provider in providers:
         cg.add(var.add_provider(provider))
     for provider in config[CONF_PROVIDERS]:
