@@ -17,7 +17,8 @@ class UDPComponent : public Component {
  public:
   void add_address(const char *addr) { this->addresses_.emplace_back(addr); }
   void set_listen_address(const char *listen_addr) { this->listen_address_ = network::IPAddress(listen_addr); }
-  void set_port(uint16_t port) { this->port_ = port; }
+  void set_listen_port(uint16_t port) { this->listen_port_ = port; }
+  void set_broadcast_port(uint16_t port) { this->broadcast_port_ = port; }
   void set_should_broadcast() { this->should_broadcast_ = true; }
   void set_should_listen() { this->should_listen_ = true; }
   void add_listener(std::function<void(std::vector<uint8_t> &)> &&listener) {
@@ -30,7 +31,8 @@ class UDPComponent : public Component {
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; };
 
  protected:
-  uint16_t port_{};
+  uint16_t listen_port_{};
+  uint16_t broadcast_port_{};
   bool should_broadcast_{};
   bool should_listen_{};
   CallbackManager<void(std::vector<uint8_t> &)> packet_listeners_{};

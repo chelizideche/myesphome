@@ -12,7 +12,7 @@ void UDPComponent::setup() {
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
   for (const auto &address : this->addresses_) {
     struct sockaddr saddr {};
-    socket::set_sockaddr(&saddr, sizeof(saddr), address, this->port_);
+    socket::set_sockaddr(&saddr, sizeof(saddr), address, this->broadcast_port_);
     this->sockaddrs_.push_back(saddr);
   }
   // set up broadcast socket
@@ -60,7 +60,7 @@ void UDPComponent::setup() {
 
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = ESPHOME_INADDR_ANY;
-    server.sin_port = htons(this->port_);
+    server.sin_port = htons(this->listen_port_);
 
     if (this->listen_address_.has_value()) {
       struct ip_mreq imreq = {};
@@ -121,7 +121,8 @@ void UDPComponent::loop() {
 
 void UDPComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UDP:");
-  ESP_LOGCONFIG(TAG, "  Port: %u", this->port_);
+  ESP_LOGCONFIG(TAG, "  Listen Port: %u", this->listen_port_);
+  ESP_LOGCONFIG(TAG, "  Broadcast Port: %u", this->broadcast_port_);
   for (const auto &address : this->addresses_)
     ESP_LOGCONFIG(TAG, "  Address: %s", address.c_str());
   if (this->listen_address_.has_value()) {

@@ -28,6 +28,8 @@ CONF_ADDRESSES = "addresses"
 CONF_LISTEN_ADDRESS = "listen_address"
 CONF_UDP_ID = "udp_id"
 CONF_ON_RECEIVE = "on_receive"
+CONF_LISTEN_PORT = "listen_port"
+CONF_BROADCAST_PORT = "broadcast_port"
 
 UDP_SCHEMA = cv.Schema(
     {
@@ -60,7 +62,15 @@ RELOCATED = {
 CONFIG_SCHEMA = cv.COMPONENT_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(UDPComponent),
-        cv.Optional(CONF_PORT, default=18511): cv.port,
+        cv.Optional(CONF_PORT, default=18511): cv.Any(
+            cv.port,
+            cv.Schema(
+                {
+                    cv.Required(CONF_LISTEN_PORT): cv.port,
+                    cv.Required(CONF_BROADCAST_PORT): cv.port,
+                }
+            ),
+        ),
         cv.Optional(
             CONF_LISTEN_ADDRESS, default="255.255.255.255"
         ): cv.ipv4address_multi_broadcast,
@@ -89,7 +99,13 @@ async def to_code(config):
     cg.add_global(udp_ns.using)
     var = cg.new_Pvariable(config[CONF_ID])
     var = await cg.register_component(var, config)
-    cg.add(var.set_port(config[CONF_PORT]))
+    conf_port = config[CONF_PORT]
+    if isinstance(conf_port, int):
+        cg.add(var.set_listen_port(conf_port))
+        cg.add(var.set_broadcast_port(conf_port))
+    else:
+        cg.add(var.set_listen_port(conf_port[CONF_LISTEN_PORT]))
+        cg.add(var.set_broadcast_port(conf_port[CONF_BROADCAST_PORT]))
     if (listen_address := str(config[CONF_LISTEN_ADDRESS])) != "255.255.255.255":
         cg.add(var.set_listen_address(listen_address))
     for address in config[CONF_ADDRESSES]:
