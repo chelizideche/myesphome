@@ -127,6 +127,8 @@ void UDPComponent::dump_config() {
   if (this->listen_address_.has_value()) {
     ESP_LOGCONFIG(TAG, "  Listen address: %s", this->listen_address_.value().str().c_str());
   }
+  ESP_LOGCONFIG(TAG, "  Broadcasting: %s", YESNO(this->should_broadcast_));
+  ESP_LOGCONFIG(TAG, "  Listening: %s", YESNO(this->should_listen_));
 }
 
 void UDPComponent::send_packet(std::vector<uint8_t> &buf) {

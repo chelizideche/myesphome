@@ -16,6 +16,7 @@ from esphome.const import (
     CONF_NAME,
     CONF_SENSORS,
 )
+from esphome.core import CORE
 from esphome.cpp_generator import MockObjClass
 
 CODEOWNERS = ["@clydebarrow"]
@@ -26,6 +27,7 @@ PacketTransport = packet_transport_ns.class_("PacketTransport", cg.PollingCompon
 
 IS_PLATFORM_COMPONENT = True
 
+DOMAIN = "packet_transport"
 CONF_BROADCAST = "broadcast"
 CONF_BROADCAST_ID = "broadcast_id"
 CONF_PROVIDER = "provider"
@@ -105,7 +107,7 @@ TRANSPORT_SCHEMA = (
             cv.Optional(CONF_BINARY_SENSORS): cv.ensure_list(
                 sensor_validation(BinarySensor)
             ),
-            cv.Optional(CONF_PROVIDERS): cv.ensure_list(PROVIDER_SCHEMA),
+            cv.Optional(CONF_PROVIDERS, default=[]): cv.ensure_list(PROVIDER_SCHEMA),
         },
     )
     .extend(ENCRYPTION_SCHEMA)
@@ -117,19 +119,38 @@ def transport_schema(cls):
     return TRANSPORT_SCHEMA.extend({cv.GenerateID(): cv.declare_id(cls)})
 
 
-SENSOR_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_TRANSPORT_ID): cv.use_id(PacketTransport),
-        cv.Optional(CONF_REMOTE_ID): cv.string_strict,
-        cv.Required(CONF_PROVIDER): provider_name_validate,
-    }
-)
+# Build a list of sensors for this platform
+CORE.data[DOMAIN] = {CONF_SENSORS: []}
 
 
-def require_internal_with_name(config):
+def get_sensors(transport_id):
+    """Return the list of sensors for this platform."""
+    return (
+        sensor
+        for sensor in CORE.data[DOMAIN][CONF_SENSORS]
+        if sensor[CONF_TRANSPORT_ID] == transport_id
+    )
+
+
+def validate_packet_transport_sensor(config):
     if CONF_NAME in config and CONF_INTERNAL not in config:
         raise cv.Invalid("Must provide internal: config when using name:")
+    CORE.data[DOMAIN][CONF_SENSORS].append(config)
     return config
+
+
+def packet_transport_sensor_schema(base_schema):
+    return cv.All(
+        base_schema.extend(
+            {
+                cv.GenerateID(CONF_TRANSPORT_ID): cv.use_id(PacketTransport),
+                cv.Optional(CONF_REMOTE_ID): cv.string_strict,
+                cv.Required(CONF_PROVIDER): provider_name_validate,
+            }
+        ),
+        cv.has_at_least_one_key(CONF_ID, CONF_REMOTE_ID),
+        validate_packet_transport_sensor,
+    )
 
 
 def hash_encryption_key(config: dict):
@@ -145,9 +166,14 @@ async def register_packet_transport(var, config):
             config[CONF_PING_PONG_RECYCLE_TIME].total_seconds
         )
     )
-    for provider in config.get(CONF_PROVIDERS, ()):
+    # Get directly configured providers, plus those from sensors and binary sensors
+    providers = {
+        sensor[CONF_PROVIDER] for sensor in get_sensors(config[CONF_ID])
+    }.union(x[CONF_NAME] for x in config[CONF_PROVIDERS])
+    for provider in providers:
+        cg.add(var.add_provider(provider))
+    for provider in config[CONF_PROVIDERS]:
         name = provider[CONF_NAME]
-        cg.add(var.add_provider(name))
         if encryption := provider.get(CONF_ENCRYPTION):
             cg.add(var.set_provider_encryption(name, hash_encryption_key(encryption)))
 
@@ -164,9 +190,10 @@ async def register_packet_transport(var, config):
 
     if encryption := config.get(CONF_ENCRYPTION):
         cg.add(var.set_encryption_key(hash_encryption_key(encryption)))
+    return providers
 
 
 async def new_packet_transport(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await register_packet_transport(var, config)
-    return var
+    providers = await register_packet_transport(var, config)
+    return var, providers

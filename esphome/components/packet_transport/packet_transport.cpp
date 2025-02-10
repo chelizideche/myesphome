@@ -45,7 +45,7 @@ namespace packet_transport {
  * Ping key (4 bytes)
  *
  */
-static const char *const TAG = "packet_encoding";
+static const char *const TAG = "packet_transport";
 
 static size_t round4(size_t value) { return (value + 3) & ~3; }
 

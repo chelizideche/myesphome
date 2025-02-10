@@ -2,7 +2,6 @@ import esphome.codegen as cg
 from esphome.components.api import CONF_ENCRYPTION
 from esphome.components.packet_transport import (
     CONF_PING_PONG_ENABLE,
-    CONF_PROVIDERS,
     PacketTransport,
     new_packet_transport,
     transport_schema,
@@ -18,9 +17,9 @@ CONFIG_SCHEMA = transport_schema(UDPTransport).extend(UDP_SCHEMA)
 
 
 async def to_code(config):
-    var = await new_packet_transport(config)
+    var, providers = await new_packet_transport(config)
     udp_var = await register_udp_client(var, config)
-    if CONF_ENCRYPTION in config or config.get(CONF_PROVIDERS):
+    if CONF_ENCRYPTION in config or providers:
         cg.add(udp_var.set_should_listen())
     if (
         config[CONF_PING_PONG_ENABLE]

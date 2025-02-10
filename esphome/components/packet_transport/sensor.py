@@ -1,21 +1,11 @@
 import esphome.codegen as cg
+from esphome.components.packet_transport import packet_transport_sensor_schema
 from esphome.components.sensor import new_sensor, sensor_schema
-from esphome.config_validation import All, has_at_least_one_key
 from esphome.const import CONF_ID
 
-from . import (
-    CONF_PROVIDER,
-    CONF_REMOTE_ID,
-    CONF_TRANSPORT_ID,
-    SENSOR_SCHEMA,
-    require_internal_with_name,
-)
+from . import CONF_PROVIDER, CONF_REMOTE_ID, CONF_TRANSPORT_ID
 
-CONFIG_SCHEMA = All(
-    sensor_schema().extend(SENSOR_SCHEMA),
-    has_at_least_one_key(CONF_ID, CONF_REMOTE_ID),
-    require_internal_with_name,
-)
+CONFIG_SCHEMA = packet_transport_sensor_schema(sensor_schema())
 
 
 async def to_code(config):
