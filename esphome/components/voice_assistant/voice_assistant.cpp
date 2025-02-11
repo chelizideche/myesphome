@@ -389,14 +389,7 @@ void VoiceAssistant::loop() {
       }
 #endif
       if (playing) {
-        this->set_timeout("playing", 50, [this]() {
-          this->cancel_timeout("speaker-timeout");
-          this->set_state_(State::IDLE, State::IDLE);
-
-          api::VoiceAssistantAnnounceFinished msg;
-          msg.success = true;
-          this->api_client_->send_voice_assistant_announce_finished(msg);
-        });
+        this->start_playback_timeout_();
       }
       break;
     }
@@ -633,6 +626,17 @@ void VoiceAssistant::signal_stop_() {
   this->api_client_->send_voice_assistant_request(msg);
 }
 
+void VoiceAssistant::start_playback_timeout_() {
+  this->set_timeout("playing", 100, [this]() {
+    this->cancel_timeout("speaker-timeout");
+    this->set_state_(State::IDLE, State::IDLE);
+
+    api::VoiceAssistantAnnounceFinished msg;
+    msg.success = true;
+    this->api_client_->send_voice_assistant_announce_finished(msg);
+  });
+}
+
 void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
   ESP_LOGD(TAG, "Event Type: %" PRId32, msg.event_type);
   switch (msg.event_type) {
@@ -717,6 +721,8 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
 #ifdef USE_MEDIA_PLAYER
         if (this->media_player_ != nullptr) {
           this->media_player_->make_call().set_media_url(url).set_announcement(true).perform();
+          // Start the playback timeout, as the media player state isn't immediately updated
+          this->start_playback_timeout_();
         }
 #endif
         this->tts_end_trigger_->trigger(url);

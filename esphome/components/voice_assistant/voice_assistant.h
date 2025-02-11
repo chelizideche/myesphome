@@ -216,6 +216,7 @@ class VoiceAssistant : public Component {
   void set_state_(State state);
   void set_state_(State state, State desired_state);
   void signal_stop_();
+  void start_playback_timeout_();
 
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   struct sockaddr_storage dest_addr_;
