@@ -189,6 +189,7 @@ void SX127x::transmit_packet(const std::vector<uint8_t> &packet) {
     return;
   }
   this->set_mode_standby();
+  this->store_.dio0_irq = false;
   this->write_fifo_(packet);
   this->set_mode_tx();
   uint32_t start = millis();
