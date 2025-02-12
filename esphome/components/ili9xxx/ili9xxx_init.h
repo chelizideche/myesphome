@@ -6,7 +6,6 @@
 namespace esphome {
 namespace ili9xxx {
 
-#define PROGMEM
 // clang-format off
 static const uint8_t PROGMEM INITCMD_M5STACK[] = {
   0xEF, 3, 0x03, 0x80, 0x02,
