@@ -39,7 +39,7 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
     case HTTP_EVENT_ON_HEADER: {
       auto *header_name = evt->header_key;
       for (const auto &collect_header_name : collect_header_names) {
-        if (str_lower_case(collect_header_name) == header_name) {
+        if (str_equals_case_insensitive(collect_header_name, header_name)) {
           response_headers[header_name].emplace_back(evt->header_value);
           break;
         }
