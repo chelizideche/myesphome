@@ -914,7 +914,7 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   climate_value_row_(stream, obj, area, node, friendly_name, max_temp, max_temp_value);
   // max temp
   std::string min_temp = "mininum_temperature";
-  auto min_temp_value = value_accuracy_to_string(traits.get_visual_max_temperature(), target_accuracy);
+  auto min_temp_value = value_accuracy_to_string(traits.get_visual_min_temperature(), target_accuracy);
   climate_value_row_(stream, obj, area, node, friendly_name, min_temp, min_temp_value);
   // now check optional things
   if (traits.get_supports_current_temperature()) {
@@ -935,18 +935,9 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
     climate_value_row_(stream, obj, area, node, friendly_name, target_temp, target_temp_value);
   }
   if (traits.get_supports_action()) {
-    stream->print(F("esphome_climate_setting{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\",value=\""));
-    stream->print(LOG_STR_ARG(climate::climate_action_to_string(obj->action)));
-    stream->print(F("\"} "));
-    stream->print(F("1.0"));
-    stream->print(F("\n"));
+    std::string climate_action_category = "action";
+    auto climate_action_value = climate::climate_action_to_string(obj->action);
+    climate_setting_row_(stream, obj, area, node, friendly_name, climate_action_category, climate_action_value);
   }
 }
 #endif
