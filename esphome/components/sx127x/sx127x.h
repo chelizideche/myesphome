@@ -260,6 +260,7 @@ class SX127x : public Component,
   void set_rx_start(bool start) { this->rx_start_ = start; }
   void set_shaping(SX127xPaRamp shaping) { this->shaping_ = shaping; }
   void set_sync_value(const std::vector<uint8_t> &sync_value) { this->sync_value_ = sync_value; }
+  void run_image_cal();
   void configure();
   void transmit_packet(const std::vector<uint8_t> &packet);
   Trigger<std::vector<uint8_t>> *get_packet_trigger() const { return this->packet_trigger_; };

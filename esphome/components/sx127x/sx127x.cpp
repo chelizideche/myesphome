@@ -168,12 +168,22 @@ void SX127x::configure() {
   this->set_mode_standby();
 
   // run image cal
-  this->write_register_(REG_IMAGE_CAL, AUTO_IMAGE_CAL_ON | IMAGE_CAL_START | TEMP_THRESHOLD_10C);
-  delayMicroseconds(10000);
+  this->run_image_cal();
 
   // enable rx mode
   if (this->rx_start_) {
     this->set_mode_rx();
+  }
+}
+
+void SX127x::run_image_cal() {
+  uint32_t start = millis();
+  this->write_register_(REG_IMAGE_CAL, AUTO_IMAGE_CAL_ON | IMAGE_CAL_START | TEMP_THRESHOLD_10C);
+  while (this->read_register_(REG_IMAGE_CAL) & IMAGE_CAL_RUNNING) {
+    if (millis() - start > 20) {
+      ESP_LOGE(TAG, "Image cal failure");
+      break;
+    }
   }
 }
 
