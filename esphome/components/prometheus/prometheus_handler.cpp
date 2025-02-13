@@ -882,12 +882,13 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   stream->print(F("\"} "));
   stream->print(F("1.0"));
   stream->print(F("\n"));
+  const auto traits = obj->get_traits();
   // Now see if position is supported
-  if (obj->get_traits().get_supports_current_temperature()) {
+  if (traits.get_supports_current_temperature()) {
     std::string current_temp = "current_temperature";
     int8_t current_accuracy = traits.get_current_temperature_accuracy_decimals();
-    climate_mode_row_(stream, obj, area, node, friendly_name, current_temp,
-                      value_accuracy_to_string(obj->current_temperature, current_accuracy))
+    auto current_temp_value = value_accuracy_to_string(obj->current_temperature, current_accuracy);
+    climate_mode_row_(stream, obj, area, node, friendly_name, current_temp, current_temp_value);
   }
 }
 #endif
