@@ -891,7 +891,6 @@ void PrometheusHandler::climate_failed_row_(AsyncResponseStream *stream, climate
   } else {
     stream->print(F("0.0"));
   }
-
   stream->print(F("\n"));
 }
 
