@@ -358,9 +358,11 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
   } else {
     ESP_LOGV(TAG, "no ssid set");
     // TODO check if ap is enabled in conf and only start it if enabled
+#ifdef USE_CAPTIVE_PORTAL
     if (this->is_captive_portal_active_()) {
       captive_portal::global_captive_portal->end();
     }
+#endif
     if (this->is_connected()) {
       this->disconnect();
     }
