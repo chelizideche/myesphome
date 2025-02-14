@@ -978,9 +978,9 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
       any_failures = true;
     }
   }
-  if (traits.get_supports_presets() && obj->preset.has_value()) {
+  if (traits.get_supports_presets()) {
     std::string climate_trait_category = "preset";
-    if (obj->fan_mode.has_value()) {
+    if (obj->preset.has_value()) {
       const auto *climate_trait_value = climate::climate_preset_to_string(obj->preset.value());
       climate_setting_row_(stream, obj, area, node, friendly_name, climate_trait_category, climate_trait_value);
       climate_failed_row_(stream, obj, area, node, friendly_name, climate_trait_category, false);
