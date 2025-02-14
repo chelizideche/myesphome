@@ -184,9 +184,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
 
   void add_header(const char *key, TemplatableValue<const char *, Ts...> value) { this->headers_.insert({key, value}); }
 
-  void add_collect_header_name(const char *key, TemplatableValue<std::string, Ts...> value) {
-    this->collect_header_names_.insert(value);
-  }
+  void add_collect_header_name(std::string value) { this->collect_header_names_.insert(value); }
 
   void add_json(const char *key, TemplatableValue<std::string, Ts...> value) { this->json_.insert({key, value}); }
 
