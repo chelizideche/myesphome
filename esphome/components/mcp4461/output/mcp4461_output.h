@@ -12,6 +12,9 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
  public:
   Mcp4461Wiper(Mcp4461Component *parent, Mcp4461WiperIdx wiper) : parent_(parent), wiper_(wiper) {}
 
+  void turn_on() override;
+  void turn_off() override;
+  void set_state(bool state) override;
   float read_state();
   float update_state();
   void increase_wiper();
@@ -21,9 +24,6 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
 
  protected:
   void write_state(float state) override;
-  void turn_on() override;
-  void turn_off() override;
-  void set_state(bool state) override;
   Mcp4461Component *parent_;
   Mcp4461WiperIdx wiper_;
   float state_;
