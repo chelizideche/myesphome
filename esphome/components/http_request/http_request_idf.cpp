@@ -111,7 +111,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   watchdog::WatchdogManager wdm(this->get_watchdog_timeout());
 
   config.event_handler = http_event_handler;
-  auto user_data = UserData{collect_header_names, {}};
+  const std::map<std::string, std::list<std::string>> response_headers = {};
+  auto user_data = UserData{collect_header_names, response_headers};
   config.user_data = static_cast<void *>(&user_data);
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -158,7 +159,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   }
 
   container->feed_wdt();
-  container->set_response_headers(user_data->response_headers);
+  container->set_response_headers(response_headers);
   container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
