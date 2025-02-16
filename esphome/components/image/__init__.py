@@ -82,11 +82,13 @@ class ImageEncoder:
         self.dither = dither
         self.index = 0
         self.invert_alpha = invert_alpha
+        self.path = ""
 
-    def convert(self, image):
+    def convert(self, image, path):
         """
         Convert the image format
         :param image:  Input image
+        :param path:  Path to the image file
         :return: converted image
         """
         return image
@@ -103,6 +105,16 @@ class ImageEncoder:
         """
 
 
+def is_alpha_only(image: Image):
+    """
+    Check if an image (assumed to be RGBA) is only alpha
+    """
+    # Any alpha data?
+    if image.split()[-1].getextrema()[0] == 0xFF:
+        return False
+    return all(b.getextrema()[1] == 0 for b in image.split()[:-1])
+
+
 class ImageBinary(ImageEncoder):
     allow_config = {CONF_OPAQUE, CONF_INVERT_ALPHA, CONF_CHROMA_KEY}
 
@@ -111,7 +123,9 @@ class ImageBinary(ImageEncoder):
         super().__init__(self.width8, height, transparency, dither, invert_alpha)
         self.bitno = 0
 
-    def convert(self, image):
+    def convert(self, image, path):
+        if is_alpha_only(image):
+            image = image.split()[-1]
         return image.convert("1", dither=self.dither)
 
     def encode(self, pixel):
@@ -136,7 +150,16 @@ class ImageBinary(ImageEncoder):
 class ImageGrayscale(ImageEncoder):
     allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_INVERT_ALPHA, CONF_OPAQUE}
 
-    def convert(self, image):
+    def convert(self, image, path):
+        if is_alpha_only(image):
+            if self.transparency != CONF_ALPHA_CHANNEL:
+                _LOGGER.warning(
+                    "Grayscale image %s is alpha only, but transparency is set to %s",
+                    path,
+                    self.transparency,
+                )
+                self.transparency = CONF_ALPHA_CHANNEL
+            image = image.split()[-1]
         return image.convert("LA")
 
     def encode(self, pixel):
@@ -166,7 +189,7 @@ class ImageRGB565(ImageEncoder):
             invert_alpha,
         )
 
-    def convert(self, image):
+    def convert(self, image, path):
         return image.convert("RGBA")
 
     def encode(self, pixel):
@@ -204,7 +227,7 @@ class ImageRGB(ImageEncoder):
             invert_alpha,
         )
 
-    def convert(self, image):
+    def convert(self, image, path):
         return image.convert("RGBA")
 
     def encode(self, pixel):
@@ -250,16 +273,14 @@ IMAGE_TYPE = {
     "GRAYSCALE": ImageGrayscale,
     "RGB565": ImageRGB565,
     "RGB": ImageRGB,
-    "TRANSPARENT_BINARY": ReplaceWith(
-        "'type: BINARY' and 'use_transparency: chroma_key'"
-    ),
+    "TRANSPARENT_BINARY": ReplaceWith("'type: BINARY' and 'transparency: chroma_key'"),
     "RGB24": ReplaceWith("'type: RGB'"),
-    "RGBA": ReplaceWith("'type: RGB' and 'use_transparency: alpha_channel'"),
+    "RGBA": ReplaceWith("'type: RGB' and 'transparency: alpha_channel'"),
 }
 
 TransparencyType = image_ns.enum("TransparencyType")
 
-CONF_USE_TRANSPARENCY = "use_transparency"
+CONF_TRANSPARENCY = "transparency"
 
 # If the MDI file cannot be downloaded within this time, abort.
 IMAGE_DOWNLOAD_TIMEOUT = 30  # seconds
@@ -308,7 +329,7 @@ def is_svg_file(file):
     if not file:
         return False
     with open(file, "rb") as f:
-        return "<svg " in str(f.read(1024))
+        return "<svg" in str(f.read(1024))
 
 
 def validate_cairosvg_installed():
@@ -394,7 +415,7 @@ def validate_type(image_types):
 
 def validate_settings(value):
     type = value[CONF_TYPE]
-    transparency = value[CONF_USE_TRANSPARENCY].lower()
+    transparency = value[CONF_TRANSPARENCY].lower()
     allow_config = IMAGE_TYPE[type].allow_config
     if transparency not in allow_config:
         raise cv.Invalid(
@@ -435,9 +456,7 @@ BASE_SCHEMA = cv.Schema(
 IMAGE_SCHEMA = BASE_SCHEMA.extend(
     {
         cv.Required(CONF_TYPE): validate_type(IMAGE_TYPE),
-        cv.Optional(
-            CONF_USE_TRANSPARENCY, default=CONF_OPAQUE
-        ): validate_transparency(),
+        cv.Optional(CONF_TRANSPARENCY, default=CONF_OPAQUE): validate_transparency(),
     }
 )
 
@@ -453,7 +472,7 @@ def typed_image_schema(image_type):
                     BASE_SCHEMA.extend(
                         {
                             cv.Optional(
-                                CONF_USE_TRANSPARENCY, default=t
+                                CONF_TRANSPARENCY, default=t
                             ): validate_transparency((t,)),
                             cv.Optional(CONF_TYPE, default=image_type): validate_type(
                                 (image_type,)
@@ -471,7 +490,7 @@ def typed_image_schema(image_type):
             BASE_SCHEMA.extend(
                 {
                     cv.Optional(
-                        CONF_USE_TRANSPARENCY, default=CONF_OPAQUE
+                        CONF_TRANSPARENCY, default=CONF_OPAQUE
                     ): validate_transparency(),
                     cv.Optional(CONF_TYPE, default=image_type): validate_type(
                         (image_type,)
@@ -533,7 +552,7 @@ async def write_image(config, all_frames=False):
         else Image.Dither.FLOYDSTEINBERG
     )
     type = config[CONF_TYPE]
-    transparency = config[CONF_USE_TRANSPARENCY]
+    transparency = config[CONF_TRANSPARENCY]
     invert_alpha = config[CONF_INVERT_ALPHA]
     frame_count = 1
     if all_frames:
@@ -548,7 +567,7 @@ async def write_image(config, all_frames=False):
     encoder = IMAGE_TYPE[type](width, total_rows, transparency, dither, invert_alpha)
     for frame_index in range(frame_count):
         image.seek(frame_index)
-        pixels = encoder.convert(image.resize((width, height))).getdata()
+        pixels = encoder.convert(image.resize((width, height)), path).getdata()
         for row in range(height):
             for col in range(width):
                 encoder.encode(pixels[row * width + col])
@@ -557,7 +576,7 @@ async def write_image(config, all_frames=False):
     rhs = [HexInt(x) for x in encoder.data]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
     image_type = get_image_type_enum(type)
-    trans_value = get_transparency_enum(transparency)
+    trans_value = get_transparency_enum(encoder.transparency)
 
     return prog_arr, width, height, image_type, trans_value, frame_count
 

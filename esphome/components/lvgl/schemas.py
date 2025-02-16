@@ -199,23 +199,21 @@ FLAG_SCHEMA = cv.Schema({cv.Optional(flag): lvalid.lv_bool for flag in df.OBJ_FL
 FLAG_LIST = cv.ensure_list(df.LvConstant("LV_OBJ_FLAG_", *df.OBJ_FLAGS).one_of)
 
 
-def part_schema(widget_type: WidgetType):
+def part_schema(parts):
     """
     Generate a schema for the various parts (e.g. main:, indicator:) of a widget type
-    :param widget_type:  The type of widget to generate for
-    :return:
+    :param parts:  The parts to include in the schema
+    :return: The schema
     """
-    parts = widget_type.parts
     return cv.Schema({cv.Optional(part): STATE_SCHEMA for part in parts}).extend(
         STATE_SCHEMA
     )
 
 
 def automation_schema(typ: LvType):
+    events = df.LV_EVENT_TRIGGERS + df.SWIPE_TRIGGERS
     if typ.has_on_value:
-        events = df.LV_EVENT_TRIGGERS + (CONF_ON_VALUE,)
-    else:
-        events = df.LV_EVENT_TRIGGERS
+        events = events + (CONF_ON_VALUE,)
     args = typ.get_arg_type() if isinstance(typ, LvType) else []
     args.append(lv_event_t_ptr)
     return {
@@ -228,9 +226,15 @@ def automation_schema(typ: LvType):
     }
 
 
-def create_modify_schema(widget_type):
+def base_update_schema(widget_type, parts):
+    """
+    Create a schema for updating a widgets style properties, states and flags
+    :param widget_type: The type of the ID
+    :param parts:  The allowable parts to specify
+    :return:
+    """
     return (
-        part_schema(widget_type)
+        part_schema(parts)
         .extend(
             {
                 cv.Required(CONF_ID): cv.ensure_list(
@@ -245,7 +249,12 @@ def create_modify_schema(widget_type):
             }
         )
         .extend(FLAG_SCHEMA)
-        .extend(widget_type.modify_schema)
+    )
+
+
+def create_modify_schema(widget_type):
+    return base_update_schema(widget_type.w_type, widget_type.parts).extend(
+        widget_type.modify_schema
     )
 
 
@@ -256,7 +265,7 @@ def obj_schema(widget_type: WidgetType):
     :return:
     """
     return (
-        part_schema(widget_type)
+        part_schema(widget_type.parts)
         .extend(FLAG_SCHEMA)
         .extend(LAYOUT_SCHEMA)
         .extend(ALIGN_TO_SCHEMA)
@@ -340,7 +349,6 @@ GRID_CELL_SCHEMA = {
 FLEX_OBJ_SCHEMA = {
     cv.Optional(df.CONF_FLEX_GROW): cv.int_,
 }
-
 
 DISP_BG_SCHEMA = cv.Schema(
     {
