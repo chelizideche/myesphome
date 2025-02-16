@@ -40,6 +40,7 @@ class DHT : public PollingComponent {
 
   void set_pin(InternalGPIOPin *pin) { pin_ = pin; }
   void set_model(DHTModel model) { model_ = model; }
+  void set_pullup(bool pullup) { this->use_pullup_ = pullup; }
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
   void set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
 
@@ -57,6 +58,7 @@ class DHT : public PollingComponent {
   InternalGPIOPin *pin_;
   DHTModel model_{DHT_MODEL_AUTO_DETECT};
   bool is_auto_detect_{false};
+  bool use_pullup_{true};
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
 };

@@ -101,7 +101,12 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   } else {
     delayMicroseconds(800);
   }
-  this->pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+
+  gpio::Flags flags = gpio::FLAG_INPUT;
+  if (this->use_pullup_) {
+      flags = flags | gpio::FLAG_PULLUP;
+  }
+  this->pin_->pin_mode(flags);
 
   {
     InterruptLock lock;

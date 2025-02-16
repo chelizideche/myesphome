@@ -7,6 +7,7 @@ from esphome.const import (
     CONF_ID,
     CONF_MODEL,
     CONF_PIN,
+    CONF_PULLUP,
     CONF_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
@@ -50,6 +51,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_MODEL, default="auto detect"): cv.enum(
             DHT_MODELS, upper=True, space="_"
         ),
+        cv.Optional(CONF_PULLUP, default=True): cv.boolean
     }
 ).extend(cv.polling_component_schema("60s"))
 
@@ -60,6 +62,7 @@ async def to_code(config):
 
     pin = await gpio_pin_expression(config[CONF_PIN])
     cg.add(var.set_pin(pin))
+    cg.add(var.set_pullup(config[CONF_PULLUP]))
 
     if CONF_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_TEMPERATURE])
