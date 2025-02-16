@@ -23,6 +23,7 @@ void DHT::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Model: DHT22 (or equivalent)");
   }
+  ESP_LOGCONFIG(TAG, "  Internal Pull-up: %s", this.use_pullup_ ? "ENABLED" : "DISABLED");
 
   LOG_UPDATE_INTERVAL(this);
 
