@@ -103,7 +103,7 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
     delayMicroseconds(800);
   }
 
-  gpio::Flags flags = gpio::FLAG_INPUT;
+  gpio::Flags flags = gpio::FLAG_INPUT | gpio::FLAG_PULLDOWN;
   if (this->use_pullup_) {
       flags = flags | gpio::FLAG_PULLUP;
   }
