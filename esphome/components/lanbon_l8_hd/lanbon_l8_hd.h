@@ -41,7 +41,6 @@
 #include "esphome/components/light/light_traits.h"
 #include "esphome/components/esp32/gpio.h"
 
-
 namespace esphome {
 namespace lanbon_l8_hd {
 
