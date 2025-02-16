@@ -43,8 +43,9 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
       const std::string header_name = str_lower_case(evt->header_key);
       for (const auto &collect_header_name : collect_header_names) {
         if (str_equals_case_insensitive(collect_header_name, header_name)) {
-          ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), evt->header_value);
-          response_headers[header_name].emplace_back(evt->header_value);
+          const std::string header_value = evt->header_value;
+          ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
+          response_headers[header_name].push_back(header_value);
           break;
         }
       }
@@ -166,7 +167,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   ESP_LOGD(TAG, "About to esp_http_client_get_status_code");
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
-  ESP_LOGD(TAG, "About to set_response_headers");
+  ESP_LOGD(TAG, "About to set_response_headers, size: %d", response_headers.size());
   container->set_response_headers(response_headers);
   ESP_LOGD(TAG, "Done with set_response_headers");
   if (is_success(container->status_code)) {
