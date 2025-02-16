@@ -104,11 +104,12 @@ class HttpContainer : public Parented<HttpRequestComponent> {
   const std::map<std::string, std::list<std::string>> &get_response_headers() const { return this->response_headers_; }
 
   std::string get_response_header(const std::string &header_name) {
+    auto response_headers = this->get_response_headers();
     auto header_name_lower_case = str_lower_case(header_name);
-    if (this->response_headers_.count(header_name_lower_case) == 0) {
+    if (response_headers.count(header_name_lower_case) == 0) {
       return "";
     } else {
-      auto values = this->response_headers_[header_name_lower_case];
+      auto values = response_headers[header_name_lower_case];
       if (values.empty()) {
         return "";
       } else {
