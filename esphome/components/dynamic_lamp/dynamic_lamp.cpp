@@ -149,6 +149,7 @@ void DynamicLampComponent::add_lamp(std::string name) {
       this->active_lamps_[this->lamp_count_].used_outputs[i] = false;
     }
     this->lamp_count_++;
+    ESP_LOGV(TAG, "Added new lamp %s, total lamps now %" PRIu8 "", name.c_str(), this->lamp_count_);
     return;
   }
   ESP_LOGW(TAG, "No more lamps available, max 16 lamps supported!");
@@ -164,6 +165,8 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
         this->available_outputs_[j].in_use = false;
       }
       this->active_lamps_[i].active = false;
+      this->lamp_count_--;
+      ESP_LOGV(TAG, "Removed lamp %s, total lamps now %" PRIu8 "", name.c_str(), this->lamp_count_);
       return;
     }
   }
