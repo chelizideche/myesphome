@@ -8,7 +8,7 @@ import threading
 from esphome import mqtt
 
 from ..core import DASHBOARD
-from ..entries import EntryState
+from ..entries import EntryState, EntryStateSource, ReachableState
 
 
 class MqttStatusThread(threading.Thread):
@@ -33,7 +33,10 @@ class MqttStatusThread(threading.Thread):
                     return
                 for entry in current_entries:
                     if entry.name == data["name"]:
-                        entries.set_state(entry, EntryState.ONLINE)
+                        entries.set_state(
+                            entry,
+                            EntryState(ReachableState.ONLINE, EntryStateSource.MQTT),
+                        )
                         return
 
         def on_connect(client, userdata, flags, return_code):
@@ -57,7 +60,9 @@ class MqttStatusThread(threading.Thread):
             # will be set to true on on_message
             for entry in current_entries:
                 if entry.no_mdns:
-                    entries.set_state(entry, EntryState.OFFLINE)
+                    entries.set_state(
+                        entry, EntryState(ReachableState.OFFLINE, EntryStateSource.MQTT)
+                    )
 
             client.publish("esphome/discover", None, retain=False)
             dashboard.mqtt_ping_request.wait()

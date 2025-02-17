@@ -12,7 +12,7 @@ from esphome.zeroconf import (
 
 from ..const import SENTINEL
 from ..core import DASHBOARD
-from ..entries import DashboardEntry, bool_to_entry_state
+from ..entries import DashboardEntry, EntryStateSource, bool_to_entry_state
 
 
 class MDNSStatus:
@@ -49,7 +49,9 @@ class MDNSStatus:
                 # the device won't respond to a request to ._esphomelib._tcp.local.
                 poll_names.setdefault(entry.name, set()).add(entry)
             elif (online := host_mdns_state.get(entry.name, SENTINEL)) != SENTINEL:
-                entries.async_set_state(entry, bool_to_entry_state(online))
+                entries.async_set_state(
+                    entry, bool_to_entry_state(online, EntryStateSource.MDNS)
+                )
         if poll_names and self.aiozc:
             results = await asyncio.gather(
                 *(self.aiozc.async_resolve_host(name) for name in poll_names)
@@ -58,7 +60,9 @@ class MDNSStatus:
                 result = bool(address_list)
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
-                    entries.async_set_state(entry, bool_to_entry_state(result))
+                    entries.async_set_state(
+                        entry, bool_to_entry_state(result, EntryStateSource.MDNS)
+                    )
 
     async def async_run(self) -> None:
         dashboard = DASHBOARD
@@ -74,7 +78,10 @@ class MDNSStatus:
                 if matching_entries := entries.get_by_name(name):
                     for entry in matching_entries:
                         if not entry.no_mdns:
-                            entries.async_set_state(entry, bool_to_entry_state(result))
+                            entries.async_set_state(
+                                entry,
+                                bool_to_entry_state(result, EntryStateSource.MDNS),
+                            )
 
         stat = DashboardStatus(on_update)
         imports = DashboardImportDiscovery()

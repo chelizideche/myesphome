@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from dataclasses import dataclass
 import logging
 import os
 from typing import TYPE_CHECKING, Any
@@ -27,37 +28,45 @@ _LOGGER = logging.getLogger(__name__)
 
 DashboardCacheKeyType = tuple[int, int, float, int]
 
-# Currently EntryState is a simple
-# online/offline/unknown enum, but in the future
-# it may be expanded to include more states
+
+@dataclass
+class EntryState:
+    reachable: ReachableState
+    source: EntryStateSource
 
 
-class EntryState(StrEnum):
+class EntryStateSource(StrEnum):
+    MDNS = "mdns"
+    PING = "ping"
+    MQTT = "mqtt"
+
+
+class ReachableState(StrEnum):
     ONLINE = "online"
     OFFLINE = "offline"
     UNKNOWN = "unknown"
 
 
-_BOOL_TO_ENTRY_STATE = {
-    True: EntryState.ONLINE,
-    False: EntryState.OFFLINE,
-    None: EntryState.UNKNOWN,
+_BOOL_TO_REACHABLE_STATE = {
+    True: ReachableState.ONLINE,
+    False: ReachableState.OFFLINE,
+    None: ReachableState.UNKNOWN,
 }
-_ENTRY_STATE_TO_BOOL = {
-    EntryState.ONLINE: True,
-    EntryState.OFFLINE: False,
-    EntryState.UNKNOWN: None,
+_REACHABLE_STATE_TO_BOOL = {
+    ReachableState.ONLINE: True,
+    ReachableState.OFFLINE: False,
+    ReachableState.UNKNOWN: None,
 }
 
 
-def bool_to_entry_state(value: bool) -> EntryState:
+def bool_to_entry_state(value: bool, source: EntryStateSource) -> EntryState:
     """Convert a bool to an entry state."""
-    return _BOOL_TO_ENTRY_STATE[value]
+    return EntryState(_BOOL_TO_REACHABLE_STATE[value], source)
 
 
 def entry_state_to_bool(value: EntryState) -> bool | None:
     """Convert an entry state to a bool."""
-    return _ENTRY_STATE_TO_BOOL[value]
+    return _REACHABLE_STATE_TO_BOOL[value.reachable]
 
 
 class DashboardEntries:

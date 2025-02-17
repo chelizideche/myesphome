@@ -9,7 +9,7 @@ from icmplib import Host, SocketPermissionError, async_ping
 
 from ..const import MAX_EXECUTOR_WORKERS
 from ..core import DASHBOARD
-from ..entries import DashboardEntry, EntryState, bool_to_entry_state
+from ..entries import DashboardEntry, EntryState, EntryStateSource, bool_to_entry_state
 from ..util.itertools import chunked
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,7 +83,9 @@ class PingStatus:
                         host: Host = result
                         ping_result = host.is_alive
                     entry, _ = entry_addresses
-                    entries.async_set_state(entry, bool_to_entry_state(ping_result))
+                    entries.async_set_state(
+                        entry, bool_to_entry_state(ping_result, EntryStateSource.PING)
+                    )
 
 
 async def _can_use_icmp_lib_with_privilege() -> None | bool:
