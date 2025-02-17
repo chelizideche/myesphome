@@ -9,21 +9,21 @@ sx127x:
   dio0_pin: ${dio0_pin}
   pa_pin: BOOST
   pa_power: 17
+  pa_ramp: 40us
   bitsync: true
   bitrate: 4800
+  bandwidth: 50_0kHz
   frequency: 433920000
   modulation: FSK
+  deviation: 5000
   rx_start: true
   rx_floor: -90
-  rx_bandwidth: 50_0kHz
   payload_length: 8
   sync_value: [0x33, 0x33]
   shaping: NONE
   preamble_size: 2
   preamble_errors: 8
   preamble_polarity: 0x55
-  fsk_fdev: 5000
-  fsk_ramp: 40us
   on_packet:
     then:
       - sx127x.send_packet:
