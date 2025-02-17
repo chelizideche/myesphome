@@ -74,6 +74,7 @@ class DynamicLampComponent : public Component {
   void set_save_mode(uint8_t save_mode);
   void add_lamp(std::string name);
   void remove_lamp(std::string name);
+  std::string get_lamp_name(uint8_t lamp_number);
   void add_output_to_lamp(std::string lamp_name, LinkedOutput *output);
   void remove_output_from_lamp(std::string lamp_name, LinkedOutput *output);
   std::array<bool, 16> get_lamp_outputs(uint8_t lamp_number);
