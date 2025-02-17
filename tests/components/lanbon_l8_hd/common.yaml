@@ -1,4 +1,4 @@
-ouptut:
+output:
   - platform: gpio
     pin: ${enable_pin}
     id: power_relay
