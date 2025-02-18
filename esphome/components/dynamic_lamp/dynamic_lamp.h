@@ -79,6 +79,9 @@ class DynamicLampComponent : public Component {
   void remove_output_from_lamp(std::string lamp_name, LinkedOutput *output);
   std::array<bool, 16> get_lamp_outputs(uint8_t lamp_number);
   std::array<bool, 16> get_lamp_outputs_by_name(std::string lamp_name);
+  bool add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
+    uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
+    bool friday, bool saturday, bool sunday);
 
  protected:
   friend class DynamicLamp;

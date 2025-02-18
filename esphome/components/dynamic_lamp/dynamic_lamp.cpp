@@ -10,11 +10,30 @@
 #include <optional>
 #include <algorithm>
 #include <cinttypes>
+#include <bit>
 
 namespace esphome {
 namespace dynamic_lamp {
 
 static const char *TAG = "dynamic_lamp";
+
+struct DynamicLampTimer {
+  char lamp_name[32] : 256;
+  uint8_t mode : 1;
+  uint8_t hour : 5;
+  uint8_t minute : 6;
+  bool active : 1;
+  bool monday : 1;
+  bool tuesday : 1;
+  bool wednesday : 1;
+  bool thursday : 1;
+  bool friday : 1;
+  bool saturday : 1;
+  bool sunday : 1;
+  unsigned char :0;
+  ESPTime begin_date : 64;
+  ESPTime end_date : 64;
+};
 
 void DynamicLampComponent::setup() {
   this->begin();
@@ -224,6 +243,36 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name(std::string 
   this->status_set_warning();
   ESP_LOGW(TAG, "No lamp with name %s defined !", lamp_name.c_str());
   return bool_array;
+}
+
+bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
+                                     uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
+                                     bool friday, bool saturday, bool sunday) {
+  char const *lamp_name_cstr = lamp_name.c_str();
+  DynamicLampTimer new_timer;
+  std::strncpy(new_timer.lamp_name, lamp_name_cstr, 32);
+  new_timer.active = timer_active;
+  new_timer.mode = mode;
+  new_timer.hour = hour;
+  new_timer.minute = minute;
+  new_timer.monday = monday;
+  new_timer.tuesday = tuesday;
+  new_timer.wednesday = wednesday;
+  new_timer.thursday = thursday;
+  new_timer.friday = friday;
+  new_timer.saturday = saturday;
+  new_timer.sunday = sunday;
+  ESPTime now = this->time_->now();
+  time_t begin_date = now.to_time_t();
+  time_t end_date = now.increment_days(1).to_time_t();
+  new_timer.begin_date = begin_date;
+  new_timer.end_date = end_date;
+  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d, begin_date %s, end_date %s",
+           new_timer.lamp_name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
+           new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday,
+           new_timer.begin_date.to_string().c_str(), new_timer.end_date.to_string().c_str());
+  ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
+  return true; 
 }
 
 bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
