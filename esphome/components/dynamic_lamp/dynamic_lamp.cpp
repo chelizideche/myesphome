@@ -259,7 +259,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
   new_timer.begin_date = begin_date;
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
-  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
+  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, action %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
            lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
@@ -268,7 +268,8 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
 }
 
 LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
-  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(lamp_list_str, ",");
+  std::string delimiter = ",";
+  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(lamp_list_str, delimiter);
   LampList lamp_list;
   memset(&lamp_list, 0, sizeof(lamp_list));
   if (lamp_list_vector.size() > 16) {
@@ -345,8 +346,8 @@ void DynamicLampComponent::read_timers_to_log() {
       LampList lamp_list = *reinterpret_cast<LampList *>(&timer.lamp_list);
       for (uint8_t j = 0; j < 16; j++) {
         if (lamp_list[j]) {
-          ESP_LOGV(TAG, "Timer found for lamp %s: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
-               this->active_lamps_[j].name, timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday,
+          ESP_LOGV(TAG, "Timer found for lamp %s: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
+               this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
                timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
         }
       }
