@@ -59,7 +59,9 @@ class NECProtocol : public RemoteProtocol<NECData> {
   void dump(const NECData &data) override;
 
   std::string get_protocol_type_and_fields(const NECData &data) const;
-  bool is_extended(const NECData &data) const { return data.address_lower != data.address_upper; }
+  bool is_extended(const NECData &data) const {
+    return data.address_lower != static_cast<uint8_t>(~data.address_upper);
+  }
   bool is_command_valid(const NECData &data) const {
     return data.command_lower == static_cast<uint8_t>(~data.command_upper);
   }
