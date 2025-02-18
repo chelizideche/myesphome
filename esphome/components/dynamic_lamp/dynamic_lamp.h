@@ -5,6 +5,7 @@
 #include "esphome/core/optional.h"
 #include "esphome/core/log.h"
 #include "esphome/core/time.h"
+#include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/output/float_output.h"
 #include "esphome/components/light/light_output.h"
 
