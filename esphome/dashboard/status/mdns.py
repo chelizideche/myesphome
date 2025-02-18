@@ -110,7 +110,7 @@ class MDNSStatus:
 
         ping_request = dashboard.ping_request
         while not dashboard.stop_event.is_set():
-            await self.async_refresh_hosts(dashboard)
+            await self.async_refresh_hosts()
             await ping_request.wait()
             ping_request.clear()
 
