@@ -244,7 +244,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   new_timer.friday = friday;
   new_timer.saturday = saturday;
   new_timer.sunday = sunday;
-  ESPTime now = this->time_->now();
+  ESPTime now = this->rtc_->now();
   time_t begin_date = now.to_time_t();
   time_t end_date = now.increment_days(1).to_time_t();
   new_timer.begin_date = begin_date;

@@ -80,14 +80,15 @@ struct DynamicLampTimer {
   bool saturday : 1;
   bool sunday : 1;
   unsigned char :0;
-  ESPTime begin_date : 64;
-  ESPTime end_date : 64;
+  time_t begin_date : 64;
+  time_t end_date : 64;
 };
 
 class DynamicLamp;
 
 class DynamicLampComponent : public Component {
  public:
+  explicit DynamicLampComponent(time::RealTimeClock *rtc) : rtc_(rtc) {}
   void setup() override;
   void loop() override;
   void dump_config() override;
@@ -107,6 +108,7 @@ class DynamicLampComponent : public Component {
 
  protected:
   friend class DynamicLamp;
+  time::RealTimeClock *rtc_;
   void restore_lamp_values_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
@@ -115,6 +117,7 @@ class DynamicLampComponent : public Component {
   LinkedOutput available_outputs_[16];
   uint8_t save_mode_;
   uint8_t lamp_count_ = 0;
+
 };
 
 
