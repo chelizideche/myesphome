@@ -230,7 +230,7 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name(std::string 
 bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
                                      uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
                                      bool friday, bool saturday, bool sunday) {
-  char const *lamp_name_cstr = lamp_name.c_str();
+  const unsigned char* lamp_name_cstr = lamp_name.c_str();
   DynamicLampTimer new_timer;
   new_timer.active = timer_active;
   new_timer.mode = mode;
