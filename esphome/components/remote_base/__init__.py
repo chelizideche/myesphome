@@ -31,6 +31,7 @@ from esphome.const import (
     CONF_SYNC,
     CONF_TIMES,
     CONF_TRIGGER_ID,
+    CONF_TYPE,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
@@ -746,11 +747,17 @@ async def keeloq_action(var, config, args):
 
 # NEC
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
+nec_code_type = ns.enum("NECCodeType", is_class=True)
+NEC_CODE_TYPES = {
+    "frame": nec_code_type.FRAME,
+    "repeat": nec_code_type.REPEAT,
+}
 NEC_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
         cv.Optional(CONF_REPEATS, default=1): cv.uint16_t,
+        cv.Optional(CONF_TYPE, default="frame"): cv.enum(NEC_CODE_TYPES, lower=True),
     }
 )
 
@@ -764,6 +771,7 @@ def nec_binary_sensor(var, config):
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
                 ("repeats", config[CONF_REPEATS]),
+                ("type", config[CONF_TYPE]),
             )
         )
     )
