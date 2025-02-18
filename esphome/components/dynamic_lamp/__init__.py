@@ -1,13 +1,15 @@
 import esphome.codegen as cg
-from esphome.components import output
-from esphome.components.fram import FRAM
+from esphome.components import i2c, output
 from esphome.components.time import RealTimeClock
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
+DEPENDENCIES = ["i2c", "rtc", "fram", "output"]
 CODEOWNERS = ["@p1ngb4ck"]
 MULTI_CONF = False
 
+fram_ns = cg.esphome_ns.namespace("fram")
+FRAMComponent = fram_ns.class_("FRAM", cg.Component, i2c.I2CDevice)
 dynamic_lamp_ns = cg.esphome_ns.namespace('dynamic_lamp')
 DynamicLampComponent = dynamic_lamp_ns.class_('DynamicLampComponent', cg.Component)
 CONF_DYNAMIC_LAMP_ID = "dynamic_lamp_id"
@@ -19,7 +21,7 @@ CONF_AVAILABLE_OUTPUTS = 'available_outputs'
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(CONF_ID): cv.declare_id(DynamicLampComponent),
     cv.Required(CONF_RTC): cv.use_id(RealTimeClock),
-    cv.Required(CONF_FRAM): cv.use_id(FRAM),
+    cv.Required(CONF_FRAM): cv.use_id(FRAMComponent),
     cv.Required(CONF_AVAILABLE_OUTPUTS): [cv.use_id(output.FloatOutput)],
     cv.Optional(CONF_SAVE_MODE, default=0): cv.int_range(0, 1),
 }).extend(cv.COMPONENT_SCHEMA)
