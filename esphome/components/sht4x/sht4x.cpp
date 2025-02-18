@@ -96,7 +96,7 @@ void SHT4XComponent::update() {
         this->humidity_sensor_->publish_state(rh);
       }
     } else {
-      ESP_LOGW(TAG, "Sensor read failed");
+      this->status_set_warning("Sensor read failed");
     }
   });
 }
