@@ -114,7 +114,7 @@ class PingStatus:
                     else:
                         host: Host = result
                         ping_result = host.is_alive
-                    entry = cast(DashboardEntry, entry_addresses[0])
+                    entry: DashboardEntry = entry_addresses[0]
                     # If we can reach it via ping, we always set it
                     # online, however if we can't reach it via ping
                     # we only set it to offline if the state is unknown
