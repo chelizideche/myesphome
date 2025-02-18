@@ -757,50 +757,13 @@ NEC_CODE_TYPES = {
     TYPE_REPEAT: nec_code_type_enum_class.REPEAT,
 }
 
-
-def nec_schema_validator(config):
-    """Custom NEC schema validator that enforces different rules for FRAME vs. REPEAT."""
-    code_type = config[CONF_TYPE]
-
-    if code_type == NEC_CODE_TYPES[TYPE_FRAME]:
-        if CONF_ADDRESS not in config:
-            raise cv.Invalid(f"'{CONF_ADDRESS}' is required for type='{TYPE_FRAME}'.")
-        if CONF_COMMAND not in config:
-            raise cv.Invalid(f"'{CONF_COMMAND}' is required for type='{TYPE_FRAME}'.")
-        config.setdefault(CONF_REPEATS, 0)
-
-    elif code_type == NEC_CODE_TYPES[TYPE_REPEAT]:
-        config.setdefault(CONF_ADDRESS, 0)
-        config.setdefault(CONF_COMMAND, 0)
-        config.setdefault(CONF_REPEATS, 1)
-
-        if config[CONF_ADDRESS] != 0:
-            raise cv.Invalid(f"'{CONF_ADDRESS}' must be 0 for type='{TYPE_REPEAT}'.")
-        if config[CONF_COMMAND] != 0:
-            raise cv.Invalid(f"'{CONF_COMMAND}' must be 0 for type='{TYPE_REPEAT}'.")
-        if config[CONF_REPEATS] == 0:
-            raise cv.Invalid(
-                f"'{CONF_REPEATS}' must be greater than 0 for type='{TYPE_REPEAT}'."
-            )
-
-    else:
-        raise cv.Invalid(f"Invalid NEC type: '{config[CONF_TYPE]}'")
-
-    return config
-
-
-NEC_SCHEMA = cv.All(
-    cv.Schema(
-        {
-            cv.Optional(CONF_TYPE, default=TYPE_FRAME): cv.enum(
-                NEC_CODE_TYPES, lower=True
-            ),
-            cv.Optional(CONF_ADDRESS): cv.hex_uint16_t,
-            cv.Optional(CONF_COMMAND): cv.hex_uint16_t,
-            cv.Optional(CONF_REPEATS): cv.uint16_t,
-        }
-    ),
-    nec_schema_validator,
+NEC_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
+        cv.Required(CONF_COMMAND): cv.hex_uint16_t,
+        cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
+        cv.Optional(CONF_TYPE, default=TYPE_FRAME): cv.enum(NEC_CODE_TYPES, lower=True),
+    }
 )
 
 
