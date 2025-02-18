@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from esphome.zeroconf import (
     ESPHOME_SERVICE_TYPE,
@@ -14,6 +15,8 @@ from ..const import SENTINEL
 from ..core import DASHBOARD
 from ..entries import DashboardEntry, EntryStateSource, bool_to_entry_state
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class MDNSStatus:
     """Class that updates the mdns status."""
@@ -25,6 +28,15 @@ class MDNSStatus:
         # This is the current mdns state for each host (True, False, None)
         self.host_mdns_state: dict[str, bool | None] = {}
         self._loop = asyncio.get_running_loop()
+
+    def async_setup(self) -> bool:
+        """Set up the MDNSStatus class."""
+        try:
+            self.aiozc = AsyncEsphomeZeroconf()
+        except Exception as e:
+            _LOGGER.error("Error initializing zeroconf: %s", e)
+            return False
+        return True
 
     async def async_resolve_host(self, host_name: str) -> list[str] | None:
         """Resolve a host name to an address in a thread-safe manner."""
@@ -67,8 +79,6 @@ class MDNSStatus:
     async def async_run(self) -> None:
         dashboard = DASHBOARD
         entries = dashboard.entries
-        aiozc = AsyncEsphomeZeroconf()
-        self.aiozc = aiozc
         host_mdns_state = self.host_mdns_state
 
         def on_update(dat: dict[str, bool | None]) -> None:
@@ -88,7 +98,7 @@ class MDNSStatus:
         dashboard.import_result = imports.import_state
 
         browser = DashboardBrowser(
-            aiozc.zeroconf,
+            self.aiozc.zeroconf,
             ESPHOME_SERVICE_TYPE,
             [stat.browser_callback, imports.browser_callback],
         )
@@ -100,5 +110,5 @@ class MDNSStatus:
             ping_request.clear()
 
         await browser.async_cancel()
-        await aiozc.async_close()
+        await self.aiozc.async_close()
         self.aiozc = None
