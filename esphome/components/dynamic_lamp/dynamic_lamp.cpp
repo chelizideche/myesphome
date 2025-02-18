@@ -227,7 +227,7 @@ uint8_t DynamicLampComponent::get_lamp_index_by_name_(std::string lamp_name) {
 }
 
 std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name_(std::string lamp_name) {
-  uint8_t lamp_index = this->get_lamp_index_by_name(lamp_name);
+  uint8_t lamp_index = this->get_lamp_index_by_name_(lamp_name);
   if (lamp_index == 255) {
     std::array<bool, 16> bool_array;
     return bool_array;
@@ -260,7 +260,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
   ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           lamp_list_str.c_str(), new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
+           lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
   this->fram_->write((2048), timer_as_bytes, 24);
@@ -268,11 +268,9 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
 }
 
 LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
-  std::string delimiter = ",";
-  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(s, delimiter);
+  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(lamp_list_str, ",");
   LampList lamp_list;
-  lamp_list[0] = 0;
-  lamp_list[1] = 0;
+  memset(&lamp_list, 0, sizeof(lamp_list));
   if (lamp_list_vector.size() > 16) {
     ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
     this->status_set_warning();
