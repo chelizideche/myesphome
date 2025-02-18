@@ -767,8 +767,8 @@ NEC_FRAME_SCHEMA = cv.Schema(
 
 NEC_REPEAT_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ADDRESS, default=0): cv.uint16_t,
-        cv.Required(CONF_COMMAND, default=0): cv.uint16_t,
+        cv.Optional(CONF_ADDRESS, default=0): cv.hex_uint16_t,
+        cv.Optional(CONF_COMMAND, default=0): cv.hex_uint16_t,
         cv.Optional(CONF_REPEATS, default=1): cv.int_range(min=1, max=65535),
     }
 )
