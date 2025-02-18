@@ -80,11 +80,7 @@ class PingStatus:
                         # Only update state if its unknown or from ping
                         # so we don't mark it as offline if we have a state
                         # from mDNS or MQTT
-                        if entry.state.source in (
-                            EntryStateSource.UNKNOWN,
-                            EntryStateSource.PING,
-                        ):
-                            entries.async_set_state(entry, DNS_FAILURE_STATE)
+                        entries.async_set_state_if_source(entry, DNS_FAILURE_STATE)
                         continue
                     if isinstance(result, BaseException):
                         raise result
@@ -111,21 +107,14 @@ class PingStatus:
                         host: Host = result
                         ping_result = host.is_alive
                     entry = cast(DashboardEntry, entry_addresses[0])
-                    state = entry.state
                     # If we can reach it via ping, we always set it
                     # online, however if we can't reach it via ping
                     # we only set it to offline if the state is unknown
                     # or from ping
-                    if (
-                        ping_result and state.reachable is not ReachableState.ONLINE
-                    ) or state.source in (
-                        EntryStateSource.UNKNOWN,
-                        EntryStateSource.PING,
-                    ):
-                        entries.async_set_state(
-                            entry,
-                            bool_to_entry_state(ping_result, EntryStateSource.PING),
-                        )
+                    entries.async_set_state_if_online_or_source(
+                        entry,
+                        bool_to_entry_state(ping_result, EntryStateSource.PING),
+                    )
 
 
 async def _can_use_icmp_lib_with_privilege() -> None | bool:

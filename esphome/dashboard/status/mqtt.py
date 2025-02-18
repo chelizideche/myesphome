@@ -8,7 +8,7 @@ import typing
 
 from esphome import mqtt
 
-from ..entries import EntryStateSource, ReachableState, bool_to_entry_state
+from ..entries import EntryStateSource, bool_to_entry_state
 
 if typing.TYPE_CHECKING:
     from ..core import ESPHomeDashboard
@@ -41,17 +41,11 @@ class MqttStatusThread(threading.Thread):
                     return
                 if matching_entries := entries.get_by_name(data["name"]):
                     for entry in matching_entries:
-                        state = entry.state
                         # Only override state if we don't have a state from another source
                         # or we have a state from MQTT and the device is reachable
-                        if (
-                            state.reachable is not ReachableState.ONLINE
-                            or state.source
-                            in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT)
-                        ):
-                            entries.set_state(
-                                entry, bool_to_entry_state(True, EntryStateSource.MQTT)
-                            )
+                        entries.set_state_if_online_or_source(
+                            entry, bool_to_entry_state(True, EntryStateSource.MQTT)
+                        )
 
         def on_connect(client, userdata, flags, return_code):
             client.publish("esphome/discover", None, retain=False)
@@ -73,12 +67,10 @@ class MqttStatusThread(threading.Thread):
             current_entries = entries.all()
             # will be set to true on on_message
             for entry in current_entries:
-                state = entry.state
                 # Only override state if we don't have a state from another source
-                if state.source in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT):
-                    entries.set_state(
-                        entry, bool_to_entry_state(False, EntryStateSource.MQTT)
-                    )
+                entries.set_state_if_source(
+                    entry, bool_to_entry_state(False, EntryStateSource.MQTT)
+                )
 
             client.publish("esphome/discover", None, retain=False)
             dashboard.mqtt_ping_request.wait()

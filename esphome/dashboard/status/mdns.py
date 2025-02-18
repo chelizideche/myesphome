@@ -13,12 +13,7 @@ from esphome.zeroconf import (
 )
 
 from ..const import SENTINEL
-from ..entries import (
-    DashboardEntry,
-    EntryStateSource,
-    ReachableState,
-    bool_to_entry_state,
-)
+from ..entries import DashboardEntry, EntryStateSource, bool_to_entry_state
 
 if typing.TYPE_CHECKING:
     from ..core import ESPHomeDashboard
@@ -81,20 +76,13 @@ class MDNSStatus:
                 result = bool(address_list)
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
-                    state = entry.state
                     # If we can reach it via mDNS, we always set it
                     # online, however if we can't reach it via mDNS
                     # we only set it to offline if the state is unknown
                     # or from mDNS
-                    if (
-                        result and state.reachable is not ReachableState.ONLINE
-                    ) or state.source in (
-                        EntryStateSource.UNKNOWN,
-                        EntryStateSource.MDNS,
-                    ):
-                        entries.async_set_state(
-                            entry, bool_to_entry_state(result, EntryStateSource.MDNS)
-                        )
+                    entries.async_set_state_if_online_or_source(
+                        entry, bool_to_entry_state(result, EntryStateSource.MDNS)
+                    )
 
     async def async_run(self) -> None:
         """Run the mdns status."""

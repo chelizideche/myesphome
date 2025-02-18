@@ -137,6 +137,55 @@ class DashboardEntries:
         """Set the state for an entry."""
         self.async_set_state(entry, state)
 
+    def set_state_if_online_or_source(
+        self, entry: DashboardEntry, state: EntryState
+    ) -> None:
+        """Set the state for an entry if its online or provided by the source or unknown."""
+        asyncio.run_coroutine_threadsafe(
+            self._async_set_state_if_online_or_source(entry, state), self._loop
+        ).result()
+
+    async def _async_set_state_if_online_or_source(
+        self, entry: DashboardEntry, state: EntryState
+    ) -> None:
+        """Set the state for an entry if its online or provided by the source or unknown."""
+        self.async_set_state_if_online_or_source(entry, state)
+
+    def async_set_state_if_online_or_source(
+        self, entry: DashboardEntry, state: EntryState
+    ) -> None:
+        """Set the state for an entry if its online or provided by the source or unknown."""
+        if (
+            state.reachable is ReachableState.ONLINE
+            and entry.state.reachable is not ReachableState.ONLINE
+        ) or entry.state.source in (
+            EntryStateSource.UNKNOWN,
+            state.source,
+        ):
+            self.async_set_state(entry, state)
+
+    def set_state_if_source(self, entry: DashboardEntry, state: EntryState) -> None:
+        """Set the state for an entry if provided by the source or unknown."""
+        asyncio.run_coroutine_threadsafe(
+            self._async_set_state_if_source(entry, state), self._loop
+        ).result()
+
+    async def _async_set_state_if_source(
+        self, entry: DashboardEntry, state: EntryState
+    ) -> None:
+        """Set the state for an entry if rovided by the source or unknown."""
+        self.async_set_state_if_source(entry, state)
+
+    def async_set_state_if_source(
+        self, entry: DashboardEntry, state: EntryState
+    ) -> None:
+        """Set the state for an entry if provided by the source or unknown."""
+        if entry.state.source in (
+            EntryStateSource.UNKNOWN,
+            state.source,
+        ):
+            self.async_set_state(entry, state)
+
     def async_set_state(self, entry: DashboardEntry, state: EntryState) -> None:
         """Set the state for an entry."""
         if entry.state == state:
