@@ -7,7 +7,7 @@
 #define Vref 1.218
 #define R1  24.9
 #define R2  5 * 22000
-#define RL  0.25    // 0.5 * 1000 / 2000
+#define RL  0.3    // 0.6 * 1000 / 2000
 
 namespace esphome {
 namespace SeeedEnergyMeter {
