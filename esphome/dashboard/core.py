@@ -130,13 +130,13 @@ class ESPHomeDashboard:
         mdns_task: asyncio.Task | None = None
         await self.entries.async_update_entries()
 
-        mdns_status = MDNSStatus()
-        ping_status = PingStatus()
+        mdns_status = MDNSStatus(self)
+        ping_status = PingStatus(self)
         start_ping_timer: asyncio.TimerHandle | None = None
 
         self.mdns_status = mdns_status
         if mdns_status.async_setup():
-            mdns_task = asyncio.create_task(mdns_status.async_run(self))
+            mdns_task = asyncio.create_task(mdns_status.async_run())
             # Start ping 5 seconds after startup to ensure
             # MDNS has had a chance to resolve the devices
             start_ping_timer = self.loop.call_later(
