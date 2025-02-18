@@ -76,9 +76,13 @@ class MDNSStatus:
                 result = bool(address_list)
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
-                    entries.async_set_state(
-                        entry, bool_to_entry_state(result, EntryStateSource.MDNS)
-                    )
+                    if (
+                        entry.state.source is EntryStateSource.UNKNOWN
+                        or entry.state.source is EntryStateSource.MDNS
+                    ):
+                        entries.async_set_state(
+                            entry, bool_to_entry_state(result, EntryStateSource.MDNS)
+                        )
 
     async def async_run(self) -> None:
         """Run the mdns status."""

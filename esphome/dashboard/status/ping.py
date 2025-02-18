@@ -51,14 +51,14 @@ class PingStatus:
             to_ping: list[DashboardEntry] = []
 
             for entry in current_entries:
+                if entry.address is None:
+                    # No address we can't ping it
+                    continue
                 if (
-                    entry.address is None
-                    or entry.no_mdns
-                    or (
-                        entry.state.reachable is ReachableState.ONLINE
-                        and entry.state.source is EntryStateSource.MDNS
-                    )
+                    entry.state.source is not EntryStateSource.UNKNOWN
+                    and entry.state.source is not EntryStateSource.PING
                 ):
+                    # We already have a state from another source
                     continue
                 to_ping.append(entry)
 
