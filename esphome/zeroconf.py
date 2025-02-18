@@ -5,7 +5,13 @@ from dataclasses import dataclass
 import logging
 from typing import Callable
 
-from zeroconf import IPVersion, ServiceInfo, ServiceStateChange, Zeroconf
+from zeroconf import (
+    AddressResolver,
+    IPVersion,
+    ServiceInfo,
+    ServiceStateChange,
+    Zeroconf,
+)
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from esphome.storage_json import StorageJSON, ext_storage_path
@@ -168,11 +174,7 @@ class DashboardImportDiscovery:
 
 def _make_host_resolver(host: str) -> HostResolver:
     """Create a new HostResolver for the given host name."""
-    name = host.partition(".")[0]
-    info = HostResolver(
-        ESPHOME_SERVICE_TYPE, f"{name}.{ESPHOME_SERVICE_TYPE}", server=f"{name}.local."
-    )
-    return info
+    return AddressResolver(f"{host.partition(".")[0]}.local.")
 
 
 class EsphomeZeroconf(Zeroconf):
