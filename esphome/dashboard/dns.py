@@ -18,7 +18,7 @@ RESOLVE_TIMEOUT = 2.5
 async def _async_resolve_wrapper(hostname: str) -> list[str] | Exception:
     """Wrap the icmplib async_resolve function."""
     with suppress(ValueError):
-        return [ip_address(hostname)]
+        return [str(ip_address(hostname))]
     try:
         async with async_timeout(RESOLVE_TIMEOUT):
             return await async_resolve(hostname)
