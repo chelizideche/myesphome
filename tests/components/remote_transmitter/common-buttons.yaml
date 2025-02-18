@@ -1,3 +1,5 @@
+<<: !include common-nec.yaml
+
 button:
   - platform: template
     name: JVC Off
@@ -11,12 +13,29 @@ button:
       remote_transmitter.transmit_magiquest:
         wand_id: 0x01234567
   - platform: template
-    name: NEC
-    id: living_room_lights_off
+    name: NEC Default
+    id: living_room_lights_off_default
     on_press:
       remote_transmitter.transmit_nec:
-        address: 0x4242
-        command: 0x8484
+        address: ${nec_address}
+        command: ${nec_comamnd}
+  - platform: template
+    name: NEC Default 1 Repeat
+    id: living_room_lights_off_default_repeat
+    on_press:
+      remote_transmitter.transmit_nec:
+        address: ${nec_address}
+        command: ${nec_comamnd}
+        repeats: 1
+  - platform: template
+    name: NEC Repeats Only
+    id: living_room_lights_off_repeats_only
+    on_press:
+      remote_transmitter.transmit_nec:
+        address: ${nec_address}
+        command: ${nec_comamnd}
+        repeats: 10
+        type: repeat
   - platform: template
     name: LG
     on_press:
