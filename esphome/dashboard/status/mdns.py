@@ -80,9 +80,11 @@ class MDNSStatus:
                     # online, however if we can't reach it via mDNS
                     # we only set it to offline if the state is unknown
                     # or from mDNS
-                    entries.async_set_state_if_online_or_source(
-                        entry, bool_to_entry_state(result, EntryStateSource.MDNS)
-                    )
+                    state = bool_to_entry_state(result, EntryStateSource.MDNS)
+                    if result:
+                        entries.async_set_state(entry, state)
+                    else:
+                        entries.async_set_state_if_source(entry, state)
 
     async def async_run(self) -> None:
         """Run the mdns status."""
