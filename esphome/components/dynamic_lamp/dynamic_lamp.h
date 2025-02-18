@@ -89,7 +89,7 @@ class DynamicLamp;
 
 class DynamicLampComponent : public Component {
  public:
-  explicit DynamicLampComponent(time::RealTimeClock *rtc, FRAM *fram) : rtc_(rtc), fram_(fram) {}
+  explicit DynamicLampComponent(time::RealTimeClock *rtc, fram::FRAM *fram) : rtc_(rtc), fram_(fram) {}
   void setup() override;
   void loop() override;
   void dump_config() override;
@@ -110,7 +110,7 @@ class DynamicLampComponent : public Component {
  protected:
   friend class DynamicLamp;
   time::RealTimeClock *rtc_;
-  FRAM *fram_;
+  fram::FRAM *fram_;
   void restore_lamp_values_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
