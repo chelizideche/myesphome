@@ -756,7 +756,7 @@ NEC_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
-        cv.Optional(CONF_REPEATS, default=1): cv.uint16_t,
+        cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
         cv.Optional(CONF_TYPE, default="frame"): cv.enum(NEC_CODE_TYPES, lower=True),
     }
 )
