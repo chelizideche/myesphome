@@ -37,7 +37,7 @@ class MDNSStatus:
         """Set up the MDNSStatus class."""
         try:
             self.aiozc = AsyncEsphomeZeroconf()
-        except Exception as e:
+        except OSError as e:
             _LOGGER.error("Error initializing zeroconf: %s", e)
             return False
         return True
