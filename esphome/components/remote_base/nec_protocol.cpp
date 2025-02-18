@@ -168,15 +168,19 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
       debug_message += "Unknown";
   }
 
-  debug_message += ": address=0x";
-  if (this->is_extended(data)) {
-    debug_message += str_sprintf("%04X", data.address);
-  } else {
-    debug_message += str_sprintf("%02X, address#=0x%02X", data.address & 0xFF, (data.address >> 8) & 0xFF);
+  if (data.type == NECCodeType::FRAME) {
+    debug_message += ": address=0x";
+    if (this->is_extended(data)) {
+      debug_message += str_sprintf("%04X", data.address);
+    } else {
+      debug_message += str_sprintf("%02X, address#=0x%02X", data.address & 0xFF, (data.address >> 8) & 0xFF);
+    }
+
+    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s" PRIu16, data.command & 0xFF,
+                                 (data.command >> 8) & 0xFF, YESNO(this->is_command_valid(data)));
   }
 
-  debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s, repeats=%u", data.command & 0xFF,
-                               (data.command >> 8) & 0xFF, YESNO(this->is_command_valid(data)), data.repeats);
+  debug_message += str_sprintf(", repeats=%" PRIu16, data.repeats);
 
   return debug_message;
 }
