@@ -261,7 +261,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   return true; 
 }
 
-void DynamicLamp::read_timers_to_log() {
+void DynamicLampComponent::read_timers_to_log() {
   uint8_t i = 0;
   for (i = 0; i < 16; i++) {
     if (this->parent_->active_lamps_[i].active) {
