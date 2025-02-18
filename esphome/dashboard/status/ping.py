@@ -77,12 +77,16 @@ class PingStatus:
 
                 for entry, result in zip(ping_group, dns_results):
                     if isinstance(result, Exception):
-                        entries.async_set_state(
-                            entry,
-                            EntryState(
-                                ReachableState.DNS_FAILURE, EntryStateSource.PING
-                            ),
-                        )
+                        if (
+                            entry.state.source is EntryStateSource.UNKNOWN
+                            or entry.state.source is EntryStateSource.PING
+                        ):
+                            entries.async_set_state(
+                                entry,
+                                EntryState(
+                                    ReachableState.DNS_FAILURE, EntryStateSource.PING
+                                ),
+                            )
                         continue
                     if isinstance(result, BaseException):
                         raise result
@@ -109,9 +113,18 @@ class PingStatus:
                         host: Host = result
                         ping_result = host.is_alive
                     entry, _ = entry_addresses
-                    entries.async_set_state(
-                        entry, bool_to_entry_state(ping_result, EntryStateSource.PING)
-                    )
+                    if (
+                        (
+                            ping_result
+                            and entry.state.reachable is not ReachableState.ONLINE
+                        )
+                        or entry.state.source is EntryStateSource.UNKNOWN
+                        or entry.state.source is EntryStateSource.PING
+                    ):
+                        entries.async_set_state(
+                            entry,
+                            bool_to_entry_state(ping_result, EntryStateSource.PING),
+                        )
 
 
 async def _can_use_icmp_lib_with_privilege() -> None | bool:
