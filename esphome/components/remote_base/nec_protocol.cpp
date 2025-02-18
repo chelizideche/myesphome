@@ -98,46 +98,55 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
     return {};
   }
 
-  // Validate the long pause (message frame)
-  if (src.expect_space(LONG_PAUSE_LOW_US)) {
-    for (uint16_t mask = 1; mask; mask <<= 1) {
-      if (src.expect_item(BIT_HIGH_US, BIT_ONE_LOW_US)) {
-        data.address |= mask;  // Logic '1'
-      } else if (src.expect_item(BIT_HIGH_US, BIT_ZERO_LOW_US)) {
-        // Logic '0', since the address is already initialized with 0, `data.address &= ~mask;` is not needed
-      } else {
-        return {};
-      }
-    }
-
-    for (uint16_t mask = 1; mask; mask <<= 1) {
-      if (src.expect_item(BIT_HIGH_US, BIT_ONE_LOW_US)) {
-        data.command |= mask;  // Logic '1'
-      } else if (src.expect_item(BIT_HIGH_US, BIT_ZERO_LOW_US)) {
-        // Logic '0', since the command is already initialized with 0, `data.command &= ~mask;` is not needed
-      } else {
-        return {};
-      }
-    }
-
-    // Validate the final stop bit (end of the message frame)
-    if (!src.expect_mark(BIT_HIGH_US)) {
-      return {};
-    }
-
-    // Message frame received, `data.type = NECCodeType::FRAME` is already set
-  } else if (src.expect_space(SHORT_PAUSE_LOW_US)) {
+  // Validate the short pause (repeat code)
+  if (src.expect_space(SHORT_PAUSE_LOW_US)) {
     // Validate the stop bit of repeat code
     if (!src.expect_mark(BIT_HIGH_US)) {
       return {};
     }
 
     // Repeat code received
-    data.repeats = 1;
-    data.type = NECCodeType::REPEAT;
-  } else {
+    return NEC_REPEAT_CODE_DATA;
+  }
+
+  // Validate the long pause (message frame)
+  if (!src.expect_space(LONG_PAUSE_LOW_US)) {
     return {};
   }
+
+  // Validate address bits
+  for (uint16_t mask = 1; mask; mask <<= 1) {
+    if (src.expect_item(BIT_HIGH_US, BIT_ONE_LOW_US)) {
+      data.address |= mask;  // Logic '1'
+    } else if (src.expect_item(BIT_HIGH_US, BIT_ZERO_LOW_US)) {
+      // Logic '0', since the address is already initialized with 0, `data.address &= ~mask;` is not needed
+    } else {
+      return {};
+    }
+  }
+
+  // Validate command bits
+  for (uint16_t mask = 1; mask; mask <<= 1) {
+    if (src.expect_item(BIT_HIGH_US, BIT_ONE_LOW_US)) {
+      data.command |= mask;  // Logic '1'
+    } else if (src.expect_item(BIT_HIGH_US, BIT_ZERO_LOW_US)) {
+      // Logic '0', since the command is already initialized with 0, `data.command &= ~mask;` is not needed
+    } else {
+      return {};
+    }
+  }
+
+  // Validate the final stop bit (end of the message frame)
+  if (!src.expect_mark(BIT_HIGH_US)) {
+    return {};
+  }
+
+  // Message frame received, `data.type = NECCodeType::FRAME` is already set
+  if (!this->is_command_valid(data)) {
+    ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
+  }
+
+  ESP_LOGV(TAG, "Decoded %s", this->get_protocol_type_and_fields(data).c_str());
 
   return data;
 }
