@@ -8,6 +8,7 @@
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/output/float_output.h"
 #include "esphome/components/light/light_output.h"
+#include "esphome/components/fram/fram.h"
 
 namespace esphome {
 namespace dynamic_lamp {
