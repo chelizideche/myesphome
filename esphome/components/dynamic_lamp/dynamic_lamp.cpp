@@ -366,18 +366,18 @@ void DynamicLampComponent::restore_lamp_settings_() {
 
 void DynamicLampComponent::restore_timers_() {
   switch (this->save_mode_) {
-    case SAVE_MODE_NONE:
+    case SupportedSaveModes::SAVE_MODE_NONE:
       for (uint8_t i = 0; i < 256; i++) {
         this->timers_[i] = DynamicLampTimer();
         this->timers_[i].in_use = false;
       }
       break;
-    case SAVE_MODE_LOCAL:
+    case SupportedSaveModes::SAVE_MODE_LOCAL:
       // ToDo - yet to be implemented
       ESP_LOGW(TAG, "Save mode LOCAL not implemented yet, sorry");
       this->status_set_warning();
       break;
-    case SAVE_MODE_FRAM:
+    case SupportedSaveModes::SAVE_MODE_FRAM:
       DynamicLampTimer timer = DynamicLampTimer();
       std::string lamp_names_str;
       for (uint8_t i = 0; i < 256; i++) {
@@ -405,10 +405,6 @@ void DynamicLampComponent::restore_timers_() {
           ESP_LOGVV(TAG, "Timer save slot %" PRIu8 " did not contain valid record, initializing unused empty timer slot", i);
         }
       }
-      break;
-    default:
-      ESP_LOGW(TAG, "Currently only NONE(0), LOCAL(1) & FRAM(2) save modes supported, ignoring value %" PRIu8 " and defaulting to NONE!", this->save_mode_);
-      this->save_mode_ = 0;
       break;
   }
 }
