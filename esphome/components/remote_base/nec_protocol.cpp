@@ -144,7 +144,7 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
     return {};
   }
 
-  // Message frame received, `data.type = NECCodeType::FRAME` is already set
+  // Message frame received, `data.type = NECCodeType::FRAME_WITH_REPEATS` is already set
   if (!this->is_command_valid(data)) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
