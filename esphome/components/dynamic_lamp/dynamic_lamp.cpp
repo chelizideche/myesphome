@@ -374,9 +374,9 @@ void DynamicLampComponent::restore_lamp_settings_() {
       this->status_set_warning();
       break;
     case SAVE_MODE_FRAM:
-      // ToDo - yet to be implemented
-      //ESP_LOGW(TAG, "Save mode FRAM not implemented yet, sorry");
-      //this->status_set_warning();
+      for (uint8_t i=0; i < 16; i++) {
+        this->active_lamps_[i].active = false;
+      }
       break;
   }
 }
