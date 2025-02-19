@@ -382,11 +382,7 @@ void DynamicLampComponent::restore_timers_() {
       std::string lamp_names_str;
       for (uint8_t i = 0; i < 256; i++) {
         this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
-        if (timer.validation_bytes[0] == 'V' &&
-            timer.validation_bytes[1] == 'D' &&
-            timer.validation_bytes[2] == 'L' &&
-            timer.validation_bytes[3] == 'T' &&
-            timer.in_use) {
+        if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use) {
           this->timers_[i] = timer;
           lamp_names_str = "";
           for (uint8_t j = 0; j < 16; j++) {
