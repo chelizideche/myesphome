@@ -308,7 +308,7 @@ void DynamicLampComponent::read_timers_to_log() {
       DynamicLampTimer timer;
       this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
       for (uint8_t j = 0; j < 16; j++) {
-        bool lamp_included = static_cast<bool>(timer.lamp_list[floor(j / 8)] & (1 << (j % 8)));
+        bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
         if (lamp_included && this->active_lamps_[j].active) {
           ESP_LOGV(TAG, "Timer found for lamp %s |: active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
                    this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
