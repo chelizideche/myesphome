@@ -358,9 +358,6 @@ void DynamicLampComponent::restore_lamp_settings_() {
       //ESP_LOGW(TAG, "Save mode FRAM not implemented yet, sorry");
       //this->status_set_warning();
       break;
-    default:
-      ESP_LOGW(TAG, "Currently only NONE(0), LOCAL(1) & FRAM(2) save modes supported, ignoring value %" PRIu8 " and defaulting to NONE!", this->save_mode_);
-      this->save_mode_ = 0;
   }
 }
 
