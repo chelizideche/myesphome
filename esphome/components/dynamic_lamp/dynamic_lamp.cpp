@@ -95,7 +95,7 @@ void DynamicLampComponent::dump_config() {
       this->save_mode_ = 0;
   }
   for (uint8_t i = 0; i < 16; i++) {
-    if (this->available_outputs_[i].available) {
+    if (this->available_outputs_[i].available == true) {
       ESP_LOGCONFIG(TAG, "Using output with id %s as output number %" PRIu8 "", this->available_outputs_[i].output_id.c_str(), i);
     }
   }
@@ -104,13 +104,13 @@ void DynamicLampComponent::dump_config() {
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
-  /* std::string lamp_names_str;
+  std::string lamp_names_str;
   for (uint8_t i = 0; i < 64; i++) {
     if (this->timers_[i].in_use == true) {
       lamp_names_str = "";
       for (uint8_t j = 0; j < 16; j++) {
         bool lamp_included = static_cast<bool>(this->timers_[i].lamp_list[j / 8] & (1 << (j % 8)));
-        if (lamp_included && this->active_lamps_[j].active) {
+        if (lamp_included == true && this->active_lamps_[j].active == true) {
           if (lamp_names_str.length() > 0) {
             lamp_names_str += ", ";
           }
@@ -123,7 +123,7 @@ void DynamicLampComponent::dump_config() {
         this->timers_[i].wednesday, this->timers_[i].thursday, this->timers_[i].friday, this->timers_[i].saturday, this->timers_[i].sunday);
       ESP_LOGCONFIG(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
     }
-  } */
+  }
 }
 
 void DynamicLampComponent::set_save_mode(uint8_t save_mode) {
@@ -248,11 +248,11 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
   strncpy(reinterpret_cast<char *>(new_timer.timer_desc), timer_desc.c_str(), 36);
   unsigned char lamp_list_bytes[2] = {0, 0};
   for (uint8_t i = 0; i < lamp_list.size(); i++) {
-    if (lamp_list[i] == true && !this->active_lamps_[i].active) {
+    if (lamp_list[i] == true && this->active_lamps_[i].active != true) {
       ESP_LOGW(TAG, "Ignoring lamp number %" PRIu8 " as there is no active lamp with that index!", i);
       continue;
     }
-    if (lamp_list[i]) {
+    if (lamp_list[i] == true) {
       lamp_list_bytes[i / 8] |= 1 << (i % 8);
     }
   }
@@ -286,7 +286,7 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
   //ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
   uint8_t save_slot;
   for (save_slot = 0; save_slot < 64; save_slot++) {
-    if (!this->timers_[save_slot].in_use) {
+    if (this->timers_[save_slot].in_use != true) {
       break;
     }
   }
@@ -330,7 +330,7 @@ void DynamicLampComponent::read_timers_to_log() {
     std::string lamp_names_str = "";
     for (uint8_t j = 0; j < 16; j++) {
       bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
-      if (lamp_included == true && this->active_lamps_[j].active) {
+      if (lamp_included == true && this->active_lamps_[j].active == true) {
         if (lamp_names_str.length() > 0) {
           lamp_names_str += ", ";
         }
@@ -345,7 +345,7 @@ void DynamicLampComponent::read_timers_to_log() {
 }
 
 bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
-  if (this->active_lamps_[lamp_number].active) {
+  if (this->active_lamps_[lamp_number].active == true) {
     this->active_lamps_[lamp_number].state_ = state;
     this->active_lamps_[lamp_number].update_ = true;
     return true;
@@ -399,7 +399,7 @@ void DynamicLampComponent::restore_timers_() {
       std::string lamp_names_str;
       for (uint8_t i = 0; i < 64; i++) {
         this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
-        if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use) {
+        if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use == true) {
           this->timers_[i] = timer;
         } else {
           this->timers_[i] = DynamicLampTimer();
