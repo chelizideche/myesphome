@@ -340,7 +340,7 @@ void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
 std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::string& s, const std::string& delimiter) {
   std::vector<uint8_t> tokens;
   size_t pos = 0;
-  std::string token;
+  uint8_t token;
   while ((pos = s.find(delimiter)) != std::string::npos) {
       c_substr = s.substr(0, pos).c_str();
       token = static_cast<uint8_t>(atoi(c_substr));
