@@ -362,7 +362,8 @@ void DynamicLampComponent::read_fram_timers_to_log() {
           if (lamp_names_str.length() > 0) {
             lamp_names_str += ", ";
           }
-          lamp_names_str += this->active_lamps_[j].name;
+          std::string str(this->active_lamps_[j].name, this->active_lamps_[j].name + sizeof this->active_lamps_[j].name / sizeof this->active_lamps_[j].name[0]);
+          lamp_names_str += str;
         }
       }
       ESP_LOGV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
