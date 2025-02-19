@@ -422,7 +422,6 @@ void DynamicLampComponent::restore_timers_() {
         } else {
           this->timers_[i] = DynamicLampTimer();
           this->timers_[i].in_use = false;
-          //ESP_LOGVV(TAG, "Timer save slot %" PRIu8 " did not contain valid record, initializing unused empty timer slot", i);
         }
       }
       break;
