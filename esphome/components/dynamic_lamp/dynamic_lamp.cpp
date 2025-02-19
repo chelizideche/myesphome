@@ -269,7 +269,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
 
 LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
   std::string delimiter = ",";
-  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(lamp_list_str, delimiter);
+  std::vector<uint8_t> lamp_list_vector = this->split_to_int_vector_(lamp_list_str, delimiter);
   LampList lamp_list;
   memset(&lamp_list, 0, sizeof(lamp_list));
   if (lamp_list_vector.size() > 16) {
@@ -283,56 +283,7 @@ LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_l
       this->status_set_warning();
       return lamp_list;
     }
-    switch (lamp_list_vector[i]) {
-      case 0:
-        lamp_list.lamp_0 = true;
-        break;
-      case 1:
-        lamp_list.lamp_1 = true;
-        break;
-      case 2:
-        lamp_list.lamp_2 = true;
-        break;
-      case 3:
-        lamp_list.lamp_3 = true;
-        break;
-      case 4:
-        lamp_list.lamp_4 = true;
-        break;
-      case 5:
-        lamp_list.lamp_5 = true;
-        break;
-      case 6:
-        lamp_list.lamp_6 = true;
-        break;
-      case 7:
-        lamp_list.lamp_7 = true;
-        break;
-      case 8:
-        lamp_list.lamp_8 = true;
-        break;
-      case 9:
-        lamp_list.lamp_9 = true;
-        break;
-      case 10:
-        lamp_list.lamp_10 = true;
-        break;
-      case 11:
-        lamp_list.lamp_11 = true;
-        break;
-      case 12:
-        lamp_list.lamp_12 = true;
-        break;
-      case 13:
-        lamp_list.lamp_13 = true;
-        break;
-      case 14:
-        lamp_list.lamp_14 = true;
-        break;
-      case 15:
-        lamp_list.lamp_15 = true;
-        break;
-    }
+    lamp_list[lamp_list_vector[i]] = true;
   }
   return lamp_list;
 }
@@ -347,8 +298,8 @@ void DynamicLampComponent::read_timers_to_log() {
       for (uint8_t j = 0; j < 16; j++) {
         if (lamp_list[j]) {
           ESP_LOGV(TAG, "Timer found for lamp %s: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
-               this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
-               timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+                   this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+                   timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
         }
       }
     }
@@ -376,7 +327,7 @@ void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
   this->active_lamps_[lamp_number].active = false;
 }
 
-std::vector<uint8_t> DynamicLampComponent::split_to_int_array_(const std::string& s, const std::string& delimiter) {
+std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::string& s, const std::string& delimiter) {
   std::vector<uint8_t> tokens;
   size_t pos = 0;
   std::string token;
