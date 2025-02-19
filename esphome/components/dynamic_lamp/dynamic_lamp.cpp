@@ -328,7 +328,14 @@ void DynamicLampComponent::read_timers_to_log() {
     this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
     std::string lamp_names_str = "";
     for (uint8_t j = 0; j < 16; j++) {
-      bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+      uint8_t k = 0;
+      uint8_t l = j;
+      if (j > 7) {
+        k = 1;
+        l = j - 8;
+      }
+      //bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+      bool lamp_included = static_cast<bool>(timer.lamp_list[k] & (1 << l));
       if (lamp_included == true && this->active_lamps_[j].active == true) {
         if (lamp_names_str.length() > 0) {
           lamp_names_str += ", ";
