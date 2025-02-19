@@ -8,7 +8,7 @@ import sys
 from types import FrameType
 
 
-@dataclass(kw_only=True)
+@dataclass()
 class ComponentFrame:
     """Component frame container."""
 
@@ -37,7 +37,7 @@ class ComponentFrame:
 def get_current_frame(depth: int = 0) -> FrameType:
     """Return the current frame."""
     # Add one to depth since get_current_frame is included
-    return sys._getframe(depth + 1)  # noqa: SLF001
+    return sys._getframe(depth + 1)  # pylint: disable=protected-access
 
 
 class MissingComponentFrame(Exception):
