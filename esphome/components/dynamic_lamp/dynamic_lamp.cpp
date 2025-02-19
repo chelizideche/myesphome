@@ -278,8 +278,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
 }
 
 std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
-  std::string delimiter = ",";
-  std::vector<uint8_t> lamp_list_vector = this->split_to_int_vector_(lamp_list_str, delimiter);
+  std::vector<uint8_t> lamp_list_vector = this->split_to_int_vector_(lamp_list_str, ",");
   std::vector<bool> lamp_list;
   memset(&lamp_list, 0, 16);
   if (lamp_list_vector.size() > 16) {
@@ -337,11 +336,12 @@ void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
   this->active_lamps_[lamp_number].active = false;
 }
 
-std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::string& s, const std::string& delimiter) {
+std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(std::string lamp_list_str, std::string& delimiter) {
   std::vector<uint8_t> tokens;
-  std::stringstream sstream(s);
+  std::stringstream sstream;
+  sstream << std::string_view(lamp_list_str);
   std::string segment;
-  while(std::getline(test, segment, delimiter)) {
+  while(std::getline(sstream, segment, delimiter)) {
     tokens.push_back(static_cast<uint8_t>(atoi(segment.c_str())));
   }
   return tokens;

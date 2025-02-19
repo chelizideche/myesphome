@@ -118,7 +118,7 @@ class DynamicLampComponent : public Component {
   bool write_state_(uint8_t lamp_number, float state);
   uint8_t get_lamp_index_by_name_(std::string lamp_name);
   std::array<bool, 16> get_lamp_outputs_by_name_(std::string lamp_name);
-  std::vector<uint8_t> split_to_int_vector_(const std::string& s, const std::string& delimiter);
+  std::vector<uint8_t> split_to_int_vector_(std::string lamp_list_str, std::string delimiter)
   std::vector<bool> build_lamp_list_from_list_str_(std::string lamp_list_str);
 
   CombinedLamp active_lamps_[16];
