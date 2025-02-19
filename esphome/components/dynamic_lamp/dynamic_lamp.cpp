@@ -416,8 +416,9 @@ bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
   return false;
 }
 
-unsigned char* DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
-  return this->active_lamps_[lamp_number].name;
+std::string DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
+  std::string str(this->active_lamps_[lamp_number].name, this->active_lamps_[lamp_number].name + sizeof this->active_lamps_[lamp_number].name / sizeof this->active_lamps_[lamp_number].name[0]);
+  return str;
 }
 
 void DynamicLampComponent::set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value) {
