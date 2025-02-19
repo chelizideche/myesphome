@@ -2266,8 +2266,8 @@ def rename_key(old_key, new_key):
 
 def _deprecated_or_removed(
     key: str,
-    replacement_key: str | None,
-    default: Any | None,
+    replacement_key: Optional[str],
+    default: Optional[Any],
     raise_if_present: bool,
     option_removed: bool,
 ) -> Callable[[dict], dict]:
@@ -2337,9 +2337,9 @@ def _deprecated_or_removed(
 
 def deprecated(
     key: str,
-    replacement_key: str | None = None,
-    default: Any | None = None,
-    raise_if_present: bool | None = False,
+    replacement_key: Optional[str] = None,
+    default: Optional[Any] = None,
+    raise_if_present: Optional[bool] = False,
 ) -> Callable[[dict], dict]:
     """Log key as deprecated and provide a replacement (if exists).
 
@@ -2363,8 +2363,8 @@ def deprecated(
 
 def removed(
     key: str,
-    default: Any | None = None,
-    raise_if_present: bool | None = True,
+    default: Optional[Any] = None,
+    raise_if_present: Optional[bool] = True,
 ) -> Callable[[dict], dict]:
     """Log key as deprecated and fail the config validation.
 
