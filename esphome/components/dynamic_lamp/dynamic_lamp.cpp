@@ -167,7 +167,7 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
       }
       this->active_lamps_[i].active = false;
       this->lamp_count_--;
-      ESP_LOGV(TAG, "Removed lamp %s, total lamps now %" PRIu8 "", this->active_lamps_[i].name.c_str(), this->lamp_count_);
+      ESP_LOGV(TAG, "Removed lamp %s, total lamps now %" PRIu8 "", this->active_lamps_[i].name, this->lamp_count_);
       return;
     }
     i++;
