@@ -40,5 +40,6 @@ def test_deep_sleep_run_duration_dictionary(generate_main):
         "    .default_cause = 10000,\n"
         "    .touch_cause = 10000,\n"
         "    .gpio_cause = 30000,\n"
+        "    .ext1_cause = 10000,\n"
         "});"
     ) in main_cpp
