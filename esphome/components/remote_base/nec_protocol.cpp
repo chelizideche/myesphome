@@ -6,8 +6,11 @@ namespace remote_base {
 
 static const char *const TAG = "remote.nec";
 
-// NEC IR Protocol
-// Protocol Reference: https://techdocs.altium.com/display/FPGA/NEC%2bInfrared%2bTransmission%2bProtocol
+// NEC IR Protocol (old URL https://techdocs.altium.com/display/FPGA/NEC%2bInfrared%2bTransmission%2bProtocol)
+// Protocol Reference:
+// https://files.doc.altium.com/sites/default/files/wiki_attachments/299480/Legacy%20-%20FPGA%20Design.pdf
+// https://www.infineon.com/dgdl/Infineon-AN2023-03_Infrared_Remote_Control_and_Saving_Last_Speed_Setting-ApplicationNotes-v01_00-EN.pdf?fileId=8ac78c8c8d1b852e018d21ff0aa71feb
+// // NOLINT https://www.renesas.com/ja/document/apn/1184-remote-control-ir-receiver-decoder
 
 // Timing constants in microseconds
 static const uint32_t AGC_HIGH_US = 9000;            // AGC burst: 9ms HIGH
