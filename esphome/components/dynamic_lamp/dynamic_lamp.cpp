@@ -162,10 +162,11 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
           this->active_lamps_[i].used_outputs[j] = false;
         }
       }
-      for (uint8_t j = 0; j < 24; j++) {
-        uint16_t memaddress = (0x0000 + (i * 24) + j);
-        this->fram_->write(memaddress, 0xff, 1);
-      }
+      uint16_t memaddress = 0 + (i * 24);
+      this->fram_->write(memaddress, {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+      }, 24);
       this->active_lamps_[i].active = false;
       this->lamp_count_--;
       ESP_LOGV(TAG, "Removed lamp %s, total lamps now %" PRIu8 "", this->active_lamps_[i].name, this->lamp_count_);
