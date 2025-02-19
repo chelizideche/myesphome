@@ -339,7 +339,13 @@ void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
 
 std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::string& s, const std::string& delimiter) {
   std::vector<uint8_t> tokens;
-  size_t pos = 0;
+  std::stringstream sstream(s);
+  std::string segment;
+  while(std::getline(test, segment, delimiter)) {
+    tokens.push_back(static_cast<uint8_t>(atoi(segment.c_str())));
+  }
+  return tokens;
+  /* size_t pos = 0;
   uint8_t token;
   while ((pos = s.find(delimiter)) != std::string::npos) {
       std::string substr = s.substr(0, pos);
@@ -349,7 +355,7 @@ std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::strin
   }
   tokens.push_back(s);
 
-  return tokens;
+  return tokens; */
 }
 
 }  // namespace dynamic_lamp
