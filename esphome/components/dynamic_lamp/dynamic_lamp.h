@@ -69,7 +69,7 @@ struct CombinedLamp {
 };
 
 struct DynamicLampTimer {
-  unsigned char validation[3] = { 'D', 'L', 'T' };
+  unsigned char timer_desc[40];
   unsigned char lamp_list[2];
   uint8_t action : 3;
   uint8_t hour : 5;
@@ -82,7 +82,7 @@ struct DynamicLampTimer {
   bool friday : 1;
   bool saturday : 1;
   bool sunday : 1;
-  unsigned char :0;
+  bool respect_dst : 1;
   time_t begin_date : 64;
   time_t end_date : 64;
 };
@@ -104,7 +104,7 @@ class DynamicLampComponent : public Component {
   void add_output_to_lamp(std::string lamp_name, LinkedOutput *output);
   void remove_output_from_lamp(std::string lamp_name, LinkedOutput *output);
   std::array<bool, 16> get_lamp_outputs(uint8_t lamp_number);
-  bool add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
+  bool add_timer(std::string timer_desc, std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
     uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
     bool friday, bool saturday, bool sunday);
   void read_timers_to_log();

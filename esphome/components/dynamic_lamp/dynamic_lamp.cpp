@@ -236,11 +236,12 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name_(std::string
   return this->get_lamp_outputs(lamp_index);
 }
 
-bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_active, uint8_t action, uint8_t hour,
+bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_list_str, bool timer_active, uint8_t action, uint8_t hour,
                                      uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
                                      bool friday, bool saturday, bool sunday) {
   std::vector<bool> lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
+  strncpy(reinterpret_cast<char *>(new_timer.desc), timer_desc.c_str(), 40);
   unsigned char lamp_list_bytes[2] = {0, 0};
   for (uint8_t i = 0; i < lamp_list.size(); i++) {
     if (lamp_list[i] == true && !this->active_lamps_[i].active) {
@@ -270,11 +271,11 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
   new_timer.begin_date = begin_date;
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
-  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, action %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
-           new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
+  ESP_LOGV(TAG, "Added new timer %s with lamp-list %s, active %d, action %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
+           new_timer.desc, lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday,
+           new_timer.tuesday, new_timer.wednesday, new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
-  this->fram_->write((2048), timer_as_bytes, 24);
+  this->fram_->write((2048), timer_as_bytes, 64);
   return true;
 }
 
@@ -303,7 +304,7 @@ std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::stri
 
 void DynamicLampComponent::read_timers_to_log() {
   DynamicLampTimer timer;
-  this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
+  this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 64);
   std::string lamp_names_str = "";
   for (uint8_t j = 0; j < 16; j++) {
     bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
@@ -314,8 +315,8 @@ void DynamicLampComponent::read_timers_to_log() {
       lamp_names_str += this->active_lamps_[j].name;
     }
   }
-  ESP_LOGV(TAG, "Timer found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
-    timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+  ESP_LOGV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
+    timer.desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
     timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
   ESP_LOGV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
 }
