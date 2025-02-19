@@ -304,7 +304,6 @@ void DynamicLampComponent::read_timers_to_log() {
     if (this->active_lamps_[i].active) {
       DynamicLampTimer timer;
       this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
-      //std::vector<bool> lamp_list = *reinterpret_cast<std::vector<bool> *>(&timer.lamp_list);
       for (uint8_t j = 0; j < 16; j++) {
         bool lamp_included = timer.lamp_list[j / 8] & (1 << (j % 8));
         if (lamp_included && this->active_lamps_[j].active) {
