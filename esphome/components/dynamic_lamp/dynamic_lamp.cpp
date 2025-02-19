@@ -342,7 +342,8 @@ std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::strin
   size_t pos = 0;
   std::string token;
   while ((pos = s.find(delimiter)) != std::string::npos) {
-      token = static_cast<uint8_t>(atoi(s.substr(0, pos).c_str()));
+      c_substr = s.substr(0, pos).c_str();
+      token = static_cast<uint8_t>(atoi(c_substr));
       tokens.push_back(token);
       s.erase(0, pos + delimiter.length());
   }
