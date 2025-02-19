@@ -130,7 +130,7 @@ void DynamicLampComponent::add_available_output(output::FloatOutput * output, st
 void DynamicLampComponent::add_lamp(std::string name) {
   if (this->lamp_count_ < 15) {
     this->active_lamps_[this->lamp_count_].active = true;
-    this->active_lamps_[this->lamp_count_].name = name.c_str();
+    memcpy(this->active_lamps_[this->lamp_count_].name, name.c_str(), 16);
     this->active_lamps_[this->lamp_count_].validation_byte = 'L';
     this->active_lamps_[this->lamp_count_].lamp_index = this->lamp_count_;
     this->active_lamps_[this->lamp_count_].used_outputs[0] = 0;
@@ -188,7 +188,7 @@ void DynamicLampComponent::add_output_to_lamp(std::string lamp_name, LinkedOutpu
   }
   uint8_t i = 0;
   while (i < 16) {
-    if (this->active_lamps_[i].name == lamp_name) {
+    if (this->active_lamps_[i].name == lamp_name.c_str()) {
       uint8_t j = 0;
       if (output->output_index > 7) {
         j = 1;
