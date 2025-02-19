@@ -26,7 +26,7 @@ void DynamicLampComponent::begin() {
   for (uint8_t i=0; i < 16; i++) {
     this->active_lamps_[i] = CombinedLamp();
     this->active_lamps_[i].active = false;
-    this->available_outputs_[i] = LinkedOutput{ false, false, "", 0, nullptr, 0, 0, 0, std::nullopt, std::nullopt, false };
+    this->available_outputs_[i] = LinkedOutput{ false, false, "", 0, nullptr, 0.0, 0, 0, 0.0f, 1.0f, false };
   }
   this->restore_lamp_settings_();
   this->restore_timers_();
@@ -124,14 +124,13 @@ void DynamicLampComponent::add_available_output(output::FloatOutput * output, st
   this->available_outputs_[counter].output_id = output_id;
   this->available_outputs_[counter].output = output;
   this->available_outputs_[counter].output_index = counter;
-  this->available_outputs_[counter].state = output.state;
   counter++;
 }
 
 void DynamicLampComponent::add_lamp(std::string name) {
   if (this->lamp_count_ < 15) {
     this->active_lamps_[this->lamp_count_].active = true;
-    this->active_lamps_[this->lamp_count_].name = nam.c_str();
+    this->active_lamps_[this->lamp_count_].name = name.c_str();
     this->active_lamps_[this->lamp_count_].validation_byte = 'L';
     this->active_lamps_[this->lamp_count_].lamp_index = this->lamp_count_;
     this->active_lamps_[this->lamp_count_].used_outputs[0] = 0;
