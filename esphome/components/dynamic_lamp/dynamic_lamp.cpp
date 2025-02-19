@@ -25,13 +25,6 @@ void DynamicLampComponent::setup() {
 void DynamicLampComponent::begin() {
   this->restore_lamp_settings_();
   this->restore_timers_();
-  /* keep example for future reference
-  this->add_lamp("First Lamp");
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[0]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
-  */
 }
 
 void DynamicLampComponent::loop() {
@@ -111,6 +104,26 @@ void DynamicLampComponent::dump_config() {
   this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
   this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
   this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
+  std::string lamp_names_str;
+  for (uint8_t i = 0; i < 64; i++) {
+    if (this->timers_[i].in_use == true) {
+      lamp_names_str = "";
+      for (uint8_t j = 0; j < 16; j++) {
+        bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+        if (lamp_included && this->active_lamps_[j].active) {
+          if (lamp_names_str.length() > 0) {
+            lamp_names_str += ", ";
+          }
+          lamp_names_str += this->active_lamps_[j].name;
+        }
+      }
+      ESP_LOGCONFIG(TAG, "Restored valid timer record %s in save slot %" PRIu8 "", i, timer.timer_desc);
+      ESP_LOGCONFIG(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
+        timer.timer_desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+        timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+      ESP_LOGCONFIG(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
+    }
+  }
 }
 
 void DynamicLampComponent::set_save_mode(uint8_t save_mode) {
@@ -383,21 +396,6 @@ void DynamicLampComponent::restore_timers_() {
         this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
         if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use) {
           this->timers_[i] = timer;
-          lamp_names_str = "";
-          for (uint8_t j = 0; j < 16; j++) {
-            bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
-            if (lamp_included && this->active_lamps_[j].active) {
-              if (lamp_names_str.length() > 0) {
-                lamp_names_str += ", ";
-              }
-              lamp_names_str += this->active_lamps_[j].name;
-            }
-          }
-          ESP_LOGVV(TAG, "Restored valid timer record %s in save slot %" PRIu8 "", i, timer.timer_desc);
-          ESP_LOGVV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
-            timer.timer_desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
-            timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
-          ESP_LOGVV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
         } else {
           this->timers_[i] = DynamicLampTimer();
           this->timers_[i].in_use = false;
