@@ -431,7 +431,7 @@ void DynamicLampComponent::restore_lamp_settings_() {
     case SAVE_MODE_FRAM:
       CombinedLamp lamp;
       for (uint8_t i=0; i < 16; i++) {
-        lamp = this->fram_->read((0x0000 + (i * 24)), reinterpret_cast<unsigned char *>(&lamp), 24);
+        this->fram_->read((0x0000 + (i * 24)), reinterpret_cast<unsigned char *>(&lamp), 24);
         if (lamp.validation_byte == 'L' && lamp.active == true) {
           this->active_lamps_[i] = lamp;
           for (uint8_t j = 0; j < 16; j++) {
