@@ -115,8 +115,8 @@ class DynamicLampComponent : public Component {
   friend class DynamicLamp;
   time::RealTimeClock *rtc_;
   fram::FRAM *fram_;
-  void restore_lamp_settings_(uint8_t lamp_number);
-  void restore_timers_(uint8_t lamp_number);
+  void restore_lamp_settings_();
+  void restore_timers_();
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
   uint8_t get_lamp_index_by_name_(std::string lamp_name);
