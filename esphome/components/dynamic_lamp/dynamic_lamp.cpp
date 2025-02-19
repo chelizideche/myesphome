@@ -241,7 +241,7 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
                                      bool friday, bool saturday, bool sunday) {
   std::vector<bool> lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
-  strncpy(reinterpret_cast<char *>(new_timer.desc), timer_desc.c_str(), 40);
+  strncpy(reinterpret_cast<char *>(new_timer.timer_desc), timer_desc.c_str(), 40);
   unsigned char lamp_list_bytes[2] = {0, 0};
   for (uint8_t i = 0; i < lamp_list.size(); i++) {
     if (lamp_list[i] == true && !this->active_lamps_[i].active) {
@@ -272,7 +272,7 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
   ESP_LOGV(TAG, "Added new timer %s with lamp-list %s, active %d, action %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           new_timer.desc, lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday,
+           new_timer.timer_desc, lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday,
            new_timer.tuesday, new_timer.wednesday, new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
   this->fram_->write((2048), timer_as_bytes, 64);
@@ -316,7 +316,7 @@ void DynamicLampComponent::read_timers_to_log() {
     }
   }
   ESP_LOGV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
-    timer.desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+    timer.timer_desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
     timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
   ESP_LOGV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
 }
