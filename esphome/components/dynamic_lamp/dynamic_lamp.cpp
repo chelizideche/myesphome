@@ -403,8 +403,9 @@ void DynamicLampComponent::restore_timers_() {
       this->status_set_warning();
       break;
     case SupportedSaveModes::SAVE_MODE_FRAM:
-      DynamicLampTimer timer = DynamicLampTimer();
+      DynamicLampTimer timer;
       for (uint8_t i = 0; i < 12; i++) {
+        timer  = DynamicLampTimer();
         this->timers_[i] = timer;
         this->timers_[i].in_use = false;
       }
