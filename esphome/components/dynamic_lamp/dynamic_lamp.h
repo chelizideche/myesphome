@@ -69,7 +69,7 @@ struct CombinedLamp {
 };
 
 struct DynamicLampTimer {
-  unsigned char validation_bytes[4] = {'V', 'D', 'L', 'T'};
+  unsigned char validation_bytes[4];
   unsigned char timer_desc[36];
   unsigned char lamp_list[2];
   bool in_use : 1;

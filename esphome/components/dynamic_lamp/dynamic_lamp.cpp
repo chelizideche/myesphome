@@ -257,6 +257,11 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
     }
   }
   memcpy(new_timer.lamp_list, lamp_list_bytes, 2);
+  new_timer.in_use = true;
+  new_timer.validation_bytes[0] = 'V';
+  new_timer.validation_bytes[1] = 'D';
+  new_timer.validation_bytes[2] = 'L';
+  new_timer.validation_bytes[3] = 'T';
   new_timer.active = timer_active;
   new_timer.action = action;
   new_timer.hour = hour;
