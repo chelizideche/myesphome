@@ -128,7 +128,7 @@ class DynamicLampComponent : public Component {
  
   CombinedLamp active_lamps_[16];
   LinkedOutput available_outputs_[16];
-  DynamicLampTimer timers_[64];
+  DynamicLampTimer timers_[256];
   uint8_t save_mode_;
   uint8_t lamp_count_ = 0;
 };
