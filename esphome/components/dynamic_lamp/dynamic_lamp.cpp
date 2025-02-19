@@ -105,7 +105,7 @@ void DynamicLampComponent::dump_config() {
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
   std::string lamp_names_str;
-  for (i = 0; i < 64; i++) {
+  for (uint8_t i = 0; i < 64; i++) {
     if (this->timers_[i].in_use == true) {
       lamp_names_str = "";
       for (uint8_t j = 0; j < 16; j++) {
