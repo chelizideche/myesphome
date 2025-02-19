@@ -163,7 +163,8 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
         }
       }
       for (uint8_t j = 0; j < 24; j++) {
-        this->fram_->write((0x0000 + (i * 24) + j), { 0xff }, 1);
+        uint16_t memaddress = (0x0000 + (i * 24) + j);
+        this->fram_->write(memaddress, &{ 0xff }, 1);
       }
       this->active_lamps_[i].active = false;
       this->lamp_count_--;
