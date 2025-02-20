@@ -13,7 +13,7 @@ static const char *const TAG = "mcp4461.output";
 // this function converts them to the 0 - 256 range used by the MCP4461
 void Mcp4461Wiper::write_state(float state) {
   if (!std::isfinite(state)) {
-  ESP_LOGW.....
+    ESP_LOGW(TAG, "Finite state state value is required.");
     return;
   }
   state = clamp(state, 0.0f, 1.0f);
