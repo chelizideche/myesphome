@@ -118,11 +118,13 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @brief update write protection status of device
   void update_write_protection_status_();
   /// @brief fetch wiper address for given wiper
+  /// @param[wiper] wiper to fetch address for, int in range 0-7
   uint8_t get_wiper_address_(uint8_t wiper);
+  /// @brief internal i2c function to read given wiper value
   uint16_t read_wiper_level_(uint8_t wiper);
   /// @brief fetch device status register values
   uint8_t get_status_register_();
-  /// @brief read current level/state of given wiper
+  /// @brief read current level/state of given wiper with validation checks
   uint16_t get_wiper_level_(Mcp4461WiperIdx wiper);
   /// @brief set level/state of given wiper
   bool set_wiper_level_(Mcp4461WiperIdx wiper, uint16_t value);
