@@ -19,8 +19,10 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
   /// @brief Disables current output
   void turn_off() override;
   /// @brief Read current device wiper state without updating internal output state
+  /// @return float - current device state as float in range 0 - 1.0
   float read_state();
   /// @brief Update current output state using device wiper state
+  /// @return float - current updated output state as float in range 0 - 1.0
   float update_state();
   /// @brief Increase wiper by 1 tap
   void increase_wiper();
