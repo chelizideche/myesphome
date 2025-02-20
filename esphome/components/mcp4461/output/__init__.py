@@ -4,7 +4,7 @@ from esphome.components import output
 from esphome.const import CONF_CHANNEL, CONF_ID, CONF_INITIAL_VALUE
 from .. import Mcp4461Component, CONF_MCP4461_ID, mcp4461_ns
 
-DEPENDENCIES = ["mcp4461", "output"]
+DEPENDENCIES = ["mcp4461"]
 
 Mcp4461Wiper = mcp4461_ns.class_(
     "Mcp4461Wiper", output.FloatOutput, cg.Parented.template(Mcp4461Component)
