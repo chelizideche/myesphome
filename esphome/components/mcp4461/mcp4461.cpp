@@ -46,9 +46,9 @@ void Mcp4461Component::begin_() {
 // Converts a status to a human readable string
 static const LogString *mcp4461_get_message_string(int status) {
   switch (status) {
-    case MCP4461_STATUS_I2C_ERROR:
+    case this->ErrorCode::MCP4461_STATUS_I2C_ERROR:
       return LOG_STR("I2C error - communication with MCP4461 failed!");
-    case MCP4461_STATUS_REGISTER_ERROR:
+    case this->ErrorCode::MCP4461_STATUS_REGISTER_ERROR:
       return LOG_STR("Status register could not be read");
     case MCP4461_STATUS_REGISTER_INVALID:
       return LOG_STR("Invalid status register value - bits 1,7 or 8 are 0");
