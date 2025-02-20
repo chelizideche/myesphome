@@ -55,7 +55,7 @@ void Mcp4461Wiper::increase_wiper() {
 void Mcp4461Wiper::decrease_wiper() {
   if (this->parent_->decrease_wiper_(this->wiper_)) {
     this->state_ = this->update_state();
-    ESP_LOGV(TAG, "Decreased wiper %hhu to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
+    ESP_LOGV(TAG, "Decreased wiper %" PRIu8 " to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
              static_cast<uint16_t>(std::roundf(this->state_ * 256)));
   }
 }
