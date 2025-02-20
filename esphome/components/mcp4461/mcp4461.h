@@ -84,7 +84,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
   void loop() override;
   /// @brief get user-data value from eeprom location
-  /// @param[location] location to fetch data from, valid is uint8_t in range of 0-4
+  /// @param[in] location The location to fetch data from, valid is uint8_t in range of 0-4
   /// mcp4461 provides 5x 9 bits (=max int of 511) of user-data storage
   /// @return uint16_t - returns the eeprom value stored in given eeprom user-data location
   uint16_t get_eeprom_value(Mcp4461EepromLocation location);
