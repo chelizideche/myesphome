@@ -89,7 +89,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @return uint16_t - returns the eeprom value stored in given eeprom user-data location
   uint16_t get_eeprom_value(Mcp4461EepromLocation location);
   /// @brief set user-data value from eeprom location
-  /// @param[location] location to write data to, valid is uint8_t in range of 0-4 for 5x 9 bits of user-data
+  /// @param[in] location The location to write data to, valid is uint8_t in range of 0-4 for 5x 9 bits of user-data
   /// @return bool - return true on successful write, false on error/warning
   bool set_eeprom_value(Mcp4461EepromLocation location, uint16_t value);
   /// @brief set initial value for wiper
