@@ -86,7 +86,7 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
   rmt_encoder_handle_t encoder_{nullptr};
   rmt_symbol_word_t *rmt_buf_{nullptr};
   rmt_symbol_word_t bit0_, bit1_, reset_;
-  uint32_t rmt_symbols_;
+  uint32_t rmt_symbols_{48};
 #else
   rmt_item32_t *rmt_buf_{nullptr};
   rmt_item32_t bit0_, bit1_, reset_;
@@ -95,12 +95,12 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
 
   uint8_t pin_;
   uint16_t num_leds_;
-  bool is_rgbw_;
-  bool is_wrgb_;
-  bool use_dma_;
-  bool use_psram_;
+  bool is_rgbw_{false};
+  bool is_wrgb_{false};
+  bool use_dma_{false};
+  bool use_psram_{false};
 
-  RGBOrder rgb_order_;
+  RGBOrder rgb_order_{ORDER_RGB};
 
   uint32_t last_refresh_{0};
   optional<uint32_t> max_refresh_rate_{};

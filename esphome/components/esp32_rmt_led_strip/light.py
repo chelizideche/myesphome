@@ -215,8 +215,6 @@ async def to_code(config):
         cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
         if CONF_USE_DMA in config:
             cg.add(var.set_use_dma(config[CONF_USE_DMA]))
-        else:
-            cg.add(var.set_use_dma(False))
     else:
         rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
         cg.add(
