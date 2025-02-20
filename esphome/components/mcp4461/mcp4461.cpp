@@ -615,7 +615,7 @@ bool Mcp4461Component::set_eeprom_value(Mcp4461EepromLocation location, uint16_t
   return true;
 }
 
-ErrorCode Mcp4461Component::get_error_code() {
+int Mcp4461Component::get_error_code() {
   return this->error_code_;
 }
 
