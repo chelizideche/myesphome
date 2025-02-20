@@ -13,7 +13,7 @@ void Mcp4461Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up mcp4461 using address (0x%02" PRIX8 ")...", this->address_);
   auto err = this->write(nullptr, 0);
   if (err != i2c::ERROR_OK) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->mark_failed();
     return;
   }
@@ -100,7 +100,7 @@ void Mcp4461Component::dump_config() {
   ESP_LOGCONFIG(TAG, "mcp4461:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
   }
   // log wiper status
   for (uint8_t i = 0; i < 8; ++i) {
@@ -163,7 +163,7 @@ void Mcp4461Component::loop() {
 
 uint8_t Mcp4461Component::get_status_register_() {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return 0;
   }
   uint8_t reg = 0;
@@ -171,7 +171,7 @@ uint8_t Mcp4461Component::get_status_register_() {
   reg |= static_cast<uint8_t>(Mcp4461Commands::READ);
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
-    this->error_code_ = MCP4461_STATUS_REGISTER_ERROR;
+    this->error_code = MCP4461_STATUS_REGISTER_ERROR;
     this->mark_failed();
     return 0;
   }
@@ -181,7 +181,7 @@ uint8_t Mcp4461Component::get_status_register_() {
   if (msb != 1 || ((lsb >> 7) & 0x01) != 1 || ((lsb >> 1) & 0x01) != 1) {
     // D8, D7 and R1 bits are hardlocked to 1 -> a status msb bit 0 (bit 9 of status register) of 0 or lsb bit 1/7 = 0
     // indicate device/communication issues, therefore mark component failed
-    this->error_code_ = MCP4461_STATUS_REGISTER_INVALID;
+    this->error_code = MCP4461_STATUS_REGISTER_INVALID;
     this->mark_failed();
     return 0;
   }
@@ -221,7 +221,7 @@ uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
 
 uint16_t Mcp4461Component::get_wiper_level_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return 0;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -247,7 +247,7 @@ uint16_t Mcp4461Component::read_wiper_level_(uint8_t wiper) {
     }
   }
   if (!(this->read_byte_16(reg, &buf))) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     ESP_LOGW(TAG, "Error fetching %swiper %" PRIu8 " value", (wiper > 3) ? "nonvolatile " : "", wiper);
     return 0;
@@ -257,7 +257,7 @@ uint16_t Mcp4461Component::read_wiper_level_(uint8_t wiper) {
 
 bool Mcp4461Component::update_wiper_level_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -274,7 +274,7 @@ bool Mcp4461Component::update_wiper_level_(Mcp4461WiperIdx wiper) {
 
 bool Mcp4461Component::set_wiper_level_(Mcp4461WiperIdx wiper, uint16_t value) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -302,7 +302,7 @@ void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
     nonvolatile = true;
   }
   if (!(this->mcp4461_write_(this->get_wiper_address_(wiper), value, nonvolatile))) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     ESP_LOGW(TAG, "Error writing %swiper %" PRIu8 " level %" PRIu16 "", (wiper > 3) ? "nonvolatile " : "", wiper,
              value);
@@ -311,7 +311,7 @@ void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
 
 void Mcp4461Component::enable_wiper_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -333,7 +333,7 @@ void Mcp4461Component::enable_wiper_(Mcp4461WiperIdx wiper) {
 
 void Mcp4461Component::disable_wiper_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -355,7 +355,7 @@ void Mcp4461Component::disable_wiper_(Mcp4461WiperIdx wiper) {
 
 bool Mcp4461Component::increase_wiper_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -379,7 +379,7 @@ bool Mcp4461Component::increase_wiper_(Mcp4461WiperIdx wiper) {
   reg |= static_cast<uint8_t>(Mcp4461Commands::INCREMENT);
   auto err = this->write(&this->address_, reg, sizeof(reg));
   if (err != i2c::ERROR_OK) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     return false;
   }
@@ -389,7 +389,7 @@ bool Mcp4461Component::increase_wiper_(Mcp4461WiperIdx wiper) {
 
 bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -413,7 +413,7 @@ bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
   reg |= static_cast<uint8_t>(Mcp4461Commands::DECREMENT);
   auto err = this->write(&this->address_, reg, sizeof(reg));
   if (err != i2c::ERROR_OK) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     return false;
   }
@@ -447,7 +447,7 @@ uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx termi
 
 uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return 0;
   }
   uint8_t reg = 0;
@@ -461,7 +461,7 @@ uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_con
   if (this->read_byte_16(reg, &buf)) {
     return static_cast<uint8_t>(buf & 0x00ff);
   } else {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     ESP_LOGW(TAG, "Error fetching terminal register value");
     return 0;
@@ -470,7 +470,7 @@ uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_con
 
 void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return;
   }
   if ((static_cast<uint8_t>(terminal_connector) != 0 && static_cast<uint8_t>(terminal_connector) != 1)) {
@@ -498,7 +498,7 @@ void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_con
 
 bool Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t addr;
@@ -511,7 +511,7 @@ bool Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connec
     return false;
   }
   if (!(this->mcp4461_write_(addr, data))) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     return false;
   }
@@ -520,7 +520,7 @@ bool Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connec
 
 void Mcp4461Component::enable_terminal_(Mcp4461WiperIdx wiper, char terminal) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -547,7 +547,7 @@ void Mcp4461Component::enable_terminal_(Mcp4461WiperIdx wiper, char terminal) {
 
 void Mcp4461Component::disable_terminal_(Mcp4461WiperIdx wiper, char terminal) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
@@ -574,7 +574,7 @@ void Mcp4461Component::disable_terminal_(Mcp4461WiperIdx wiper, char terminal) {
 
 uint16_t Mcp4461Component::get_eeprom_value(Mcp4461EepromLocation location) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return 0;
   }
   uint8_t reg = 0;
@@ -585,7 +585,7 @@ uint16_t Mcp4461Component::get_eeprom_value(Mcp4461EepromLocation location) {
     return 0;
   }
   if (!this->read_byte_16(reg, &buf)) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     ESP_LOGW(TAG, "Error fetching EEPRom location value");
     return 0;
@@ -595,7 +595,7 @@ uint16_t Mcp4461Component::get_eeprom_value(Mcp4461EepromLocation location) {
 
 bool Mcp4461Component::set_eeprom_value(Mcp4461EepromLocation location, uint16_t value) {
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code_)));
+    ESP_LOGE(TAG, "%s", LOG_STR_ARG(mcp4461_get_message_string(this->error_code)));
     return false;
   }
   uint8_t addr = 0;
@@ -607,7 +607,7 @@ bool Mcp4461Component::set_eeprom_value(Mcp4461EepromLocation location, uint16_t
   }
   addr |= static_cast<uint8_t>(Mcp4461EepromLocation::MCP4461_EEPROM_1) + (static_cast<uint8_t>(location) * 0x10);
   if (!(this->mcp4461_write_(addr, value, true))) {
-    this->error_code_ = MCP4461_STATUS_I2C_ERROR;
+    this->error_code = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
     ESP_LOGW(TAG, "Error writing EEPRom value");
     return false;
