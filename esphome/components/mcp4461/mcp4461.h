@@ -144,7 +144,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @param[in] wiper The wiper to enable
   void enable_wiper_(Mcp4461WiperIdx wiper);
   /// @brief disable given wiper
-  /// @param[wiper] wiper to disable
+  /// @param[in] wiper The wiper to disable
   void disable_wiper_(Mcp4461WiperIdx wiper);
   /// @brief increase given wiper
   /// @param[wiper] wiper to increase
