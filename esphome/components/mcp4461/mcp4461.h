@@ -101,7 +101,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @param[terminal] terminal to disable, one of { 'a', 'b', 'w', 'h' }
   void initialize_terminal_disabled(Mcp4461WiperIdx wiper, char terminal);
   /// @brief get error code
-  Mcp4461Component::ErrorCode get_error_code();
+  int get_error_code();
 
  protected:
   friend class Mcp4461Wiper;
