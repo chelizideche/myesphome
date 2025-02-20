@@ -38,7 +38,6 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
   Mcp4461Component *parent_;
   Mcp4461WiperIdx wiper_;
   float state_;
-  optional<uint16_t> initial_value_;
 };
 
 }  // namespace mcp4461

@@ -8,6 +8,7 @@ namespace esphome {
 namespace mcp4461 {
 
 /// @brief Struct representing current wiper details/state
+/// Default wiper state is 0x80h (128 int)
 struct WiperState {
   bool enabled = true;
   uint16_t state = 0;
@@ -36,8 +37,8 @@ enum class Mcp4461Addresses : uint8_t {
   MCP4461_EEPROM_1 = 0xB0
 };
 
-// @brief enumerate allowed channels/wipers
-enum Mcp4461WiperIdx : uint8_t {
+// @brief Class to enumerate allowed channels/wipers
+enum class Mcp4461WiperIdx : uint8_t {
   MCP4461_WIPER_0 = 0,
   MCP4461_WIPER_1 = 1,
   MCP4461_WIPER_2 = 2,
@@ -97,22 +98,6 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @param[terminal] terminal to disable, one of { 'a', 'b', 'w', 'h' }
   void initialize_terminal_disabled(Mcp4461WiperIdx wiper, char terminal);
 
-  /// @brief enumerate required status codes
-  enum ErrorCode {
-    MCP4461_STATUS_OK = 0,               // CMD completed successfully
-    MCP4461_FAILED,                      // component failed
-    MCP4461_STATUS_I2C_ERROR,            // Unable to communicate with device
-    MCP4461_STATUS_REGISTER_INVALID,     // Status register value was invalid
-    MCP4461_STATUS_REGISTER_ERROR,       // Error fetching status register
-    MCP4461_PROHIBITED_FOR_NONVOLATILE,  //
-    MCP4461_VALUE_INVALID,               // Invalid value given for wiper / eeprom
-    MCP4461_WRITE_PROTECTED,  // The value was read, but the CRC over the payload (valid and data) does not match
-    MCP4461_WIPER_ENABLED,    // The wiper is enabled, discard additional enabling actions
-    MCP4461_WIPER_DISABLED,   // The wiper is disabled - all actions for this wiper will be aborted/discarded
-    MCP4461_WIPER_LOCKED,     // The wiper is locked using WiperLock-technology - all actions for this wiper will be
-                              // aborted/discarded
-  } error_code_{MCP4461_STATUS_OK};
-
  protected:
   friend class Mcp4461Wiper;
   /// @brief update write protection status of device
@@ -167,6 +152,22 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   uint8_t get_terminal_register_(Mcp4461TerminalIdx terminal_connector);
   /// @brief internal function to set terminal registers
   bool set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data);
+
+  /// @brief available/required status codes
+  enum ErrorCode {
+    MCP4461_STATUS_OK = 0,               // CMD completed successfully
+    MCP4461_FAILED,                      // component failed
+    MCP4461_STATUS_I2C_ERROR,            // Unable to communicate with device
+    MCP4461_STATUS_REGISTER_INVALID,     // Status register value was invalid
+    MCP4461_STATUS_REGISTER_ERROR,       // Error fetching status register
+    MCP4461_PROHIBITED_FOR_NONVOLATILE,  //
+    MCP4461_VALUE_INVALID,               // Invalid value given for wiper / eeprom
+    MCP4461_WRITE_PROTECTED,  // The value was read, but the CRC over the payload (valid and data) does not match
+    MCP4461_WIPER_ENABLED,    // The wiper is enabled, discard additional enabling actions
+    MCP4461_WIPER_DISABLED,   // The wiper is disabled - all actions for this wiper will be aborted/discarded
+    MCP4461_WIPER_LOCKED,     // The wiper is locked using WiperLock-technology - all actions for this wiper will be
+                              // aborted/discarded
+  } error_code_{MCP4461_STATUS_OK};
 
   WiperState reg_[8];
   void begin_();
