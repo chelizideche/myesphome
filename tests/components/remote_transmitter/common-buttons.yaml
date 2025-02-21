@@ -18,14 +18,14 @@ button:
     on_press:
       remote_transmitter.transmit_nec:
         address: ${nec_address}
-        command: ${nec_comamnd}
+        command: ${nec_command}
   - platform: template
     name: NEC Default 3 Repeats
     id: living_room_lights_off_default_repeats
     on_press:
       remote_transmitter.transmit_nec:
         address: ${nec_address}
-        command: ${nec_comamnd}
+        command: ${nec_command}
         repeats: 3
         type: frame_with_repeats
   - platform: template
@@ -34,7 +34,7 @@ button:
     on_press:
       remote_transmitter.transmit_nec:
         address: ${nec_address}
-        command: ${nec_comamnd}
+        command: ${nec_command}
         repeats: 10
         type: repeats_only
   - platform: template
