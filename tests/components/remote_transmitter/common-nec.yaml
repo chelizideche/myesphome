@@ -1,3 +1,3 @@
 substitutions:
-  nec_address: 0x4242
-  nec_command: 0x8484
+  nec_address: "0x4242"
+  nec_command: "0x8484"
