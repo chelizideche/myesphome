@@ -59,6 +59,11 @@ class Touchscreen : public PollingComponent {
     this->y_raw_max_ = y_max;
   }
 
+  void set_dimensions(int16_t width, int16_t height) {
+    this->touchscreen_width_ = width;
+    this->touchscreen_height_ = height;
+  }
+
   Trigger<TouchPoint, const TouchPoints_t &> *get_touch_trigger() { return &this->touch_trigger_; }
   Trigger<const TouchPoints_t &> *get_update_trigger() { return &this->update_trigger_; }
   Trigger<> *get_release_trigger() { return &this->release_trigger_; }
@@ -96,6 +101,7 @@ class Touchscreen : public PollingComponent {
 
   int16_t x_raw_min_{0}, x_raw_max_{0}, y_raw_min_{0}, y_raw_max_{0};
   int16_t display_width_{0}, display_height_{0};
+  int16_t touchscreen_width_{0}, touchscreen_height_{0};
 
   uint16_t touch_timeout_{0};
   bool invert_x_{false}, invert_y_{false}, swap_x_y_{false};

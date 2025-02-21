@@ -94,8 +94,16 @@ void Touchscreen::add_raw_touch_position_(uint8_t id, int16_t x_raw, int16_t y_r
       std::swap(x, y);
     }
 
-    tp.x = (uint16_t) ((int) x * this->display_width_ / 0x1000);
-    tp.y = (uint16_t) ((int) y * this->display_height_ / 0x1000);
+    if (this->touchscreen_width_ > 0) {
+      tp.x = (uint16_t) ((int) x * this->touchscreen_width_ / 0x1000);
+    } else {
+      tp.x = (uint16_t) ((int) x * this->display_width_ / 0x1000);
+    }
+    if (this->touchscreen_height_ > 0) {
+      tp.y = (uint16_t) ((int) y * this->touchscreen_height_ / 0x1000);
+    } else {
+      tp.y = (uint16_t) ((int) y * this->display_height_ / 0x1000);
+    }
   } else {
     tp.state |= STATE_CALIBRATE;
   }

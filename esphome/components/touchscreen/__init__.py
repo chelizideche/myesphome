@@ -4,7 +4,9 @@ from esphome.components import display
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CALIBRATION,
+    CONF_DIMENSIONS,
     CONF_DISPLAY,
+    CONF_HEIGHT,
     CONF_MIRROR_X,
     CONF_MIRROR_Y,
     CONF_ON_RELEASE,
@@ -12,6 +14,7 @@ from esphome.const import (
     CONF_ON_UPDATE,
     CONF_SWAP_XY,
     CONF_TRANSFORM,
+    CONF_WIDTH,
 )
 from esphome.core import coroutine_with_priority
 
@@ -94,6 +97,15 @@ def touchscreen_schema(default_touch_timeout=cv.UNDEFINED, calibration_required=
                 cv.Range(max=cv.TimePeriod(milliseconds=65535)),
             ),
             calibration: CALIBRATION_SCHEMA,
+            cv.Optional(CONF_DIMENSIONS): cv.Any(
+                cv.dimensions,
+                cv.Schema(
+                    {
+                        cv.Required(CONF_WIDTH): cv.int_,
+                        cv.Required(CONF_HEIGHT): cv.int_,
+                    }
+                ),
+            ),
             cv.Optional(CONF_ON_TOUCH): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_UPDATE): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_RELEASE): automation.validate_automation(single=True),
@@ -129,6 +141,14 @@ async def register_touchscreen(var, config):
                 calibration_config[CONF_Y_MAX],
             )
         )
+
+    if CONF_DIMENSIONS in config:
+        dimensions = config[CONF_DIMENSIONS]
+        if isinstance(dimensions, dict):
+            cg.add(var.set_dimensions(dimensions[CONF_WIDTH], dimensions[CONF_HEIGHT]))
+        else:
+            (width, height) = dimensions
+            cg.add(var.set_dimensions(width, height))
 
     if CONF_ON_TOUCH in config:
         await automation.build_automation(
