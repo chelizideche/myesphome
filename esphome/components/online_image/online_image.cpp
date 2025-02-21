@@ -74,7 +74,7 @@ size_t OnlineImage::resize_(int width_in, int height_in, int frames) {
   if (this->is_auto_resize_()) {
     width = width_in;
     height = height_in;
-    if (this->width_ != width && this->height_ != height) {
+    if (this->width_ != width || this->height_ != height || this->animation_frame_count_ != frames) {
       this->release();
     }
   }
