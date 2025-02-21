@@ -171,7 +171,7 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
       debug_message += "Unknown";
   }
 
-  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
+  if (data.type != NECCodeType::REPEATS_ONLY) {
     debug_message += ": address=0x";
     if (this->is_extended(data)) {
       debug_message += str_sprintf("%04X", data.address);
