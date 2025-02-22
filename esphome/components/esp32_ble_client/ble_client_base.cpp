@@ -135,7 +135,8 @@ void BLEClientBase::disconnect() {
 
 void BLEClientBase::unconditional_disconnect() {
   // Disconnect without checking the state.
-  ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
+  ESP_LOGI(TAG, "[%d] [%s] Disconnecting (conn_id: %d).", this->connection_index_, this->address_str_.c_str(),
+           this->conn_id_);
   if (this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGE(TAG, "[%d] [%s] No connection ID set, cannot disconnect.", this->connection_index_,
              this->address_str_.c_str());
