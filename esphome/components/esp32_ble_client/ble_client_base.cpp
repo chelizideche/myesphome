@@ -130,10 +130,10 @@ void BLEClientBase::disconnect() {
     this->set_state(espbt::ClientState::DISCONNECTING);
     return;
   }
-  this->unconditional_disconnect();
+  this->_unconditional_disconnect();
 }
 
-void BLEClientBase::unconditional_disconnect() {
+void BLEClientBase::_unconditional_disconnect() {
   // Disconnect without checking the state.
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   auto err = esp_ble_gattc_close(this->gattc_if_, this->conn_id_);
@@ -203,7 +203,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (this->state == espbt::ClientState::DISCONNECTING) {
         // Disconnect we requested before after connecting started,
         // but before the connection was established.
-        this->unconditional_disconnect();
+        this->_unconditional_disconnect();
         break;
       }
       auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->open.conn_id);
@@ -228,8 +228,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (this->state == espbt::ClientState::DISCONNECTING) {
         // Disconnect we requested before after connecting started,
         // but before the connection was established.
-        this->unconditional_disconnect();
-        break;
+        this->_unconditional_disconnect();
       }
       break;
     }
