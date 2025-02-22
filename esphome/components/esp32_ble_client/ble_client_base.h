@@ -39,6 +39,7 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   void connect() override;
   esp_err_t pair();
   void disconnect() override;
+  void _unconditional_disconnect() override;
   void release_services();
 
   bool connected() { return this->state_ == espbt::ClientState::ESTABLISHED; }
