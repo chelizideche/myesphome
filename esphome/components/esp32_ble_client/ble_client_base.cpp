@@ -145,6 +145,7 @@ void BLEClientBase::_unconditional_disconnect() {
   if (this->state_ == espbt::ClientState::SEARCHING || this->state_ == espbt::ClientState::READY_TO_CONNECT ||
       this->state_ == espbt::ClientState::DISCOVERED || this->state_ == espbt::ClientState::DISCONNECTING) {
     this->set_address(0);
+    this->conn_id_ = UNSET_CONN_ID;
     this->set_state(espbt::ClientState::IDLE);
   } else {
     this->set_state(espbt::ClientState::DISCONNECTING);
