@@ -95,7 +95,7 @@ async def to_code(config):
     cg.add_platformio_option(
         "platform_packages",
         [
-            "platformio/framework-zephyr@https://github.com/tomaszduda23/framework-sdk-nrf#561ef9edc99d48fe36dea74f7d517741583f1ffc",
+            "platformio/framework-zephyr@https://github.com/tomaszduda23/framework-sdk-nrf#498907414bbc701c973e471de8179c373767d944",
             "platformio/toolchain-gccarmnoneeabi@https://github.com/tomaszduda23/toolchain-sdk-ng#19977f5453afb01d12e3eefdfdcb8b8802e11bf4",
         ],
     )
