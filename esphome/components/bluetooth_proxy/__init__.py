@@ -36,7 +36,9 @@ def validate_connections(config):
                 "Connections can only be used if the proxy is set to active"
             )
     elif config[CONF_ACTIVE]:
-        esp32_ble_tracker.consume_connection_slots(config[CONF_MAX_CONNECTIONS])(config)
+        esp32_ble_tracker.consume_connection_slots(
+            config[CONF_MAX_CONNECTIONS], "bluetooth_proxy"
+        )(config)
         return {
             **config,
             CONF_CONNECTIONS: [

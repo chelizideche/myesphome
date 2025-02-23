@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import Any, Callable
+
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components import esp32_ble
@@ -124,11 +129,13 @@ def max_connections():
     return IDF_MAX_CONNECTIONS if CORE.using_esp_idf else DEFAULT_MAX_CONNECTIONS
 
 
-def consume_connection_slots(value):
-    def _consume_connection_slots(config):
-        data = CORE.data.setdefault(KEY_ESP32_BLE_TRACKER, {})
-        data.setdefault(KEY_USED_CONNECTION_SLOTS, 0)
-        data[KEY_USED_CONNECTION_SLOTS] += value
+def consume_connection_slots(
+    value: int, consumer: str
+) -> Callable[[MutableMapping], MutableMapping]:
+    def _consume_connection_slots(config: MutableMapping) -> MutableMapping:
+        data: dict[str, Any] = CORE.data.setdefault(KEY_ESP32_BLE_TRACKER, {})
+        slots: list[str] = data.setdefault(KEY_USED_CONNECTION_SLOTS, [])
+        slots.extend([consumer] * value)
         return config
 
     return _consume_connection_slots
@@ -199,16 +206,17 @@ CONFIG_SCHEMA = cv.All(
 
 
 def validate_remaining_connections(config):
-    used_slots = CORE.data.get(KEY_ESP32_BLE_TRACKER, {}).get(
-        KEY_USED_CONNECTION_SLOTS, 0
-    )
+    data: dict[str, Any] = CORE.data.get(KEY_ESP32_BLE_TRACKER, {})
+    slots: list[str] = data.get(KEY_USED_CONNECTION_SLOTS, [])
+    used_slots = len(slots)
     if used_slots <= config[CONF_MAX_CONNECTIONS]:
         return config
+    slot_users = ",".join(slots)
     raise cv.Invalid(
         f"Exceeded `{CONF_MAX_CONNECTIONS}`: "
         f"Components attempted to consume {used_slots} slot(s) out of available "
         f"configured maximum {config[CONF_MAX_CONNECTIONS]} connection slot(s); "
-        f"Decrease the number of BLE clients or increase "
+        f"Decrease the number of BLE clients ({slot_users}) or increase "
         f"`{CONF_MAX_CONNECTIONS}` to {used_slots}."
     )
 
