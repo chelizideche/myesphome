@@ -187,7 +187,7 @@ class ESPBTClient : public ESPBTDeviceListener {
   // want_disconnect_ is set to true when a disconnect is requested
   // while the client is connecting. This is used to disconnect the
   // client as soon as we get the connection id (conn_id_) from the
-  // ESP_GATTC_OPEN_EVT or ESP_GATTC_CONNECT_EVT event.
+  // ESP_GATTC_OPEN_EVT event.
   bool want_disconnect_{false};
 };
 
