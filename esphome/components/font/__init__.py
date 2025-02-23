@@ -7,8 +7,7 @@ from pathlib import Path
 import re
 
 import esphome_glyphsets as glyphsets
-import freetype
-from freetype import ft_pixel_mode_grays, ft_pixel_mode_mono
+from freetype import Face, ft_pixel_mode_grays, ft_pixel_mode_mono
 import requests
 
 from esphome import external_files
@@ -86,7 +85,7 @@ class FontCache(MutableMapping):
         return self.store[self._keytransform(item)]
 
     def __setitem__(self, key, value):
-        self.store[self._keytransform(key)] = freetype.Face(str(value))
+        self.store[self._keytransform(key)] = Face(str(value))
 
 
 FONT_CACHE = FontCache()
@@ -174,8 +173,6 @@ def validate_glyphs(config):
     # Make setpoints and glyphspoints disjoint
     setpoints.difference_update(glyphspoints)
     if fileconf[CONF_TYPE] == TYPE_LOCAL_BITMAP:
-        # Pillow only allows 256 glyphs per bitmap font. Not sure if that is a Pillow limitation
-        # or a file format limitation
         if any(x >= 256 for x in setpoints.copy().union(glyphspoints)):
             raise cv.Invalid("Codepoints in bitmap fonts must be in the range 0-255")
     else:
@@ -465,14 +462,10 @@ FONT_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.All(FONT_SCHEMA, validate_glyphs)
 
 
-# PIL doesn't provide a consistent interface for both TrueType and bitmap
-# fonts. So, we use our own wrappers to give us the consistency that we need.
-
-
 class EFont:
     def __init__(self, file, codepoints):
         self.codepoints = codepoints
-        self.font: freetype.Face = FONT_CACHE[file]
+        self.font: Face = FONT_CACHE[file]
 
 
 class GlyphInfo:
@@ -504,13 +497,13 @@ async def to_code(config):
     point_set.update(flatten(config[CONF_GLYPHS]))
     size = config[CONF_SIZE]
     # Create the codepoint to font file map
-    base_font = EFont(config[CONF_FILE], point_set)
-    point_font_map: dict[str, EFont] = {c: base_font for c in point_set}
+    base_font = FONT_CACHE[config[CONF_FILE]]
+    point_font_map: dict[str, Face] = {c: base_font for c in point_set}
     # process extras, updating the map and extending the codepoint list
     for extra in config[CONF_EXTRAS]:
         extra_points = flatten(extra[CONF_GLYPHS])
         point_set.update(extra_points)
-        extra_font = EFont(extra[CONF_FILE], extra_points)
+        extra_font = FONT_CACHE[extra[CONF_FILE]]
         point_font_map.update({c: extra_font for c in extra_points})
 
     codepoints = list(point_set)
@@ -522,7 +515,7 @@ async def to_code(config):
     scale = 256 // (1 << bpp)
     # create the data array for all glyphs
     for codepoint in codepoints:
-        font = point_font_map[codepoint].font
+        font = point_font_map[codepoint]
         if not font.has_fixed_sizes:
             font.set_pixel_sizes(size, 0)
         font.load_char(codepoint)
@@ -597,11 +590,11 @@ async def to_code(config):
 
     glyphs = cg.static_const_array(config[CONF_RAW_GLYPH_ID], glyph_initializer)
 
-    font_height = base_font.font.size.height // 64
-    ascender = base_font.font.size.ascender // 64
+    font_height = base_font.size.height // 64
+    ascender = base_font.size.ascender // 64
     if font_height == 0:
-        if base_font.font.has_fixed_sizes:
-            font_height = base_font.font.available_sizes[0].height
+        if base_font.has_fixed_sizes:
+            font_height = base_font.available_sizes[0].height
             ascender = font_height
         else:
             _LOGGER.error("Unable to determine height of font %s", config[CONF_FILE])
