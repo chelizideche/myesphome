@@ -126,8 +126,9 @@ void BLEClientBase::disconnect() {
   if (this->state_ == espbt::ClientState::IDLE || this->state_ == espbt::ClientState::DISCONNECTING)
     return;
   if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
-    ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected", this->connection_index_, this->address_str_.c_str());
-    this->set_state(espbt::ClientState::DISCONNECTING);
+    ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected, disconnect scheduled", this->connection_index_,
+             this->address_str_.c_str());
+    this->want_disconnect_ = true;
     return;
   }
   this->unconditional_disconnect();
@@ -137,6 +138,10 @@ void BLEClientBase::unconditional_disconnect() {
   // Disconnect without checking the state.
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting (conn_id: %d).", this->connection_index_, this->address_str_.c_str(),
            this->conn_id_);
+  if (this->state_ == espbt::ClientState::CONNECTING) {
+    ESP_LOGE(TAG, "[%d] [%s] Cannot disconnect while connecting.", this->connection_index_, this->address_str_.c_str());
+    return;
+  }
   if (this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGE(TAG, "[%d] [%s] No connection ID set, cannot disconnect.", this->connection_index_,
              this->address_str_.c_str());
@@ -213,7 +218,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         this->set_state(espbt::ClientState::IDLE);
         break;
       }
-      if (this->state_ == espbt::ClientState::DISCONNECTING) {
+      if (this->want_disconnect_) {
         // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
@@ -240,7 +245,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (!this->check_addr(param->connect.remote_bda))
         return false;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
-      if (this->state_ == espbt::ClientState::DISCONNECTING) {
+      if (this->want_disconnect_) {
         // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
