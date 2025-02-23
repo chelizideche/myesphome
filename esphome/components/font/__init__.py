@@ -147,11 +147,6 @@ def check_missing_glyphs(file, codepoints, warning: bool = False):
 
 
 def validate_font_config(config):
-    if config[CONF_FILE][CONF_TYPE] == TYPE_LOCAL_BITMAP and CONF_SIZE in config:
-        raise cv.Invalid(
-            "Size is not a valid option for bitmap fonts, which are inherently fixed size"
-        )
-
     """
     Check for duplicate codepoints, then check that all requested codepoints actually
     have glyphs defined in the appropriate font file.
@@ -208,6 +203,11 @@ def validate_font_config(config):
                 for x in glyphsets.unicodes_per_glyphset(DEFAULT_GLYPHSET)
                 if font.get_char_index(x) != 0
             ]
+
+    if config[CONF_FILE][CONF_TYPE] == TYPE_LOCAL_BITMAP and CONF_SIZE in config:
+        raise cv.Invalid(
+            "Size is not a valid option for bitmap fonts, which are inherently fixed size"
+        )
 
     return config
 
