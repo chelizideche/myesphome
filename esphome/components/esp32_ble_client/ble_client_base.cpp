@@ -142,6 +142,11 @@ void BLEClientBase::unconditional_disconnect() {
     ESP_LOGE(TAG, "[%d] [%s] Cannot disconnect while connecting.", this->connection_index_, this->address_str_.c_str());
     return;
   }
+  if (this->state_ == espbt::ClientState::DISCONNECTING) {
+    ESP_LOGE(TAG, "[%d] [%s] Tried to disconnect while already disconnecting.", this->connection_index_,
+             this->address_str_.c_str());
+    return;
+  }
   if (this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGE(TAG, "[%d] [%s] No connection ID set, cannot disconnect.", this->connection_index_,
              this->address_str_.c_str());
@@ -161,7 +166,7 @@ void BLEClientBase::unconditional_disconnect() {
   }
 
   if (this->state_ == espbt::ClientState::SEARCHING || this->state_ == espbt::ClientState::READY_TO_CONNECT ||
-      this->state_ == espbt::ClientState::DISCOVERED || this->state_ == espbt::ClientState::DISCONNECTING) {
+      this->state_ == espbt::ClientState::DISCOVERED) {
     this->set_address(0);
     this->set_state(espbt::ClientState::IDLE);
   } else {
