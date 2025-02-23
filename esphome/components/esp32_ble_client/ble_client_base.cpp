@@ -147,10 +147,6 @@ void BLEClientBase::unconditional_disconnect() {
   // Disconnect without checking the state.
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting (conn_id: %d).", this->connection_index_, this->address_str_.c_str(),
            this->conn_id_);
-  if (this->state_ == espbt::ClientState::CONNECTING) {
-    ESP_LOGE(TAG, "[%d] [%s] Cannot disconnect while connecting.", this->connection_index_, this->address_str_.c_str());
-    return;
-  }
   if (this->state_ == espbt::ClientState::DISCONNECTING) {
     ESP_LOGE(TAG, "[%d] [%s] Tried to disconnect while already disconnecting.", this->connection_index_,
              this->address_str_.c_str());
