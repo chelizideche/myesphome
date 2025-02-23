@@ -221,6 +221,24 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->log_event_("ESP_GATTC_OPEN_EVT");
       this->conn_id_ = param->open.conn_id;
       this->service_count_ = 0;
+      if (this->state_ != espbt::ClientState::CONNECTING) {
+        // This should not happen but lets log it in case it does
+        // because it means we have a bad assumption about how the
+        // ESP BT stack works.
+        if (this->state_ == espbt::ClientState::CONNECTED) {
+          ESP_LOGE(TAG, "[%d] [%s] Got ESP_GATTC_OPEN_EVT while already connected, status=%d", this->connection_index_,
+                   this->address_str_.c_str(), param->open.status);
+        } else if (this->state_ == espbt::ClientState::ESTABLISHED) {
+          ESP_LOGE(TAG, "[%d] [%s] Got ESP_GATTC_OPEN_EVT while already established, status=%d",
+                   this->connection_index_, this->address_str_.c_str(), param->open.status);
+        } else if (this->state_ == espbt::ClientState::DISCONNECTING) {
+          ESP_LOGE(TAG, "[%d] [%s] Got ESP_GATTC_OPEN_EVT while disconnecting, status=%d", this->connection_index_,
+                   this->address_str_.c_str(), param->open.status);
+        } else {
+          ESP_LOGE(TAG, "[%d] [%s] Got ESP_GATTC_OPEN_EVT while not in connecting state, status=%d",
+                   this->connection_index_, this->address_str_.c_str(), param->open.status);
+        }
+      }
       if (param->open.status != ESP_GATT_OK && param->open.status != ESP_GATT_ALREADY_OPEN) {
         ESP_LOGW(TAG, "[%d] [%s] Connection failed, status=%d", this->connection_index_, this->address_str_.c_str(),
                  param->open.status);
