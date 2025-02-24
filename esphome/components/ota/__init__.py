@@ -1,7 +1,13 @@
 from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ESPHOME, CONF_OTA, CONF_PLATFORM, CONF_TRIGGER_ID
+from esphome.const import (
+    CONF_ESPHOME,
+    CONF_ON_ERROR,
+    CONF_OTA,
+    CONF_PLATFORM,
+    CONF_TRIGGER_ID,
+)
 from esphome.core import CORE, coroutine_with_priority
 
 CODEOWNERS = ["@esphome/core"]
@@ -18,7 +24,6 @@ IS_PLATFORM_COMPONENT = True
 CONF_ON_ABORT = "on_abort"
 CONF_ON_BEGIN = "on_begin"
 CONF_ON_END = "on_end"
-CONF_ON_ERROR = "on_error"
 CONF_ON_PROGRESS = "on_progress"
 CONF_ON_STATE_CHANGE = "on_state_change"
 
@@ -93,6 +98,7 @@ async def to_code(config):
 
 
 async def ota_to_code(var, config):
+    await cg.past_safe_mode()
     use_state_callback = False
     for conf in config.get(CONF_ON_STATE_CHANGE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)

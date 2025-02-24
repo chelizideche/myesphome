@@ -1,10 +1,10 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
-from esphome.components.esp32_ble import CONF_BLE_ID
-from esphome.const import CONF_ID, CONF_TYPE, CONF_UUID, CONF_TX_POWER
-from esphome.core import CORE, TimePeriod
-from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.components import esp32_ble
+from esphome.components.esp32 import add_idf_sdkconfig_option
+from esphome.components.esp32_ble import CONF_BLE_ID
+import esphome.config_validation as cv
+from esphome.const import CONF_ID, CONF_TX_POWER, CONF_TYPE, CONF_UUID
+from esphome.core import CORE, TimePeriod
 
 AUTO_LOAD = ["esp32_ble"]
 DEPENDENCIES = ["esp32"]
@@ -66,7 +66,9 @@ FINAL_VALIDATE_SCHEMA = esp32_ble.validate_variant
 
 async def to_code(config):
     uuid = config[CONF_UUID].hex
-    uuid_arr = [cg.RawExpression(f"0x{uuid[i:i + 2]}") for i in range(0, len(uuid), 2)]
+    uuid_arr = [
+        cg.RawExpression(f"0x{uuid[i : i + 2]}") for i in range(0, len(uuid), 2)
+    ]
     var = cg.new_Pvariable(config[CONF_ID], uuid_arr)
 
     parent = await cg.get_variable(config[esp32_ble.CONF_BLE_ID])
