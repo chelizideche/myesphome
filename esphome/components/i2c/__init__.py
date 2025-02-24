@@ -1,6 +1,8 @@
 from esphome import pins
 import esphome.codegen as cg
+from esphome.components import zephyr
 from esphome.components.zephyr import zephyr_add_overlay, zephyr_add_prj_conf
+from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
@@ -39,7 +41,7 @@ def _bus_declare_type(value):
         return cv.declare_id(ArduinoI2CBus)(value)
     if CORE.using_esp_idf:
         return cv.declare_id(IDFI2CBus)(value)
-    if CORE.using_zephyr:
+    if CORE.target_framework == KEY_ZEPHYR:
         return cv.declare_id(ZephyrI2CBus)(value)
     raise NotImplementedError
 
@@ -55,11 +57,11 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): _bus_declare_type,
             cv.Optional(CONF_SDA, default="SDA"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_SCL, default="SCL"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_FREQUENCY, default="50kHz"): cv.All(
@@ -79,7 +81,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    if CORE.using_zephyr:
+    if CORE.target_framework == KEY_ZEPHYR:
         zephyr_add_prj_conf("I2C", True)
         zephyr_add_overlay(
             f"""
