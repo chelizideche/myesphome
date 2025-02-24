@@ -13,13 +13,13 @@ class UptimeTextSensor : public text_sensor::TextSensor, public PollingComponent
   void update() override;
   void dump_config() override;
   void setup() override;
-  void insert_buffer(std::string &buffer, const char *key, unsigned value) const;
 
   void set_separator(const std::string &separator) { this->separator_ = separator; }
 
   float get_setup_priority() const override;
 
  protected:
+  void insert_buffer_(std::string &buffer, const char *key, unsigned value) const;
   std::string separator_{};
   uint32_t uptime_{0};  // uptime in seconds, will overflow after 136 years
   uint32_t last_ms_{0};

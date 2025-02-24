@@ -16,7 +16,7 @@ void UptimeTextSensor::setup() {
   this->update();
 }
 
-void UptimeTextSensor::insert_buffer(std::string &buffer, const char *key, unsigned value) const {
+void UptimeTextSensor::insert_buffer_(std::string &buffer, const char *key, unsigned value) const {
   if (!buffer.empty() && !this->separator_.empty())
     buffer.insert(0, this->separator_);
   buffer.insert(0, str_sprintf("%u%s", value, key));
@@ -38,25 +38,25 @@ void UptimeTextSensor::update() {
     unsigned remainder = uptime % 60;
     uptime /= 60;
     if (interval < 30) {
-      insert_buffer(buffer, "s", remainder);
+      this->insert_buffer_(buffer, "s", remainder);
       if (uptime == 0)
         break;
     }
     remainder = uptime % 60;
     uptime /= 60;
     if (interval < 1800) {
-      insert_buffer(buffer, "m", remainder);
+      this->insert_buffer_(buffer, "m", remainder);
       if (uptime == 0)
         break;
     }
     remainder = uptime % 24;
     uptime /= 24;
     if (interval < 12 * 3600) {
-      insert_buffer(buffer, "h", remainder);
+      this->insert_buffer_(buffer, "h", remainder);
       if (uptime == 0)
         break;
     }
-    insert_buffer(buffer, "d", (unsigned) uptime);
+    this->insert_buffer_(buffer, "d", (unsigned) uptime);
     break;
   }
   this->publish_state(buffer);
