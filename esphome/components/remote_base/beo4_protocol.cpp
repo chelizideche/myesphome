@@ -28,13 +28,13 @@ constexpr uint32_t N_BITS = 1 + 8 + 8;
 constexpr uint32_t N_SYM = 2 + ((3 + 17 + 1) * 2u);  // + 2 = 44
 
 // states finite-state-machine decoder
-enum class RxSt {RX_IDLE, RX_DATA, RX_STOP};
+enum class RxSt { RX_IDLE, RX_DATA, RX_STOP };
 
 void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
   uint32_t beo_code = ((uint32_t) data.source << 8) + (uint32_t) data.command;
-  uint32_t jc = 0, ic = 0;  // loop counters
-  uint32_t cur_bit = 0;     // current bit
-  uint32_t pre_bit = 0;     // previous bit to compare
+  uint32_t jc = 0, ic = 0;
+  uint32_t cur_bit = 0;
+  uint32_t pre_bit = 0;
   dst->set_carrier_frequency(455000);
   dst->reserve(N_SYM);
 
@@ -69,34 +69,35 @@ void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
 optional<Beo4Data> Beo4Protocol::decode(RemoteReceiveData src) {
   int32_t n_sym = src.size();     // number of recorded symbols
   Beo4Data data{
-      // preset output data
       .source = 0,
       .command = 0,
       .repeats = 0,
   };
-  if (n_sym > 42) {                // suppress dummy codes (TSO7000 hiccups)
-    static uint32_t beo_code = 0;  // decoded beo_code
-    RxSt fsm = RxSt::RX_IDLE;      // begin in IDLE state
+  // suppress dummy codes (TSO7000 hiccups)
+  if (n_sym > 42) {
+    static uint32_t beo_code = 0;
+    RxSt fsm = RxSt::RX_IDLE;
     int32_t ic = 0;
     int32_t jc = 0;
-    uint32_t pre_bit = 0;          // previous bit
-    uint32_t cnt_bit = 0;          // bit counter
+    uint32_t pre_bit = 0;
+    uint32_t cnt_bit = 0;
     ESP_LOGD(TAG, "Beo4: n_sym=%d ", n_sym);
     for (jc = 0, ic = 0; ic < (n_sym - 1); ic += 2, jc++) {
       int32_t pulse_width = src[ic] - src[ic + 1];
-      if (pulse_width > 1500) {    // suppress TSOP7000 (dummy pulses)
+      // suppress TSOP7000 (dummy pulses)
+      if (pulse_width > 1500) {
         int32_t pulse_code = (pulse_width + 1560) / 3125;
         switch (fsm) {
-          case RxSt::RX_IDLE: {    // waiting for start-code
+          case RxSt::RX_IDLE: {
             beo_code = 0;
             cnt_bit = 0;
             pre_bit = 0;
             if (PC_START == pulse_code) {
-              fsm = RxSt::RX_DATA; // next--> collecting data
+              fsm = RxSt::RX_DATA;
             }
             break;
           }
-          case RxSt::RX_DATA: {    // collecting data
+          case RxSt::RX_DATA: {
             uint32_t cur_bit = 0;
             switch (pulse_code) {
               case PC_ZERO: {
@@ -112,26 +113,26 @@ optional<Beo4Data> Beo4Protocol::decode(RemoteReceiveData src) {
                 break;
               }
               default: {
-                fsm = RxSt::RX_IDLE; // frame is faulty, reset and..
-                break;               // ..process further symbols
+                fsm = RxSt::RX_IDLE;
+                break;
               }
             }
             beo_code = (beo_code << 1) + cur_bit;
-            if (++cnt_bit == N_BITS) {  // beo_code is complete
-              fsm = RxSt::RX_STOP;      // next--> validate stop-code
+            if (++cnt_bit == N_BITS) {
+              fsm = RxSt::RX_STOP;
             }
             break;
           }
-          case RxSt::RX_STOP: {          // validating stop code
-            if (PC_STOP == pulse_code) { // stop code valid
+          case RxSt::RX_STOP: {
+            if (PC_STOP == pulse_code) {
               data.source = (uint8_t) ((beo_code >> 8) & 0xff);
               data.command = (uint8_t) ((beo_code) &0xff);
-              data.repeats++;            // count repeats
+              data.repeats++;
             }
             if ((n_sym - ic) < 42) {
-              return data;  // no more frames, so return here
+              return data;
             } else {
-              fsm = RxSt::RX_IDLE;  // process further symbols
+              fsm = RxSt::RX_IDLE;
             }
             break;
           }
