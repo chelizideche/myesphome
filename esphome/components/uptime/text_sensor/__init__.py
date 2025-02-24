@@ -2,13 +2,13 @@ import esphome.codegen as cg
 from esphome.components import text_sensor, time
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_DURATION,
     CONF_TIME_ID,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_TIMER,
 )
 
-CONF_TIMESTAMP = "timestamp"
+TYPE_DURATION = "duration"
+TYPE_TIMESTAMP = "timestamp"
 
 uptime_ns = cg.esphome_ns.namespace("uptime")
 UptimeDurationTextSensor = uptime_ns.class_(
@@ -20,28 +20,28 @@ UptimeTimestampTextSensor = uptime_ns.class_(
 
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        CONF_DURATION: text_sensor.text_sensor_schema(
+        TYPE_DURATION: text_sensor.text_sensor_schema(
             UptimeDurationTextSensor,
             icon=ICON_TIMER,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ).extend(cv.polling_component_schema("30s")),
-        CONF_TIMESTAMP: text_sensor.text_sensor_schema(
-            UptimeTimestampTextSensor,
-            icon=ICON_TIMER,
-            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        TYPE_TIMESTAMP: cv.Schema(
+            {
+                cv.GenerateID(CONF_TIME_ID): cv.All(
+                    cv.requires_component("time"), cv.use_id(time.RealTimeClock)
+                ),
+            }
         )
         .extend(
-            cv.Schema(
-                {
-                    cv.GenerateID(CONF_TIME_ID): cv.All(
-                        cv.requires_component("time"), cv.use_id(time.RealTimeClock)
-                    ),
-                }
+            text_sensor.text_sensor_schema(
+                UptimeTimestampTextSensor,
+                icon=ICON_TIMER,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             )
         )
         .extend(cv.COMPONENT_SCHEMA),
     },
-    default_type=CONF_DURATION,
+    default_type=TYPE_DURATION,
 )
 
 
