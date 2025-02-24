@@ -49,7 +49,7 @@ CONFIG_SCHEMA = cv.typed_schema(
         )
         .extend(cv.COMPONENT_SCHEMA),
     },
-    default_type="seconds",
+    default_type=CONF_DURATION,
 )
 
 
