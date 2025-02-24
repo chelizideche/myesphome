@@ -113,7 +113,7 @@ void LD2450Component::setup() {
   this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
   this->set_presence_timeout();
 #endif
-  this->read_all_info();
+  this->restart_and_read_all_info();
 }
 
 void LD2450Component::dump_config() {
