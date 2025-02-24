@@ -1,23 +1,23 @@
-from esphome import pins
 import esphome.codegen as cg
 import esphome.config_validation as cv
+import esphome.final_validate as fv
+from esphome import pins
 from esphome.const import (
-    CONF_ADDRESS,
     CONF_FREQUENCY,
-    CONF_I2C_ID,
+    CONF_TIMEOUT,
     CONF_ID,
     CONF_INPUT,
     CONF_OUTPUT,
     CONF_SCAN,
     CONF_SCL,
     CONF_SDA,
-    CONF_TIMEOUT,
+    CONF_ADDRESS,
+    CONF_I2C_ID,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
 )
-from esphome.core import CORE, coroutine_with_priority
-import esphome.final_validate as fv
+from esphome.core import coroutine_with_priority, CORE
 
 CODEOWNERS = ["@esphome/core"]
 i2c_ns = cg.esphome_ns.namespace("i2c")
