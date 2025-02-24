@@ -154,4 +154,4 @@ ErrorCode ZephyrI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt
 }  // namespace i2c
 }  // namespace esphome
 
-#endif  // USE_ESP_IDF
+#endif

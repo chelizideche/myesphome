@@ -28,4 +28,4 @@ class ZephyrI2CBus : public I2CBus, public Component {
 }  // namespace i2c
 }  // namespace esphome
 
-#endif  // USE_ESP_IDF
+#endif
