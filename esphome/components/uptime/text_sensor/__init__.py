@@ -18,14 +18,6 @@ UptimeTimestampTextSensor = uptime_ns.class_(
     "UptimeTimestampTextSensor", text_sensor.TextSensor, cg.Component
 )
 
-
-CONFIG_SCHEMA = text_sensor.text_sensor_schema(
-    UptimeDurationTextSensor,
-    icon=ICON_TIMER,
-    entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-).extend(cv.polling_component_schema("30s"))
-
-
 CONFIG_SCHEMA = cv.typed_schema(
     {
         CONF_DURATION: text_sensor.text_sensor_schema(
