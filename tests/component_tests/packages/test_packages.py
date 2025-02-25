@@ -20,6 +20,7 @@ from esphome.const import (
     CONF_OFFSET,
     CONF_PACKAGES,
     CONF_PASSWORD,
+    CONF_PATH,
     CONF_PLATFORM,
     CONF_REF,
     CONF_REFRESH,
@@ -611,7 +612,7 @@ def test_remote_packages_with_files_list(
                 CONF_URL: "https://github.com/esphome/non-existant-repo",
                 CONF_REF: "main",
                 CONF_FILES: [
-                    {CONF_NAME: TEST_YAML_FILENAME},
+                    {CONF_PATH: TEST_YAML_FILENAME},
                     "sensor2.yaml",
                 ],
                 CONF_REFRESH: "1d",
@@ -697,14 +698,14 @@ def test_remote_packages_with_files_and_vars(
                 CONF_REF: "main",
                 CONF_FILES: [
                     {
-                        CONF_NAME: TEST_YAML_FILENAME,
+                        CONF_PATH: TEST_YAML_FILENAME,
                         CONF_VARS: {CONF_NAME: TEST_SENSOR_NAME_2},
                     },
                     {
-                        CONF_NAME: TEST_YAML_FILENAME,
+                        CONF_PATH: TEST_YAML_FILENAME,
                         CONF_VARS: {CONF_NAME: TEST_SENSOR_NAME_3},
                     },
-                    {CONF_NAME: TEST_YAML_FILENAME},
+                    {CONF_PATH: TEST_YAML_FILENAME},
                 ],
                 CONF_REFRESH: "1d",
             }
