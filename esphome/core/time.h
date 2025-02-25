@@ -72,6 +72,11 @@ struct ESPTime {
    */
   static bool strptime(const std::string &time_to_parse, ESPTime &esp_time);
 
+  /** Initialize new ESPTime struct using given values
+   *  required, to mimic c_tm initialization without day of week required
+   */
+  static bool from_local_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, ESPTime & esp_time);
+
   /// Convert a C tm struct instance with a C unix epoch timestamp to an ESPTime instance.
   static ESPTime from_c_tm(struct tm *c_tm, time_t c_time);
 
@@ -84,11 +89,6 @@ struct ESPTime {
     struct tm *c_tm = ::localtime(&epoch);
     return ESPTime::from_c_tm(c_tm, epoch);
   }
-
-  /** Initialize new ESPTime struct using given values
-   *  required, to mimic c_tm initialization without day of week required
-   */
-  static ESPTime from_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 
   /** Convert an UTC epoch timestamp to a UTC time ESPTime instance.
    *
