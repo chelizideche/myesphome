@@ -77,7 +77,6 @@ void SEN5XComponent::setup() {
       stop_measurement_delay = 1200;
     }
 
-
     this->set_timeout(stop_measurement_delay, [this]() {
       uint16_t raw_serial_number[3];
       if (!this->get_register(CMD_GET_SERIAL_NUMBER, raw_serial_number, 3, 20)) {
@@ -91,14 +90,13 @@ void SEN5XComponent::setup() {
       this->serial_number_[2] = static_cast<uint16_t>(raw_serial_number[1] >> 8);
       ESP_LOGD(TAG, "Serial number %02d.%02d.%02d", serial_number_[0], serial_number_[1], serial_number_[2]);
 
-      uint16_t raw_product_name[16]={0};
+      uint16_t raw_product_name[16] = {0};
       if (!this->get_register(CMD_GET_PRODUCT_NAME, raw_product_name, 16, 20)) {
         ESP_LOGE(TAG, "Failed to read product name");
         this->error_code_ = PRODUCT_NAME_FAILED;
         this->mark_failed();
         return;
       }
-      
       // 2 ASCII bytes are encoded in an int
       const uint16_t *current_int = raw_product_name;
       char current_char;
@@ -123,24 +121,26 @@ void SEN5XComponent::setup() {
         sen5x_type = SEN54;
       } else if (product_name_ == "SEN55") {
         sen5x_type = SEN55;
-      }else if(product_name_ == "SEN66" || this->co2_sensor_){ // Reading the product name of sen66 will return empty, so the sensor type is selected based on the user's configuration.
+      } else if (product_name_ == "SEN66" ||
+                 this->co2_sensor_) {  // Reading the product name of sen66 will return empty, so the sensor type is
+                                       // selected based on the user's configuration.
         sen5x_type = SEN66;
         product_name_ = "SEN66";
       }
       ESP_LOGD(TAG, "Productname %s", product_name_.c_str());
-      
+
       if (this->humidity_sensor_ && sen5x_type == SEN50) {
         ESP_LOGE(TAG, "For Relative humidity a SEN54 OR SEN55 is required. You are using a <%s> sensor",
                  this->product_name_.c_str());
         this->humidity_sensor_ = nullptr;  // mark as not used
-      }else if (this->temperature_sensor_ && sen5x_type == SEN50) {
+      } else if (this->temperature_sensor_ && sen5x_type == SEN50) {
         ESP_LOGE(TAG, "For Temperature a SEN54 OR SEN55 is required. You are using a <%s> sensor",
                  this->product_name_.c_str());
         this->temperature_sensor_ = nullptr;  // mark as not used
-      }else if (this->voc_sensor_ && sen5x_type == SEN50) {
+      } else if (this->voc_sensor_ && sen5x_type == SEN50) {
         ESP_LOGE(TAG, "For VOC a SEN54 OR SEN55 is required. You are using a <%s> sensor", this->product_name_.c_str());
         this->voc_sensor_ = nullptr;  // mark as not used
-      }else if (this->nox_sensor_ && sen5x_type != SEN55 && sen5x_type != SEN66) {
+      } else if (this->nox_sensor_ && sen5x_type != SEN55 && sen5x_type != SEN66) {
         ESP_LOGE(TAG, "For NOx a SEN55 is required. You are using a <%s> sensor", this->product_name_.c_str());
         this->nox_sensor_ = nullptr;  // mark as not used
       }
@@ -344,20 +344,19 @@ void SEN5XComponent::update() {
     }
   }
 
-  if (this->product_name_ == "SEN66"){
+  if (this->product_name_ == "SEN66") {
     if (!this->write_command(SEN66_READ_MEASURED_VALUES_AS_INTEGERS)) {
       this->status_set_warning();
       ESP_LOGD(TAG, "write error read measurement (%d)", this->last_error_);
       return;
     }
-  }else{
+  } else {
     if (!this->write_command(SEN5X_CMD_READ_MEASUREMENT)) {
       this->status_set_warning();
       ESP_LOGD(TAG, "write error read measurement (%d)", this->last_error_);
       return;
     }
   }
-
 
   this->set_timeout(20, [this]() {
     uint16_t measurements[9];

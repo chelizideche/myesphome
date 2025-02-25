@@ -58,7 +58,7 @@ CONF_STD_INITIAL = "std_initial"
 CONF_TIME_CONSTANT = "time_constant"
 CONF_VOC = "voc"
 CONF_VOC_BASELINE = "voc_baseline"
-CONF_CO2 = "co2"
+
 
 # Actions
 StartFanAction = sen5x_ns.class_("StartFanAction", automation.Action)

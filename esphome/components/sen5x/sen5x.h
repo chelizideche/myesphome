@@ -53,7 +53,7 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
   void dump_config() override;
   void update() override;
 
-  enum Sen5xType { SEN50, SEN54, SEN55, SEN66,UNKNOWN };
+  enum Sen5xType { SEN50, SEN54, SEN55, SEN66, UNKNOWN };
 
   void set_pm_1_0_sensor(sensor::Sensor *pm_1_0) { pm_1_0_sensor_ = pm_1_0; }
   void set_pm_2_5_sensor(sensor::Sensor *pm_2_5) { pm_2_5_sensor_ = pm_2_5; }
