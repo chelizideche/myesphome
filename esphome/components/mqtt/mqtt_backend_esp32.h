@@ -4,11 +4,14 @@
 #ifdef USE_MQTT
 #ifdef USE_ESP32
 
+#define ESPHOME_MQTT_THREAD
+
 #include <string>
 #include <queue>
 #include <mqtt_client.h>
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/ring_buffer.h"
 
 namespace esphome {
 namespace mqtt {
@@ -42,9 +45,19 @@ struct Event {
         error_handle(*event.error_handle) {}
 };
 
+struct RingElement {
+  esp_mqtt_event_id_t type;
+  int qos;
+  bool retain;
+  uint32_t topic_len;
+  uint32_t payload_len;
+};
+
 class MQTTBackendESP32 final : public MQTTBackend {
  public:
   static const size_t MQTT_BUFFER_SIZE = 4096;
+  static const size_t TASK_STACK_SIZE = 4096 + MQTT_BUFFER_SIZE;
+  static const ssize_t TASK_PRIORITY = 5;
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
@@ -105,12 +118,24 @@ class MQTTBackendESP32 final : public MQTTBackend {
   }
 
   bool subscribe(const char *topic, uint8_t qos) final {
+#ifdef ESPHOME_MQTT_THREAD
+    return enqueue(MQTT_EVENT_SUBSCRIBED, topic, qos);
+#else
     return esp_mqtt_client_subscribe(handler_.get(), topic, qos) != -1;
+#endif
   }
-  bool unsubscribe(const char *topic) final { return esp_mqtt_client_unsubscribe(handler_.get(), topic) != -1; }
+  bool unsubscribe(const char *topic) final {
+#ifdef ESPHOME_MQTT_THREAD
+    return enqueue(MQTT_EVENT_UNSUBSCRIBED, topic);
+#else
+    return esp_mqtt_client_unsubscribe(handler_.get(), topic) != -1;
+#endif
+  }
 
   bool publish(const char *topic, const char *payload, size_t length, uint8_t qos, bool retain) final {
-#if defined(USE_MQTT_IDF_ENQUEUE)
+#ifdef ESPHOME_MQTT_THREAD
+    return enqueue(MQTT_EVENT_PUBLISHED, topic, qos, retain, payload, length);
+#elif defined(USE_MQTT_IDF_ENQUEUE)
     // use the non-blocking version
     // it can delay sending a couple of seconds but won't block
     return esp_mqtt_client_enqueue(handler_.get(), topic, payload, length, qos, retain, true) != -1;
@@ -160,6 +185,36 @@ class MQTTBackendESP32 final : public MQTTBackend {
   optional<std::string> cl_certificate_;
   optional<std::string> cl_key_;
   bool skip_cert_cn_check_{false};
+#ifdef ESPHOME_MQTT_THREAD
+  static void esphome_mqtt_task(void *params);
+  std::unique_ptr<RingBuffer> ring_buffer_;
+  TaskHandle_t task_handle_;
+  bool enqueue(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
+               const char *payload = NULL, size_t len = 0) {
+    struct RingElement elem;
+
+    elem.type = type;
+    elem.qos = qos;
+    elem.retain = retain;
+    elem.topic_len = strlen(topic) + 1;  // include the trailing NUL
+    elem.payload_len = len;
+
+    /*
+     * Assert that current_task == loop_task_handle, which is what makes it
+     * OK that these writes (and the free() check) aren't atomic.
+     */
+
+    if (this->ring_buffer_->free() < sizeof(elem) + elem.topic_len + len)
+      return false;
+
+    this->ring_buffer_->write(&elem, sizeof(elem));
+    this->ring_buffer_->write(topic, elem.topic_len);
+    if (len)
+      this->ring_buffer_->write(payload, len);
+
+    return true;
+  }
+#endif
 
   // callbacks
   CallbackManager<on_connect_callback_t> on_connect_;
