@@ -4,8 +4,6 @@
 #ifdef USE_MQTT
 #ifdef USE_ESP32
 
-#define ESPHOME_MQTT_THREAD
-
 #include <string>
 #include <queue>
 #include <mqtt_client.h>
@@ -120,14 +118,14 @@ class MQTTBackendESP32 final : public MQTTBackend {
   }
 
   bool subscribe(const char *topic, uint8_t qos) final {
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
     return enqueue_(MQTT_EVENT_SUBSCRIBED, topic, qos);
 #else
     return esp_mqtt_client_subscribe(handler_.get(), topic, qos) != -1;
 #endif
   }
   bool unsubscribe(const char *topic) final {
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
     return enqueue_(MQTT_EVENT_UNSUBSCRIBED, topic);
 #else
     return esp_mqtt_client_unsubscribe(handler_.get(), topic) != -1;
@@ -135,12 +133,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
   }
 
   bool publish(const char *topic, const char *payload, size_t length, uint8_t qos, bool retain) final {
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
     return enqueue_(MQTT_EVENT_PUBLISHED, topic, qos, retain, payload, length);
-#elif defined(USE_MQTT_IDF_ENQUEUE)
-    // use the non-blocking version
-    // it can delay sending a couple of seconds but won't block
-    return esp_mqtt_client_enqueue(handler_.get(), topic, payload, length, qos, retain, true) != -1;
 #else
     // might block for several seconds, either due to network timeout (10s)
     // or if publishing payloads longer than internal buffer (due to message fragmentation)
@@ -187,7 +181,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
   optional<std::string> cl_certificate_;
   optional<std::string> cl_key_;
   bool skip_cert_cn_check_{false};
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
   static void esphome_mqtt_task(void *params);
   QueueHandle_t mqtt_queue_;
   TaskHandle_t task_handle_;

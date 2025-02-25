@@ -95,7 +95,7 @@ bool MQTTBackendESP32::initialize_() {
     mqtt_cfg_.broker.address.transport = MQTT_TRANSPORT_OVER_TCP;
   }
 #endif
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
   this->mqtt_queue_ = xQueueCreate(MQTT_QUEUE_LENGTH, sizeof(struct QueueElement));
   xTaskCreate(esphome_mqtt_task, "esphome_mqtt", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY, &this->task_handle_);
   if (this->task_handle_ == nullptr) {
@@ -196,7 +196,7 @@ void MQTTBackendESP32::mqtt_event_handler(void *handler_args, esp_event_base_t b
   }
 }
 
-#ifdef ESPHOME_MQTT_THREAD
+#if defined(USE_MQTT_IDF_ENQUEUE)
 void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   MQTTBackendESP32 *this_mqtt = (MQTTBackendESP32 *) params;
 
