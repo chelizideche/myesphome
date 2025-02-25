@@ -138,7 +138,7 @@ def _process_base_package(config: dict) -> dict:
             if not yaml_file.is_file():
                 raise cv.Invalid(
                     f"{filename} does not exist in repository",
-                    path=[CONF_FILES],
+                    path=[CONF_FILES, idx, CONF_PATH],
                 )
 
             try:
@@ -178,7 +178,7 @@ def _process_base_package(config: dict) -> dict:
             error = er
 
     if packages is None:
-        raise cv.Invalid(f"Failed to load packages. {error}")
+        raise cv.Invalid(f"Failed to load packages. {error}", path=error.path)
 
     return {"packages": packages}
 
