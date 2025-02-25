@@ -317,7 +317,7 @@ void LD2450Component::query_zone_info() {
 void LD2450Component::restart_and_read_all_info() {
   this->set_config_mode_(true);
   this->restart_();
-  this->set_timeout(1000, [this]() { this->read_all_info(); });
+  this->set_timeout(1500, [this]() { this->read_all_info(); });
 }
 
 // Send command with values to LD2450
