@@ -158,8 +158,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
     if (this->mqtt_queue_) {
       struct QueueElement elem;
       while (xQueueReceive(this->mqtt_queue_, &elem, 0)) {
-        free(elem.topic);
-        free(elem.payload);
+        free(elem.topic);    // NOLINT
+        free(elem.payload);  // NOLINT
       }
       vQueueDelete(this->mqtt_queue_);
     }

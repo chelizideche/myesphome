@@ -224,8 +224,8 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
         ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
         break;
     }
-    free(elem.topic);
-    free(elem.payload);
+    free(elem.topic);    // NOLINT
+    free(elem.payload);  // NOLINT
   }
 }
 #endif
