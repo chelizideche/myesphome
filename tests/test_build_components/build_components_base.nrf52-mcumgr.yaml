@@ -4,13 +4,11 @@ external_components:
     refresh: always
 
 esphome:
-  name: componenttestesp32c3ard
+  name: componenttestnrf52
   friendly_name: $component_name
 
-esp32:
-  board: lolin_c3_mini
-  framework:
-    type: arduino
+nrf52:
+  board: adafruit_feather_nrf52840
 
 logger:
   level: VERY_VERBOSE
