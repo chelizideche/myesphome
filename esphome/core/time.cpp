@@ -18,19 +18,8 @@ size_t ESPTime::strftime(char *buffer, size_t buffer_len, const char *format) {
 }
 
 ESPTime ESPTime::from_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
-  ESPTime res{};
   std::tm c_tm = {0, 0, 0, day, (month -1), (year - 1900)};
-  res.second = uint8_t(c_tm->tm_sec);
-  res.minute = uint8_t(c_tm->tm_min);
-  res.hour = uint8_t(c_tm->tm_hour);
-  res.day_of_week = uint8_t(c_tm->tm_wday + 1);
-  res.day_of_month = uint8_t(c_tm->tm_mday);
-  res.day_of_year = uint16_t(c_tm->tm_yday + 1);
-  res.month = uint8_t(c_tm->tm_mon + 1);
-  res.year = uint16_t(c_tm->tm_year + 1900);
-  res.is_dst = bool(c_tm->tm_isdst);
-  res.timestamp = c_time;
-  return res;
+  return this->from_c_tm(c_tm);
 }
 
 ESPTime ESPTime::from_c_tm(struct tm *c_tm, time_t c_time) {
