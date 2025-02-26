@@ -91,26 +91,5 @@ void GLR01I2CComponent::loop() {
   }
 }
 
-bool GLR01I2CComponent::restart_sensor() {
-  if (!this->write_byte(REG_TRIGGER, RESTART_CMD1)) {
-    ESP_LOGE(TAG, "Failed to send restart command part 1!");
-    return false;
-  }
-
-  if (!this->write_byte(REG_TRIGGER, RESTART_CMD2)) {
-    ESP_LOGE(TAG, "Failed to send restart command part 2!");
-    return false;
-  }
-
-  ESP_LOGI(TAG, "Restart command issued successfully");
-  return true;
-}
-
-void RestartSensorAction::play() {
-  if (!this->parent_->restart_sensor()) {
-    ESP_LOGE(TAG, "Failed to restart sensor!");
-  }
-}
-
 }  // namespace gl_r01_i2c
 }  // namespace esphome

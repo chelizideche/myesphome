@@ -16,7 +16,6 @@ class GLR01I2CComponent : public sensor::Sensor, public i2c::I2CDevice, public P
   void update() override;
   void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
-  bool restart_sensor();
 
   void set_min_read_interval(uint32_t min_read_interval);
 
@@ -25,15 +24,6 @@ class GLR01I2CComponent : public sensor::Sensor, public i2c::I2CDevice, public P
   uint32_t trigger_time_{0};
   uint32_t min_read_interval_{40};  // minimum milliseconds from datasheet
   uint16_t version_{0};
-};
-
-class RestartSensorAction : public Action<> {
- public:
-  explicit RestartSensorAction(GLR01I2CComponent *parent) : parent_(parent) {}
-  void play() override;
-
- protected:
-  GLR01I2CComponent *parent_;
 };
 
 }  // namespace gl_r01_i2c

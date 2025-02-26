@@ -15,7 +15,6 @@ gl_r01_i2c_ns = cg.esphome_ns.namespace("gl_r01_i2c")
 GLR01I2CComponent = gl_r01_i2c_ns.class_(
     "GLR01I2CComponent", i2c.I2CDevice, cg.PollingComponent
 )
-RestartSensorAction = gl_r01_i2c_ns.class_("RestartSensorAction", automation.Action)
 
 
 # Ensure min_read_interval is at least 40ms as stated in datasheet
@@ -44,21 +43,6 @@ CONFIG_SCHEMA = (
         }
     )
 )
-
-
-@automation.register_action(
-    "gl_r01_i2c.restart",
-    RestartSensorAction,
-    cv.Schema(
-        {
-            cv.Required(CONF_ID): cv.use_id(GLR01I2CComponent),
-        }
-    ),
-)
-async def gl_r01_i2c_restart_to_code(config, action_id, template_arg, args):
-    parent = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, parent)
-    return var
 
 
 async def to_code(config):
