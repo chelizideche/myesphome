@@ -274,7 +274,7 @@ BEO4_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_SOURCE): cv.hex_uint8_t,
         cv.Required(CONF_COMMAND): cv.hex_uint8_t,
-        cv.Optional(CONF_COMMAND_REPEATS, default=1): cv.hex_uint8_t,
+        cv.Optional(CONF_COMMAND_REPEATS, default=1): cv.uint8_t,
     }
 )
 
