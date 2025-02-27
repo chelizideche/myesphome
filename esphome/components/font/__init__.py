@@ -109,7 +109,7 @@ def check_missing_glyphs(file, codepoints, warning: bool = False):
         )
         if count > 10:
             missing_str += f"\n    and {count - 10} more."
-        message = f"Font {Path(file).name} is missing {count} glyph{'s' if count != 1 else ''}:\n    {missing_str}"
+        message = f"Font {Path(file).name} is missing {count} glyph{'s' if count != 1 else ''}:\n    {missing_str}\nESPHome version 2024.11.0 introduced testing for missing glyphs in the compilation phase. Missing glyphs are most likely a problem of the font itself."
         if warning:
             _LOGGER.warning(message)
         else:
