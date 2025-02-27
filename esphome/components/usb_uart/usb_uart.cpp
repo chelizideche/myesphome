@@ -62,7 +62,7 @@ static optional<cdc_eps_t> get_cdc(const usb_config_desc_t *config_desc, uint8_t
   return cdc_eps_t{notify_ep, out_ep, in_ep, interface_number};
 }
 
-std::vector<cdc_eps_t> USBUartTypeCdcAcm::parse_descriptors_(usb_device_handle_t dev_hdl) {
+std::vector<cdc_eps_t> USBUartTypeCdcAcm::parse_descriptors(usb_device_handle_t dev_hdl) {
   const usb_config_desc_t *config_desc;
   const usb_device_desc_t *device_desc;
   int desc_offset = 0;
@@ -255,7 +255,7 @@ static void fix_mps(const usb_ep_desc_t *ep) {
   }
 }
 void USBUartTypeCdcAcm::on_connected() {
-  auto cdc_devs = this->parse_descriptors_(this->device_handle_);
+  auto cdc_devs = this->parse_descriptors(this->device_handle_);
   if (cdc_devs.empty()) {
     this->status_set_error("No CDC-ACM device found");
     this->disconnect();

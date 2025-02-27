@@ -26,26 +26,26 @@ static const size_t SETUP_PACKET_SIZE = 8;
 static const size_t MAX_REQUESTS = 16;  // maximum number of outstanding requests possible.
 
 // used to report a transfer status
-using transfer_status_t = struct {
+typedef struct {  // NOLINT
   bool success;
   uint16_t error_code;
   uint8_t *data;
   size_t data_len;
   uint8_t endpoint;
   void *user_data;
-};
+} transfer_status_t;
 
 using transfer_cb_t = std::function<void(const transfer_status_t &)>;
 
 // struct used to capture all data needed for a transfer
 class USBClient;
 
-using transfer_request_t = struct {
+typedef struct {  // NOLINT
   usb_transfer_t *transfer;
   transfer_cb_t callback;
   transfer_status_t status;
   USBClient *client;
-};
+} transfer_request_t;
 
 // callback function type.
 
