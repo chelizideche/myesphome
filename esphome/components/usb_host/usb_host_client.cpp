@@ -242,7 +242,7 @@ void USBClient::on_removed(usb_device_handle_t handle) {
 }
 
 static void control_callback(const usb_transfer_t *xfer) {
-  auto trq = static_cast<transfer_request_t *>(xfer->context);
+  auto trq = static_cast<TransferRequest *>(xfer->context);
   trq->status.error_code = xfer->status;
   trq->status.success = xfer->status == USB_TRANSFER_STATUS_COMPLETED;
   trq->status.endpoint = xfer->bEndpointAddress;
@@ -253,7 +253,7 @@ static void control_callback(const usb_transfer_t *xfer) {
   trq->client->release_trq(trq);
 }
 
-transfer_request_t *USBClient::get_trq_() {
+TransferRequest *USBClient::get_trq_() {
   if (this->trq_pool_.empty()) {
     ESP_LOGE(TAG, "Too many requests queued");
     return nullptr;
@@ -312,7 +312,7 @@ bool USBClient::control_transfer(uint8_t type, uint8_t request, uint16_t value, 
 }
 
 static void transfer_callback(usb_transfer_t *xfer) {
-  auto *trq = static_cast<transfer_request_t *>(xfer->context);
+  auto *trq = static_cast<TransferRequest *>(xfer->context);
   trq->status.error_code = xfer->status;
   trq->status.success = xfer->status == USB_TRANSFER_STATUS_COMPLETED;
   trq->status.endpoint = xfer->bEndpointAddress;
@@ -381,7 +381,7 @@ void USBClient::dump_config() {
   ESP_LOGCONFIG(TAG, "  Vendor id %04X", this->vid_);
   ESP_LOGCONFIG(TAG, "  Product id %04X", this->pid_);
 }
-void USBClient::release_trq(transfer_request_t *trq) { this->trq_pool_.push_back(trq); }
+void USBClient::release_trq(TransferRequest *trq) { this->trq_pool_.push_back(trq); }
 
 }  // namespace usb_host
 }  // namespace esphome

@@ -26,7 +26,7 @@ static const size_t SETUP_PACKET_SIZE = 8;
 static const size_t MAX_REQUESTS = 16;  // maximum number of outstanding requests possible.
 
 // used to report a transfer status
-struct transfer_status_t {
+struct TransferStatus {
   bool success;
   uint16_t error_code;
   uint8_t *data;
@@ -35,15 +35,15 @@ struct transfer_status_t {
   void *user_data;
 };
 
-using transfer_cb_t = std::function<void(const transfer_status_t &)>;
+using transfer_cb_t = std::function<void(const TransferStatus &)>;
 
-// struct used to capture all data needed for a transfer
 class USBClient;
 
-struct transfer_request_t {
+// struct used to capture all data needed for a transfer
+struct TransferRequest {
   usb_transfer_t *transfer;
   transfer_cb_t callback;
-  transfer_status_t status;
+  TransferStatus status;
   USBClient *client;
 };
 
@@ -78,13 +78,13 @@ class USBClient : public Component {
   void transfer_in(uint8_t ep_address, const transfer_cb_t &callback, uint16_t length);
   void transfer_out(uint8_t ep_address, const transfer_cb_t &callback, const uint8_t *data, uint16_t length);
   void dump_config() override;
-  void release_trq(transfer_request_t *trq);
+  void release_trq(TransferRequest *trq);
   bool control_transfer(uint8_t type, uint8_t request, uint16_t value, uint16_t index, const transfer_cb_t &callback,
                         const std::vector<uint8_t> &data = {});
 
  protected:
   bool register_();
-  transfer_request_t *get_trq_();
+  TransferRequest *get_trq_();
   virtual void disconnect();
   virtual void on_connected() {}
   virtual void on_disconnected() { this->init_pool(); }
@@ -95,8 +95,8 @@ class USBClient : public Component {
   int state_{USB_CLIENT_INIT};
   uint16_t vid_{};
   uint16_t pid_{};
-  std::list<transfer_request_t *> trq_pool_{};
-  transfer_request_t requests_[MAX_REQUESTS]{};
+  std::list<TransferRequest *> trq_pool_{};
+  TransferRequest requests_[MAX_REQUESTS]{};
 };
 class USBHost : public Component {
  public:

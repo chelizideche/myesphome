@@ -15,7 +15,7 @@ namespace usb_uart {
  * @param intf_idx The index of the interface to be examined
  * @return
  */
-static optional<cdc_eps_t> get_cdc(const usb_config_desc_t *config_desc, uint8_t intf_idx) {
+static optional<CdcEps> get_cdc(const usb_config_desc_t *config_desc, uint8_t intf_idx) {
   int conf_offset, ep_offset;
   const usb_ep_desc_t *notify_ep{}, *in_ep{}, *out_ep{};
   uint8_t interface_number = 0;
@@ -58,15 +58,15 @@ static optional<cdc_eps_t> get_cdc(const usb_config_desc_t *config_desc, uint8_t
       break;
   }
   if (in_ep->bEndpointAddress & usb_host::USB_DIR_IN)
-    return cdc_eps_t{notify_ep, in_ep, out_ep, interface_number};
-  return cdc_eps_t{notify_ep, out_ep, in_ep, interface_number};
+    return CdcEps{notify_ep, in_ep, out_ep, interface_number};
+  return CdcEps{notify_ep, out_ep, in_ep, interface_number};
 }
 
-std::vector<cdc_eps_t> USBUartTypeCdcAcm::parse_descriptors_(usb_device_handle_t dev_hdl) {
+std::vector<CdcEps> USBUartTypeCdcAcm::parse_descriptors_(usb_device_handle_t dev_hdl) {
   const usb_config_desc_t *config_desc;
   const usb_device_desc_t *device_desc;
   int desc_offset = 0;
-  std::vector<cdc_eps_t> cdc_devs{};
+  std::vector<CdcEps> cdc_devs{};
 
   // Get required descriptors
   if (usb_host_get_device_descriptor(dev_hdl, &device_desc) != ESP_OK) {
@@ -191,7 +191,7 @@ void USBUartComponent::start_input(USBUartChannel *channel) {
       channel->input_buffer_.get_free_space() < channel->cdc_dev_.in_ep->wMaxPacketSize)
     return;
   auto ep = channel->cdc_dev_.in_ep;
-  auto callback = [this, channel](const usb_host::transfer_status_t &status) {
+  auto callback = [this, channel](const usb_host::TransferStatus &status) {
     ESP_LOGV(TAG, "Transfer result: length: %u; status %X", status.data_len, status.error_code);
     if (!status.success) {
       ESP_LOGE(TAG, "Control transfer failed, status=%s", esp_err_to_name(status.error_code));
@@ -224,7 +224,7 @@ void USBUartComponent::start_output(USBUartChannel *channel) {
     return;
   }
   auto ep = channel->cdc_dev_.out_ep;
-  auto callback = [this, channel](const usb_host::transfer_status_t &status) {
+  auto callback = [this, channel](const usb_host::TransferStatus &status) {
     ESP_LOGV(TAG, "Output Transfer result: length: %u; status %X", status.data_len, status.error_code);
     channel->output_started_ = false;
     this->defer([this, channel] { this->start_output(channel); });

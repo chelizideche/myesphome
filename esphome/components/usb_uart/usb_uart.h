@@ -20,7 +20,7 @@ static constexpr uint8_t USB_DEVICE_PROTOCOL_IAD = 0x01;
 static constexpr uint8_t USB_VENDOR_IFC = usb_host::USB_TYPE_VENDOR | usb_host::USB_RECIP_INTERFACE;
 static constexpr uint8_t USB_VENDOR_DEV = usb_host::USB_TYPE_VENDOR | usb_host::USB_RECIP_DEVICE;
 
-struct cdc_eps_t {
+struct CdcEps {
   const usb_ep_desc_t *notify_ep;
   const usb_ep_desc_t *in_ep;
   const usb_ep_desc_t *out_ep;
@@ -94,7 +94,7 @@ class USBUartChannel : public uart::UARTComponent, public Parented<USBUartCompon
   UARTParityOptions parity_{UART_CONFIG_PARITY_NONE};
   bool input_started_{true};
   bool output_started_{true};
-  cdc_eps_t cdc_dev_{};
+  CdcEps cdc_dev_{};
   bool debug_{};
   bool dummy_receiver_{};
   bool initialised_{};
@@ -122,7 +122,7 @@ class USBUartTypeCdcAcm : public USBUartComponent {
   USBUartTypeCdcAcm(uint16_t vid, uint16_t pid) : USBUartComponent(vid, pid) {}
 
  protected:
-  virtual std::vector<cdc_eps_t> parse_descriptors_(usb_device_handle_t dev_hdl);
+  virtual std::vector<CdcEps> parse_descriptors_(usb_device_handle_t dev_hdl);
   void on_connected() override;
   virtual void enable_channels();
   void on_disconnected() override;
@@ -133,7 +133,7 @@ class USBUartTypeCP210X : public USBUartTypeCdcAcm {
   USBUartTypeCP210X(uint16_t vid, uint16_t pid) : USBUartTypeCdcAcm(vid, pid) {}
 
  protected:
-  std::vector<cdc_eps_t> parse_descriptors_(usb_device_handle_t dev_hdl) override;
+  std::vector<CdcEps> parse_descriptors_(usb_device_handle_t dev_hdl) override;
   void enable_channels() override;
 };
 class USBUartTypeCH34X : public USBUartTypeCdcAcm {

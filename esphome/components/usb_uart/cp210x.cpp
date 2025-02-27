@@ -42,11 +42,11 @@ static constexpr uint8_t SET_BAUDRATE = 0x1E;     // Set the baud rate.
 static constexpr uint8_t SET_CHARS = 0x19;        // Set special characters.
 static constexpr uint8_t VENDOR_SPECIFIC = 0xFF;  // Vendor specific command.
 
-std::vector<cdc_eps_t> USBUartTypeCP210X::parse_descriptors_(usb_device_handle_t dev_hdl) {
+std::vector<CdcEps> USBUartTypeCP210X::parse_descriptors_(usb_device_handle_t dev_hdl) {
   const usb_config_desc_t *config_desc;
   const usb_device_desc_t *device_desc;
   int conf_offset = 0, ep_offset;
-  std::vector<cdc_eps_t> cdc_devs{};
+  std::vector<CdcEps> cdc_devs{};
 
   // Get required descriptors
   if (usb_host_get_device_descriptor(dev_hdl, &device_desc) != ESP_OK) {
@@ -88,9 +88,9 @@ std::vector<cdc_eps_t> USBUartTypeCP210X::parse_descriptors_(usb_device_handle_t
       continue;
     }
     if (in_ep->bEndpointAddress & usb_host::USB_DIR_IN) {
-      cdc_devs.push_back({cdc_eps_t{nullptr, in_ep, out_ep, data_desc->bInterfaceNumber}});
+      cdc_devs.push_back({CdcEps{nullptr, in_ep, out_ep, data_desc->bInterfaceNumber}});
     } else {
-      cdc_devs.push_back({cdc_eps_t{nullptr, out_ep, in_ep, data_desc->bInterfaceNumber}});
+      cdc_devs.push_back({CdcEps{nullptr, out_ep, in_ep, data_desc->bInterfaceNumber}});
     }
   }
   return cdc_devs;
@@ -101,7 +101,7 @@ void USBUartTypeCP210X::enable_channels() {
   for (auto channel : this->channels_) {
     if (!channel->initialised_)
       continue;
-    usb_host::transfer_cb_t callback = [=](const usb_host::transfer_status_t &status) {
+    usb_host::transfer_cb_t callback = [=](const usb_host::TransferStatus &status) {
       if (!status.success) {
         ESP_LOGE(TAG, "Control transfer failed, status=%s", esp_err_to_name(status.error_code));
         channel->initialised_ = false;

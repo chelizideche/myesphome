@@ -17,7 +17,7 @@ void USBUartTypeCH34X::enable_channels() {
   for (auto channel : this->channels_) {
     if (!channel->initialised_)
       continue;
-    usb_host::transfer_cb_t callback = [=](const usb_host::transfer_status_t &status) {
+    usb_host::transfer_cb_t callback = [=](const usb_host::TransferStatus &status) {
       if (!status.success) {
         ESP_LOGE(TAG, "Control transfer failed, status=%s", esp_err_to_name(status.error_code));
         channel->initialised_ = false;
