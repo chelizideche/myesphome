@@ -1,5 +1,6 @@
 #pragma once
 
+// Should not be needed, but it's required to pass CI clang-tidy checks
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
 #include "esphome/core/component.h"
 #include <vector>

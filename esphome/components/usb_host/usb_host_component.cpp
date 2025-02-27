@@ -1,6 +1,7 @@
+// Should not be needed, but it's required to pass CI clang-tidy checks
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
 #include "usb_host.h"
 #include <cinttypes>
-#include "usb/usb_host.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -30,3 +31,5 @@ void USBHost::loop() {
 
 }  // namespace usb_host
 }  // namespace esphome
+
+#endif  // USE_ESP32_VARIANT_ESP32S2 || USE_ESP32_VARIANT_ESP32S3
