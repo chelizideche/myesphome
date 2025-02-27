@@ -124,7 +124,6 @@ async def to_code(config):
             index_conversion(key): await cg.get_variable(value)
             for key, value in entries.items()
         }
-        value_type = get_object_type(to_)
         value_type = get_object_type(to_).operator("ptr")
     varid = config[CONF_ID]
     varid.type = map_.template(index_type, value_type)
