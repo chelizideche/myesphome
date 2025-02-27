@@ -17,13 +17,13 @@ from esphome.const import (
 )
 from esphome.cpp_types import Component
 
-# DEPENDENCIES = ["usb_host"]
+AUTO_LOAD = ["uart", "usb_host", "bytebuffer"]
+CODEOWNERS = ["@clydebarrow"]
 
 usb_uart_ns = cg.esphome_ns.namespace("usb_uart")
 USBUartComponent = usb_uart_ns.class_("USBUartComponent", Component)
 USBUartChannel = usb_uart_ns.class_("USBUartChannel", UARTComponent)
 
-AUTO_LOAD = ["uart", "usb_host", "bytebuffer"]
 
 UARTParityOptions = usb_uart_ns.enum("UARTParityOptions")
 UART_PARITY_OPTIONS = {
