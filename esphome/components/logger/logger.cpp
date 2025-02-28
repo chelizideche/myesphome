@@ -57,13 +57,18 @@ void Logger::write_header_(int level, const char *tag, int line) {
 #elif defined(USE_ZEPHYR)
     thread_name = k_thread_name_get(current_task);
 #endif
-    this->printf_to_buffer_("%s[%s][%s:%03u]%s[%s]%s: ", color, letter, tag, line,
-                            ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), thread_name, color);
+    if (thread_name) {
+      this->printf_to_buffer_("%s[%s][%s:%03u]%s[%s]%s: ", color, letter, tag, line,
+                              ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), thread_name, color);
+    } else {
+      this->printf_to_buffer_("%s[%s][%s:%03u]%s[%p]%s: ", color, letter, tag, line,
+                              ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), current_task, color);
+    }
   }
 }
 
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
+  if (level > this->level_for(tag) || !recursion_guard_.try_lock())
     return;
 
   recursion_guard_ = true;
@@ -72,7 +77,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   this->vprintf_to_buffer_(format, args);
   this->write_footer_();
   this->log_message_(level, tag);
-  recursion_guard_ = false;
+  recursion_guard_.unlock();
 }
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format,
