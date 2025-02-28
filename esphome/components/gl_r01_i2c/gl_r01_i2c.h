@@ -16,7 +16,6 @@ class GLR01I2CComponent : public sensor::Sensor, public i2c::I2CDevice, public P
 
  protected:
   void read_distance_();
-  uint32_t min_read_interval_{40};  // minimum milliseconds from datasheet
   uint16_t version_{0};
 };
 

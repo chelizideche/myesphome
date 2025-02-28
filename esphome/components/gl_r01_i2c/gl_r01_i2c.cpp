@@ -15,6 +15,7 @@ static const uint8_t REG_TRIGGER = 0x10;
 static const uint8_t CMD_TRIGGER = 0xB0;
 static const uint8_t RESTART_CMD1 = 0x5A;
 static const uint8_t RESTART_CMD2 = 0xA5;
+static const uint8_t READ_DELAY = 40;  // minimum milliseconds from datasheet to safely read measurement result
 
 void GLR01I2CComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up GL-R01 I2C...");
@@ -46,7 +47,7 @@ void GLR01I2CComponent::update() {
   }
 
   // Schedule reading the result after the minimum read interval
-  this->set_timeout(this->min_read_interval_, [this]() { this->read_distance_(); });
+  this->set_timeout(READ_DELAY, [this]() { this->read_distance_(); });
 }
 
 void GLR01I2CComponent::read_distance_() {
