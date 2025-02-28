@@ -206,6 +206,7 @@ void PMSX003Component::parse_data_() {
         this->humidity_sensor_->publish_state(humidity);
       // The rest of the PMS5003ST matches the PMS5003S, continue on
     }
+    // fall through
     case PMSX003_TYPE_5003S: {
       uint16_t formaldehyde = this->get_16_bit_uint_(28);
 
@@ -215,6 +216,7 @@ void PMSX003Component::parse_data_() {
         this->formaldehyde_sensor_->publish_state(formaldehyde);
       // The rest of the PMS5003S matches the PMS5003, continue on
     }
+    // fall through
     case PMSX003_TYPE_X003: {
       uint16_t pm_1_0_std_concentration = this->get_16_bit_uint_(4);
       uint16_t pm_2_5_std_concentration = this->get_16_bit_uint_(6);
