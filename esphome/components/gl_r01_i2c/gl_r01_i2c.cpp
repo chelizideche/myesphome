@@ -1,6 +1,5 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/application.h"
 #include "gl_r01_i2c.h"
 
 namespace esphome {
@@ -46,7 +45,7 @@ void GLR01I2CComponent::update() {
     return;
   }
 
-  // Schedule reading the result after the read delay 
+  // Schedule reading the result after the read delay
   this->set_timeout(READ_DELAY, [this]() { this->read_distance_(); });
 }
 
