@@ -74,7 +74,7 @@ def _detect_bootloader(value):
         bootloaders = BOARDS_ZEPHYR[value[CONF_BOARD]][KEY_BOOTLOADER]
 
     if KEY_BOOTLOADER not in value:
-        if bootloaders is None:
+        if not bootloaders:
             # make mcuboot as default if there is no configuration for that board
             bootloaders = [BOOTLOADER_MCUBOOT]
         # there is no bootloader in config -> take first one
