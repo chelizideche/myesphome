@@ -4,6 +4,7 @@ esphome:
 
 nrf52:
   board: adafruit_itsybitsy_nrf52840
+  bootloader: adafruit_nrf52_sd140_v6
 
 logger:
   level: VERY_VERBOSE

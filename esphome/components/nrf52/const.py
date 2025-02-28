@@ -1,1 +1,4 @@
 BOOTLOADER_ADAFRUIT = "adafruit"
+BOOTLOADER_ADAFRUIT_NRF52_SD140_V6 = "adafruit_nrf52_sd140_v6"
+
+KEY_PM_STATIC = "pm_static"

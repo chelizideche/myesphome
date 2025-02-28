@@ -16,15 +16,19 @@ from esphome.const import (
     CONF_BOARD,
     CONF_FRAMEWORK,
     CONF_PLATFORM_VERSION,
-    CONF_TYPE,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
 )
 from esphome.core import CORE, EsphomeError, coroutine_with_priority
+from esphome.helpers import write_file_if_changed
 
-from .boards_zephyr import BOARDS_ZEPHYR
-from .const import BOOTLOADER_ADAFRUIT
+from .boards import BOARDS_ZEPHYR, BOOTLOADER_CONFIG, Section
+from .const import (
+    BOOTLOADER_ADAFRUIT,
+    BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
+    KEY_PM_STATIC,
+)
 
 # force import gpio to register pin schema
 from .gpio import nrf52_pin_to_code  # noqa
@@ -39,32 +43,41 @@ def set_core_data(config):
     zephyr_set_core_data(config)
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_NRF52
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = KEY_ZEPHYR
+    CORE.data[KEY_ZEPHYR][KEY_PM_STATIC] = []
+
+    if config[KEY_BOOTLOADER] in BOOTLOADER_CONFIG:
+        add_pm_static(BOOTLOADER_CONFIG[config[KEY_BOOTLOADER]])
+
     return config
 
 
 BOOTLOADERS = [
     BOOTLOADER_ADAFRUIT,
     BOOTLOADER_MCUBOOT,
+    BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
 ]
 
 
 def _detect_bootloader(value):
     value = value.copy()
-    bootloader = None
+    bootloaders = []
 
     if (
         value[CONF_BOARD] in BOARDS_ZEPHYR
         and KEY_BOOTLOADER in BOARDS_ZEPHYR[value[CONF_BOARD]]
     ):
-        bootloader = BOARDS_ZEPHYR[value[CONF_BOARD]][KEY_BOOTLOADER]
+        # this board have bootloaders config available
+        bootloaders = BOARDS_ZEPHYR[value[CONF_BOARD]][KEY_BOOTLOADER]
 
     if KEY_BOOTLOADER not in value:
-        if bootloader is None:
-            bootloader = BOOTLOADER_MCUBOOT
-        value[KEY_BOOTLOADER] = bootloader
-    elif bootloader is not None and bootloader != value[KEY_BOOTLOADER]:
+        if bootloaders is None:
+            # make mcuboot as default if there is no configuration for that board
+            bootloaders = [BOOTLOADER_MCUBOOT]
+        # there is no bootloader in config -> take first one
+        value[KEY_BOOTLOADER] = bootloaders[0]
+    elif bootloaders is not None and value[KEY_BOOTLOADER] not in bootloaders:
         raise cv.Invalid(
-            f"{value[CONF_FRAMEWORK][CONF_TYPE]} does not support '{bootloader}' bootloader for {value[CONF_BOARD]}"
+            f"{value[CONF_BOARD]} does not support {value[KEY_BOOTLOADER]}, select one of: {', '.join(bootloaders)}"
         )
     return value
 
@@ -111,8 +124,17 @@ async def to_code(config):
     zephyr_to_code(conf)
 
 
+def add_pm_static(section: Section):
+    CORE.data[KEY_ZEPHYR][KEY_PM_STATIC].extend(section)
+
+
 def copy_files():
     zephyr_copy_files()
+    pm_static = "\n".join(str(item) for item in CORE.data[KEY_ZEPHYR][KEY_PM_STATIC])
+    if pm_static:
+        write_file_if_changed(
+            CORE.relative_build_path("zephyr/pm_static.yml"), pm_static
+        )
 
 
 def get_download_types(storage_json):
