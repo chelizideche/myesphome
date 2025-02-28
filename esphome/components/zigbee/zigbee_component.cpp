@@ -53,6 +53,9 @@ void Zigbee::zboss_signal_handler_esphome(zb_bufid_t bufid) {
     case ZB_NLME_STATUS_INDICATION:
       ESP_LOGD(TAG, "ZB_NLME_STATUS_INDICATION, status: %d", status);
       break;
+    case ZB_BDB_SIGNAL_TC_REJOIN_DONE:
+      ESP_LOGD(TAG, "ZB_BDB_SIGNAL_TC_REJOIN_DONE, status: %d", status);
+      break;
     default:
       ESP_LOGD(TAG, "zboss_signal_handler sig: %d, status: %d", sig, status);
       break;

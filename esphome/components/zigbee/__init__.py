@@ -238,7 +238,7 @@ def zigbee_new_attr_list(id_: ID, *args):
         else:
             list.append(f"&{arg}")
 
-    obj = cg.RawExpression(f'{id_.type}({id_}, {", ".join(list)})')
+    obj = cg.RawExpression(f"{id_.type}({id_}, {', '.join(list)})")
     CORE.add_global(obj)
     CORE.register_variable(id_, obj)
     return id_
@@ -249,7 +249,7 @@ def zigbee_new_cluster_list(id_: ID, *args):
     list = []
     for arg in args:
         list.append(f"{arg}")
-    obj = cg.RawExpression(f'{id_.type}({id_}, {", ".join(list)})')
+    obj = cg.RawExpression(f"{id_.type}({id_}, {', '.join(list)})")
     CORE.add_global(obj)
     return id_
 
