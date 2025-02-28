@@ -122,10 +122,10 @@ optional<bool> PMSX003Component::check_byte_() {
   uint8_t byte = this->data_[index];
 
   if (index == 0)
-    return byte == 0x42;
+    return byte == START_CHARACTER_1;
 
   if (index == 1)
-    return byte == 0x4D;
+    return byte == START_CHARACTER_2;
 
   if (index == 2)
     return true;
@@ -175,8 +175,8 @@ optional<bool> PMSX003Component::check_byte_() {
 
 void PMSX003Component::send_command_(uint8_t cmd, uint16_t data) {
   this->data_index_ = 0;
-  this->data_[data_index_++] = 0x42;
-  this->data_[data_index_++] = 0x4D;
+  this->data_[data_index_++] = START_CHARACTER_1;
+  this->data_[data_index_++] = START_CHARACTER_2;
   this->data_[data_index_++] = cmd;
   this->data_[data_index_++] = (data >> 8) & 0xFF;
   this->data_[data_index_++] = (data >> 0) & 0xFF;

@@ -7,6 +7,9 @@
 namespace esphome {
 namespace pmsx003 {
 
+static const uint8_t START_CHARACTER_1 = 0x42;
+static const uint8_t START_CHARACTER_2 = 0x4D;
+
 // known command bytes
 static const uint8_t PMS_CMD_AUTO_MANUAL =
     0xE1;  // data=0: perform measurement manually, data=1: perform measurement automatically
