@@ -8,6 +8,9 @@ from esphome.const import (
     UNIT_MILLIMETER,
 )
 
+CODEOWNERS = ["@pkejval"]
+DEPENDENCIES = ["i2c"]
+
 CONF_MIN_READ_INTERVAL = "min_read_interval"
 
 gl_r01_i2c_ns = cg.esphome_ns.namespace("gl_r01_i2c")
