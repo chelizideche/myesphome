@@ -46,7 +46,7 @@ void GLR01I2CComponent::update() {
     return;
   }
 
-  // Schedule reading the result after the minimum read interval
+  // Schedule reading the result after the read delay 
   this->set_timeout(READ_DELAY, [this]() { this->read_distance_(); });
 }
 
