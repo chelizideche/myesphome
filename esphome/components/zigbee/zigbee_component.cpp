@@ -38,8 +38,7 @@ void Zigbee::zboss_signal_handler_esphome(zb_bufid_t bufid) {
     case ZB_BDB_SIGNAL_DEVICE_REBOOT:
       ESP_LOGD(TAG, "ZB_BDB_SIGNAL_DEVICE_REBOOT, status: %d", status);
       if (status == RET_OK) {
-        // this is from wrong thread
-        this->join_trigger_->trigger();
+        on_join();
       }
       break;
     case ZB_BDB_SIGNAL_STEERING:
@@ -79,8 +78,7 @@ void Zigbee::zboss_signal_handler_esphome(zb_bufid_t bufid) {
 
         for (int i = 0; i < addr_len; ++i) {
           if (ieee_addr_buf[i] != '0') {
-            // called from wrong thread
-            this->join_trigger_->trigger();
+            on_join();
             break;
           }
         }
@@ -112,6 +110,14 @@ void Zigbee::zcl_device_cb(zb_bufid_t bufid) {
     return;
   }
   p_device_cb_param->status = RET_ERROR;
+}
+
+void Zigbee::on_join() {
+  this->schedule([this]() {
+    ESP_LOGD(TAG, "joined the network");
+    this->join_trigger_->trigger();
+    this->join_cb_();
+  });
 }
 
 void Zigbee::setup() {
@@ -148,6 +154,22 @@ void Zigbee::loop() {
     need_flush_ = false;
     zb_buf_get_out_delayed_ext(send_attribute_report, 0, 0);
   }
+  std::function<void()> fn;
+  mutex_.lock();
+  if (!to_schedule_.empty()) {
+    fn = std::move(to_schedule_.front());
+    to_schedule_.pop_front();
+  }
+  mutex_.unlock();
+  if (fn) {
+    fn();
+  }
+}
+
+void Zigbee::schedule(std::function<void()> &&f) {
+  mutex_.lock();
+  to_schedule_.push_back(std::move(f));
+  mutex_.unlock();
 }
 
 void Zigbee::factory_reset() {

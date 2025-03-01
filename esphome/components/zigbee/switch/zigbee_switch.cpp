@@ -68,7 +68,7 @@ void ZigbeeSwitch::zcl_device_cb_(zb_bufid_t bufid) {
         ESP_LOGI(TAG, "binary output attribute setting to %hd", value);
 
         if (attr_id == ZB_ZCL_ATTR_BINARY_OUTPUT_PRESENT_VALUE_ID) {
-          write_state((zb_bool_t) value);
+          this->parent_->schedule([this, value]() { write_state((zb_bool_t) value); });
         }
       } else {
         /* other clusters attribute handled here */

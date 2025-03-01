@@ -11,7 +11,23 @@ static const char *const TAG = "zigbee.time";
 // seconds since 0 hrs 0 mins 0 sec on 1st January 2000 UTC (Universal Coordinated Time).
 constexpr time_t EPOCH_2000 = 946684800;
 
-void ZigbeeTime::setup() { synchronize_epoch_(EPOCH_2000); }
+ZigbeeTime *global_time = nullptr;
+
+void zb_zcl_time_sync_time_server_found_cb(zb_ret_t status, zb_uint32_t auth_level, zb_uint16_t short_addr,
+                                           zb_uint8_t ep, zb_uint32_t nw_time) {
+  if (status == RET_OK && auth_level >= ZB_ZCL_TIME_HAS_SYNCHRONIZED_BIT) {
+    global_time->set_epoch_time(nw_time + EPOCH_2000);
+  } else {
+    ESP_LOGE(TAG, "status: %d, auth_level: %u, short_addr: %d, ep: %d, nw_time: %u", status, auth_level, short_addr, ep,
+             nw_time);
+  }
+}
+
+void ZigbeeTime::setup() {
+  global_time = this;
+  synchronize_epoch_(EPOCH_2000);
+  parent_->add_join_callback([this]() { zb_zcl_time_server_synchronize(ep_, zb_zcl_time_sync_time_server_found_cb); });
+}
 
 void ZigbeeTime::dump_config() {
   ESP_LOGCONFIG(TAG, "Zigbee Time");
@@ -19,20 +35,19 @@ void ZigbeeTime::dump_config() {
 }
 
 void ZigbeeTime::update() {
-#ifdef USE_ZIGBEE_TIME_SERVER
   time_t time = timestamp_now();
   cluster_attributes_->time = time - EPOCH_2000;
-#endif
 }
 
 void ZigbeeTime::set_parent(Zigbee *parent) {
   this->parent_ = parent;
-#ifdef USE_ZIGBEE_TIME_SERVER
   this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
-#endif
 }
 
-#ifdef USE_ZIGBEE_TIME_SERVER
+void ZigbeeTime::set_epoch_time(uint32_t epoch) {
+  this->parent_->schedule([this, epoch]() { this->synchronize_epoch_(epoch); });
+}
+
 void ZigbeeTime::zcl_device_cb_(zb_bufid_t bufid) {
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
   zb_zcl_device_callback_id_t device_cb_id = p_device_cb_param->device_cb_id;
@@ -66,7 +81,6 @@ void ZigbeeTime::zcl_device_cb_(zb_bufid_t bufid) {
 
   ESP_LOGD(TAG, "%s status: %hd", __func__, p_device_cb_param->status);
 }
-#endif
 
 }  // namespace zigbee
 }  // namespace esphome

@@ -9,6 +9,8 @@ extern "C" {
 #include <zboss_api_addons.h>
 }
 
+#include <deque>
+
 #define ESPHOME_ZB_DECLARE_SIMPLE_DESC(ep_name, in_clusters_count, out_clusters_count) \
   typedef ZB_PACKED_PRE struct zb_af_simple_desc_##ep_name##_##out_clusters_count##_##out_clusters_count##_s { \
     zb_uint8_t endpoint;                  /* Endpoint */ \
@@ -39,18 +41,25 @@ struct BinaryAttrs {
 class Zigbee : public Component {
  public:
   void setup() override;
-  void add_callback(zb_uint8_t endpoint, std::function<void(zb_bufid_t bufid)> cb) { callbacks_[endpoint] = cb; }
+  void add_callback(zb_uint8_t endpoint, std::function<void(zb_bufid_t bufid)> cb) { this->callbacks_[endpoint] = cb; }
+  void add_join_callback(std::function<void()> cb) { this->join_cb_ = cb; }
   void zboss_signal_handler_esphome(zb_bufid_t bufid);
   void factory_reset();
   Trigger<> *get_join_trigger() const { return this->join_trigger_; };
   void flush();
   void loop() override;
 
+  void schedule(std::function<void()> &&f);
+
  protected:
   static void zcl_device_cb(zb_bufid_t bufid);
+  void on_join();
   std::map<zb_uint8_t, std::function<void(zb_bufid_t bufid)>> callbacks_;
+  std::function<void()> join_cb_;
   Trigger<> *join_trigger_{new Trigger<>()};
   bool need_flush_{false};
+  std::deque<std::function<void()>> to_schedule_;
+  Mutex mutex_;
 };
 
 extern Zigbee *global_zigbee;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

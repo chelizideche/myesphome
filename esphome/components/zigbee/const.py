@@ -8,7 +8,6 @@ zb_char_t_ptr = cg.global_ns.namespace("zb_char_t *")
 CONF_ZIGBEE_ID = "zigbee_id"
 CONF_SWITCH = "switch"
 CONF_MAX_EP_NUMBER = 8
-CONF_SERVER = "server"
 CONF_EP = "ep"
 
 zb_zcl_basic_attrs_ext_t = cg.global_ns.namespace("zb_zcl_basic_attrs_ext_t")
