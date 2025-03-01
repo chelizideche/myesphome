@@ -44,11 +44,28 @@ void FanCall::validate_() {
   if (this->speed_.has_value())
     this->speed_ = clamp(*this->speed_, 1, traits.supported_speed_count());
 
-  if (this->binary_state_.has_value() && *this->binary_state_) {
-    // when turning on, if neither current nor new speed available, set speed to 100%
-    if (traits.supports_speed() && !this->parent_.state && this->parent_.speed == 0 && !this->speed_.has_value()) {
-      this->speed_ = traits.supported_speed_count();
+  if (!this->preset_mode_.empty()) {
+    const auto &preset_modes = traits.supported_preset_modes();
+    if (preset_modes.find(this->preset_mode_) == preset_modes.end()) {
+      ESP_LOGW(TAG, "'%s' - This fan does not support preset mode '%s'!", this->parent_.get_name().c_str(),
+               this->preset_mode_.c_str());
+      this->preset_mode_.clear();
     }
+  }
+
+  // when turning on...
+  if (!this->parent_.state
+      && this->binary_state_.has_value()
+      && *this->binary_state_
+      // ..,and no preset mode will be active...
+      && this->preset_mode_.empty()
+      && this->parent_.preset_mode.empty()
+      // ...and neither current nor new speed is available...
+      && traits.supports_speed()
+      && this->parent_.speed == 0
+      && !this->speed_.has_value()) {
+    // ...set speed to 100%
+    this->speed_ = traits.supported_speed_count();
   }
 
   if (this->oscillating_.has_value() && !traits.supports_oscillation()) {
@@ -64,15 +81,6 @@ void FanCall::validate_() {
   if (this->direction_.has_value() && !traits.supports_direction()) {
     ESP_LOGW(TAG, "'%s' - This fan does not support directions!", this->parent_.get_name().c_str());
     this->direction_.reset();
-  }
-
-  if (!this->preset_mode_.empty()) {
-    const auto &preset_modes = traits.supported_preset_modes();
-    if (preset_modes.find(this->preset_mode_) == preset_modes.end()) {
-      ESP_LOGW(TAG, "'%s' - This fan does not support preset mode '%s'!", this->parent_.get_name().c_str(),
-               this->preset_mode_.c_str());
-      this->preset_mode_.clear();
-    }
   }
 }
 
