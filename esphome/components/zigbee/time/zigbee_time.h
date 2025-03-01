@@ -10,6 +10,8 @@ extern "C" {
 #include <zboss_api_addons.h>
 }
 
+#ifdef USE_ZIGBEE_TIME_SERVER
+
 #define ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST(cluster_list_name, time_attr_list, basic_attr_list, \
                                                 identify_attr_list, groups_attr_list, scenes_attr_list) \
   zb_zcl_cluster_desc_t cluster_list_name[] = { \
@@ -51,6 +53,8 @@ extern "C" {
                               (zb_af_simple_desc_1_1_t *) &simple_desc_##ep_name, ZB_ZCL_TIME_REPORT_ATTR_COUNT, \
                               reporting_info##ep_name, 0, NULL)
 
+#endif
+
 namespace esphome {
 namespace zigbee {
 
@@ -63,15 +67,18 @@ class ZigbeeTime : public time::RealTimeClock {
 
   void set_parent(Zigbee *parent);
   void set_ep(zb_uint8_t ep) { this->ep_ = ep; }
+#ifdef USE_ZIGBEE_TIME_SERVER
   void set_cluster_attributes(zb_zcl_time_attrs_t &cluster_attributes) {
     this->cluster_attributes_ = &cluster_attributes;
   }
-
+#endif
  protected:
+#ifdef USE_ZIGBEE_TIME_SERVER
   void zcl_device_cb_(zb_bufid_t bufid);
+  zb_zcl_time_attrs_t *cluster_attributes_{nullptr};
+#endif
 
   zb_uint8_t ep_{0};
-  zb_zcl_time_attrs_t *cluster_attributes_{nullptr};
   Zigbee *parent_{nullptr};
   bool has_time_{false};
 };

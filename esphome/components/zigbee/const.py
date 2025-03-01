@@ -8,6 +8,8 @@ zb_char_t_ptr = cg.global_ns.namespace("zb_char_t *")
 CONF_ZIGBEE_ID = "zigbee_id"
 CONF_SWITCH = "switch"
 CONF_MAX_EP_NUMBER = 8
+CONF_SERVER = "server"
+CONF_EP = "ep"
 
 zb_zcl_basic_attrs_ext_t = cg.global_ns.namespace("zb_zcl_basic_attrs_ext_t")
 zb_zcl_identify_attrs_t = cg.global_ns.namespace("zb_zcl_identify_attrs_t")
@@ -46,7 +48,6 @@ BinaryAttrs = zigbee_ns.struct("BinaryAttrs")
 # input
 CONF_BINARY_INPUT_ATTRIB_LIST = "binary_input_attrib_list"
 CONF_BINARY_INPUT_CLUSTER_LIST = "binary_input_cluster_list"
-CONF_BINARY_INPUT_EP = "binary_input_ep"
 esphome_zb_ha_declare_binary_input_ep = cg.global_ns.namespace(
     "ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_EP"
 )
@@ -55,7 +56,6 @@ esphome_zb_ha_declare_binary_input_ep = cg.global_ns.namespace(
 CONF_BINARY_OUTPUT_ATTRIB_LIST = "binary_output_attrib_list"
 CONF_BINARY_OUTPUT_CLUSTER_LIST = "binary_output_cluster_list"
 
-CONF_BINARY_OUTPUT_EP = "binary_output_ep"
 esphome_zb_ha_declare_binary_output_ep = cg.global_ns.namespace(
     "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_EP"
 )
@@ -64,5 +64,4 @@ esphome_zb_ha_declare_binary_output_ep = cg.global_ns.namespace(
 CONF_TIME_ATTRIB_LIST = "time_attrib_list"
 CONF_TIME_ATTRS = "time_attrs"
 CONF_TIME_CLUSTER_LIST = "time_cluster_list"
-CONF_TIME_EP = "time_input_ep"
 esphome_zb_ha_declare_time_ep = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_EP")

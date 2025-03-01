@@ -4,16 +4,19 @@ from datetime import datetime
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components.zephyr import zephyr_add_prj_conf
-from esphome.components.zigbee_ctx import KEY_EP, KEY_ZIGBEE, zigbee_set_core_data
+from esphome.components.zigbee_ctx import (
+    KEY_EP_NUMBER,
+    KEY_ZIGBEE,
+    zigbee_set_core_data,
+)
 import esphome.config_validation as cv
-from esphome.const import CONF_BINARY_SENSOR, CONF_ID, CONF_PLATFORM, __version__
+from esphome.const import CONF_ID, CONF_PLATFORM, __version__
 from esphome.core import CORE, ID, coroutine_with_priority
 from esphome.cpp_generator import (
     AssignmentExpression,
     MockObj,
     VariableDeclarationExpression,
 )
-import esphome.final_validate as fv
 
 from .const import (
     CONF_BASIC_ATTRIB_LIST_EXT,
@@ -25,7 +28,6 @@ from .const import (
     CONF_MAX_EP_NUMBER,
     CONF_SCENES_ATTRIB_LIST,
     CONF_SCENES_ATTRS,
-    CONF_SWITCH,
     CONF_ZIGBEE_ID,
     ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT,
     ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST,
@@ -101,12 +103,11 @@ def count_ep_by_type(fconf, type):
 
 
 def validate_number_of_ep(config):
-    count = 0
-    fconf = fv.full_config.get()
-    count += count_ep_by_type(fconf, CONF_SWITCH)
-    count += count_ep_by_type(fconf, CONF_BINARY_SENSOR)
-    if count > 8:
+    count = len(CORE.data[KEY_ZIGBEE][KEY_EP_NUMBER])
+    if count > CONF_MAX_EP_NUMBER:
         raise cv.Invalid(f"Maximum number of EP is {CONF_MAX_EP_NUMBER}")
+    if count == 0:
+        raise cv.Invalid("At least one zigbee device need to be included")
 
 
 FINAL_VALIDATE_SCHEMA = cv.All(
@@ -254,12 +255,3 @@ def zigbee_new_cluster_list(id_: ID, *args):
     obj = cg.RawExpression(f"{id_.type}({id_}, {', '.join(list)})")
     CORE.add_global(obj)
     return id_
-
-
-def zigbee_register_ep(id_: ID, cluster):
-    assert isinstance(id_, ID)
-    ep = len(CORE.data[KEY_ZIGBEE][KEY_EP]) + 1
-    CORE.data[KEY_ZIGBEE][KEY_EP] += [str(id_)]
-    obj = cg.RawExpression(f"{id_.type}({id_}, {ep}, {cluster})")
-    CORE.add_global(obj)
-    return ep

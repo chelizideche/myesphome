@@ -1,6 +1,11 @@
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components import binary_sensor
+from esphome.components.zigbee_ctx import (
+    KEY_EP_NUMBER,
+    consume_ep_slots,
+    zigbee_register_ep,
+)
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_LAMBDA, CONF_NAME, CONF_STATE
 from esphome.core import coroutine_with_priority
@@ -11,7 +16,6 @@ from .. import (
     zigbee_new_attr_list,
     zigbee_new_cluster_list,
     zigbee_new_variable,
-    zigbee_register_ep,
     zigbee_set_string,
 )
 from ..const import (
@@ -19,7 +23,7 @@ from ..const import (
     CONF_BINARY_ATTRS,
     CONF_BINARY_INPUT_ATTRIB_LIST,
     CONF_BINARY_INPUT_CLUSTER_LIST,
-    CONF_BINARY_INPUT_EP,
+    CONF_EP,
     CONF_GROUPS_ATTRIB_LIST,
     CONF_IDENTIFY_ATTRIB_LIST,
     CONF_SCENES_ATTRIB_LIST,
@@ -34,29 +38,33 @@ AUTO_LOAD = ["zigbee"]
 ZigbeeBinarySensor = zigbee_ns.class_(
     "ZigbeeBinarySensor", binary_sensor.BinarySensor, cg.Component
 )
-CONFIG_SCHEMA = (
-    binary_sensor.binary_sensor_schema(ZigbeeBinarySensor)
-    .extend(
-        {
-            cv.GenerateID(CONF_BINARY_ATTRS): cv.declare_id(BinaryAttrs),
-            cv.GenerateID(CONF_BINARY_INPUT_ATTRIB_LIST): cv.declare_id(
-                cg.global_ns.namespace(
-                    "ESPHOME_ZB_ZCL_DECLARE_BINARY_INPUT_ATTRIB_LIST"
-                )
-            ),
-            cv.GenerateID(CONF_BINARY_INPUT_CLUSTER_LIST): cv.declare_id(
-                cg.global_ns.namespace(
-                    "ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_CLUSTER_LIST"
-                )
-            ),
-            cv.GenerateID(CONF_BINARY_INPUT_EP): cv.declare_id(
-                esphome_zb_ha_declare_binary_input_ep
-            ),
-            cv.Optional(CONF_LAMBDA): cv.returning_lambda,
-        }
-    )
-    .extend(cv.COMPONENT_SCHEMA)
-    .extend(ZigbeeBaseSchema)
+
+CONFIG_SCHEMA = cv.All(
+    (
+        binary_sensor.binary_sensor_schema(ZigbeeBinarySensor)
+        .extend(
+            {
+                cv.GenerateID(CONF_BINARY_ATTRS): cv.declare_id(BinaryAttrs),
+                cv.GenerateID(CONF_BINARY_INPUT_ATTRIB_LIST): cv.declare_id(
+                    cg.global_ns.namespace(
+                        "ESPHOME_ZB_ZCL_DECLARE_BINARY_INPUT_ATTRIB_LIST"
+                    )
+                ),
+                cv.GenerateID(CONF_BINARY_INPUT_CLUSTER_LIST): cv.declare_id(
+                    cg.global_ns.namespace(
+                        "ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_CLUSTER_LIST"
+                    )
+                ),
+                cv.GenerateID(CONF_EP): cv.declare_id(
+                    esphome_zb_ha_declare_binary_input_ep
+                ),
+                cv.Optional(CONF_LAMBDA): cv.returning_lambda,
+            }
+        )
+        .extend(cv.COMPONENT_SCHEMA)
+        .extend(ZigbeeBaseSchema)
+    ),
+    consume_ep_slots,
 )
 
 
@@ -80,7 +88,7 @@ async def to_code(config):
         config[CONF_SCENES_ATTRIB_LIST],
     )
 
-    ep = zigbee_register_ep(config[CONF_BINARY_INPUT_EP], cluster)
+    zigbee_register_ep(config[CONF_EP], cluster, config[KEY_EP_NUMBER])
 
     var = await binary_sensor.new_binary_sensor(config)
     await cg.register_component(var, config)
@@ -91,7 +99,7 @@ async def to_code(config):
         )
         cg.add(var.set_template(template_))
 
-    cg.add(var.set_ep(ep))
+    cg.add(var.set_ep(config[KEY_EP_NUMBER]))
     cg.add(var.set_cluster_attributes(binary_attrs))
     hub = await cg.get_variable(config[CONF_ZIGBEE_ID])
     cg.add(var.set_parent(hub))

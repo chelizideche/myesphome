@@ -19,15 +19,20 @@ void ZigbeeTime::dump_config() {
 }
 
 void ZigbeeTime::update() {
+#ifdef USE_ZIGBEE_TIME_SERVER
   time_t time = timestamp_now();
   cluster_attributes_->time = time - EPOCH_2000;
+#endif
 }
 
 void ZigbeeTime::set_parent(Zigbee *parent) {
   this->parent_ = parent;
+#ifdef USE_ZIGBEE_TIME_SERVER
   this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
+#endif
 }
 
+#ifdef USE_ZIGBEE_TIME_SERVER
 void ZigbeeTime::zcl_device_cb_(zb_bufid_t bufid) {
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
   zb_zcl_device_callback_id_t device_cb_id = p_device_cb_param->device_cb_id;
@@ -61,6 +66,7 @@ void ZigbeeTime::zcl_device_cb_(zb_bufid_t bufid) {
 
   ESP_LOGD(TAG, "%s status: %hd", __func__, p_device_cb_param->status);
 }
+#endif
 
 }  // namespace zigbee
 }  // namespace esphome

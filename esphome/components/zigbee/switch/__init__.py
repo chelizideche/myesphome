@@ -1,6 +1,11 @@
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components import output, switch
+from esphome.components.zigbee_ctx import (
+    KEY_EP_NUMBER,
+    consume_ep_slots,
+    zigbee_register_ep,
+)
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_NAME, CONF_OUTPUT, CONF_STATE
 from esphome.core import coroutine_with_priority
@@ -11,7 +16,6 @@ from .. import (
     zigbee_new_attr_list,
     zigbee_new_cluster_list,
     zigbee_new_variable,
-    zigbee_register_ep,
     zigbee_set_string,
 )
 from ..const import (
@@ -19,7 +23,7 @@ from ..const import (
     CONF_BINARY_ATTRS,
     CONF_BINARY_OUTPUT_ATTRIB_LIST,
     CONF_BINARY_OUTPUT_CLUSTER_LIST,
-    CONF_BINARY_OUTPUT_EP,
+    CONF_EP,
     CONF_GROUPS_ATTRIB_LIST,
     CONF_IDENTIFY_ATTRIB_LIST,
     CONF_SCENES_ATTRIB_LIST,
@@ -33,7 +37,7 @@ AUTO_LOAD = ["zigbee"]
 
 ZigbeeSwitch = zigbee_ns.class_("ZigbeeSwitch", switch.Switch, cg.Component)
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     switch.switch_schema(ZigbeeSwitch)
     .extend(
         {
@@ -49,13 +53,14 @@ CONFIG_SCHEMA = (
                     "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_CLUSTER_LIST"
                 )
             ),
-            cv.GenerateID(CONF_BINARY_OUTPUT_EP): cv.declare_id(
+            cv.GenerateID(CONF_EP): cv.declare_id(
                 esphome_zb_ha_declare_binary_output_ep
             ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(ZigbeeBaseSchema)
+    .extend(ZigbeeBaseSchema),
+    consume_ep_slots,
 )
 
 
@@ -79,14 +84,14 @@ async def to_code(config):
         config[CONF_SCENES_ATTRIB_LIST],
     )
 
-    ep = zigbee_register_ep(config[CONF_BINARY_OUTPUT_EP], cluster)
+    zigbee_register_ep(config[CONF_EP], cluster, config[KEY_EP_NUMBER])
 
     var = await switch.new_switch(config)
     await cg.register_component(var, config)
 
     output_ = await cg.get_variable(config[CONF_OUTPUT])
     cg.add(var.set_output(output_))
-    cg.add(var.set_ep(ep))
+    cg.add(var.set_ep(config[KEY_EP_NUMBER]))
     cg.add(var.set_cluster_attributes(binary_attrs))
     hub = await cg.get_variable(config[CONF_ZIGBEE_ID])
     cg.add(var.set_parent(hub))
