@@ -82,6 +82,14 @@ def detect_tz() -> str:
     return ret
 
 
+class OptionalForZephyr(cv.Optional):
+    def __init__(self, val, default):
+        if CORE.target_framework == KEY_ZEPHYR:
+            super().__init__(val)
+        else:
+            super().__init__(val, default)
+
+
 def _parse_cron_int(value, special_mapping, message):
     special_mapping = special_mapping or {}
     if isinstance(value, str) and value in special_mapping:
@@ -271,7 +279,7 @@ def validate_tz(value: str) -> str:
 
 TIME_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_TIMEZONE, default=detect_tz): cv.All(
+        OptionalForZephyr(CONF_TIMEZONE, default=detect_tz): cv.All(
             cv.only_with_framework(["arduino", "esp-idf", "host"]),
             validate_tz,
         ),
