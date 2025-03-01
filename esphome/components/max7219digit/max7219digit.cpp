@@ -64,40 +64,40 @@ void MAX7219Component::dump_config() {
 
 void MAX7219Component::loop() {
   const uint32_t now = millis();
-  const uint32_t sinceLastScroll = now - this->last_scroll_;
-  const size_t lineSize = this->max_displaybuffer_[0].size();
+  const uint32_t millis_since_last_scroll = now - this->last_scroll_;
+  const size_t first_line_size = this->max_displaybuffer_[0].size();
   // check if the buffer has shrunk past the current position since last update
-  if ((lineSize >= this->old_buffer_size_ + 3) || (lineSize <= this->old_buffer_size_ - 3)) {
-    ESP_LOGV(TAG, "Buffer size changed %d to %d", this->old_buffer_size_, lineSize);
+  if ((first_line_size >= this->old_buffer_size_ + 3) || (first_line_size <= this->old_buffer_size_ - 3)) {
+    ESP_LOGV(TAG, "Buffer size changed %d to %d", this->old_buffer_size_, first_line_size);
     this->stepsleft_ = 0;
     this->display();
-    this->old_buffer_size_ = lineSize;
+    this->old_buffer_size_ = first_line_size;
   }
 
-  if (!this->scroll_ || (lineSize <= (size_t) get_width_internal())) {
+  if (!this->scroll_ || (first_line_size <= (size_t) get_width_internal())) {
     ESP_LOGVV(TAG, "Return if there is no need to scroll or scroll is off.");
     this->display();
     return;
   }
 
-  if ((this->stepsleft_ == 0) && (sinceLastScroll < this->scroll_delay_)) {
+  if ((this->stepsleft_ == 0) && (millis_since_last_scroll < this->scroll_delay_)) {
     ESP_LOGVV(TAG, "At first step. Waiting for scroll delay");
     this->display();
     return;
   }
 
   if (this->scroll_mode_ == ScrollMode::STOP) {
-    if (this->stepsleft_ + get_width_internal() == lineSize + 1) {
-      if (sinceLastScroll < this->scroll_dwell_) {
+    if (this->stepsleft_ + get_width_internal() == first_line_size + 1) {
+      if (millis_since_last_scroll < this->scroll_dwell_) {
         ESP_LOGVV(TAG, "Dwell time at end of string in case of stop at end. Step %d, since last scroll %d, dwell %d.",
-                  this->stepsleft_, sinceLastScroll, this->scroll_dwell_);
+                  this->stepsleft_, millis_since_last_scroll, this->scroll_dwell_);
         return;
       }
       ESP_LOGV(TAG, "Dwell time passed. Continue scrolling.");
     }
   }
 
-  if (sinceLastScroll >= this->scroll_speed_) {
+  if (millis_since_last_scroll >= this->scroll_speed_) {
     ESP_LOGVV(TAG, "Call to scroll left action");
     this->last_scroll_ = now;
     this->scroll_left();
