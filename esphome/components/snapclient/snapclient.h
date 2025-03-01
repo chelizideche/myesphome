@@ -2,7 +2,8 @@
 
 #ifdef USE_ESP32
 
-#include "esphome.h"
+#include "esphome/core/defines.h"
+#include "esphome/core/component.h"
 #include "esphome/components/i2s_audio/i2s_audio.h"
 #include "esphome/core/gpio.h"
 

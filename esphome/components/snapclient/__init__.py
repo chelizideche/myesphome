@@ -13,6 +13,8 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_NAME, CONF_PORT
 from esphome.core import CORE
 
+CODEOWNERS = ["@luar123"]
+
 DEPENDENCIES = ["esp32", "i2s_audio"]
 
 CONF_HOSTNAME = "hostname"

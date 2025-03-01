@@ -58,8 +58,8 @@ static void metadata_callback(const FLAC__StreamDecoder *decoder, const FLAC__St
 static void error_callback(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status,
                            void *client_data);
 
-#define FAST_SYNC_LATENCY_BUF 10000      // in µs
-#define NORMAL_SYNC_LATENCY_BUF 1000000  // in µs
+static const int FAST_SYNC_LATENCY_BUF = 10000;      // in µs
+static const int NORMAL_SYNC_LATENCY_BUF = 1000000;  // in µs
 
 struct timeval tdif, tavg;
 
@@ -217,22 +217,22 @@ static FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *de
   // xQueueReceive(decoderReadQHdl, &flacData, portMAX_DELAY);
   // if (xQueueReceive(decoderReadQHdl, &flacData, pdMS_TO_TICKS(100)))
   if (decoderChunk.inData) {
-    //	   ESP_LOGI(TAG, "in flac read cb %ld %p", flacData->bytes,
+    //     ESP_LOGI(TAG, "in flac read cb %ld %p", flacData->bytes,
     // flacData->inData);
 
     if (decoderChunk.bytes <= 0) {
-      //	    free_flac_data(flacData);
+      //      free_flac_data(flacData);
 
       return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
     }
 
     isCachedChunk = false;
 
-    //	  if (flacData->inData == NULL) {
-    //	    free_flac_data(flacData);
+    //    if (flacData->inData == NULL) {
+    //      free_flac_data(flacData);
     //
-    //	    return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
-    //	  }
+    //      return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
+    //    }
 
     if (decoderChunk.bytes <= *bytes) {
       memcpy(buffer, decoderChunk.inData, decoderChunk.bytes);
@@ -251,8 +251,8 @@ static FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *de
       decoderChunk.inData = (uint8_t *) realloc(decoderChunk.inData, decoderChunk.bytes);
 
       // ESP_LOGW(TAG, "didn't read all flac inData %d", *bytes);
-      //	    flacData->inData += *bytes;
-      //	    flacData->bytes -= *bytes;
+      //      flacData->inData += *bytes;
+      //      flacData->bytes -= *bytes;
     }
 
     // free_flac_data(flacData);
@@ -657,8 +657,8 @@ void http_get_task(void *pvParameters) {
     uint32_t tmpData = 0;
     int32_t payloadDataShift = 0;
 
-#define BASE_MESSAGE_STATE 0
-#define TYPED_MESSAGE_STATE 1
+    static const uint8_t BASE_MESSAGE_STATE = 0;
+    static const uint8_t TYPED_MESSAGE_STATE = 1;
 
     // 0 ... base message, 1 ... typed message
     uint32_t state = BASE_MESSAGE_STATE;
@@ -851,7 +851,7 @@ void http_get_task(void *pvParameters) {
                   //                   base_message_rx.received.sec,
                   //                   base_message_rx.received.usec);
                   // ESP_LOGI(TAG,"%d, %llu", base_message_rx.type,
-                  //		   1000000ULL * base_message_rx.received.sec +
+                  //       1000000ULL * base_message_rx.received.sec +
                   // base_message_rx.received.usec);
 
                   state = TYPED_MESSAGE_STATE;
@@ -1069,7 +1069,7 @@ void http_get_task(void *pvParameters) {
 
 #if 0
                        ESP_LOGI(TAG, "chunk with size: %u, at time %ld.%ld",
-                    		   	   	   	   	 wire_chnk.size,
+                                             wire_chnk.size,
                                              wire_chnk.timestamp.sec,
                                              wire_chnk.timestamp.usec);
 #endif
@@ -1903,8 +1903,8 @@ void http_get_task(void *pvParameters) {
                       if (typedMsgCurrentPos >= base_message_rx.size) {
                         if (serverSettingsString) {
                           // ESP_LOGI(TAG, "done server settings %lu/%lu",
-                          //								offset,
-                          //								typedMsgLen);
+                          //                offset,
+                          //                typedMsgLen);
 
                           // NULL terminate string
                           serverSettingsString[typedMsgLen] = 0;

@@ -7,8 +7,8 @@
 namespace esphome {
 namespace snapclient {
 
-#define HTTP_TASK_PRIORITY 9  // 9
-#define HTTP_TASK_CORE_ID tskNO_AFFINITY
+static const int HTTP_TASK_PRIORITY = 9;  // 9
+static const int HTTP_TASK_CORE_ID = tskNO_AFFINITY;
 
 typedef struct audioDACdata_s {
   bool mute;
@@ -22,5 +22,4 @@ void audio_set_volume(int volume);
 
 }  // namespace snapclient
 }  // namespace esphome
-
 #endif
