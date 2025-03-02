@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef USE_ESP32
+#ifndef USE_I2S_LEGACY
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
@@ -22,4 +23,5 @@ void audio_set_volume(int volume);
 
 }  // namespace snapclient
 }  // namespace esphome
+#endif
 #endif

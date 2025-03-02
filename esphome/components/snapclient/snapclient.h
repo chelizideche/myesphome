@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef USE_ESP32
+#ifndef USE_I2S_LEGACY
 
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
@@ -25,8 +26,8 @@ class SnapClientComponent : public i2s_audio::I2SAudioOut, public Component {
 #endif
   bool get_mute_state() { return this->mute_state_; }
   void set_config(std::string name, std::string host, int port) {
-    this->name_ = name;
-    this->host_ = host;
+    this->name_ = std::move(name);
+    this->host_ = std::move(host);
     this->port_ = port;
   }
 
@@ -36,7 +37,7 @@ class SnapClientComponent : public i2s_audio::I2SAudioOut, public Component {
   int port_;
   float volume_{1.0f};
   bool mute_state_{true};
-  QueueHandle_t audioQHdl_;
+  QueueHandle_t audio_q_hdl_;
   GPIOPin *mute_pin_{nullptr};
   uint8_t dout_pin_;
 #ifdef USE_AUDIO_DAC
@@ -47,4 +48,5 @@ class SnapClientComponent : public i2s_audio::I2SAudioOut, public Component {
 }  // namespace snapclient
 }  // namespace esphome
 
+#endif
 #endif

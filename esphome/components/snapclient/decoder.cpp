@@ -1,9 +1,7 @@
-/* Play flac file by audio pipeline
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+
+#ifdef USE_ESP32
+#ifndef USE_I2S_LEGACY
+
 #include "decoder.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -2282,3 +2280,6 @@ void http_get_task(void *pvParameters) {
 
 }  // namespace snapclient
 }  // namespace esphome
+
+#endif
+#endif

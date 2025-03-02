@@ -1,9 +1,6 @@
-/* Play flac file by audio pipeline
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+#ifdef USE_ESP32
+#ifndef USE_I2S_LEGACY
+
 #include "snapclient.h"
 #include "decoder.h"
 #include "esp_log.h"
@@ -34,7 +31,7 @@ void SnapClientComponent::setup() {
   i2s_std_gpio_config_t i2s_pin_config0 = this->parent_->get_pin_config();
   i2s_pin_config0.dout = (gpio_num_t) this->dout_pin_;
 
-  this->audioQHdl_ = xQueueCreate(1, sizeof(audioDACdata_t));
+  this->audio_q_hdl_ = xQueueCreate(1, sizeof(audioDACdata_t));
 
 #ifdef USE_AUDIO_DAC
   if (this->audio_dac_) {
@@ -46,7 +43,7 @@ void SnapClientComponent::setup() {
     this->mute_pin_->digital_write(true);
   }
 
-  init_snapcast(this->audioQHdl_, this->name_.c_str(), this->host_.c_str(), this->port_);
+  init_snapcast(this->audio_q_hdl_, this->name_.c_str(), this->host_.c_str(), this->port_);
   init_player(i2s_pin_config0, this->parent_->get_port());
 
   // http server for control operations and user interface
@@ -73,7 +70,7 @@ void SnapClientComponent::loop() {
       .mute = true,
       .volume = 100,
   };
-  if (xQueueReceive(this->audioQHdl_, &dac_data, 0) == pdTRUE) {
+  if (xQueueReceive(this->audio_q_hdl_, &dac_data, 0) == pdTRUE) {
     if (dac_data.mute != dac_data_old.mute) {
       if (this->mute_pin_ != nullptr) {
         this->mute_pin_->digital_write(dac_data.mute);
@@ -103,3 +100,6 @@ void SnapClientComponent::loop() {
 
 }  // namespace snapclient
 }  // namespace esphome
+
+#endif
+#endif
