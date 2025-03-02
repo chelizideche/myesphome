@@ -9,9 +9,8 @@ namespace mcp4461 {
 
 static const char *const TAG = "mcp4461.output";
 
-// floats from other components (like light etc.) are passed as "percentage floats"
-// this function converts them to the 0 - 256 range used by the MCP4461
-void Mcp4461Wiper::write_state(float state) {
+// public set_level function
+void Mcp4461Wiper::set_level(float state) {
   if (!std::isfinite(state)) {
     ESP_LOGW(TAG, "Finite state state value is required.");
     return;
@@ -20,6 +19,12 @@ void Mcp4461Wiper::write_state(float state) {
   if (this->is_inverted()) {
     state = 1.0f - state;
   }
+  this->write_state(state);
+}
+
+// floats from other components (like light etc.) are passed as "percentage floats"
+// this function converts them to the 0 - 256 range used by the MCP4461
+void Mcp4461Wiper::write_state(float state) {
   if (this->parent_->set_wiper_level_(this->wiper_, static_cast<uint16_t>(std::roundf(state * 256)))) {
     this->state_ = state;
   }
