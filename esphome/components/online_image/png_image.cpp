@@ -47,6 +47,7 @@ PngDecoder::PngDecoder(OnlineImage *image) : ImageDecoder(image) {
       ESP_LOGE(TAG, "Failed to allocate memory for PNGLE engine!");
       return;
     }
+    pngle_reset(pngle);
     this->pngle_ = pngle;
   }
 }
