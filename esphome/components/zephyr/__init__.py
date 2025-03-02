@@ -79,20 +79,17 @@ def zephyr_to_code(conf):
     # build is done by west so bypass board checking in platformio
     cg.add_platformio_option("boards_dir", CORE.relative_build_path("boards"))
 
-    # c support
-    zephyr_add_prj_conf("NEWLIB_LIBC", True)
-    zephyr_add_prj_conf("FPU", True)
-    zephyr_add_prj_conf("NEWLIB_LIBC_FLOAT_PRINTF", True)
     # c++ support
-    zephyr_add_prj_conf("CPP", True)
-    zephyr_add_prj_conf("GLIBCXX_LIBCPP", True)
-    # zephyr_add_prj_conf("CPLUSPLUS", True)
-    # zephyr_add_prj_conf("LIB_CPLUSPLUS", True)
+    zephyr_add_prj_conf("NEWLIB_LIBC", True)
+    zephyr_add_prj_conf("CONFIG_FPU", True)
+    zephyr_add_prj_conf("NEWLIB_LIBC_FLOAT_PRINTF", True)
+    zephyr_add_prj_conf("CPLUSPLUS", True)
+    zephyr_add_prj_conf("LIB_CPLUSPLUS", True)
     # preferences
     zephyr_add_prj_conf("SETTINGS", True)
     zephyr_add_prj_conf("NVS", True)
     zephyr_add_prj_conf("FLASH_MAP", True)
-    zephyr_add_prj_conf("FLASH", True)
+    zephyr_add_prj_conf("CONFIG_FLASH", True)
     # watchdog
     zephyr_add_prj_conf("WATCHDOG", True)
     zephyr_add_prj_conf("WDT_DISABLE_AT_BOOT", False)
