@@ -122,7 +122,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
 
   
   // Converts a status to a human readable string
-  static const LogString* Mcp4461Component::get_message_string_(int status) {
+  static const LogString* get_message_string_(int status) {
     switch (status) {
       case MCP4461_STATUS_I2C_ERROR:
         return LOG_STR("I2C error - communication with MCP4461 failed!");
