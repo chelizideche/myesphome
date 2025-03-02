@@ -25,6 +25,7 @@ void zb_zcl_time_sync_time_server_found_cb(zb_ret_t status, zb_uint32_t auth_lev
 
 void ZigbeeTime::setup() {
   global_time = this;
+  this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
   synchronize_epoch_(EPOCH_2000);
   parent_->add_join_callback([this]() { zb_zcl_time_server_synchronize(ep_, zb_zcl_time_sync_time_server_found_cb); });
 }
@@ -39,13 +40,11 @@ void ZigbeeTime::update() {
   cluster_attributes_->time = time - EPOCH_2000;
 }
 
-void ZigbeeTime::set_parent(Zigbee *parent) {
-  this->parent_ = parent;
-  this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
-}
-
 void ZigbeeTime::set_epoch_time(uint32_t epoch) {
-  this->parent_->schedule([this, epoch]() { this->synchronize_epoch_(epoch); });
+  this->parent_->schedule([this, epoch]() {
+    this->synchronize_epoch_(epoch);
+    has_time_ = true;
+  });
 }
 
 void ZigbeeTime::zcl_device_cb_(zb_bufid_t bufid) {

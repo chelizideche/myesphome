@@ -22,6 +22,7 @@ void ZigbeeSwitch::dump_config() {
 }
 
 void ZigbeeSwitch::setup() {
+  this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
   add_on_state_callback([this](bool state) {
     if (state) {
       cluster_attributes_->present_value = 1;
@@ -81,11 +82,6 @@ void ZigbeeSwitch::zcl_device_cb_(zb_bufid_t bufid) {
   }
 
   ESP_LOGD(TAG, "%s status: %hd", __func__, p_device_cb_param->status);
-}
-
-void ZigbeeSwitch::set_parent(Zigbee *parent) {
-  this->parent_ = parent;
-  this->parent_->add_callback(this->ep_, [this](zb_bufid_t bufid) { this->zcl_device_cb_(bufid); });
 }
 
 }  // namespace zigbee

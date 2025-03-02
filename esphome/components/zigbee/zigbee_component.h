@@ -69,6 +69,16 @@ template<typename... Ts> class FactoryResetAction : public Action<Ts...> {
   void play(Ts... x) override { global_zigbee->factory_reset(); }
 };
 
+class ZigbeeEntity {
+ public:
+  void set_parent(Zigbee *parent) { this->parent_ = parent; }
+  void set_ep(zb_uint8_t ep) { this->ep_ = ep; }
+
+ protected:
+  zb_uint8_t ep_{0};
+  Zigbee *parent_{nullptr};
+};
+
 }  // namespace zigbee
 }  // namespace esphome
 #endif

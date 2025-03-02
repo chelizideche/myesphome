@@ -51,8 +51,6 @@ void ZigbeeBinarySensor::dump_config() {
   ESP_LOGCONFIG(TAG, "  EP: %d", ep_);
 }
 
-void ZigbeeBinarySensor::set_parent(Zigbee *parent) { this->parent_ = parent; }
-
 }  // namespace zigbee
 }  // namespace esphome
 #endif

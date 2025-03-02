@@ -55,15 +55,13 @@ extern "C" {
 namespace esphome {
 namespace zigbee {
 
-class ZigbeeTime : public time::RealTimeClock {
+class ZigbeeTime : public time::RealTimeClock, public ZigbeeEntity {
  public:
   void setup() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE - 1.0f; }
   void dump_config() override;
   void update() override;
 
-  void set_parent(Zigbee *parent);
-  void set_ep(zb_uint8_t ep) { this->ep_ = ep; }
   void set_cluster_attributes(zb_zcl_time_attrs_t &cluster_attributes) {
     this->cluster_attributes_ = &cluster_attributes;
   }
@@ -74,8 +72,6 @@ class ZigbeeTime : public time::RealTimeClock {
   void zcl_device_cb_(zb_bufid_t bufid);
   zb_zcl_time_attrs_t *cluster_attributes_{nullptr};
 
-  zb_uint8_t ep_{0};
-  Zigbee *parent_{nullptr};
   bool has_time_{false};
 };
 

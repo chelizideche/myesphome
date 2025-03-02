@@ -108,17 +108,15 @@ void zb_zcl_binary_output_init_client();
 namespace esphome {
 namespace zigbee {
 
-class ZigbeeSwitch : public switch_::Switch, public Component {
+class ZigbeeSwitch : public switch_::Switch, public ZigbeeEntity, public Component {
  public:
   void set_output(output::BinaryOutput *output) { this->output_ = output; }
   void set_cluster_attributes(BinaryAttrs &cluster_attributes) { this->cluster_attributes_ = &cluster_attributes; }
-  void set_ep(zb_uint8_t ep) { this->ep_ = ep; }
 
   void setup() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE - 1.0f; }
-  void dump_config() override;
 
-  void set_parent(Zigbee *parent);
+  void dump_config() override;
 
  protected:
   void write_state(bool state) override;
@@ -126,8 +124,6 @@ class ZigbeeSwitch : public switch_::Switch, public Component {
 
   output::BinaryOutput *output_;
   BinaryAttrs *cluster_attributes_ = nullptr;
-  zb_uint8_t ep_{0};
-  Zigbee *parent_{nullptr};
 };
 
 }  // namespace zigbee
