@@ -89,7 +89,8 @@ async def to_code(config):
         cg.add(var.set_timeout(int(config[CONF_TIMEOUT].total_microseconds)))
     if CORE.using_arduino:
         cg.add_library("Wire", None)
-    cg.add(var.set_priority(config[CONF_SETUP_PRIORITY]))
+    if CONF_SETUP_PRIORITY in config:
+        cg.add(var.set_priority(config[CONF_SETUP_PRIORITY]))
 
 
 def i2c_device_schema(default_address):
