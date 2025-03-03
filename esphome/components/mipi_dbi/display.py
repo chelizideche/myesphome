@@ -1,6 +1,7 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
+from esphome.components.mipi_dbi.models import DriverChip
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -25,16 +26,15 @@ from esphome.const import (
 from esphome.core import TimePeriod
 
 from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING
-from .models import DriverChip
 
 DEPENDENCIES = ["spi"]
 
-qspi_dbi_ns = cg.esphome_ns.namespace("qspi_dbi")
-QSPI_DBI = qspi_dbi_ns.class_(
-    "QspiDbi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
+mipi_dbi_ns = cg.esphome_ns.namespace("mipi_dbi")
+MIPI_DBI = mipi_dbi_ns.class_(
+    "MipiDbi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
 )
 ColorOrder = display.display_ns.enum("ColorMode")
-Model = qspi_dbi_ns.enum("Model")
+Model = mipi_dbi_ns.enum("Model")
 
 COLOR_ORDERS = {
     "RGB": ColorOrder.COLOR_ORDER_RGB,
@@ -88,7 +88,7 @@ def power_of_two(value):
 BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(QSPI_DBI),
+            cv.GenerateID(): cv.declare_id(MIPI_DBI),
             cv.Optional(CONF_INIT_SEQUENCE): cv.ensure_list(map_sequence),
             cv.Required(CONF_DIMENSIONS): cv.Any(
                 cv.dimensions,
@@ -104,9 +104,6 @@ BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
             cv.Optional(CONF_DRAW_FROM_ORIGIN, default=False): cv.boolean,
             cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            cv.Optional(CONF_BRIGHTNESS, default=0xD0): cv.int_range(
-                0, 0xFF, min_included=True, max_included=True
-            ),
         }
     ).extend(
         spi.spi_device_schema(
@@ -136,7 +133,7 @@ def model_schema(defaults):
                 cv.Optional(CONF_SWAP_XY, default=False): cv.boolean,
             }
         )
-    return BASE_SCHEMA.extend(
+    schema = BASE_SCHEMA.extend(
         {
             model_property(CONF_INVERT_COLORS, defaults, False): cv.boolean,
             model_property(CONF_COLOR_ORDER, defaults, "RGB"): cv.enum(
@@ -146,6 +143,15 @@ def model_schema(defaults):
             cv.Optional(CONF_TRANSFORM): transform,
         }
     )
+    if brightness := defaults.get(CONF_BRIGHTNESS):
+        schema = schema.extend(
+            {
+                cv.Optional(CONF_BRIGHTNESS, default=brightness): cv.int_range(
+                    0, 0xFF, min_included=True, max_included=True
+                ),
+            }
+        )
+    return schema
 
 
 CONFIG_SCHEMA = cv.All(
@@ -174,7 +180,8 @@ async def to_code(config):
 
     cg.add(var.set_color_mode(config[CONF_COLOR_ORDER]))
     cg.add(var.set_invert_colors(config[CONF_INVERT_COLORS]))
-    cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
+    if CONF_BRIGHTNESS in config:
+        cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
     cg.add(var.set_model(config[CONF_MODEL]))
     cg.add(var.set_draw_from_origin(config[CONF_DRAW_FROM_ORIGIN]))
     cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
