@@ -1,7 +1,6 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
-from esphome.components.mipi_dbi.models import DriverChip
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -26,6 +25,7 @@ from esphome.const import (
 from esphome.core import TimePeriod
 
 from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING
+from .models import DriverChip, amoled, jc
 
 DEPENDENCIES = ["spi"]
 
@@ -43,6 +43,14 @@ COLOR_ORDERS = {
 DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
 DELAY_FLAG = 0xFF
+
+# Define models by import from submodule
+
+MODELS = [DriverChip("CUSTOM", {})]
+MODELS.extend(amoled.chips)
+MODELS.extend(jc.chips)
+
+MODELS = {chip.name: chip for chip in MODELS}
 
 
 def validate_dimension(value):
@@ -156,7 +164,7 @@ def model_schema(defaults):
 
 CONFIG_SCHEMA = cv.All(
     cv.typed_schema(
-        {k.upper(): model_schema(v.defaults) for k, v in DriverChip.chips.items()},
+        {k.upper(): model_schema(v.defaults) for k, v in MODELS.items()},
         upper=True,
         key=CONF_MODEL,
     ),
@@ -169,7 +177,7 @@ async def to_code(config):
     await display.register_display(var, config)
     await spi.register_spi_device(var, config)
 
-    chip = DriverChip.chips[config[CONF_MODEL]]
+    chip = MODELS[config[CONF_MODEL]]
     if chip.initsequence:
         cg.add(var.add_init_sequence(chip.initsequence))
     if init_sequences := config.get(CONF_INIT_SEQUENCE):

@@ -21,26 +21,25 @@ SWIRE2 = 0x5B
 PAGESEL = 0xFE
 
 
+def cmd(c, *args):
+    """
+    Add a command sequence to the init sequence
+    :param c: The command (8 bit)
+    :param args: zero or more arguments (8 bit values)
+    """
+    return (c, len(args)) + tuple(args)
+
+
+def delay(ms):
+    return ms, 0xFF
+
+
 class DriverChip:
     chips = {}
 
-    def __init__(self, name: str, defaults=None):
+    def __init__(self, name: str, defaults=None, *initsequence):
         name = name.upper()
         self.name = name
-        self.chips[name] = self
-        self.initsequence = []
+        assert all(isinstance(x, tuple) for x in initsequence)
+        self.initsequence = sum(initsequence, ())
         self.defaults = defaults or {}
-
-    def cmd(self, c, *args):
-        """
-        Add a command sequence to the init sequence
-        :param c: The command (8 bit)
-        :param args: zero or more arguments (8 bit values)
-        """
-        self.initsequence.extend([c, len(args)] + list(args))
-
-    def delay(self, ms):
-        self.initsequence.extend([ms, 0xFF])
-
-
-DriverChip("Custom")
