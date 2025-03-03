@@ -2,6 +2,7 @@
 #ifdef USE_ZIGBEE
 #include "esphome/core/log.h"
 #include <zephyr/settings/settings.h>
+#include <zephyr/storage/flash_map.h>
 
 extern "C" {
 #include <zboss_api.h>
@@ -116,8 +117,17 @@ void Zigbee::on_join() {
   this->schedule([this]() {
     ESP_LOGD(TAG, "joined the network");
     this->join_trigger_->trigger();
-    this->join_cb_();
+    if (this->join_cb_) {
+      this->join_cb_();
+    }
   });
+}
+
+void _erase_flash(int area) {
+  const struct flash_area *fap;
+  flash_area_open(area, &fap);
+  flash_area_erase(fap, 0, fap->fa_size);
+  flash_area_close(fap);
 }
 
 void Zigbee::setup() {
@@ -127,6 +137,12 @@ void Zigbee::setup() {
     ESP_LOGE(TAG, "Failed to initialize settings subsystem, err: %d", err);
     return;
   }
+
+#if 0
+  _erase_flash(FIXED_PARTITION_ID(ZBOSS_NVRAM));
+  _erase_flash(FIXED_PARTITION_ID(ZBOSS_PRODUCT_CONFIG));
+  _erase_flash(FIXED_PARTITION_ID(SETTINGS_STORAGE));
+#endif
 
   /* Register callback for handling ZCL commands. */
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);

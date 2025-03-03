@@ -292,7 +292,7 @@ def zigbee_new_cluster_list(config, attr_list):
             ZB_ZCL_CLUSTER_ID_IDENTIFY, config[CONF_IDENTIFY_ATTRIB_LIST]
         ),
     ]
-    rhs.extend(attr_list)
+    rhs.extend([attr_list[0]])
     rhs.extend(
         [
             ZigbeeClusterDesc(
@@ -303,5 +303,7 @@ def zigbee_new_cluster_list(config, attr_list):
             ),
         ]
     )
+    if len(attr_list) == 2:
+        rhs.extend([attr_list[1]])
     obj = zigbee_array(config[CONF_CLUSTER_LIST], rhs)
     return (obj, rhs)
