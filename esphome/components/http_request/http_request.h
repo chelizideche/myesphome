@@ -272,7 +272,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
   void encode_json_func_(Ts... x, JsonObject root) { this->json_func_(x..., root); }
   HttpRequestComponent *parent_;
   std::map<const char *, TemplatableValue<const char *, Ts...>> headers_{};
-  std::set<std::string> collect_header_names_{};
+  std::set<std::string> collect_header_names_{"content-type", "content-length"};
   std::map<const char *, TemplatableValue<std::string, Ts...>> json_{};
   std::function<void(Ts..., JsonObject)> json_func_{nullptr};
   std::vector<HttpRequestResponseTrigger *> response_triggers_{};

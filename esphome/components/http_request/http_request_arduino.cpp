@@ -107,8 +107,6 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
     header_keys[index++] = header_name.c_str();
   }
   // header names must be lowercase
-  header_keys[index++] = "content-length";
-  header_keys[index++] = "content-type";
   container->client_.collectHeaders(header_keys, index);
 
   App.feed_wdt();
