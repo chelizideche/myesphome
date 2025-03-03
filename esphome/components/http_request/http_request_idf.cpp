@@ -33,14 +33,13 @@ void HttpRequestIDF::dump_config() {
 esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   ESP_LOGD(TAG, "Entered http_event_handler");
   UserData *user_data = (UserData *) evt->user_data;
-  auto collect_header_names = user_data->collect_header_names;
 
   switch (evt->event_id) {
     case HTTP_EVENT_ON_HEADER: {
       ESP_LOGD(TAG, "Entered HTTP_EVENT_ON_HEADER");
       ESP_LOGD(TAG, "header name: %s", evt->header_key);
       const std::string header_name = str_lower_case(evt->header_key);
-      for (const auto &collect_header_name : collect_header_names) {
+      for (const auto &collect_header_name : user_data->collect_header_names) {
         if (str_equals_case_insensitive(collect_header_name, header_name)) {
           const std::string header_value = evt->header_value;
           ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
