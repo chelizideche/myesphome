@@ -22,6 +22,7 @@ sx127x:
   sync_value: [0x33, 0x33]
   shaping: NONE
   preamble_size: 2
+  preamble_detect: 2
   preamble_errors: 8
   preamble_polarity: 0x55
   on_packet:
