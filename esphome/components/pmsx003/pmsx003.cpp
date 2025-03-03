@@ -141,16 +141,17 @@ optional<bool> PMSX003Component::check_byte_() {
     return true;
   }
 
-  // start (16bit) + length (16bit) + DATA (payload_length-2 bytes) + checksum (16bit)
-  uint8_t total_size = 4 + payload_length;
+  // start (16bit) + length (16bit) + DATA (payload_length - 16bit) + checksum (16bit)
+  uint16_t total_size = 4 + payload_length;
 
   if (index < total_size - 1)
     return true;
 
   // checksum is without checksum bytes
   uint16_t checksum = 0;
-  for (uint8_t i = 0; i < total_size - 2; i++)
+  for (uint8_t i = 0; i < total_size - 2; i++) {
     checksum += this->data_[i];
+  }
 
   uint16_t check = this->get_16_bit_uint_(total_size - 2);
   if (checksum != check) {
