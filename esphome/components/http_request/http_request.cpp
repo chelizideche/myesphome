@@ -36,7 +36,7 @@ std::string HttpContainer::get_response_header(const std::string &header_name) {
     } else {
       ESP_LOGD(TAG, "Header with name %s found", header_name_lower_case.c_str());
       ESP_LOGD(TAG, "Header with name %s found with value %s", header_name_lower_case.c_str(), values.front().c_str());
-      return "";
+      return values.front().c_str();
     }
   }
 }
