@@ -10,13 +10,20 @@ namespace pmsx003 {
 static const uint8_t START_CHARACTER_1 = 0x42;
 static const uint8_t START_CHARACTER_2 = 0x4D;
 
-// known command bytes
-static const uint8_t PMS_CMD_AUTO_MANUAL =
-    0xE1;  // data=0: perform measurement manually, data=1: perform measurement automatically
-static const uint8_t PMS_CMD_TRIG_MANUAL = 0xE2;  // trigger a manual measurement
-static const uint8_t PMS_CMD_ON_STANDBY = 0xE4;   // data=0: go to standby mode, data=1: go to normal mode
+static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
 
-static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on
+static const uint16_t PMS_CMD_MEASUREMENT_MODE_PASSIVE =
+    0x0000;  // use `PMS_CMD_MANUAL_MEASUREMENT` to trigger a measurement
+static const uint16_t PMS_CMD_MEASUREMENT_MODE_ACTIVE = 0x0001;  // automatically perform measurements
+static const uint16_t PMS_CMD_SLEEP_MODE_SLEEP = 0x0000;         // go to sleep mode
+static const uint16_t PMS_CMD_SLEEP_MODE_WAKEUP = 0x0001;        // wake up from sleep mode
+
+enum PMSX0003Command : uint8_t {
+  PMS_CMD_MEASUREMENT_MODE =
+      0xE1,  // Data Options: `PMS_CMD_MEASUREMENT_MODE_PASSIVE`, `PMS_CMD_MEASUREMENT_MODE_ACTIVE`
+  PMS_CMD_MANUAL_MEASUREMENT = 0xE2,
+  PMS_CMD_SLEEP_MODE = 0xE4,  // Data Options: `PMS_CMD_SLEEP_MODE_SLEEP`, `PMS_CMD_SLEEP_MODE_WAKEUP`
+};
 
 enum PMSX003Type {
   PMSX003_TYPE_X003 = 0,
@@ -64,7 +71,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
  protected:
   optional<bool> check_byte_();
   void parse_data_();
-  void send_command_(uint8_t cmd, uint16_t data);
+  void send_command_(PMSX0003Command cmd, uint16_t data);
   uint16_t get_16_bit_uint_(uint8_t start_index);
 
   uint8_t data_[64];

@@ -55,8 +55,8 @@ void PMSX003Component::loop() {
   // need to keep track of what state we're in.
   if (this->update_interval_ > PMS_STABILISING_MS) {
     if (this->initialised_ == 0) {
-      this->send_command_(PMS_CMD_AUTO_MANUAL, 0);
-      this->send_command_(PMS_CMD_ON_STANDBY, 1);
+      this->send_command_(PMS_CMD_MEASUREMENT_MODE, PMS_CMD_MEASUREMENT_MODE_PASSIVE);
+      this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
       this->initialised_ = 1;
     }
     switch (this->state_) {
@@ -66,7 +66,7 @@ void PMSX003Component::loop() {
           return;
 
         this->state_ = PMSX003_STATE_STABILISING;
-        this->send_command_(PMS_CMD_ON_STANDBY, 1);
+        this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
         this->fan_on_time_ = now;
         return;
       case PMSX003_STATE_STABILISING:
@@ -77,7 +77,7 @@ void PMSX003Component::loop() {
         while (this->available())
           this->read_byte(&this->data_[0]);
         // Trigger a new read
-        this->send_command_(PMS_CMD_TRIG_MANUAL, 0);
+        this->send_command_(PMS_CMD_MANUAL_MEASUREMENT, 0);
         this->state_ = PMSX003_STATE_WAITING;
         break;
       case PMSX003_STATE_WAITING:
@@ -175,7 +175,7 @@ optional<bool> PMSX003Component::check_byte_() {
   return {};
 }
 
-void PMSX003Component::send_command_(uint8_t cmd, uint16_t data) {
+void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
   this->data_index_ = 0;
   this->data_[data_index_++] = START_CHARACTER_1;
   this->data_[data_index_++] = START_CHARACTER_2;
@@ -325,7 +325,7 @@ void PMSX003Component::parse_data_() {
   // Spin down the sensor again if we aren't going to need it until more time has
   // passed than it takes to stabilise
   if (this->update_interval_ > PMS_STABILISING_MS) {
-    this->send_command_(PMS_CMD_ON_STANDBY, 0);
+    this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_SLEEP);
     this->state_ = PMSX003_STATE_IDLE;
   }
 
