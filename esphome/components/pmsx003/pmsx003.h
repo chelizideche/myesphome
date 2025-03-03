@@ -65,6 +65,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   void set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor);
 
   void set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor);
+
   void set_temperature_sensor(sensor::Sensor *temperature_sensor);
   void set_humidity_sensor(sensor::Sensor *humidity_sensor);
 
@@ -103,7 +104,10 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   sensor::Sensor *pm_particles_50um_sensor_{nullptr};
   sensor::Sensor *pm_particles_100um_sensor_{nullptr};
 
+  // Formaldehyde
   sensor::Sensor *formaldehyde_sensor_{nullptr};
+
+  // Temperature and Humidity
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
 };
