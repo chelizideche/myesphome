@@ -1,5 +1,6 @@
-#include "esphome/core/log.h"
+#include "esphome/core/defines.h"
 #ifdef USE_NETWORK
+#include "esphome/core/log.h"
 #include "esphome/core/application.h"
 #include "esphome/components/network/util.h"
 #include "udp_component.h"
