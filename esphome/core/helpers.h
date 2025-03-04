@@ -1,14 +1,14 @@
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
-#include <limits>
-#include <array>
 
 #include "esphome/core/optional.h"
 
@@ -701,8 +701,10 @@ template<class T> class RAMAllocator {
   }
   template<class U> constexpr RAMAllocator(const RAMAllocator<U> &other) : flags_{other.flags_} {}
 
-  T *allocate(size_t n) {
-    size_t size = n * sizeof(T);
+  T *allocate(size_t n) { return this->allocate(n, sizeof(T)); }
+
+  T *allocate(size_t n, size_t manual_size) {
+    size_t size = n * manual_size;
     T *ptr = nullptr;
 #ifdef USE_ESP32
     if (this->flags_ & Flags::ALLOC_EXTERNAL) {
