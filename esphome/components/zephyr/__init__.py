@@ -23,12 +23,13 @@ KEY_BOARD = "board"
 
 
 def zephyr_set_core_data(config):
-    CORE.data[KEY_ZEPHYR] = {}
-    CORE.data[KEY_ZEPHYR][KEY_BOARD] = config[CONF_BOARD]
-    CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF] = {}
-    CORE.data[KEY_ZEPHYR][KEY_OVERLAY] = ""
-    CORE.data[KEY_ZEPHYR][KEY_BOOTLOADER] = config[KEY_BOOTLOADER]
-    CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES] = {}
+    CORE.data[KEY_ZEPHYR] = {
+        KEY_BOARD: config[CONF_BOARD],
+        KEY_PRJ_CONF: {},
+        KEY_OVERLAY: "",
+        KEY_BOOTLOADER: config[KEY_BOOTLOADER],
+        KEY_EXTRA_BUILD_FILES: {},
+    }
     return config
 
 
