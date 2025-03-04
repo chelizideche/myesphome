@@ -3,6 +3,7 @@ from pathlib import Path
 import esphome.codegen as cg
 from esphome.components.zephyr import (
     copy_files as zephyr_copy_files,
+    zephyr_add_pm_static,
     zephyr_set_core_data,
     zephyr_to_code,
 )
@@ -21,15 +22,13 @@ from esphome.const import (
     KEY_TARGET_PLATFORM,
 )
 from esphome.core import CORE, EsphomeError, coroutine_with_priority
-from esphome.helpers import write_file_if_changed
 
-from .boards import BOARDS_ZEPHYR, BOOTLOADER_CONFIG, Section
+from .boards import BOARDS_ZEPHYR, BOOTLOADER_CONFIG
 from .const import (
     BOOTLOADER_ADAFRUIT,
     BOOTLOADER_ADAFRUIT_NRF52_SD132,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V7,
-    KEY_PM_STATIC,
 )
 
 # force import gpio to register pin schema
@@ -45,10 +44,9 @@ def set_core_data(config):
     zephyr_set_core_data(config)
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_NRF52
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = KEY_ZEPHYR
-    CORE.data[KEY_ZEPHYR][KEY_PM_STATIC] = []
 
     if config[KEY_BOOTLOADER] in BOOTLOADER_CONFIG:
-        add_pm_static(BOOTLOADER_CONFIG[config[KEY_BOOTLOADER]])
+        zephyr_add_pm_static(BOOTLOADER_CONFIG[config[KEY_BOOTLOADER]])
 
     return config
 
@@ -128,17 +126,8 @@ async def to_code(config):
     zephyr_to_code(conf)
 
 
-def add_pm_static(section: Section):
-    CORE.data[KEY_ZEPHYR][KEY_PM_STATIC].extend(section)
-
-
 def copy_files():
     zephyr_copy_files()
-    pm_static = "\n".join(str(item) for item in CORE.data[KEY_ZEPHYR][KEY_PM_STATIC])
-    if pm_static:
-        write_file_if_changed(
-            CORE.relative_build_path("zephyr/pm_static.yml"), pm_static
-        )
 
 
 def get_download_types(storage_json):

@@ -1,8 +1,8 @@
 import os
-from typing import TypedDict, Union
+from typing import Final, TypedDict, Union
 
 import esphome.codegen as cg
-from esphome.const import CONF_BOARD, KEY_NAME
+from esphome.const import CONF_BOARD
 from esphome.core import CORE
 from esphome.helpers import copy_file_if_changed, write_file_if_changed
 
@@ -11,7 +11,7 @@ from .const import (
     KEY_BOOTLOADER,
     KEY_EXTRA_BUILD_FILES,
     KEY_OVERLAY,
-    KEY_PATH,
+    KEY_PM_STATIC,
     KEY_PRJ_CONF,
     KEY_ZEPHYR,
     zephyr_ns,
@@ -19,9 +19,27 @@ from .const import (
 
 CODEOWNERS = ["@tomaszduda23"]
 AUTO_LOAD = ["preferences"]
-KEY_BOARD = "board"
+KEY_BOARD: Final = "board"
 
 PrjConfValueType = Union[bool, str, int]
+
+
+class Section:
+    def __init__(self, name, address, size, region):
+        self.name = name
+        self.address = address
+        self.size = size
+        self.region = region
+        self.end_address = self.address + self.size
+
+    def __str__(self):
+        return (
+            f"{self.name}:\n"
+            f"  address: 0x{self.address:X}\n"
+            f"  end_address: 0x{self.end_address:X}\n"
+            f"  region: {self.region}\n"
+            f"  size: 0x{self.size:X}"
+        )
 
 
 class ZephyrData(TypedDict):
@@ -30,6 +48,7 @@ class ZephyrData(TypedDict):
     prj_conf: dict[str, tuple[PrjConfValueType, bool]]
     overlay: str
     extra_build_files: dict[str, str]
+    pm_static: list[Section]
 
 
 def zephyr_set_core_data(config):
@@ -39,8 +58,13 @@ def zephyr_set_core_data(config):
         prj_conf={},
         overlay="",
         extra_build_files={},
+        pm_static=[],
     )
     return config
+
+
+def zephyr_data() -> ZephyrData:
+    return CORE.data[KEY_ZEPHYR]
 
 
 def zephyr_add_prj_conf(
@@ -49,7 +73,7 @@ def zephyr_add_prj_conf(
     """Set an zephyr prj conf value."""
     if not name.startswith("CONFIG_"):
         name = "CONFIG_" + name
-    prj_conf = CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF]
+    prj_conf = zephyr_data()[KEY_PRJ_CONF]
     if name not in prj_conf:
         prj_conf[name] = (value, required)
         return
@@ -63,14 +87,14 @@ def zephyr_add_prj_conf(
 
 
 def zephyr_add_overlay(content):
-    CORE.data[KEY_ZEPHYR][KEY_OVERLAY] += content
+    zephyr_data()[KEY_OVERLAY] += content
 
 
 def add_extra_build_file(filename: str, path: str) -> bool:
     """Add an extra build file to the project."""
-    extra_build_files = CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES]
+    extra_build_files = zephyr_data()[KEY_EXTRA_BUILD_FILES]
     if filename not in extra_build_files:
-        extra_build_files[filename] = {KEY_NAME: filename, KEY_PATH: path}
+        extra_build_files[filename] = path
         return True
     return False
 
@@ -144,8 +168,12 @@ def zephyr_add_cdc_acm(config, id):
     )
 
 
+def zephyr_add_pm_static(section: Section):
+    CORE.data[KEY_ZEPHYR][KEY_PM_STATIC].extend(section)
+
+
 def copy_files():
-    want_opts = CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF]
+    want_opts = zephyr_data()[KEY_PRJ_CONF]
 
     prj_conf = (
         "\n".join(
@@ -159,10 +187,10 @@ def copy_files():
 
     write_file_if_changed(
         CORE.relative_build_path("zephyr/app.overlay"),
-        CORE.data[KEY_ZEPHYR][KEY_OVERLAY],
+        zephyr_data()[KEY_OVERLAY],
     )
 
-    if CORE.data[KEY_ZEPHYR][KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
+    if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
         fake_board_manifest = """
 {
 "frameworks": [
@@ -178,12 +206,18 @@ def copy_files():
 }
 """
         write_file_if_changed(
-            CORE.relative_build_path(f"boards/{CORE.data[KEY_ZEPHYR][KEY_BOARD]}.json"),
+            CORE.relative_build_path(f"boards/{zephyr_data()[KEY_BOARD]}.json"),
             fake_board_manifest,
         )
 
-    for file in CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES].values():
+    for filename, path in zephyr_data()[KEY_EXTRA_BUILD_FILES].items():
         copy_file_if_changed(
-            file[KEY_PATH],
-            CORE.relative_build_path(file[KEY_NAME]),
+            path,
+            CORE.relative_build_path(filename),
+        )
+
+    pm_static = "\n".join(str(item) for item in zephyr_data()[KEY_PM_STATIC])
+    if pm_static:
+        write_file_if_changed(
+            CORE.relative_build_path("zephyr/pm_static.yml"), pm_static
         )

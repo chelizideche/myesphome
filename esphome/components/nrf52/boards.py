@@ -1,3 +1,4 @@
+from esphome.components.zephyr import Section
 from esphome.components.zephyr.const import KEY_BOOTLOADER
 
 from .const import (
@@ -6,25 +7,6 @@ from .const import (
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V7,
 )
-
-
-class Section:
-    def __init__(self, name, address, size, region):
-        self.name = name
-        self.address = address
-        self.size = size
-        self.region = region
-        self.end_address = self.address + self.size
-
-    def __str__(self):
-        return (
-            f"{self.name}:\n"
-            f"  address: 0x{self.address:X}\n"
-            f"  end_address: 0x{self.end_address:X}\n"
-            f"  region: {self.region}\n"
-            f"  size: 0x{self.size:X}"
-        )
-
 
 BOARDS_ZEPHYR = {
     "adafruit_itsybitsy_nrf52840": {
