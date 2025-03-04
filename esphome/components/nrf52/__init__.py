@@ -191,13 +191,18 @@ def upload_program(config, args, host):
     from esphome.__main__ import check_permissions, get_port_type
 
     result = 0
+    handled = False
+
     if get_port_type(host) == "SERIAL":
         check_permissions(host)
         result = _upload_using_platformio(config, host, ["-t", "upload"])
-        return True
+        handled = True
+
     if host == "PYOCD":
         result = _upload_using_platformio(config, host, ["-t", "flash_pyocd"])
-        return True
+        handled = True
+
     if result != 0:
         raise EsphomeError(f"Upload failed with result: {result}")
-    return False
+
+    return handled
