@@ -28,7 +28,7 @@ from esphome.const import (
 )
 from esphome.core import TimePeriod
 
-from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING
+from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING, MODE_BGR, MODE_RGB
 from .models import DriverChip, amoled, jc
 
 DEPENDENCIES = ["spi"]
@@ -41,8 +41,8 @@ ColorOrder = display.display_ns.enum("ColorMode")
 Model = mipi_dbi_ns.enum("Model")
 
 COLOR_ORDERS = {
-    "RGB": ColorOrder.COLOR_ORDER_RGB,
-    "BGR": ColorOrder.COLOR_ORDER_BGR,
+    MODE_RGB: ColorOrder.COLOR_ORDER_RGB,
+    MODE_BGR: ColorOrder.COLOR_ORDER_BGR,
 }
 DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
@@ -126,9 +126,9 @@ BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
 def model_schema(bus_mode, model: DriverChip):
     transform = cv.Schema(
         {
-            model.option(CONF_MIRROR_X, False): cv.boolean,
-            model.option(CONF_MIRROR_Y, False): cv.boolean,
-            model.option(CONF_SWAP_XY, False): cv.boolean,
+            cv.Optional(CONF_MIRROR_X, False): cv.boolean,
+            cv.Optional(CONF_MIRROR_Y, False): cv.boolean,
+            cv.Optional(CONF_SWAP_XY, False): cv.boolean,
         }
     )
     # If the model does not support swapping, overwrite the above option
@@ -151,7 +151,7 @@ def model_schema(bus_mode, model: DriverChip):
     ).extend(
         {
             model.option(CONF_INVERT_COLORS, False): cv.boolean,
-            model.option(CONF_COLOR_ORDER, "RGB"): cv.enum(COLOR_ORDERS, upper=True),
+            model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(COLOR_ORDERS, upper=True),
             model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
             cv.Optional(CONF_TRANSFORM): transform,
             cv.Optional(CONF_BUS_MODE, default=bus_mode): cv.one_of(
@@ -211,7 +211,7 @@ async def to_code(config):
             sequence.extend(seq)
         cg.add(var.add_init_sequence(sequence))
 
-    cg.add(var.set_color_mode(config[CONF_COLOR_ORDER]))
+    cg.add(var.set_color_order(config[CONF_COLOR_ORDER]))
     cg.add(var.set_invert_colors(config[CONF_INVERT_COLORS]))
     if CONF_BRIGHTNESS in config:
         cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
@@ -230,11 +230,20 @@ async def to_code(config):
         dc_pin = await cg.gpio_pin_expression(dc_pin)
         cg.add(var.set_dc_pin(dc_pin))
 
-    if transform := config.get(CONF_TRANSFORM):
-        cg.add(var.set_mirror_x(transform[CONF_MIRROR_X]))
-        cg.add(var.set_mirror_y(transform[CONF_MIRROR_Y]))
-        # swap_xy is not implemented for some chips
-        cg.add(var.set_swap_xy(transform.get(CONF_SWAP_XY, False)))
+    transform = config.get(
+        CONF_TRANSFORM,
+        {
+            CONF_MIRROR_X: chip.get_default(CONF_MIRROR_X, False),
+            CONF_MIRROR_Y: chip.get_default(CONF_MIRROR_Y, False),
+            CONF_SWAP_XY: chip.get_default(CONF_SWAP_XY, False),
+        },
+    )
+    if transform[CONF_MIRROR_X]:
+        cg.add(var.set_mirror_x(True))
+    if transform[CONF_MIRROR_Y]:
+        cg.add(var.set_mirror_y(True))
+    if transform.get(CONF_SWAP_XY) is True:
+        cg.add(var.set_swap_xy(True))
 
     if CONF_DIMENSIONS in config:
         dimensions = config[CONF_DIMENSIONS]

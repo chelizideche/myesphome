@@ -55,8 +55,8 @@ class MipiDbi : public display::DisplayBuffer,
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
-  display::ColorOrder get_color_mode() { return this->color_mode_; }
-  void set_color_mode(display::ColorOrder color_mode) { this->color_mode_ = color_mode; }
+  display::ColorOrder get_color_mode() { return this->color_order_; }
+  void set_color_order(display::ColorOrder color_mode) { this->color_order_ = color_mode; }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pin(GPIOPin *enable_pin) { this->enable_pin_ = enable_pin; }
@@ -151,7 +151,7 @@ class MipiDbi : public display::DisplayBuffer,
   bool setup_complete_{};
 
   bool invert_colors_{};
-  display::ColorOrder color_mode_{display::COLOR_ORDER_BGR};
+  display::ColorOrder color_order_{display::COLOR_ORDER_BGR};
   size_t width_{};
   size_t height_{};
   int16_t offset_x_{0};

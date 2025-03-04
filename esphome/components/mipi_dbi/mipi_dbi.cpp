@@ -34,9 +34,9 @@ void MipiDbi::update() {
     return;
   }
   this->do_update_();
-  ESP_LOGD(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
   if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
     return;
+  ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
   // Some chips require that the drawing window be aligned on certain boundaries
   auto dr = this->draw_rounding_;
   this->x_low_ = this->x_low_ / dr * dr;
@@ -99,7 +99,7 @@ void MipiDbi::reset_params_(bool ready) {
     return;
   this->write_command_(this->invert_colors_ ? INVERT_ON : INVERT_OFF);
   // custom x/y transform and color order
-  uint8_t mad = this->color_mode_ == display::COLOR_ORDER_BGR ? MADCTL_BGR : MADCTL_RGB;
+  uint8_t mad = this->color_order_ == display::COLOR_ORDER_BGR ? MADCTL_BGR : MADCTL_RGB;
   if (this->swap_xy_)
     mad |= MADCTL_MV;
   if (this->mirror_x_)
@@ -142,8 +142,7 @@ void MipiDbi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
     return;
   if (w <= 0 || h <= 0)
     return;
-  if (bitness != display::COLOR_BITNESS_565 || order != this->color_mode_ ||
-      big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
+  if (bitness != display::COLOR_BITNESS_565 || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
     Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset, x_pad);
     return;
   }
@@ -247,7 +246,12 @@ void MipiDbi::dump_config() {
   ESP_LOGCONFIG("", "Model: %s", this->model_);
   ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
   ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
+  ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->swap_xy_));
+  ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->mirror_x_));
+  ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->mirror_y_));
+  ESP_LOGCONFIG(TAG, "  Color order: %s", this->color_order_ == display::COLOR_ORDER_BGR ? "BGR" : "RGB");
   ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);
+  ESP_LOGCONFIG(TAG, "  Draw from origin: %s", YESNO(this->draw_from_origin_));
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);

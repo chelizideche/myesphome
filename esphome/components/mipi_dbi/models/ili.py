@@ -1,5 +1,5 @@
 from esphome.components.mipi_dbi.models import DriverChip, cmd
-from esphome.const import CONF_COLOR_ORDER, CONF_MIRROR_X
+from esphome.const import CONF_MIRROR_X
 
 from .commands import (
     DFUNCTR,
@@ -17,7 +17,7 @@ from .commands import (
 
 ILI9341 = DriverChip(
     name="ILI9341",
-    defaults={CONF_MIRROR_X: True, CONF_COLOR_ORDER: "BGR"},
+    defaults={CONF_MIRROR_X: True},
     initsequence=(
         cmd(
             0xEF,

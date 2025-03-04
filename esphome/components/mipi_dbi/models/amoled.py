@@ -1,7 +1,6 @@
-from esphome.components.mipi_dbi import CONF_DRAW_ROUNDING
+from esphome.components.mipi_dbi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
-import esphome.config_validation as cv
-from esphome.const import CONF_BRIGHTNESS, CONF_SWAP_XY
+from esphome.const import CONF_BRIGHTNESS, CONF_COLOR_ORDER
 
 from . import DriverChip, cmd, delay
 from .commands import (
@@ -18,7 +17,7 @@ from .commands import (
 
 RM67162 = DriverChip(
     name="RM67162",
-    defaults={CONF_BRIGHTNESS: 0xD0},
+    defaults={CONF_BRIGHTNESS: 0xD0, CONF_COLOR_ORDER: MODE_RGB},
     modes=(TYPE_QUAD,),
     initsequence=(
         cmd(PIXFMT, 0x55),
@@ -28,7 +27,7 @@ RM67162 = DriverChip(
 
 RM690B0 = DriverChip(
     "RM690B0",
-    {CONF_BRIGHTNESS: 0xD0},
+    defaults={CONF_BRIGHTNESS: 0xD0, CONF_COLOR_ORDER: MODE_RGB},
     modes=(TYPE_QUAD,),
     initsequence=(
         cmd(PAGESEL, 0x20),
@@ -45,15 +44,4 @@ RM690B0 = DriverChip(
     ),
 )
 
-AXS15231 = DriverChip(
-    "AXS15231",
-    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_BRIGHTNESS: 0xD0},
-    modes=(TYPE_QUAD,),
-    initsequence=(
-        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
-        cmd(0xC1, 0x33),
-        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
-    ),
-)
-
-chips = (AXS15231, RM67162, RM690B0)
+chips = (RM67162, RM690B0)

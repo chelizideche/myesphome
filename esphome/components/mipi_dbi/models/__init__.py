@@ -38,4 +38,4 @@ class DriverChip:
         return self.defaults.get(key, fallback)
 
     def option(self, name, fallback=False):
-        return cv.Optional(name, self.get_default(name, fallback))
+        return cv.Optional(name, default=self.get_default(name, fallback))

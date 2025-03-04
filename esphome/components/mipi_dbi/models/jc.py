@@ -1,16 +1,14 @@
-from esphome.components.mipi_dbi import CONF_DRAW_ROUNDING
+from esphome.components.mipi_dbi import CONF_DRAW_ROUNDING, MODE_RGB
 from esphome.components.spi import TYPE_QUAD
-from esphome.const import CONF_INVERT_COLORS, CONF_SWAP_XY
+import esphome.config_validation as cv
+from esphome.const import CONF_COLOR_ORDER, CONF_INVERT_COLORS, CONF_SWAP_XY
 
 from . import DriverChip, cmd, delay
 from .commands import DISPLAY_OFF, INVERT_OFF, PIXFMT, SLEEP_IN, SLEEP_OUT
 
-JC4832WS353 = DriverChip(
+JC4832W535 = DriverChip(
     "JC4832W535",
-    {
-        CONF_DRAW_ROUNDING: 8,
-        CONF_SWAP_XY: False,
-    },
+    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_COLOR_ORDER: MODE_RGB},
     modes=(TYPE_QUAD,),
     initsequence=(
         cmd(DISPLAY_OFF),
@@ -20,6 +18,16 @@ JC4832WS353 = DriverChip(
         cmd(SLEEP_OUT),
         cmd(INVERT_OFF),
         # A magic sequence to enable the windowed drawing mode
+        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
+        cmd(0xC1, 0x33),
+        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ),
+)
+
+AXS15231 = DriverChip(
+    "AXS15231",
+    modes=(TYPE_QUAD,),
+    initsequence=(
         cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
         cmd(0xC1, 0x33),
         cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
@@ -249,4 +257,4 @@ JC3636W518 = DriverChip(
         cmd(PIXFMT, 0x55),
     ),
 )
-chips = (JC3636W518, JC4832WS353)
+chips = (JC3636W518, JC4832W535, AXS15231)
