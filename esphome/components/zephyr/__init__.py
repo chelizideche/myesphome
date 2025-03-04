@@ -59,11 +59,9 @@ def zephyr_add_overlay(content):
 
 def add_extra_build_file(filename: str, path: str) -> bool:
     """Add an extra build file to the project."""
-    if filename not in CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES]:
-        CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES][filename] = {
-            KEY_NAME: filename,
-            KEY_PATH: path,
-        }
+    extra_build_files = CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES]
+    if filename not in extra_build_files:
+        extra_build_files[filename] = {KEY_NAME: filename, KEY_PATH: path}
         return True
     return False
 
