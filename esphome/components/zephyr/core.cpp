@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/reboot.h>
+#include <zephyr/random/rand32.h>
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 
@@ -49,7 +50,21 @@ Mutex::~Mutex() { delete static_cast<k_mutex *>(this->handle_); }
 void Mutex::lock() { k_mutex_lock(static_cast<k_mutex *>(this->handle_), K_FOREVER); }
 bool Mutex::try_lock() { return k_mutex_lock(static_cast<k_mutex *>(this->handle_), K_NO_WAIT) == 0; }
 void Mutex::unlock() { k_mutex_unlock(static_cast<k_mutex *>(this->handle_)); }
+
 uint32_t random_uint32() { return rand(); }  // NOLINT(cert-msc30-c, cert-msc50-cpp)
+bool random_bytes(uint8_t *data, size_t len) {
+  sys_rand_get(data, len);
+  return true;
+}
+
+void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parameter)
+  mac[0] = ((NRF_FICR->DEVICEADDR[1] & 0xFFFF) >> 8) | 0xC0;
+  mac[1] = NRF_FICR->DEVICEADDR[1] & 0xFFFF;
+  mac[2] = NRF_FICR->DEVICEADDR[0] >> 24;
+  mac[3] = NRF_FICR->DEVICEADDR[0] >> 16;
+  mac[4] = NRF_FICR->DEVICEADDR[0] >> 8;
+  mac[5] = NRF_FICR->DEVICEADDR[0];
+}
 
 }  // namespace esphome
 
