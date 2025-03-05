@@ -84,6 +84,7 @@ lv_event_code_t lv_api_event;     // NOLINT
 lv_event_code_t lv_update_event;  // NOLINT
 void LvglComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "LVGL:");
+  ESP_LOGCONFIG(TAG, "  Display width/height: %d x %d", this->disp_drv_.hor_res, this->disp_drv_.ver_res);
   ESP_LOGCONFIG(TAG, "  Rotation: %d", this->rotation);
   ESP_LOGCONFIG(TAG, "  Draw rounding: %d", (int) this->draw_rounding);
 }
@@ -97,22 +98,28 @@ void LvglComponent::set_paused(bool paused, bool show_snow) {
   this->pause_callbacks_.call(paused);
 }
 
+void LvglComponent::esphome_lvgl_init() {
+  lv_init();
+  lv_update_event = static_cast<lv_event_code_t>(lv_event_register_id());
+  lv_api_event = static_cast<lv_event_code_t>(lv_event_register_id());
+}
 void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event) {
-  lv_obj_add_event_cb(obj, callback, event, this);
+  lv_obj_add_event_cb(obj, callback, event, nullptr);
 }
 void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1,
                                  lv_event_code_t event2) {
-  this->add_event_cb(obj, callback, event1);
-  this->add_event_cb(obj, callback, event2);
+  add_event_cb(obj, callback, event1);
+  add_event_cb(obj, callback, event2);
 }
 void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_event_code_t event1,
                                  lv_event_code_t event2, lv_event_code_t event3) {
-  this->add_event_cb(obj, callback, event1);
-  this->add_event_cb(obj, callback, event2);
-  this->add_event_cb(obj, callback, event3);
+  add_event_cb(obj, callback, event1);
+  add_event_cb(obj, callback, event2);
+  add_event_cb(obj, callback, event3);
 }
 void LvglComponent::add_page(LvPageType *page) {
   this->pages_.push_back(page);
+  page->set_parent(this);
   page->setup(this->pages_.size() - 1);
 }
 void LvglComponent::show_page(size_t index, lv_scr_load_anim_t anim, uint32_t time) {
@@ -137,6 +144,8 @@ void LvglComponent::show_prev_page(lv_scr_load_anim_t anim, uint32_t time) {
   } while (this->pages_[this->current_page_]->skip);  // skip empty pages()
   this->show_page(this->current_page_, anim, time);
 }
+size_t LvglComponent::get_current_page() const { return this->current_page_; }
+bool LvPageType::is_showing() const { return this->parent_->get_current_page() == this->index; }
 void LvglComponent::draw_buffer_(const lv_area_t *area, lv_color_t *ptr) {
   auto width = lv_area_get_width(area);
   auto height = lv_area_get_height(area);
@@ -145,7 +154,7 @@ void LvglComponent::draw_buffer_(const lv_area_t *area, lv_color_t *ptr) {
   lv_color_t *dst = this->rotate_buf_;
   switch (this->rotation) {
     case display::DISPLAY_ROTATION_90_DEGREES:
-      for (lv_coord_t x = height - 1; x-- != 0;) {
+      for (lv_coord_t x = height; x-- != 0;) {
         for (lv_coord_t y = 0; y != width; y++) {
           dst[y * height + x] = *ptr++;
         }
@@ -217,8 +226,10 @@ PauseTrigger::PauseTrigger(LvglComponent *parent, TemplatableValue<bool> paused)
 }
 
 #ifdef USE_LVGL_TOUCHSCREEN
-LVTouchListener::LVTouchListener(uint16_t long_press_time, uint16_t long_press_repeat_time) {
+LVTouchListener::LVTouchListener(uint16_t long_press_time, uint16_t long_press_repeat_time, LvglComponent *parent) {
+  this->set_parent(parent);
   lv_indev_drv_init(&this->drv_);
+  this->drv_.disp = parent->get_disp();
   this->drv_.long_press_repeat_time = long_press_repeat_time;
   this->drv_.long_press_time = long_press_time;
   this->drv_.type = LV_INDEV_TYPE_POINTER;
@@ -234,6 +245,7 @@ LVTouchListener::LVTouchListener(uint16_t long_press_time, uint16_t long_press_r
     }
   };
 }
+
 void LVTouchListener::update(const touchscreen::TouchPoints_t &tpoints) {
   this->touch_pressed_ = !this->parent_->is_paused() && !tpoints.empty();
   if (this->touch_pressed_)
@@ -270,7 +282,7 @@ std::string LvSelectable::get_selected_text() {
 static std::string join_string(std::vector<std::string> options) {
   return std::accumulate(
       options.begin(), options.end(), std::string(),
-      [](const std::string &a, const std::string &b) -> std::string { return a + (a.length() > 0 ? "\n" : "") + b; });
+      [](const std::string &a, const std::string &b) -> std::string { return a + (!a.empty() ? "\n" : "") + b; });
 }
 
 void LvSelectable::set_selected_text(const std::string &text, lv_anim_enable_t anim) {
@@ -404,9 +416,6 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
       buffer_frac_(buffer_frac),
       full_refresh_(full_refresh),
       resume_on_input_(resume_on_input) {
-  lv_init();
-  lv_update_event = static_cast<lv_event_code_t>(lv_event_register_id());
-  lv_api_event = static_cast<lv_event_code_t>(lv_event_register_id());
   auto *display = this->displays_[0];
   size_t buffer_pixels = display->get_width() * display->get_height() / this->buffer_frac_;
   auto buf_bytes = buffer_pixels * LV_COLOR_DEPTH / 8;
@@ -426,19 +435,8 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
   this->disp_drv_.full_refresh = this->full_refresh_;
   this->disp_drv_.flush_cb = static_flush_cb;
   this->disp_drv_.rounder_cb = rounder_cb;
-  // reset the display rotation since we will handle all rotations
-  display->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
-  switch (this->rotation) {
-    default:
-      this->disp_drv_.hor_res = (lv_coord_t) display->get_width();
-      this->disp_drv_.ver_res = (lv_coord_t) display->get_height();
-      break;
-    case display::DISPLAY_ROTATION_90_DEGREES:
-    case display::DISPLAY_ROTATION_270_DEGREES:
-      this->disp_drv_.ver_res = (lv_coord_t) display->get_width();
-      this->disp_drv_.hor_res = (lv_coord_t) display->get_height();
-      break;
-  }
+  this->disp_drv_.hor_res = (lv_coord_t) display->get_width();
+  this->disp_drv_.ver_res = (lv_coord_t) display->get_height();
   this->disp_ = lv_disp_drv_register(&this->disp_drv_);
 }
 
@@ -459,6 +457,9 @@ void LvglComponent::setup() {
     esp_log_printf_(LVGL_LOG_LEVEL, TAG, 0, "%.*s", (int) strlen(buf) - 1, buf);
   });
 #endif
+  // Rotation will be handled by our drawing function, so reset the display rotation.
+  for (auto *display : this->displays_)
+    display->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
   this->show_page(0, LV_SCR_LOAD_ANIM_NONE, 0);
   lv_disp_trig_activity(this->disp_);
   ESP_LOGCONFIG(TAG, "LVGL Setup complete");
@@ -500,9 +501,7 @@ size_t lv_millis(void) { return esphome::millis(); }
 void *lv_custom_mem_alloc(size_t size) {
   auto *ptr = malloc(size);  // NOLINT
   if (ptr == nullptr) {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_ERROR
-    esphome::ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
-#endif
+    ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
   }
   return ptr;
 }
@@ -519,30 +518,22 @@ void *lv_custom_mem_alloc(size_t size) {
     ptr = heap_caps_malloc(size, cap_bits);
   }
   if (ptr == nullptr) {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_ERROR
-    esphome::ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
-#endif
+    ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
     return nullptr;
   }
-#ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "allocate %zu - > %p", size, ptr);
-#endif
+  ESP_LOGV(esphome::lvgl::TAG, "allocate %zu - > %p", size, ptr);
   return ptr;
 }
 
 void lv_custom_mem_free(void *ptr) {
-#ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "free %p", ptr);
-#endif
+  ESP_LOGV(esphome::lvgl::TAG, "free %p", ptr);
   if (ptr == nullptr)
     return;
   heap_caps_free(ptr);
 }
 
 void *lv_custom_mem_realloc(void *ptr, size_t size) {
-#ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "realloc %p: %zu", ptr, size);
-#endif
+  ESP_LOGV(esphome::lvgl::TAG, "realloc %p: %zu", ptr, size);
   return heap_caps_realloc(ptr, size, cap_bits);
 }
 #endif
