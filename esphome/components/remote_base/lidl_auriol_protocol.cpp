@@ -15,7 +15,7 @@ static const char *const TAG = "remote.lidl_auriol";
 // BATTERY: 1 ok, 0 bad
 // TEMP_C: 2's complement * 10
 
-static const uint8_t LIDL_AURIOL_PULSE_LENGTH = 490;
+static const uint32_t LIDL_AURIOL_PULSE_LENGTH = 490;
 static const RCSwitchBase LIDL_AURIOL_PROTOCOL1 = RCSwitchBase(
   1 * LIDL_AURIOL_PULSE_LENGTH, // sync_high
   8 * LIDL_AURIOL_PULSE_LENGTH, // sync_low
