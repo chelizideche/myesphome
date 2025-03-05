@@ -252,6 +252,7 @@ DeltaFilter = sensor_ns.class_("DeltaFilter", Filter)
 OrFilter = sensor_ns.class_("OrFilter", Filter)
 CalibrateLinearFilter = sensor_ns.class_("CalibrateLinearFilter", Filter)
 ToNTCResistanceFilter = sensor_ns.class_("ToNTCResistanceFilter", Filter)
+ToNTCTemperatureFilter = sensor_ns.class_("ToNTCTemperatureFilter", Filter)
 CalibratePolynomialFilter = sensor_ns.class_("CalibratePolynomialFilter", Filter)
 SensorInRangeCondition = sensor_ns.class_("SensorInRangeCondition", Filter)
 ClampFilter = sensor_ns.class_("ClampFilter", Filter)
@@ -960,6 +961,27 @@ def ntc_process_calibration(value):
     ),
 )
 async def calibrate_ntc_resistance_filter_to_code(config, filter_id):
+    calib = config[CONF_CALIBRATION]
+    return cg.new_Pvariable(
+        filter_id,
+        calib[CONF_A],
+        calib[CONF_B],
+        calib[CONF_C],
+    )
+
+
+@FILTER_REGISTRY.register(
+    "to_ntc_temperature",
+    ToNTCTemperatureFilter,
+    cv.All(
+        cv.Schema(
+            {
+                cv.Required(CONF_CALIBRATION): ntc_process_calibration,
+            }
+        ),
+    ),
+)
+async def calibrate_ntc_temperature_filter_to_code(config, filter_id):
     calib = config[CONF_CALIBRATION]
     return cg.new_Pvariable(
         filter_id,

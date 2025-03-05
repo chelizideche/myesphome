@@ -494,5 +494,15 @@ optional<float> ToNTCResistanceFilter::new_value(float value) {
   return resistance;
 }
 
+optional<float> ToNTCTemperatureFilter::new_value(float value) {
+  if (!std::isfinite(value)) {
+    return NAN;
+  }
+  double lr = log(double(value));
+  double v = this->a_ + this->b_ * lr + this->c_ * lr * lr * lr;
+  double temp = float(1.0 / v - 273.15);
+  return temp;
+}
+
 }  // namespace sensor
 }  // namespace esphome
