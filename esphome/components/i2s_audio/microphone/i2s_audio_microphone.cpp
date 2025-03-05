@@ -155,10 +155,13 @@ void I2SAudioMicrophone::start_() {
     switch (this->std_slot_mask_) {
       case I2S_STD_SLOT_LEFT:
         slot_cfg.slot_mask = I2S_PDM_SLOT_LEFT;
+        break;
       case I2S_STD_SLOT_RIGHT:
         slot_cfg.slot_mask = I2S_PDM_SLOT_RIGHT;
+        break;
       case I2S_STD_SLOT_BOTH:
         slot_cfg.slot_mask = I2S_PDM_SLOT_BOTH;
+        break;
     }
 
     /* Init the channel into PDM RX mode */

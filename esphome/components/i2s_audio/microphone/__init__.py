@@ -3,12 +3,11 @@ import esphome.codegen as cg
 from esphome.components import esp32, microphone
 from esphome.components.adc import ESP32_VARIANT_ADC1_PIN_TO_CHANNEL, validate_adc_pin
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NUMBER
+from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_NUMBER
 
 from .. import (
     CONF_I2S_DIN_PIN,
     CONF_RIGHT,
-    CONF_SAMPLE_RATE,
     I2SAudioIn,
     i2s_audio_component_schema,
     i2s_audio_ns,
@@ -37,8 +36,8 @@ def validate_esp32_variant(config):
         if config[CONF_PDM]:
             if variant not in PDM_VARIANTS:
                 raise cv.Invalid(f"{variant} does not support PDM")
-            if config[CONF_SAMPLE_RATE] != 16000:
-                raise cv.Invalid("PDM mode supports only a sample rate of 16 kHz")
+            if config[CONF_BITS_PER_SAMPLE] != 16:
+                raise cv.Invalid("PDM mode supports only 16 bit per sample")
         return config
     if config[CONF_ADC_TYPE] == "internal":
         if variant not in INTERNAL_ADC_VARIANTS:
