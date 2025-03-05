@@ -83,6 +83,22 @@ void DlmsMeterComponent::loop() {
         return;
       }
 
+      /*
+       * verify checksum:
+       * sum of all bytes starting with c (so start at MBUS_HEADER_INTRO_LENGTH) until the last byte before the checksum
+       * only take last byte of the sum
+       */
+      uint8_t checksum = 0;  // use uint8_t so only the 8 least significant bits are stored
+      for (uint8_t i = 0; i < frame_length; i++) {
+        checksum += this->receive_buffer_[frame_offset + MBUS_HEADER_INTRO_LENGTH + i];
+      }
+      if (checksum != this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH]) {
+        ESP_LOGE(TAG, "MBUS: Invalid checksum: %x != %x", checksum,
+                 this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH]);
+        abort_();
+        return;
+      }
+
       mbus_payload.insert(mbus_payload.end(), &this->receive_buffer_[frame_offset + MBUS_FULL_HEADER_LENGTH],
                           &this->receive_buffer_[frame_offset + MBUS_HEADER_INTRO_LENGTH + frame_length]);
 
