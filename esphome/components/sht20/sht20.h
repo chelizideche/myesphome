@@ -7,7 +7,7 @@
 namespace esphome {
 namespace sht20 {
 
-class MySHT20Component : public PollingComponent, public i2c::I2CDevice
+class SHT20Component : public PollingComponent, public i2c::I2CDevice
 {
 public:
   void setup() override;

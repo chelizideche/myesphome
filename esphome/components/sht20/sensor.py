@@ -16,12 +16,12 @@ from esphome.const import (
 DEPENDENCIES = ["i2c"]
 
 sht20_ns = cg.esphome_ns.namespace("sht20")
-MySHT20Component = sht20_ns.class_("MySHT20Component", cg.PollingComponent, i2c.I2CDevice)
+SHT20Component = sht20_ns.class_("SHT20Component", cg.PollingComponent, i2c.I2CDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(MySHT20Component),
+            cv.GenerateID(): cv.declare_id(SHT20Component),
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 accuracy_decimals=2,

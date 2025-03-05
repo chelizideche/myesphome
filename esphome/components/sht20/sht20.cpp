@@ -6,11 +6,11 @@
 // (After I read the datasheet again and implemented the OTP reload procedure)
 // https://github.com/MeisterSchlaueLampe/esphome-components
 
-// The maximum supported sensor update frequency using this implementation is ~1.5 Hz,
+// The maximum sensor update frequency using this implementation is <= 1 Hz,
 // which should be okay for an ambient sensor.
 
 // There are no optional extra features available because this implementation uses
-// the OTP Reload procedure for maximum safety and stability.
+// the Soft Reset + OTP Reload procedure for maximum safety and stability.
 // This means every measurement will take place with the default settings in effect.
 // The default settings are totally fine though: heater off and maximum resolution.
 
@@ -20,7 +20,6 @@
 
 #include "sht20.h"
 
-//#include "esphome.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -38,7 +37,7 @@ static const uint8_t SHT20_CMD_READ_USER_REG   = 0xE7;
 // This should be safe, since the maximum expected exec delay for the SHT20 is < 90ms.
 static const uint8_t SHT20_DELAY = 100;
 
-bool MySHT20Component::send_command_( uint8_t cmd )
+bool SHT20Component::send_command_( uint8_t cmd )
 {
   return this->write( &cmd, 1 ) == i2c::ERROR_OK;
   // The SHT20 actually requires a ~ 20 µS delay between the command byte and the
@@ -46,7 +45,7 @@ bool MySHT20Component::send_command_( uint8_t cmd )
   // OTP Reload procedure has to be used. ( see SHT20 datasheet section 5.8 )
 }
 
-void MySHT20Component::setup()
+void SHT20Component::setup()
 {
   if ( this->send_command_( SHT20_CMD_RESET ) )
     ESP_LOGV( TAG, "SHT20 sensor initialization complete!" );
@@ -54,7 +53,7 @@ void MySHT20Component::setup()
     ESP_LOGE( TAG, "SHT20 sensor initialization failed!" );
 }
 
-void MySHT20Component::update()
+void SHT20Component::update()
 {
   if ( this->measurement_progress_ )
   {
@@ -66,7 +65,7 @@ void MySHT20Component::update()
   this->advance_measurements_();
 }
 
-void MySHT20Component::advance_measurements_()
+void SHT20Component::advance_measurements_()
 {
   bool error = false;
 
@@ -163,7 +162,7 @@ void MySHT20Component::advance_measurements_()
 }
 
 
-bool MySHT20Component::force_otp_reload_()
+bool SHT20Component::force_otp_reload_()
 { // force OTP reload during next measurement ( see SHT20 datasheet section 5.8 )
   uint8_t data[2] = {0,0};
 
@@ -182,9 +181,9 @@ bool MySHT20Component::force_otp_reload_()
   return true;
 }
 
-void MySHT20Component::dump_config()
+void SHT20Component::dump_config()
 {
-  ESP_LOGCONFIG( TAG, "SHT10:" );
+  ESP_LOGCONFIG( TAG, "SHT20:" );
   LOG_I2C_DEVICE( this );
   LOG_SENSOR( "  ", "Temperature", this->temperature_sensor_ );
   LOG_SENSOR( "  ", "Humidity", this->humidity_sensor_ );
