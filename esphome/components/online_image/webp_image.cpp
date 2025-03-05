@@ -102,7 +102,7 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
 
 enum DecodeError WebpDecoder::decode_loop() {
   if (this->decoder_ && this->next_frame_ < this->animation_.frame_count) {
-    ESP_LOGD(TAG,"decode_loop for frame: %d", this->next_frame_);
+    ESP_LOGD(TAG, "decode_loop for frame: %d", this->next_frame_);
     uint8_t *pix;
     int timestamp;
     if (!WebPAnimDecoderGetNext(this->decoder_, &pix, &timestamp)) {
