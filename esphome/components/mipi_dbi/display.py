@@ -1,7 +1,6 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
-from esphome.components.mipi_dbi.models import ili
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
 from esphome.config_validation import ALLOW_EXTRA
@@ -29,7 +28,7 @@ from esphome.const import (
 from esphome.core import TimePeriod
 
 from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING, MODE_BGR, MODE_RGB
-from .models import DriverChip, amoled, jc
+from .models import DELAY_FLAG, DriverChip, amoled, ili, jc
 
 DEPENDENCIES = ["spi"]
 
@@ -45,8 +44,6 @@ COLOR_ORDERS = {
     MODE_BGR: ColorOrder.COLOR_ORDER_BGR,
 }
 DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
-
-DELAY_FLAG = 0xFF
 
 CONF_BUS_MODE = "bus_mode"
 
@@ -85,14 +82,6 @@ def map_sequence(value):
     return [value[0], len(params)] + list(params)
 
 
-def _validate(config):
-    chip = DriverChip.chips[config[CONF_MODEL]]
-    if not chip.initsequence:
-        if CONF_INIT_SEQUENCE not in config:
-            raise cv.Invalid(f"{chip.name} model requires init_sequence")
-    return config
-
-
 def power_of_two(value):
     value = cv.int_range(1, 128)(value)
     if value & (value - 1) != 0:
@@ -103,7 +92,6 @@ def power_of_two(value):
 BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(MIPI_DBI),
-        cv.Optional(CONF_INIT_SEQUENCE): cv.ensure_list(map_sequence),
         cv.Required(CONF_DIMENSIONS): cv.Any(
             cv.dimensions,
             cv.Schema(
@@ -141,6 +129,12 @@ def model_schema(bus_mode, model: DriverChip):
             }
         )
 
+    # CUSTOM model will need to provide a custom init sequence
+    iseqconf = (
+        cv.Optional(CONF_INIT_SEQUENCE)
+        if model.initsequence
+        else cv.Required(CONF_INIT_SEQUENCE)
+    )
     schema = BASE_SCHEMA.extend(
         spi.spi_device_schema(
             cs_pin_required=False,
@@ -158,6 +152,7 @@ def model_schema(bus_mode, model: DriverChip):
                 *model.modes, lower=True
             ),
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
+            iseqconf: cv.ensure_list(map_sequence),
         }
     )
     if brightness := model.get_default(CONF_BRIGHTNESS):
@@ -203,8 +198,8 @@ async def to_code(config):
     await spi.register_spi_device(var, config)
 
     chip = MODELS[config[CONF_MODEL]]
-    if chip.initsequence:
-        cg.add(var.add_init_sequence(chip.initsequence))
+    if sequence := chip.get_sequence():
+        cg.add(var.add_init_sequence(sequence))
     if init_sequences := config.get(CONF_INIT_SEQUENCE):
         sequence = []
         for seq in init_sequences:

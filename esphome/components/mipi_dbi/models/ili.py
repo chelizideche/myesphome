@@ -1,4 +1,4 @@
-from esphome.components.mipi_dbi.models import DriverChip, cmd
+from esphome.components.mipi_dbi.models import DriverChip
 from esphome.const import CONF_MIRROR_X
 
 from .commands import (
@@ -19,32 +19,32 @@ ILI9341 = DriverChip(
     name="ILI9341",
     defaults={CONF_MIRROR_X: True},
     initsequence=(
-        cmd(
+        (
             0xEF,
             0x03,
             0x80,
             0x02,
         ),
-        cmd(
+        (
             0xCF,
             0x00,
             0xC1,
             0x30,
         ),
-        cmd(
+        (
             0xED,
             0x64,
             0x03,
             0x12,
             0x81,
         ),
-        cmd(
+        (
             0xE8,
             0x85,
             0x00,
             0x78,
         ),
-        cmd(
+        (
             0xCB,
             0x39,
             0x2C,
@@ -52,46 +52,46 @@ ILI9341 = DriverChip(
             0x34,
             0x02,
         ),
-        cmd(
+        (
             0xF7,
             0x20,
         ),
-        cmd(
+        (
             0xEA,
             0x00,
             0x00,
         ),
-        cmd(
+        (
             PWCTR1,
             0x23,
         ),
-        cmd(
+        (
             PWCTR2,
             0x10,
         ),
-        cmd(
+        (
             VMCTR1,
             0x3E,
             0x28,
         ),
-        cmd(
+        (
             VMCTR2,
             0x86,
         ),
-        cmd(
+        (
             VSCRSADD,
             0x00,
         ),
-        cmd(
+        (
             PIXFMT,
             0x55,
         ),
-        cmd(
+        (
             FRMCTR1,
             0x00,
             0x18,
         ),
-        cmd(
+        (
             DFUNCTR,
             0x08,
             0x82,
@@ -100,11 +100,11 @@ ILI9341 = DriverChip(
             1,
             0x00,
         ),
-        cmd(
+        (
             GAMMASET,
             0x01,
         ),
-        cmd(
+        (
             GMCTRP1,
             0x0F,
             0x31,
@@ -122,7 +122,7 @@ ILI9341 = DriverChip(
             0x09,
             0x00,
         ),
-        cmd(
+        (
             GMCTRN1,
             0x00,
             0x0E,

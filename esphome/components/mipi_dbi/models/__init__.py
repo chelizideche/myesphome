@@ -8,19 +8,11 @@ MADCTL_ML = 0x10  # Bit 4 LCD refresh Bottom to top
 MADCTL_RGB = 0x00  # Bit 3 Red-Green-Blue pixel order
 MADCTL_BGR = 0x08  # Bit 3 Blue-Green-Red pixel order
 MADCTL_MH = 0x04  # Bit 2 LCD refresh right to left
-
-
-def cmd(c, *args):
-    """
-    Add a command sequence to the init sequence
-    :param c: The command (8 bit)
-    :param args: zero or more arguments (8 bit values)
-    """
-    return (c, len(args)) + tuple(args)
+DELAY_FLAG = 0xFFF
 
 
 def delay(ms):
-    return ms, 0xFF
+    return DELAY_FLAG, ms
 
 
 class DriverChip:
@@ -30,8 +22,10 @@ class DriverChip:
         name = name.upper()
         self.name = name
         self.modes = modes
-        assert all(isinstance(x, tuple) for x in initsequence)
-        self.initsequence = sum(initsequence, ())
+        self.initsequence = tuple(
+            (x,) if isinstance(x, int) else x for x in initsequence
+        )
+        assert all(isinstance(x, tuple) for x in self.initsequence)
         self.defaults = defaults or {}
 
     def get_default(self, key, fallback=False):
@@ -39,3 +33,16 @@ class DriverChip:
 
     def option(self, name, fallback=False):
         return cv.Optional(name, default=self.get_default(name, fallback))
+
+    def get_sequence(self):
+        """
+        Convert the init sequence to a flat list, replacing DELAY_FLAG with the correct byte sequence
+        and inserting a length byte for command sequences.
+        """
+        return sum(
+            tuple(
+                (x[1], 0xFF) if x[0] == DELAY_FLAG else (x[0], len(x) - 1) + x[1:]
+                for x in self.initsequence
+            ),
+            (),
+        )
