@@ -15,22 +15,14 @@ static const char *const TAG = "remote.lidl_auriol";
 // BATTERY: 1 ok, 0 bad
 // TEMP_C: 2's complement * 10
 
+static const uint32_t LIDL_AURIOL_PULSE_LENGTH = 490;
+
 // sync: ________-_
 // one: ____-_
 // zero: __-_
-// skip 4ms low when receiving, the signal is repeated 7 times, it will catch 6 of them
-// sync-on-low would work if the idle time was set to <4ms, which isn't the default for remote_receiver (10ms)
+// idle time must be set to <4ms, <3500us to be safe, which isn't the default for remote_receiver (10ms)
 
-static const uint32_t LIDL_AURIOL_PULSE_LENGTH = 490;
-static const RCSwitchBase LIDL_AURIOL_PROTOCOL_RECEIVE = RCSwitchBase(
-  1 * LIDL_AURIOL_PULSE_LENGTH, // sync_high
-  8 * LIDL_AURIOL_PULSE_LENGTH, // sync_low
-  1 * LIDL_AURIOL_PULSE_LENGTH, // zero_high
-  2 * LIDL_AURIOL_PULSE_LENGTH, // zero_low
-  1 * LIDL_AURIOL_PULSE_LENGTH, // one_high
-  4 * LIDL_AURIOL_PULSE_LENGTH, // one_low
-  false); // inverted
-static const RCSwitchBase LIDL_AURIOL_PROTOCOL_SEND = RCSwitchBase(
+static const RCSwitchBase LIDL_AURIOL_PROTOCOL = RCSwitchBase(
   8 * LIDL_AURIOL_PULSE_LENGTH, // sync_high
   1 * LIDL_AURIOL_PULSE_LENGTH, // sync_low
   2 * LIDL_AURIOL_PULSE_LENGTH, // zero_high
@@ -57,13 +49,13 @@ void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &d
            data.battery_level, data.channel, data.temperature, data.rain);
 
   for (int i = 0; i < 7; i++)
-    LIDL_AURIOL_PROTOCOL_SEND.transmit(dst, code, 52);
+    LIDL_AURIOL_PROTOCOL.transmit(dst, code, 52);
 }
 
 optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
   uint64_t code = 0;
   uint8_t nbits;
-  if (!LIDL_AURIOL_PROTOCOL_RECEIVE.decode(src, &code, &nbits)) {
+  if (!LIDL_AURIOL_PROTOCOL.decode(src, &code, &nbits)) {
     return {};
   }
 
