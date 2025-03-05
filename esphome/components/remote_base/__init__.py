@@ -36,6 +36,8 @@ from esphome.const import (
     CONF_WAIT_TIME,
     CONF_WAND_ID,
     CONF_ZERO,
+    CONF_BATTERY_LEVEL,
+    CONF_TEMPERATURE,
 )
 from esphome.core import coroutine
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
@@ -46,6 +48,7 @@ AUTO_LOAD = ["binary_sensor"]
 CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
+CONF_RAIN = "rain"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -2015,3 +2018,53 @@ async def Toto_action(var, config, args):
     cg.add(var.set_rc_code_2(template_))
     template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint8)
     cg.add(var.set_command(template_))
+
+
+# LidlAuriol
+LidlAuriolData, LidlAuriolBinarySensor, LidlAuriolTrigger, LidlAuriolAction, LidlAuriolDumper = declare_protocol(
+    "LidlAuriol"
+)
+LIDL_AURIOL_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_ID): cv.uint8_t,
+        cv.Required(CONF_BATTERY_LEVEL): cv.boolean,
+        cv.Required(CONF_CHANNEL): cv.uint8_t,
+        cv.Required(CONF_TEMPERATURE): cv.float_,
+        cv.Required(CONF_RAIN): cv.uint32_t,
+    }
+)
+
+
+@register_binary_sensor("lidl_auriol", NexaBinarySensor, LIDL_AURIOL_SCHEMA)
+def lidl_auriol_binary_sensor(var, config):
+    cg.add(
+        var.set_data(
+            cg.StructInitializer(
+                LidlAuriolData,
+                ("id", config[CONF_ID]),
+                ("battery_level", config[CONF_BATTERY_LEVEL]),
+                ("channel", config[CONF_CHANNEL]),
+                ("temperature", config[CONF_TEMPERATURE]),
+                ("rain", config[CONF_RAIN]),
+            )
+        )
+    )
+
+
+@register_trigger("lidl_auriol", LidlAuriolTrigger, LidlAuriolData)
+def lidl_auriol_trigger(var, config):
+    pass
+
+
+@register_dumper("lidl_auriol", LidlAuriolDumper)
+def lidl_auriol_dumper(var, config):
+    pass
+
+
+@register_action("lidl_auriol", LidlAuriolAction, LIDL_AURIOL_SCHEMA)
+def lidl_auriol_action(var, config, args):
+    cg.add(var.set_device((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
+    cg.add(var.set_battery_level((yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.bool_))))
+    cg.add(var.set_channel((yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8))))
+    cg.add(var.set_temperature((yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))))
+    cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.uint32))))
