@@ -16,6 +16,7 @@ display:
   model: M5STACK
   dc_pin: GPIO15
   cs_pin: GPIO5
+  invert_colors: true
 
 touchscreen:
   platform: ft63x6
