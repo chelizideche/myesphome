@@ -2,8 +2,8 @@
 esphome:
   name: test
 
-esp8266:
-  board: d1_mini_lite
+esp32:
+  board: m5stack-core2
 
 spi:
   clk_pin: GPIO18
