@@ -19,6 +19,9 @@ class HttpContainerIDF : public HttpContainer {
   void end() override;
   bool chunked{false};
 
+  /// @brief Feeds the watchdog timer if the executing task has one attached
+  void feed_wdt();
+
  protected:
   esp_http_client_handle_t client_;
 };
