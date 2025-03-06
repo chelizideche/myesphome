@@ -2063,8 +2063,18 @@ def lidl_auriol_dumper(var, config):
 
 @register_action("lidl_auriol", LidlAuriolAction, LIDL_AURIOL_SCHEMA)
 def lidl_auriol_action(var, config, args):
-    cg.add(var.set_device((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
-    cg.add(var.set_battery_level((yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.bool_))))
-    cg.add(var.set_channel((yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8))))
-    cg.add(var.set_temperature((yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))))
+    cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
+    cg.add(
+        var.set_battery_level(
+            (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.bool_))
+        )
+    )
+    cg.add(
+        var.set_channel((yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8)))
+    )
+    cg.add(
+        var.set_temperature(
+            (yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))
+        )
+    )
     cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.uint32))))

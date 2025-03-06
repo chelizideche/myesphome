@@ -26,14 +26,14 @@ DECLARE_REMOTE_PROTOCOL(LidlAuriol)
 
 template<typename... Ts> class LidlAuriolAction : public RemoteTransmitterActionBase<Ts...> {
  public:
-  TEMPLATABLE_VALUE(uint8_t, device)
+  TEMPLATABLE_VALUE(uint8_t, id)
   TEMPLATABLE_VALUE(bool, battery_level)
   TEMPLATABLE_VALUE(uint8_t, channel)
   TEMPLATABLE_VALUE(float, temperature)
   TEMPLATABLE_VALUE(uint32_t, rain)
   void encode(RemoteTransmitData *dst, Ts... x) override {
     LidlAuriolData data{};
-    data.id = this->device_.value(x...);
+    data.id = this->id_.value(x...);
     data.battery_level = this->battery_level_.value(x...);
     data.channel = this->channel_.value(x...);
     data.temperature = this->temperature_.value(x...);
