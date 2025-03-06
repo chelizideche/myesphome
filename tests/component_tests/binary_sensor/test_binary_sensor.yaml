@@ -5,6 +5,10 @@ esphome:
 esp32:
   board: m5stack-core2
 
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
 spi:
   clk_pin: GPIO18
   mosi_pin: GPIO23
