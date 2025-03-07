@@ -37,3 +37,5 @@ RM690B0 = DriverChip(
 )
 
 T4_S3_AMOLED = RM690B0.derive("T4-S3", width=450, offset_width=16)
+
+models = {}

@@ -241,3 +241,5 @@ DriverChip(
         (0xA5, 0xC3),
     ),
 )
+
+models = {}

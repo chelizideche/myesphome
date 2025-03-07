@@ -49,6 +49,9 @@ from .models import (
     MADCTL_XFLIP,
     MADCTL_YFLIP,
     DriverChip,
+    amoled,
+    ili,
+    jc,
 )
 from .models.commands import BRIGHTNESS, DISPON, INVOFF, INVON, MADCTL, PIXFMT, SLPOUT
 
@@ -73,6 +76,9 @@ CONF_BUS_MODE = "bus_mode"
 DriverChip("CUSTOM", initsequence={})
 
 MODELS = DriverChip.models
+MODELS.update(ili.models)
+MODELS.update(jc.models)
+MODELS.update(amoled.models)
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
