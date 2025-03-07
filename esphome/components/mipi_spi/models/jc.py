@@ -17,7 +17,7 @@ AXS15231 = DriverChip(
     ),
 )
 
-JC3248W535 = AXS15231.derive("JC3248W535", width=320, height=480)
+JC3248W535 = AXS15231.extend("JC3248W535", width=320, height=480)
 
 DriverChip(
     "JC3636W518",

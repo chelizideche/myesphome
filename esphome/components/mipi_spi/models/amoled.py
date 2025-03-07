@@ -13,7 +13,7 @@ RM67162 = DriverChip(
     initsequence=(SLPOUT,),  # Requires early SLPOUT
 )
 
-T_DISPLAY_S3_AMOLED = RM67162.derive("T-DISPLAY-S3-AMOLED", width=240, height=536)
+T_DISPLAY_S3_AMOLED = RM67162.extend("T-DISPLAY-S3-AMOLED", width=240, height=536)
 
 RM690B0 = DriverChip(
     "RM690B0",
@@ -36,6 +36,6 @@ RM690B0 = DriverChip(
     ),
 )
 
-T4_S3_AMOLED = RM690B0.derive("T4-S3", width=450, offset_width=16)
+T4_S3_AMOLED = RM690B0.extend("T4-S3", width=450, offset_width=16)
 
 models = {}

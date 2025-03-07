@@ -371,7 +371,7 @@ DriverChip(
         (ADJCTL3, 0xA9, 0x51, 0x2C, 0x82),
     ),
 )
-DriverChip(
+ST7796 = DriverChip(
     "ST7796",
     mirror_x=True,
     width=320,
@@ -509,7 +509,7 @@ DriverChip(
         ),
     ),
 )
-DriverChip(
+ST7789V = DriverChip(
     "ST7789V",
     width=240,
     height=320,
@@ -908,7 +908,7 @@ DriverChip(
     ),
 )
 
-DriverChip.models["ST7796"].derive(
+ST7796.extend(
     "WT32-SC01-PLUS",
     bus_mode=TYPE_OCTAL,
     mirror_x=True,

@@ -38,7 +38,7 @@ class DriverChip:
         self.defaults = defaults
         DriverChip.models[name] = self
 
-    def derive(self, name, **kwargs):
+    def extend(self, name, **kwargs):
         defaults = self.defaults.copy()
         defaults.update(kwargs)
         return DriverChip(name, self.modes, initsequence=self.initsequence, **defaults)

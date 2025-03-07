@@ -23,9 +23,6 @@ void MipiSpi::setup() {
     delay(5);
     this->reset_pin_->digital_write(true);
   }
-  delay(120);
-  this->write_command_(SLEEP_OUT);
-  delay(120);
   // need to know when the display is ready for SLPOUT command - will be 120ms after reset
   auto when = millis() + 120;
   delay(10);
@@ -352,6 +349,7 @@ void MipiSpi::dump_config() {
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
+  ESP_LOGCONFIG(TAG, "  SPI Mode: %d", this->mode_);
   ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
   ESP_LOGCONFIG(TAG, "  SPI Bus width: %d", this->bus_width_);
 }

@@ -1,77 +1,35 @@
-from .. import MODE_BGR
-from . import DriverChip
-from .commands import (
-    DFUNCTR,
-    ETMOD,
-    FRMCTR2,
-    GMCTRN1,
-    GMCTRP1,
-    IFCTR,
-    PWCTR1,
-    PWCTR3,
-    PWCTR4,
-    PWCTR5,
-    PWSET,
-)
+from esphome.components.spi import TYPE_OCTAL
 
-DriverChip(
+from .. import MODE_BGR
+from .ili import ST7789V
+
+ST7789V.extend(
     "T-EMBED",
-    color_order=MODE_BGR,
-    cs_pin=10,
-    dc_pin=13,
-    reset_pin=9,
-    invert_colors=True,
     width=170,
     height=320,
     offset_width=35,
+    color_order=MODE_BGR,
+    invert_colors=True,
     draw_rounding=1,
+    cs_pin=10,
+    dc_pin=13,
+    reset_pin=9,
     data_rate="80MHz",
-    initsequence=(
-        (DFUNCTR, 0x0A, 0x82),
-        (FRMCTR2, 0x0C, 0x0C, 0x00, 0x33, 0x33),
-        (ETMOD, 0x35),
-        (0xBB, 0x28),
-        (PWCTR1, 0x0C),
-        (PWCTR3, 0x01, 0xFF),
-        (PWCTR4, 0x10),
-        (PWCTR5, 0x20),
-        (IFCTR, 0x0F),
-        (PWSET, 0xA4, 0xA1),
-        (
-            GMCTRP1,
-            0xD0,
-            0x00,
-            0x02,
-            0x07,
-            0x0A,
-            0x28,
-            0x32,
-            0x44,
-            0x42,
-            0x06,
-            0x0E,
-            0x12,
-            0x14,
-            0x17,
-        ),
-        (
-            GMCTRN1,
-            0xD0,
-            0x00,
-            0x02,
-            0x07,
-            0x0A,
-            0x28,
-            0x31,
-            0x54,
-            0x47,
-            0x0E,
-            0x1C,
-            0x17,
-            0x1B,
-            0x1E,
-        ),
-    ),
+)
+
+ST7789V.extend(
+    "T-DISPLAY-S3",
+    height=320,
+    width=170,
+    offset_width=35,
+    color_order=MODE_BGR,
+    invert_colors=True,
+    draw_rounding=1,
+    dc_pin=7,
+    cs_pin=6,
+    reset_pin=5,
+    data_rate="10MHz",
+    bus_mode=TYPE_OCTAL,
 )
 
 models = {}
