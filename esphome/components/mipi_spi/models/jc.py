@@ -19,7 +19,7 @@ AXS15231 = DriverChip(
 
 JC3248W535 = AXS15231.derive("JC3248W535", width=320, height=480)
 
-JC3636W518 = DriverChip(
+DriverChip(
     "JC3636W518",
     invert_colors=True,
     modes=(TYPE_QUAD,),
@@ -241,4 +241,3 @@ JC3636W518 = DriverChip(
         (0xA5, 0xC3),
     ),
 )
-models = (JC3636W518, AXS15231, JC3248W535)

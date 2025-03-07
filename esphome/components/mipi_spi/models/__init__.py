@@ -22,6 +22,8 @@ def delay(ms):
 
 
 class DriverChip:
+    models = {}
+
     def __init__(
         self, name: str, modes=(TYPE_SINGLE, TYPE_QUAD), initsequence=None, **defaults
     ):
@@ -30,6 +32,7 @@ class DriverChip:
         self.modes = modes
         self.initsequence = initsequence
         self.defaults = defaults
+        DriverChip.models[name] = self
 
     def derive(self, name, **kwargs):
         defaults = self.defaults.copy()

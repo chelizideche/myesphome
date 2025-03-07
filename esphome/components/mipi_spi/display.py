@@ -1,3 +1,5 @@
+import logging
+
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
@@ -21,6 +23,7 @@ from esphome.const import (
     CONF_OFFSET_HEIGHT,
     CONF_OFFSET_WIDTH,
     CONF_RESET_PIN,
+    CONF_ROTATION,
     CONF_SWAP_XY,
     CONF_TRANSFORM,
     CONF_WIDTH,
@@ -32,7 +35,8 @@ from . import (
     CONF_DRAW_ROUNDING,
     CONF_PIXEL_MODE,
     CONF_SPI_16,
-    CONF_USE_MIRROR,
+    CONF_USE_AXIS_FLIPS,
+    DOMAIN,
     MODE_BGR,
     MODE_RGB,
 )
@@ -45,14 +49,12 @@ from .models import (
     MADCTL_XFLIP,
     MADCTL_YFLIP,
     DriverChip,
-    amoled,
-    ili,
-    jc,
 )
 from .models.commands import BRIGHTNESS, DISPON, INVOFF, INVON, MADCTL, PIXFMT, SLPOUT
 
 DEPENDENCIES = ["spi"]
 
+LOGGER = logging.getLogger(DOMAIN)
 mipi_spi_ns = cg.esphome_ns.namespace("mipi_spi")
 MIPI_SPI = mipi_spi_ns.class_(
     "MipiSpi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
@@ -68,14 +70,9 @@ DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
 CONF_BUS_MODE = "bus_mode"
 
-# Define models by import from submodule
+DriverChip("CUSTOM", initsequence={})
 
-MODELS = [DriverChip("CUSTOM", {})]
-MODELS.extend(amoled.models)
-MODELS.extend(jc.models)
-MODELS.extend(ili.models)
-
-MODELS = {model.name: model for model in MODELS}
+MODELS = DriverChip.models
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
@@ -105,10 +102,11 @@ def map_sequence(value):
             cv.positive_time_period_milliseconds,
             cv.Range(TimePeriod(milliseconds=1), TimePeriod(milliseconds=255)),
         )(value)
-        return [delay, DELAY_FLAG]
-    value = cv.Length(min=1, max=254)(value)
-    params = value[1:]
-    return [value[0], len(params)] + list(params)
+        return DELAY_FLAG, delay.total_milliseconds
+    if isinstance(value, int):
+        return (value,)
+    value = cv.All(cv.ensure_list(cv.int_range(0, 255)), cv.Length(1, 254))(value)
+    return tuple(value)
 
 
 def power_of_two(value):
@@ -201,7 +199,7 @@ def model_schema(bus_mode, model: DriverChip):
                     CONF_DRAW_FROM_ORIGIN,
                     CONF_SPI_16,
                     CONF_INVERT_COLORS,
-                    CONF_USE_MIRROR,
+                    CONF_USE_AXIS_FLIPS,
                 ]
             }
         )
@@ -232,6 +230,17 @@ def model_schema(bus_mode, model: DriverChip):
     return schema
 
 
+def rotation_as_transform(model, config):
+    """
+    Check if a rotation can be implemented in hardware using the MADCTL register.
+    A rotation of 180 is always possible, 90 and 270 are possible if the model supports swapping X and Y.
+    """
+    rotation = config.get(CONF_ROTATION, 0)
+    return rotation and (
+        model.get_default(CONF_SWAP_XY) != cv.UNDEFINED or rotation == 180
+    )
+
+
 def config_schema(config):
     # First get the model and bus mode
     config = cv.Schema(
@@ -246,6 +255,13 @@ def config_schema(config):
     model = MODELS[config[CONF_MODEL]]
     bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
     config = model_schema(bus_mode, model)(config)
+    # Check for invalid combinations of MADCTL config
+    if init_sequence := config.get(CONF_INIT_SEQUENCE):
+        if MADCTL in [x[0] for x in init_sequence] and CONF_TRANSFORM in config:
+            raise cv.Invalid(
+                f"transform is not supported when MADCTL ({MADCTL:#X}) is in the init sequence"
+            )
+
     if bus_mode == TYPE_QUAD and CONF_DC_PIN in config:
         raise cv.Invalid("DC pin is not supported in quad mode")
     if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
@@ -257,7 +273,8 @@ CONFIG_SCHEMA = config_schema
 
 
 def get_transform(model, config):
-    return config.get(
+    can_transform = rotation_as_transform(model, config)
+    transform = config.get(
         CONF_TRANSFORM,
         {
             CONF_MIRROR_X: model.get_default(CONF_MIRROR_X, False),
@@ -265,6 +282,21 @@ def get_transform(model, config):
             CONF_SWAP_XY: model.get_default(CONF_SWAP_XY, False),
         },
     )
+
+    # Can we use the MADCTL register to set the rotation?
+    if can_transform and CONF_TRANSFORM not in config:
+        rotation = config[CONF_ROTATION]
+        if rotation == 180:
+            transform[CONF_MIRROR_X] = not transform[CONF_MIRROR_X]
+            transform[CONF_MIRROR_Y] = not transform[CONF_MIRROR_Y]
+        elif rotation == 90:
+            transform[CONF_SWAP_XY] = not transform[CONF_SWAP_XY]
+            transform[CONF_MIRROR_X] = not transform[CONF_MIRROR_X]
+        else:
+            transform[CONF_SWAP_XY] = not transform[CONF_SWAP_XY]
+            transform[CONF_MIRROR_Y] = not transform[CONF_MIRROR_Y]
+        LOGGER.info("Using hardware transform to implement rotation")
+    return transform
 
 
 def get_sequence(model, config):
@@ -279,21 +311,22 @@ def get_sequence(model, config):
     sequence.extend(custom_sequence)
     # Ensure each command is a tuple
     sequence = [x if isinstance(x, tuple) else (x,) for x in sequence]
-    commands = [x[0] for x in custom_sequence]
+    commands = [x[0] for x in sequence]
     # Set pixel format if not already in the custom sequence
     if PIXFMT not in commands:
         pixel_mode = config[CONF_PIXEL_MODE]
         if not isinstance(pixel_mode, int):
             pixel_mode = PIXEL_MODES[pixel_mode]
         sequence.append((PIXFMT, pixel_mode))
-    use_mirror = config[CONF_USE_MIRROR]
+    # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
+    use_flip = config[CONF_USE_AXIS_FLIPS]
     if MADCTL not in commands:
         madctl = 0
         transform = get_transform(model, config)
         if transform.get(CONF_MIRROR_X):
-            madctl |= MADCTL_XFLIP if use_mirror else MADCTL_MX
+            madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
         if transform.get(CONF_MIRROR_Y):
-            madctl |= MADCTL_YFLIP if use_mirror else MADCTL_MY
+            madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
         if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
             madctl |= MADCTL_MV
         if config[CONF_COLOR_ORDER] == MODE_BGR:
@@ -327,11 +360,14 @@ def get_sequence(model, config):
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await display.register_display(var, config)
-    await spi.register_spi_device(var, config)
-
     model = MODELS[config[CONF_MODEL]]
     cg.add(var.set_init_sequence(get_sequence(model, config)))
+    transform = get_transform(model, config)
+    if rotation_as_transform(model, config):
+        if CONF_TRANSFORM in config:
+            LOGGER.warning("Use of 'transform' with 'rotation' is not recommended")
+        else:
+            config[CONF_ROTATION] = 0
     cg.add(var.set_model(config[CONF_MODEL]))
     cg.add(var.set_draw_from_origin(config[CONF_DRAW_FROM_ORIGIN]))
     cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
@@ -348,7 +384,6 @@ async def to_code(config):
         dc_pin = await cg.gpio_pin_expression(dc_pin)
         cg.add(var.set_dc_pin(dc_pin))
 
-    transform = get_transform(model, config)
     if CONF_DIMENSIONS in config:
         dimensions = config[CONF_DIMENSIONS]
         if isinstance(dimensions, dict):
@@ -380,3 +415,5 @@ async def to_code(config):
             lamb, [(display.DisplayRef, "it")], return_type=cg.void
         )
         cg.add(var.set_writer(lambda_))
+    await display.register_display(var, config)
+    await spi.register_spi_device(var, config)

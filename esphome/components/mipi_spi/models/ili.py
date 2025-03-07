@@ -32,7 +32,7 @@ from .commands import (
     VSCRSADD,
 )
 
-models = [
+(
     DriverChip(
         "M5STACK",
         width=320,
@@ -92,6 +92,8 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "M5CORE",
         width=320,
@@ -143,6 +145,8 @@ models = [
             (IDMOFF,),
         ),
     ),
+)
+(
     DriverChip(
         "ILI9341",
         mirror_x=True,
@@ -203,12 +207,14 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "ILI9481",
-        swap_xy=True,
+        mirror_x=True,
         width=320,
         height=480,
-        use_mirror=True,
+        use_axis_flips=True,
         initsequence=(
             (PWSET, 0x07, 0x42, 0x18),
             (VMCTR, 0x00, 0x07, 0x10),
@@ -219,6 +225,8 @@ models = [
             (GMCTR, 0x32, 0x36, 0x45, 0x06, 0x16, 0x37, 0x75, 0x77, 0x54, 0x0C, 0x00),
         ),
     ),
+)
+(
     DriverChip(
         "ILI9486",
         mirror_x=True,
@@ -265,6 +273,8 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "ILI9488",
         width=320,
@@ -316,6 +326,8 @@ models = [
             (ADJCTL3, 0xA9, 0x51, 0x2C, 0x82),
         ),
     ),
+)
+(
     DriverChip(
         "ILI9488_IPS",
         width=320,
@@ -369,6 +381,8 @@ models = [
             (ADJCTL3, 0xA9, 0x51, 0x2C, 0x82),
         ),
     ),
+)
+(
     DriverChip(
         "ST7796",
         mirror_x=True,
@@ -387,6 +401,8 @@ models = [
             (CSCON, 0x3C),
         ),
     ),
+)
+(
     DriverChip(
         "S3BOX",
         mirror_x=True,
@@ -448,6 +464,8 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "S3BOXLITE",
         mirror_x=True,
@@ -507,6 +525,8 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "ST7789V",
         width=240,
@@ -558,6 +578,8 @@ models = [
             ),
         ),
     ),
+)
+(
     DriverChip(
         "GC9A01A",
         mirror_x=True,
@@ -638,6 +660,8 @@ models = [
             (0x35,),
         ),
     ),
+)
+(
     DriverChip(
         "GC9D01N",
         width=160,
@@ -722,69 +746,186 @@ models = [
             (0xF3, 0x52, 0xA4, 0x7F, 0x33, 0x34, 0xDF),
         ),
     ),
-    DriverChip(
-        "ST7735",
-        color_order=MODE_RGB,
-        width=128,
-        height=160,
-        initsequence=(
-            SWRESET,
-            delay(10),
-            (FRMCTR1, 0x01, 0x2C, 0x2D),
-            (FRMCTR2, 0x01, 0x2C, 0x2D),
-            (FRMCTR3, 0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D),
-            (INVCTR, 0x07),
-            (PWCTR1, 0xA2, 0x02, 0x84),
-            (PWCTR2, 0xC5),
-            (PWCTR3, 0x0A, 0x00),
-            (PWCTR4, 0x8A, 0x2A),
-            (PWCTR5, 0x8A, 0xEE),
-            (VMCTR1, 0x0E),
-            (
-                GMCTRP1,
-                0x02,
-                0x1C,
-                0x07,
-                0x12,
-                0x37,
-                0x32,
-                0x29,
-                0x2D,
-                0x29,
-                0x25,
-                0x2B,
-                0x39,
-                0x00,
-                0x01,
-                0x03,
-                0x10,
-            ),
-            (
-                GMCTRN1,
-                0x03,
-                0x1D,
-                0x07,
-                0x06,
-                0x2E,
-                0x2C,
-                0x29,
-                0x2D,
-                0x2E,
-                0x2E,
-                0x37,
-                0x3F,
-                0x00,
-                0x00,
-                0x02,
-                0x10,
-            ),
-            NORON,
+)
+DriverChip(
+    "ST7735",
+    color_order=MODE_RGB,
+    width=128,
+    height=160,
+    initsequence=(
+        SWRESET,
+        delay(10),
+        (FRMCTR1, 0x01, 0x2C, 0x2D),
+        (FRMCTR2, 0x01, 0x2C, 0x2D),
+        (FRMCTR3, 0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D),
+        (INVCTR, 0x07),
+        (PWCTR1, 0xA2, 0x02, 0x84),
+        (PWCTR2, 0xC5),
+        (PWCTR3, 0x0A, 0x00),
+        (PWCTR4, 0x8A, 0x2A),
+        (PWCTR5, 0x8A, 0xEE),
+        (VMCTR1, 0x0E),
+        (
+            GMCTRP1,
+            0x02,
+            0x1C,
+            0x07,
+            0x12,
+            0x37,
+            0x32,
+            0x29,
+            0x2D,
+            0x29,
+            0x25,
+            0x2B,
+            0x39,
+            0x00,
+            0x01,
+            0x03,
+            0x10,
+        ),
+        (
+            GMCTRN1,
+            0x03,
+            0x1D,
+            0x07,
+            0x06,
+            0x2E,
+            0x2C,
+            0x29,
+            0x2D,
+            0x2E,
+            0x2E,
+            0x37,
+            0x3F,
+            0x00,
+            0x00,
+            0x02,
+            0x10,
+        ),
+        NORON,
+    ),
+)
+DriverChip(
+    "WAVESHARE-4-TFT",
+    mirror_x=True,
+    width=320,
+    height=480,
+    initsequence=(
+        (
+            0xF9,
+            0x00,
+            0x08,
+        ),
+        (
+            0xC0,
+            0x19,
+            0x1A,
+        ),
+        (
+            0xC1,
+            0x45,
+            0x00,
+        ),
+        (
+            0xC2,
+            0x33,
+        ),
+        (
+            0xC5,
+            0x00,
+            0x28,
+        ),
+        (
+            0xB1,
+            0xA0,
+            0x11,
+        ),
+        (
+            0xB4,
+            0x02,
+        ),
+        (
+            0xB6,
+            0x00,
+            0x42,
+            0x3B,
+        ),
+        (
+            0xB7,
+            0x07,
+        ),
+        (
+            0xE0,
+            0x1F,
+            0x25,
+            0x22,
+            0x0B,
+            0x06,
+            0x0A,
+            0x4E,
+            0xC6,
+            0x39,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        ),
+        (
+            0xE1,
+            0x1F,
+            0x3F,
+            0x3F,
+            0x0F,
+            0x1F,
+            0x0F,
+            0x46,
+            0x49,
+            0x31,
+            0x05,
+            0x09,
+            0x03,
+            0x1C,
+            0x1A,
+            0x00,
+        ),
+        (
+            0xF1,
+            0x36,
+            0x04,
+            0x00,
+            0x3C,
+            0x0F,
+            0x0F,
+            0xA4,
+            0x02,
+        ),
+        (
+            0xF2,
+            0x18,
+            0xA3,
+            0x12,
+            0x02,
+            0x32,
+            0x12,
+            0xFF,
+            0x32,
+            0x00,
+        ),
+        (
+            0xF4,
+            0x40,
+            0x00,
+            0x08,
+            0x91,
+            0x04,
+        ),
+        (
+            0xF8,
+            0x21,
+            0x04,
         ),
     ),
-]
-
-# Tested 2025-03-05
-
-# An alternative init sequence for the ILI9488
-
-# Tested 2025-03-05
+)

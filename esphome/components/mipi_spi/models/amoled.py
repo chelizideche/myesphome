@@ -2,7 +2,7 @@ from esphome.components.mipi_spi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 
 from . import DriverChip, delay
-from .commands import MIPI, NORON, PAGESEL, SWIRE1, SWIRE2, TEON, WRAM
+from .commands import MIPI, NORON, PAGESEL, SLPOUT, SWIRE1, SWIRE2, TEON, WRAM
 
 RM67162 = DriverChip(
     name="RM67162",
@@ -10,7 +10,7 @@ RM67162 = DriverChip(
     color_order=MODE_RGB,
     width=480,
     modes=(TYPE_QUAD,),
-    initsequence=(),
+    initsequence=(SLPOUT,),  # Requires early SLPOUT
 )
 
 T_DISPLAY_S3_AMOLED = RM67162.derive("T-DISPLAY-S3-AMOLED", width=240, height=536)
@@ -37,5 +37,3 @@ RM690B0 = DriverChip(
 )
 
 T4_S3_AMOLED = RM690B0.derive("T4-S3", width=450, offset_width=16)
-
-models = (RM67162, RM690B0, T4_S3_AMOLED, T_DISPLAY_S3_AMOLED)
