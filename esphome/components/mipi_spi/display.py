@@ -292,7 +292,7 @@ def get_transform(model, config):
         else:
             transform[CONF_SWAP_XY] = not transform[CONF_SWAP_XY]
             transform[CONF_MIRROR_Y] = not transform[CONF_MIRROR_Y]
-        LOGGER.info("Using hardware transform to implement rotation")
+        transform[CONF_TRANSFORM] = True
     return transform
 
 
@@ -320,6 +320,8 @@ def get_sequence(model, config):
     if MADCTL not in commands:
         madctl = 0
         transform = get_transform(model, config)
+        if transform.get(CONF_TRANSFORM):
+            LOGGER.info("Using hardware transform to implement rotation")
         if transform.get(CONF_MIRROR_X):
             madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
         if transform.get(CONF_MIRROR_Y):
