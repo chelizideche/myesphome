@@ -294,7 +294,7 @@ def get_sequence(model, config):
             madctl |= MADCTL_XFLIP if use_mirror else MADCTL_MX
         if transform.get(CONF_MIRROR_Y):
             madctl |= MADCTL_YFLIP if use_mirror else MADCTL_MY
-        if transform.get(CONF_SWAP_XY):
+        if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
             madctl |= MADCTL_MV
         if config[CONF_COLOR_ORDER] == MODE_BGR:
             madctl |= MADCTL_BGR
