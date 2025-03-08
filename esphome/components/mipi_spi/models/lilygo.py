@@ -18,6 +18,17 @@ ST7789V.extend(
 )
 
 ST7789V.extend(
+    "T-DISPLAY",
+    height=240,
+    width=135,
+    offset_width=52,
+    offset_height=40,
+    draw_rounding=1,
+    cs_pin=5,
+    dc_pin=16,
+    invert_colors=True,
+)
+ST7789V.extend(
     "T-DISPLAY-S3",
     height=320,
     width=170,

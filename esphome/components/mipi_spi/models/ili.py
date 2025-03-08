@@ -391,10 +391,15 @@ ST7796 = DriverChip(
 )
 DriverChip(
     "S3BOX",
-    mirror_x=True,
-    mirror_y=True,
     width=320,
     height=240,
+    mirror_x=True,
+    mirror_y=True,
+    invert_colors=False,
+    data_rate="40MHz",
+    dc_pin=4,
+    cs_pin=5,
+    # reset_pin={CONF_INVERTED: True, CONF_NUMBER: 48},
     initsequence=(
         (0xEF, 0x03, 0x80, 0x02),
         (0xCF, 0x00, 0xC1, 0x30),

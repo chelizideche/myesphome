@@ -7,6 +7,8 @@ CONFIG = """
     radius: 0
     pad_all: 12
     bg_color: 0xFFFFFF
+    border_width: 1
+    border_color: 0xFF0000
     height: 100%
     width: 100%
     widgets:
