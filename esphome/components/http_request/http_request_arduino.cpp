@@ -101,7 +101,7 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   }
 
   // returned needed headers must be collected before the requests
-  const char *header_keys[collect_header_names.size() + 2];
+  const char *header_keys[collect_header_names.size()];
   int index = 0;
   for (auto const &header_name : collect_header_names) {
     header_keys[index++] = header_name.c_str();
