@@ -1,5 +1,11 @@
 #pragma once
 #include "esphome/core/defines.h"
+
+// Include Zephyr networking header if needed
+#ifdef USE_ZEPHYR_NETWORKING
+#include "esphome/components/openthread_zephyr/zephyr_networking.h"
+#endif
+
 #ifdef USE_NETWORK
 #include <cstdint>
 #include <string>
@@ -129,7 +135,11 @@ struct IPAddress {
 #if LWIP_IPV6
       (((u8_t *) (&ip_addr_.u_addr.ip4))[3]) += increase;
 #else
+#ifdef USE_ZEPHYR_NETWORKING
+      (((u8_t *) (&ip_addr_.in4_addr.s_addr))[0]) += increase;
+#else
       (((u8_t *) (&ip_addr_.addr))[3]) += increase;
+#endif /* USE_ZEPHYR_NETWORKING */
 #endif /* LWIP_IPV6 */
     }
     return *this;

@@ -19,6 +19,7 @@ from esphome.const import (
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
+    KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE, EsphomeError, coroutine_with_priority
 
@@ -43,6 +44,7 @@ def set_core_data(config):
     zephyr_set_core_data(config)
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_NRF52
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = KEY_ZEPHYR
+    CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] = cv.Version(1, 0, 0)
 
     if config[KEY_BOOTLOADER] in BOOTLOADER_CONFIG:
         zephyr_add_pm_static(BOOTLOADER_CONFIG[config[KEY_BOOTLOADER]])

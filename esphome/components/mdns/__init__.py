@@ -95,6 +95,11 @@ async def to_code(config):
             path="components/mdns",
         )
 
+    # For Zephyr, mDNS is configured through Kconfig in the OpenThread component
+    if CORE.is_nrf52 and CORE.data[KEY_CORE].get("framework", "") == "zephyr":
+        # No additional libraries needed, handled by Zephyr's MDNS_RESPONDER
+        pass
+
     cg.add_define("USE_MDNS")
 
     var = cg.new_Pvariable(config[CONF_ID])

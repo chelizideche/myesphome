@@ -1989,6 +1989,7 @@ def require_framework_version(
     esp8266_arduino=None,
     rp2040_arduino=None,
     bk72xx_libretiny=None,
+    nrf52_zephyr=None,
     host=None,
     max_version=False,
     extra_message=None,
@@ -2031,6 +2032,13 @@ def require_framework_version(
                     msg += f". {extra_message}"
                 raise Invalid(msg)
             required = rp2040_arduino
+        elif CORE.is_nrf52 and framework == "zephyr":
+            if nrf52_zephyr is None:
+                msg = "This feature is incompatible with NRF52 using zephyr framework"
+                if extra_message:
+                    msg += f". {extra_message}"
+                raise Invalid(msg)
+            required = nrf52_zephyr
         elif CORE.is_host and framework == "host":
             if host is None:
                 msg = "This feature is incompatible with host platform"

@@ -145,6 +145,9 @@ def _format_prj_conf_val(value: PrjConfValueType) -> str:
     if isinstance(value, int):
         return str(value)
     if isinstance(value, str):
+        # Special case for hexadecimal values
+        if value.startswith("0x"):
+            return value
         return f'"{value}"'
     raise ValueError
 

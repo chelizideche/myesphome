@@ -21,6 +21,7 @@ from esphome.const import (
     PLATFORM_HOST,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
+    PLATFORM_NRF52,
 )
 
 # pylint: disable=unused-import
@@ -645,6 +646,10 @@ class EsphomeCore:
     @property
     def is_rtl87xx(self):
         return self.target_platform == PLATFORM_RTL87XX
+
+    @property
+    def is_nrf52(self):
+        return self.target_platform == PLATFORM_NRF52
 
     @property
     def is_libretiny(self):

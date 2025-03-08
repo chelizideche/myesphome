@@ -18,6 +18,7 @@ CONFIG_SCHEMA = cv.Schema(
             esp32=False,
             rp2040=False,
             bk72xx=False,
+            nrf52=False,
         ): cv.All(
             cv.boolean,
             cv.Any(
@@ -27,6 +28,7 @@ CONFIG_SCHEMA = cv.Schema(
                     esp8266_arduino=cv.Version(0, 0, 0),
                     rp2040_arduino=cv.Version(0, 0, 0),
                     bk72xx_libretiny=cv.Version(1, 7, 0),
+                    nrf52_zephyr=cv.Version(0, 0, 0),
                 ),
                 cv.boolean_false,
             ),
