@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping
+import logging
 from typing import Any, Callable
 
 from esphome import automation
@@ -46,6 +47,9 @@ CONF_ON_SCAN_END = "on_scan_end"
 
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
+ARDUINO_MAX_CONNECTIONS = 3
+
+_LOGGER = logging.getLogger(__name__)
 
 esp32_ble_tracker_ns = cg.esphome_ns.namespace("esp32_ble_tracker")
 ESP32BLETracker = esp32_ble_tracker_ns.class_(
@@ -211,14 +215,35 @@ def validate_remaining_connections(config):
     used_slots = len(slots)
     if used_slots <= config[CONF_MAX_CONNECTIONS]:
         return config
-    slot_users = ",".join(slots)
-    raise cv.Invalid(
+    slot_users = ", ".join(slots)
+    hard_limit = ARDUINO_MAX_CONNECTIONS
+    if CORE.using_esp_idf:
+        if used_slots < IDF_MAX_CONNECTIONS:
+            config[CONF_MAX_CONNECTIONS] = used_slots
+            _LOGGER.warning(
+                "Exceeded `%s`: Components attempted to consume %d slot(s) out of available "
+                "configured maximum %d connection slot(s); The system automatically "
+                "increased `%s` to %d to match the number of used slots by components: %s.",
+                CONF_MAX_CONNECTIONS,
+                used_slots,
+                config[CONF_MAX_CONNECTIONS],
+                CONF_MAX_CONNECTIONS,
+                used_slots,
+                slot_users,
+            )
+            return config
+        hard_limit = IDF_MAX_CONNECTIONS
+
+    msg = (
         f"Exceeded `{CONF_MAX_CONNECTIONS}`: "
         f"Components attempted to consume {used_slots} slot(s) out of available "
         f"configured maximum {config[CONF_MAX_CONNECTIONS]} connection slot(s); "
-        f"Decrease the number of BLE clients ({slot_users}) or increase "
-        f"`{CONF_MAX_CONNECTIONS}` to {used_slots}."
+        f"Decrease the number of BLE clients ({slot_users})"
     )
+    if used_slots < hard_limit:
+        msg += f" or increase {CONF_MAX_CONNECTIONS}` to {used_slots}"
+    msg += f" to stay under the {hard_limit} connection slot(s) limit."
+    raise cv.Invalid(msg)
 
 
 FINAL_VALIDATE_SCHEMA = cv.All(
