@@ -30,7 +30,7 @@ std::string HttpContainer::get_response_header(const std::string &header_name) {
   } else {
     auto values = response_headers[header_name_lower_case];
     if (values.empty()) {
-      ESP_LOGD(TAG, "header with name %s returned an empty list, this shouldn't happen",
+      ESP_LOGE(TAG, "header with name %s returned an empty list, this shouldn't happen",
                header_name_lower_case.c_str());
       return "";
     } else {
