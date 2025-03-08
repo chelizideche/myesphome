@@ -21,7 +21,6 @@ void HttpRequestComponent::dump_config() {
 }
 
 std::string HttpContainer::get_response_header(const std::string &header_name) {
-  ESP_LOGD(TAG, "Entered get_response_header");
   auto response_headers = this->get_response_headers();
   auto header_name_lower_case = str_lower_case(header_name);
   if (response_headers.count(header_name_lower_case) == 0) {

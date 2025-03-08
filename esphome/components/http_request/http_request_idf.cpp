@@ -31,13 +31,10 @@ void HttpRequestIDF::dump_config() {
 }
 
 esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
-  ESP_LOGD(TAG, "Entered http_event_handler");
   UserData *user_data = (UserData *) evt->user_data;
 
   switch (evt->event_id) {
     case HTTP_EVENT_ON_HEADER: {
-      ESP_LOGD(TAG, "Entered HTTP_EVENT_ON_HEADER");
-      ESP_LOGD(TAG, "header name: %s", evt->header_key);
       const std::string header_name = str_lower_case(evt->header_key);
       for (const auto &collect_header_name : user_data->collect_header_names) {
         if (str_equals_case_insensitive(collect_header_name, header_name)) {
@@ -53,7 +50,6 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
       break;
     }
   }
-  ESP_LOGD(TAG, "Exit http_event_handler");
   return ESP_OK;
 }
 
@@ -155,21 +151,15 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
     esp_http_client_cleanup(client);
     return nullptr;
   }
-  ESP_LOGD(TAG, "HTTP Request ok");
 
   container->feed_wdt();
-  ESP_LOGD(TAG, "About to esp_http_client_fetch_headers");
   container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
-  ESP_LOGD(TAG, "About to esp_http_client_get_status_code");
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
-  ESP_LOGD(TAG, "About to set_response_headers, size: %d", user_data.response_headers.size());
   container->set_response_headers(user_data.response_headers);
-  ESP_LOGD(TAG, "Done with set_response_headers");
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
-    ESP_LOGD(TAG, "HTTP Request successful");
     return container;
   }
 
