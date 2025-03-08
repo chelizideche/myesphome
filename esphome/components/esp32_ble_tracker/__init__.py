@@ -221,9 +221,10 @@ def validate_remaining_connections(config):
         if used_slots < IDF_MAX_CONNECTIONS:
             config[CONF_MAX_CONNECTIONS] = used_slots
             _LOGGER.warning(
-                "Exceeded `%s`: Components attempted to consume %d slot(s) out of available "
-                "configured maximum %d connection slot(s); The system automatically "
-                "increased `%s` to %d to match the number of used slots by components: %s.",
+                "esp32_ble_tracker exceeded `%s`: Components attempted to consume %d slot(s) "
+                "out of available configured maximum %d connection slot(s); The system "
+                "automatically increased `%s` to %d to match the number of used slots by "
+                "components: %s.",
                 CONF_MAX_CONNECTIONS,
                 used_slots,
                 config[CONF_MAX_CONNECTIONS],
@@ -235,7 +236,7 @@ def validate_remaining_connections(config):
         hard_limit = IDF_MAX_CONNECTIONS
 
     msg = (
-        f"Exceeded `{CONF_MAX_CONNECTIONS}`: "
+        f"esp32_ble_tracker exceeded `{CONF_MAX_CONNECTIONS}`: "
         f"Components attempted to consume {used_slots} slot(s) out of available "
         f"configured maximum {config[CONF_MAX_CONNECTIONS]} connection slot(s); "
         f"Decrease the number of BLE clients ({slot_users})"
