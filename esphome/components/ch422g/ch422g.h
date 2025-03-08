@@ -46,7 +46,7 @@ class CH422GComponent : public Component, public i2c::I2CDevice {
 /// Helper class to expose a CH422G pin as a GPIO pin.
 class CH422GGPIOPin : public GPIOPin {
  public:
-  void setup() override{};
+  void setup() override {};
   void pin_mode(gpio::Flags flags) override;
   bool digital_read() override;
   void digital_write(bool value) override;
@@ -58,6 +58,8 @@ class CH422GGPIOPin : public GPIOPin {
   void set_flags(gpio::Flags flags);
 
   gpio::Flags get_flags() const override { return this->flags_; }
+
+  bool is_internal() override { return false; }
 
  protected:
   CH422GComponent *parent_{};
