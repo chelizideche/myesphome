@@ -2,7 +2,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 import esphome.codegen as cg
-from esphome.components.nrf52 import add_pm_static
+from esphome.components.zephyr import zephyr_add_pm_static
 from esphome.components.nrf52.boards import BOOTLOADER_CONFIG, Section
 from esphome.components.zephyr.const import KEY_BOOTLOADER, KEY_ZEPHYR
 from esphome.core import CORE, coroutine_with_priority
@@ -14,7 +14,7 @@ CONF_EP = "ep"
 
 def zigbee_set_core_data(config):
     if CORE.data[KEY_ZEPHYR][KEY_BOOTLOADER] in BOOTLOADER_CONFIG:
-        add_pm_static(
+        zephyr_add_pm_static(
             [Section("empty_after_zboss_offset", 0xF4000, 0xC000, "flash_primary")]
         )
 
