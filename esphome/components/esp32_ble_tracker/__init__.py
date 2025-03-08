@@ -128,7 +128,7 @@ def as_reversed_hex_array(value):
     )
 
 
-def max_connections():
+def max_connections() -> int:
     return IDF_MAX_CONNECTIONS if CORE.using_esp_idf else DEFAULT_MAX_CONNECTIONS
 
 
