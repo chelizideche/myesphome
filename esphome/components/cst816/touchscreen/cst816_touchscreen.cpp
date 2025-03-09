@@ -37,14 +37,6 @@ void CST816Touchscreen::continue_setup_() {
   ESP_LOGCONFIG(TAG, "CST816 Touchscreen setup complete");
 }
 
-void CST816Touchscreen::update_button_state_(bool state) {
-  if (this->button_touched_ == state)
-    return;
-  this->button_touched_ = state;
-  for (auto *listener : this->button_listeners_)
-    listener->update_button(state);
-}
-
 void CST816Touchscreen::setup() {
   ESP_LOGCONFIG(TAG, "Setting up CST816 Touchscreen...");
   if (this->reset_pin_ != nullptr) {
@@ -68,7 +60,6 @@ void CST816Touchscreen::update_touches() {
   }
   uint8_t num_of_touches = data[REG_TOUCH_NUM] & 3;
   if (num_of_touches == 0) {
-    this->update_button_state_(false);
     return;
   }
 
