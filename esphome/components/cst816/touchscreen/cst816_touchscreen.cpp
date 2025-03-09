@@ -75,11 +75,7 @@ void CST816Touchscreen::update_touches() {
   uint16_t x = encode_uint16(data[REG_XPOS_HIGH] & 0xF, data[REG_XPOS_LOW]);
   uint16_t y = encode_uint16(data[REG_YPOS_HIGH] & 0xF, data[REG_YPOS_LOW]);
   ESP_LOGV(TAG, "Read touch %d/%d", x, y);
-  if (x >= this->x_raw_max_) {
-    this->update_button_state_(true);
-  } else {
-    this->add_raw_touch_position_(0, x, y);
-  }
+  this->add_raw_touch_position_(0, x, y);
 }
 
 void CST816Touchscreen::dump_config() {
@@ -87,6 +83,8 @@ void CST816Touchscreen::dump_config() {
   LOG_I2C_DEVICE(this);
   LOG_PIN("  Interrupt Pin: ", this->interrupt_pin_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  ESP_LOGCONFIG(TAG, "  X Raw Min: %d, X Raw Max: %d", this->x_raw_min_, this->x_raw_max_);
+  ESP_LOGCONFIG(TAG, "  Y Raw Min: %d, Y Raw Max: %d", this->y_raw_min_, this->y_raw_max_);
   const char *name;
   switch (this->chip_id_) {
     case CST820_CHIP_ID:
