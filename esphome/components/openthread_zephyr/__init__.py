@@ -6,7 +6,7 @@ from esphome.components.zephyr import (
     zephyr_data,
     KEY_PRJ_CONF,
 )
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, CONF_ENABLE_IPV6
 from esphome.core import CORE, coroutine_with_priority
 
 from .const import (
@@ -28,6 +28,8 @@ from .const import (
     DEFAULT_FORCE_DATASET,
     openthread_zephyr_ns,
 )
+
+from . import config_validation as ot_cv
 
 CODEOWNERS = ["@tomaszduda23"]
 DEPENDENCIES = ["zephyr", "nrf52"]
@@ -57,6 +59,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_PSKC, default=DEFAULT_PSKC): hex_string_length(32),
         cv.Optional(CONF_RADIO_TX_POWER, default=DEFAULT_RADIO_TX_POWER): cv.int_range(min=-20, max=20),
         cv.Optional(CONF_FORCE_DATASET, default=DEFAULT_FORCE_DATASET): cv.boolean,
+        cv.Optional(CONF_ENABLE_IPV6, default=True): ot_cv.require_framework_version(cv.Version(1, 0, 0))
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
