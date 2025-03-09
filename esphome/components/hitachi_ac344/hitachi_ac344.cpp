@@ -145,14 +145,54 @@ uint8_t HitachiClimate::get_swing_h_() {
   return GETBITS8(remote_state_[HITACHI_AC344_SWINGH_BYTE], HITACHI_AC344_SWINGH_OFFSET, HITACHI_AC344_SWINGH_SIZE);
 }
 
+void HitachiClimate::set_mildewproof_(bool on) {
+  set_bits(&remote_state_[HITACHI_AC344_MILDEWPROOF_BYTE], HITACHI_AC344_MILDEWPROOF_OFFSET,
+           HITACHI_AC344_MILDEWPROOF_SIZE, on);
+}
+
+uint8_t HitachiClimate::get_mildewproof_() {
+  return GETBITS8(remote_state_[HITACHI_AC344_MILDEWPROOF_BYTE], HITACHI_AC344_MILDEWPROOF_OFFSET,
+                  HITACHI_AC344_MILDEWPROOF_SIZE);
+}
+
 uint8_t HitachiClimate::get_button_() { return remote_state_[HITACHI_AC344_BUTTON_BYTE]; }
 
 void HitachiClimate::set_button_(uint8_t button) { remote_state_[HITACHI_AC344_BUTTON_BYTE] = button; }
 
 void HitachiClimate::transmit_state() {
+  // Store original state
+  uint8_t pre_mode = get_mode_();
+  uint8_t pre_fan = get_fan_();
+  bool pre_swingv = get_swing_v_();
+  bool pre_power = get_power_();
+
+  // Custom modes
+  if (this->custom_preset == "Cool") {
+    this->mode = climate::CLIMATE_MODE_COOL;
+    this->fan_mode = custom_cool_.fan_mode;               // climate::CLIMATE_FAN_AUTO;
+    this->swing_mode = custom_cool_.swing_mode;           // climate::CLIMATE_SWING_HORIZONTAL;
+    this->target_temperature = custom_cool_.temperature;  // 29
+  } else if (this->custom_preset == "Heat") {
+    this->mode = climate::CLIMATE_MODE_HEAT;
+    this->fan_mode = custom_heat_.fan_mode;               // climate::CLIMATE_FAN_AUTO;
+    this->swing_mode = custom_heat_.swing_mode;           // climate::CLIMATE_SWING_OFF;
+    this->target_temperature = custom_heat_.temperature;  // 24
+  } else if (this->custom_preset == "Dry") {
+    this->mode = climate::CLIMATE_MODE_DRY;
+    this->fan_mode = custom_dry_.fan_mode;               // climate::CLIMATE_FAN_LOW;
+    this->swing_mode = custom_dry_.swing_mode;           // climate::CLIMATE_SWING_HORIZONTAL;
+    this->target_temperature = custom_dry_.temperature;  // 29
+  } else if (this->custom_preset == "Fan_only") {
+    this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+    this->fan_mode = custom_fan_only_.fan_mode;      // climate::CLIMATE_FAN_LOW;
+    this->swing_mode = custom_fan_only_.swing_mode;  // climate::CLIMATE_SWING_OFF;
+  }
+  this->custom_preset = (std::string) "None";
+
   switch (this->mode) {
     case climate::CLIMATE_MODE_COOL:
       set_mode_(HITACHI_AC344_MODE_COOL);
+      set_mildewproof_(mildewproof_);
       break;
     case climate::CLIMATE_MODE_DRY:
       set_mode_(HITACHI_AC344_MODE_DRY);
@@ -176,6 +216,9 @@ void HitachiClimate::transmit_state() {
   set_temp_(static_cast<uint8_t>(this->target_temperature));
 
   switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_QUIET:
+      set_fan_(HITACHI_AC344_FAN_MIN);
+      break;
     case climate::CLIMATE_FAN_LOW:
       set_fan_(HITACHI_AC344_FAN_LOW);
       break;
@@ -198,7 +241,7 @@ void HitachiClimate::transmit_state() {
       break;
     case climate::CLIMATE_SWING_VERTICAL:
       set_swing_v_(true);
-      set_swing_h_(HITACHI_AC344_SWINGH_MIDDLE);
+      set_swing_h_(this->default_horizontal_direction_);
       break;
     case climate::CLIMATE_SWING_HORIZONTAL:
       set_swing_v_(false);
@@ -206,12 +249,16 @@ void HitachiClimate::transmit_state() {
       break;
     case climate::CLIMATE_SWING_OFF:
       set_swing_v_(false);
-      set_swing_h_(HITACHI_AC344_SWINGH_MIDDLE);
+      set_swing_h_(this->default_horizontal_direction_);
       break;
   }
 
-  // TODO: find change value to set button, now always set to power button
-  set_button_(HITACHI_AC344_BUTTON_POWER);
+  // find change value to set button
+  if (pre_mode == get_mode_() && pre_fan == get_fan_() && pre_power == get_power_() && pre_swingv != get_swing_v_()) {
+    set_button_(HITACHI_AC344_BUTTON_SWINGV);
+  } else {
+    set_button_(HITACHI_AC344_BUTTON_POWER);
+  }
 
   invert_byte_pairs(remote_state_ + 3, HITACHI_AC344_STATE_LENGTH - 3);
 
@@ -282,6 +329,8 @@ bool HitachiClimate::parse_fan_(const uint8_t remote_state[]) {
   ESP_LOGV(TAG, "Fan: %02X %02X", remote_state[HITACHI_AC344_FAN_BYTE], fan_mode);
   switch (fan_mode) {
     case HITACHI_AC344_FAN_MIN:
+      this->fan_mode = climate::CLIMATE_FAN_QUIET;
+      break;
     case HITACHI_AC344_FAN_LOW:
       this->fan_mode = climate::CLIMATE_FAN_LOW;
       break;
@@ -304,10 +353,22 @@ bool HitachiClimate::parse_swing_(const uint8_t remote_state[]) {
       GETBITS8(remote_state[HITACHI_AC344_SWINGH_BYTE], HITACHI_AC344_SWINGH_OFFSET, HITACHI_AC344_SWINGH_SIZE);
   ESP_LOGV(TAG, "SwingH: %02X %02X", remote_state[HITACHI_AC344_SWINGH_BYTE], swing_modeh);
 
-  if ((swing_modeh & 0x3) == 0x3) {
-    this->swing_mode = climate::CLIMATE_SWING_OFF;
+  bool swing_modev =
+      GETBITS8(remote_state_[HITACHI_AC344_SWINGV_BYTE], HITACHI_AC344_SWINGV_OFFSET, HITACHI_AC344_SWINGV_SIZE);
+  ESP_LOGV(TAG, "SwingV: %02X %02X", remote_state[HITACHI_AC344_SWINGV_BYTE], swing_modev);
+
+  if ((swing_modeh & 0x3) != 0) {
+    if (swing_modev) {
+      this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+    } else {
+      this->swing_mode = climate::CLIMATE_SWING_OFF;
+    }
   } else {
-    this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+    if (swing_modev) {
+      this->swing_mode = climate::CLIMATE_SWING_BOTH;
+    } else {
+      this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+    }
   }
 
   return true;
@@ -364,6 +425,79 @@ void HitachiClimate::dump_state_(const char action[], uint8_t state[]) {
              state[i + 9]);
   }
   ESP_LOGV(TAG, "%s: %02X %02X %02X", action, state[40], state[41], state[42]);
+}
+
+climate::ClimateTraits HitachiClimate::traits() {
+  auto traits = climate::ClimateTraits();
+  traits.set_supports_current_temperature(this->sensor_ != nullptr);
+  traits.set_supported_modes({climate::CLIMATE_MODE_OFF, climate::CLIMATE_MODE_HEAT_COOL});
+  if (this->supports_cool_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_COOL);
+  if (this->supports_heat_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_HEAT);
+  if (this->supports_dry_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_DRY);
+  if (this->supports_fan_only_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY);
+
+  traits.set_supports_two_point_target_temperature(false);
+  traits.set_visual_min_temperature(this->minimum_temperature_);
+  traits.set_visual_max_temperature(this->maximum_temperature_);
+  traits.set_visual_temperature_step(this->temperature_step_);
+  traits.set_supported_fan_modes(this->fan_modes_);
+  traits.set_supported_swing_modes(this->swing_modes_);
+  traits.set_supported_presets(this->presets_);
+  traits.set_supported_custom_presets(this->custom_presets_);
+
+  return traits;
+}
+
+void HitachiClimate::control(const climate::ClimateCall &call) {
+  if (call.get_mode().has_value())
+    this->mode = *call.get_mode();
+  if (call.get_target_temperature().has_value())
+    this->target_temperature = *call.get_target_temperature();
+  if (call.get_fan_mode().has_value())
+    this->fan_mode = *call.get_fan_mode();
+  if (call.get_swing_mode().has_value())
+    this->swing_mode = *call.get_swing_mode();
+  if (call.get_preset().has_value())
+    this->preset = *call.get_preset();
+  if (call.get_custom_preset().has_value())
+    this->custom_preset = *call.get_custom_preset();
+  this->transmit_state();
+  this->publish_state();
+}
+
+void HitachiClimate::setup() {
+  if (this->sensor_) {
+    this->sensor_->add_on_state_callback([this](float state) {
+      this->current_temperature = state;
+      // current temperature changed, publish state
+      this->publish_state();
+    });
+    this->current_temperature = this->sensor_->state;
+  } else {
+    this->current_temperature = NAN;
+  }
+  // restore set points
+  auto restore = this->restore_state_();
+  if (restore.has_value()) {
+    restore->apply(this);
+  } else {
+    // restore from defaults
+    this->mode = climate::CLIMATE_MODE_OFF;
+    // initialize target temperature to some value so that it's not NAN
+    this->target_temperature =
+        roundf(clamp(this->current_temperature, this->minimum_temperature_, this->maximum_temperature_));
+    this->fan_mode = climate::CLIMATE_FAN_AUTO;
+    this->swing_mode = climate::CLIMATE_SWING_OFF;
+    this->preset = climate::CLIMATE_PRESET_NONE;
+    this->custom_preset = (std::string) "None";
+  }
+  // Never send nan to HA
+  if (std::isnan(this->target_temperature))
+    this->target_temperature = 24;
 }
 
 }  // namespace hitachi_ac344

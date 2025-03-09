@@ -66,9 +66,11 @@ const uint8_t HITACHI_AC344_SWINGH_LEFT_MAX = 5;   // 0b101
 
 const uint8_t HITACHI_AC344_SWINGV_BYTE = 37;
 const uint8_t HITACHI_AC344_SWINGV_OFFSET = 5;  // Mask 0b00x00000
+const uint8_t HITACHI_AC344_SWINGV_SIZE = 1;    // Mask 0b00x00000
 
 const uint8_t HITACHI_AC344_MILDEWPROOF_BYTE = HITACHI_AC344_SWINGV_BYTE;
 const uint8_t HITACHI_AC344_MILDEWPROOF_OFFSET = 2;  // Mask 0b00000x00
+const uint8_t HITACHI_AC344_MILDEWPROOF_SIZE = 1;    // Mask 0b00000xxx
 
 const uint16_t HITACHI_AC344_STATE_LENGTH = 43;
 const uint16_t HITACHI_AC344_BITS = HITACHI_AC344_STATE_LENGTH * 8;
@@ -76,13 +78,51 @@ const uint16_t HITACHI_AC344_BITS = HITACHI_AC344_STATE_LENGTH * 8;
 #define GETBIT8(a, b) ((a) & ((uint8_t) 1 << (b)))
 #define GETBITS8(data, offset, size) (((data) & (((uint8_t) UINT8_MAX >> (8 - (size))) << (offset))) >> (offset))
 
+using CustomStruct = struct CustomStruct {
+  uint8_t temperature = 20;
+  climate::ClimateSwingMode swing_mode = climate::CLIMATE_SWING_OFF;
+  climate::ClimateFanMode fan_mode = climate::CLIMATE_FAN_AUTO;
+};
+
 class HitachiClimate : public climate_ir::ClimateIR {
  public:
   HitachiClimate()
       : climate_ir::ClimateIR(HITACHI_AC344_TEMP_MIN, HITACHI_AC344_TEMP_MAX, 1.0F, true, true,
                               {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
-                               climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_HORIZONTAL}) {}
+                               climate::CLIMATE_FAN_HIGH, climate::CLIMATE_FAN_QUIET},
+                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_BOTH, climate::CLIMATE_SWING_VERTICAL,
+                               climate::CLIMATE_SWING_HORIZONTAL}) {
+    this->custom_presets_ = {"None", "Cool", "Dry", "Heat", "Fan_only"};
+  }
+
+  void set_horizontal_default(uint8_t position) { this->default_horizontal_direction_ = position; }
+
+  void set_mildewproof(bool on) { mildewproof_ = on; }
+
+  void set_custom_cool(uint8_t temperature, climate::ClimateSwingMode swing_mode, climate::ClimateFanMode fan_mode) {
+    custom_cool_.temperature = temperature;
+    custom_cool_.swing_mode = swing_mode;
+    custom_cool_.fan_mode = fan_mode;
+  }
+
+  void set_custom_heat(uint8_t temperature, climate::ClimateSwingMode swing_mode, climate::ClimateFanMode fan_mode) {
+    custom_heat_.temperature = temperature;
+    custom_heat_.swing_mode = swing_mode;
+    custom_heat_.fan_mode = fan_mode;
+  }
+
+  void set_custom_dry(uint8_t temperature, climate::ClimateSwingMode swing_mode, climate::ClimateFanMode fan_mode) {
+    custom_dry_.temperature = temperature;
+    custom_dry_.swing_mode = swing_mode;
+    custom_dry_.fan_mode = fan_mode;
+  }
+
+  void set_custom_fan_only(climate::ClimateSwingMode swing_mode, climate::ClimateFanMode fan_mode) {
+    custom_fan_only_.swing_mode = swing_mode;
+    custom_fan_only_.fan_mode = fan_mode;
+  }
+
+  void setup() override;
 
  protected:
   uint8_t remote_state_[HITACHI_AC344_STATE_LENGTH]{0x01, 0x10, 0x00, 0x40, 0x00, 0xFF, 0x00, 0xCC, 0x00, 0x00, 0x00,
@@ -90,6 +130,13 @@ class HitachiClimate : public climate_ir::ClimateIR {
                                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
                                                     0x80, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t previous_temp_{27};
+  uint8_t default_horizontal_direction_;
+  bool mildewproof_;
+  CustomStruct custom_cool_;
+  CustomStruct custom_heat_;
+  CustomStruct custom_dry_;
+  CustomStruct custom_fan_only_;
+
   // Transmit via IR the state of this climate controller.
   void transmit_state() override;
   bool get_power_();
@@ -105,8 +152,11 @@ class HitachiClimate : public climate_ir::ClimateIR {
   bool get_swing_v_();
   void set_swing_h_(uint8_t position);
   uint8_t get_swing_h_();
+  void set_mildewproof_(bool on);
+  uint8_t get_mildewproof_();
   uint8_t get_button_();
   void set_button_(uint8_t button);
+
   // Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
   bool parse_mode_(const uint8_t remote_state[]);
@@ -115,6 +165,11 @@ class HitachiClimate : public climate_ir::ClimateIR {
   bool parse_swing_(const uint8_t remote_state[]);
   bool parse_state_frame_(const uint8_t frame[]);
   void dump_state_(const char action[], uint8_t remote_state[]);
+
+  std::set<std::string> custom_presets_ = {};
+  climate::ClimateTraits traits() override;
+
+  void control(const climate::ClimateCall &call) override;
 };
 
 }  // namespace hitachi_ac344
