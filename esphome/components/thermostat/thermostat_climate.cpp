@@ -1058,7 +1058,7 @@ bool ThermostatClimate::change_preset_internal_(const ThermostatClimateTargetTem
       something_changed = true;
     }
   } else {
-    if (this->target_temperature != config.default_temperature) {
+    if (std::isfinite(config.default_temperature) && (this->target_temperature != config.default_temperature)) {
       this->target_temperature = config.default_temperature;
       something_changed = true;
     }
