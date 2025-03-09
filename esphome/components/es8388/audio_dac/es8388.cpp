@@ -1,5 +1,5 @@
 #include "es8388.h"
-#include "es8388_const.h"
+
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include <cinttypes>
@@ -28,19 +28,17 @@ void ES8388::setup() {
   // mute DAC
   this->set_mute_state_(true);
 
+  // I2S worker mode
+  ES8388_ERROR_FAILED(this->write_byte(ES8388_MASTERMODE, 0x00));
+
   /* Chip Control and Power Management */
   ES8388_ERROR_FAILED(this->write_byte(ES8388_CONTROL2, 0x50));
   // normal all and power up all
   ES8388_ERROR_FAILED(this->write_byte(ES8388_CHIPPOWER, 0x00));
-  // disable DAC and disable Lout/Rout/1/2
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACPOWER, 0xC0));
 
   // vmidsel/500k
   // EnRef=0,Play&Record Mode,(0x17-both of mic&play)
   ES8388_ERROR_FAILED(this->write_byte(ES8388_CONTROL1, 0x12));
-
-  // I2S worker mode
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_MASTERMODE, 0x00));
 
   // i2s 16 bits
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL1, 0x18));
@@ -57,25 +55,6 @@ void ES8388::setup() {
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL21, 0x80));
   // vroi=0 - 1.5k VREF to analog output resistance (default)
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL23, 0x00));
-
-  static int dac_power = ES8388_DAC_OUTPUT_NONE;
-
-  switch (this->dac_output_) {
-    case DAC_OUTPUT_LINE1:
-      dac_power = ES8388_DAC_OUTPUT_LOUT1_ROUT1;
-      break;
-    case DAC_OUTPUT_LINE2:
-      dac_power = ES8388_DAC_OUTPUT_LOUT2_ROUT2;
-      break;
-    case DAC_OUTPUT_BOTH:
-      dac_power = ES8388_DAC_OUTPUT_BOTH;
-      break;
-    default:
-      break;
-  }
-
-  // DAC power-up LOUT1/ROUT1 and LOUT2/ROUT2 enabled
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACPOWER, dac_power));
 
   // power down adc and line in
   ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCPOWER, 0xFF));
@@ -128,16 +107,7 @@ void ES8388::setup() {
 
   // DAC volume max
   // Set initial volume
-  this->set_volume(0.75);  // 0.75 = 0xBF = 0dB
-
-  // DAC volume max
-  // Set L1 R1 L2 R2 volume. 0x00: -45dB, 0x1E: 0dB, 0x21: 3dB , 0x1C: 28db
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL24, 0x1C));
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL25, 0x1C));
-
-  // Set Headphone volume max  0x00: -30dB, 0x1E: 0dB, 0x21: 3dB , 0x1C: 28db
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL26, 0x1C));
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL27, 0x1C));
+  // this->set_volume(0.75);  // 0.75 = 0xBF = 0dB
 
   this->set_mute_state_(false);
 
@@ -153,23 +123,9 @@ void ES8388::setup() {
 void ES8388::dump_config() {
   ESP_LOGCONFIG(TAG, "ES8388 Audio Codec:");
   LOG_I2C_DEVICE(this);
-  switch (this->dac_output_) {
-    case DAC_OUTPUT_LINE1:
-      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_LINE1");
-      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_LOUT1_ROUT1);
 
-      break;
-    case DAC_OUTPUT_LINE2:
-      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_LINE2");
-      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_LOUT2_ROUT2);
-      break;
-    case DAC_OUTPUT_BOTH:
-      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_ALL");
-      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_BOTH);
-      break;
-    default:
-      break;
-  }
+  ESP_LOGCONFIG(TAG, "  ES8388_DACPOWER:");
+  ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) this->get_dac_power());
 
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  Failed to initialize");
@@ -180,8 +136,7 @@ void ES8388::dump_config() {
 bool ES8388::set_volume(float volume) {
   volume = clamp(volume, 0.0f, 1.0f);
   uint8_t reg = remap<uint8_t, float>(volume, 0.0f, 1.0f, -96, 0);
-  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL4 to %u (volume: %f)", reg, volume);
-  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL5 to %u (volume: %f)", reg, volume);
+  ESP_LOGD(TAG, "Setting ES8388_DACCONTROL4 / ES8388_DACCONTROL5 to 0x%02X (volume: %f)", reg, volume);
   ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL4, reg));
   ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL5, reg));
 
@@ -195,24 +150,58 @@ float ES8388::volume() {
 }
 
 bool ES8388::set_mute_state_(bool mute_state) {
-  uint8_t reg13;
+  uint8_t reg = 0;
 
   this->is_muted_ = mute_state;
 
-  if (!this->read_byte(ES8388_DACCONTROL3, &reg13)) {
-    return false;
-  }
-
-  ESP_LOGV(TAG, "Read ES8388_DACCONTROL3: %u", reg13);
+  ES8388_ERROR_CHECK(this->read_byte(ES8388_DACCONTROL3, &reg));
+  ESP_LOGV(TAG, "Read ES8388_DACCONTROL3: 0x%02X", reg);
 
   if (mute_state) {
-    reg13 |= BIT(1) | BIT(2);
-  } else {
-    reg13 &= ~(BIT(1) | BIT(2));
+    reg = 0x3C;
   }
 
-  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL3 to %u (muted: %s)", reg13, YESNO(mute_state));
-  return this->write_byte(ES8388_DACCONTROL3, reg13);
+  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL3 to 0x%02X (muted: %s)", reg, YESNO(mute_state));
+  return this->write_byte(ES8388_DACCONTROL3, reg);
+}
+
+// Set dac power output
+bool ES8388::set_dac_power(const std::uint8_t &reg) {
+  uint8_t reg_out1 = 0;
+  uint8_t reg_out2 = 0;
+
+  // 0x00: -30dB , 0x1E: 0dB
+  switch (reg) {
+    case ES8388_DAC_OUTPUT_LOUT1_ROUT1:
+      reg_out1 = 0x1E;
+      break;
+    case ES8388_DAC_OUTPUT_LOUT2_ROUT2:
+      reg_out2 = 0x1E;
+      break;
+    case ES8388_DAC_OUTPUT_BOTH:
+      reg_out1 = 0x1E;
+      reg_out2 = 0x1E;
+      break;
+    default:
+      break;
+  };
+
+  ESP_LOGV(TAG, "Setting ES8388_DACPOWER to 0x%02X", reg);
+  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL24 / ES8388_DACCONTROL25 to 0x%02X", reg_out1);
+  ESP_LOGV(TAG, "Setting ES8388_DACCONTROL26 / ES8388_DACCONTROL27  to 0x%02X", reg_out2);
+
+  ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL24, reg_out1));  // LOUT1VOL
+  ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL25, reg_out1));  // ROUT1VOL
+  ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL26, reg_out2));  // LOUT2VOL
+  ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL27, reg_out2));  // ROUT1VOL
+
+  return this->write_byte(ES8388_DACPOWER, reg);
+}
+
+uint8_t ES8388::get_dac_power() {
+  uint8_t reg;
+  ES8388_ERROR_CHECK(this->read_byte(ES8388_DACPOWER, &reg));
+  return reg;
 }
 
 }  // namespace es8388
