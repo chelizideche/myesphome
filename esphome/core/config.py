@@ -1,6 +1,6 @@
 import logging
-import multiprocessing
 import os
+from pathlib import Path
 
 from esphome import automation
 import esphome.codegen as cg
@@ -28,7 +28,6 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VERSION,
     KEY_CORE,
-    TARGET_PLATFORMS,
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -72,6 +71,9 @@ def validate_hostname(config):
 
 
 def valid_include(value):
+    # Look for "<...>" includes
+    if value.startswith("<") and value.endswith(">"):
+        return value
     try:
         return cv.directory(value)
     except cv.Invalid:
@@ -91,10 +93,19 @@ def valid_project_name(value: str):
     return value
 
 
+def get_usable_cpu_count() -> int:
+    """Return the number of CPUs that can be used for processes.
+    On Python 3.13+ this is the number of CPUs that can be used for processes.
+    On older Python versions this is the number of CPUs.
+    """
+    return (
+        os.process_cpu_count() if hasattr(os, "process_cpu_count") else os.cpu_count()
+    )
+
+
 if "ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT" in os.environ:
     _compile_process_limit_default = min(
-        int(os.environ["ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT"]),
-        multiprocessing.cpu_count(),
+        int(os.environ["ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT"]), get_usable_cpu_count()
     )
 else:
     _compile_process_limit_default = cv.UNDEFINED
@@ -153,7 +164,7 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
-            ): cv.int_range(min=1, max=multiprocessing.cpu_count()),
+            ): cv.int_range(min=1, max=get_usable_cpu_count()),
         }
     ),
     validate_hostname,
@@ -174,7 +185,31 @@ PRELOAD_CONFIG_SCHEMA = cv.Schema(
 )
 
 
-def preload_core_config(config, result):
+def _is_target_platform(name):
+    from esphome.loader import get_component
+
+    try:
+        if get_component(name, True).is_target_platform:
+            return True
+    except KeyError:
+        pass
+    return False
+
+
+def _list_target_platforms():
+    target_platforms = []
+    root = Path(__file__).parents[1]
+    for path in (root / "components").iterdir():
+        if not path.is_dir():
+            continue
+        if not (path / "__init__.py").is_file():
+            continue
+        if _is_target_platform(path.name):
+            target_platforms += [path.name]
+    return target_platforms
+
+
+def preload_core_config(config, result) -> str:
     with cv.prepend_path(CONF_ESPHOME):
         conf = PRELOAD_CONFIG_SCHEMA(config[CONF_ESPHOME])
 
@@ -187,12 +222,18 @@ def preload_core_config(config, result):
         conf[CONF_BUILD_PATH] = os.path.join(build_path, CORE.name)
     CORE.build_path = CORE.relative_internal_path(conf[CONF_BUILD_PATH])
 
-    target_platforms = [key for key in TARGET_PLATFORMS if key in config]
+    target_platforms = []
+
+    for domain, _ in config.items():
+        if domain.startswith("."):
+            continue
+        if _is_target_platform(domain):
+            target_platforms += [domain]
 
     if not target_platforms:
         raise cv.Invalid(
             "Platform missing. You must include one of the available platform keys: "
-            + ", ".join(TARGET_PLATFORMS),
+            + ", ".join(_list_target_platforms()),
             [CONF_ESPHOME],
         )
     if len(target_platforms) > 1:
@@ -202,6 +243,7 @@ def preload_core_config(config, result):
         )
 
     config[CONF_ESPHOME] = conf
+    return target_platforms[0]
 
 
 def include_file(path, basename):
@@ -331,7 +373,19 @@ async def to_code(config):
         CORE.add_job(add_arduino_global_workaround)
 
     if config[CONF_INCLUDES]:
-        CORE.add_job(add_includes, config[CONF_INCLUDES])
+        # Get the <...> includes
+        system_includes = []
+        other_includes = []
+        for include in config[CONF_INCLUDES]:
+            if include.startswith("<") and include.endswith(">"):
+                system_includes.append(include)
+            else:
+                other_includes.append(include)
+        # <...> includes should be at the start
+        for include in system_includes:
+            cg.add_global(cg.RawStatement(f"#include {include}"), prepend=True)
+        # Other includes should be at the end
+        CORE.add_job(add_includes, other_includes)
 
     if project_conf := config.get(CONF_PROJECT):
         cg.add_define("ESPHOME_PROJECT_NAME", project_conf[CONF_NAME])
