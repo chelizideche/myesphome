@@ -144,7 +144,7 @@ DriverChip(
         (IDMOFF,),
     ),
 )
-DriverChip(
+ILI9341 = DriverChip(
     "ILI9341",
     mirror_x=True,
     width=240,

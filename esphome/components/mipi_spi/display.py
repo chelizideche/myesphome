@@ -52,6 +52,7 @@ from .models import (
     MADCTL_YFLIP,
     DriverChip,
     amoled,
+    cyd,
     ili,
     jc,
     lanbon,
@@ -81,11 +82,8 @@ DriverChip("CUSTOM", initsequence={})
 
 MODELS = DriverChip.models
 # These statements are noops, but serve to suppress linting of side-effect-only imports
-MODELS.update(ili.models)
-MODELS.update(jc.models)
-MODELS.update(amoled.models)
-MODELS.update(lilygo.models)
-MODELS.update(lanbon.models)
+for _ in (ili, jc, amoled, lilygo, lanbon, cyd):
+    pass
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
