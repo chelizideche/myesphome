@@ -13,6 +13,8 @@ from esphome.const import (
     CONF_VARIANT,
 )
 
+CODEOWNERS = ["@MeisterSchlaueLampe"]
+
 DEPENDENCIES = ["i2c"]
 
 sht20_ns = cg.esphome_ns.namespace("sht20")
@@ -39,7 +41,6 @@ CONFIG_SCHEMA = (
     .extend(cv.polling_component_schema("60s"))
     .extend(i2c.i2c_device_schema(0x40))
 )
-
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])

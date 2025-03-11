@@ -6,7 +6,7 @@
 // (After I read the datasheet again and implemented the OTP reload procedure)
 // https://github.com/MeisterSchlaueLampe/esphome-components
 
-// The maximum sensor update frequency using this implementation is <= 1 Hz,
+// The maximum sensor update frequency using this implementation is ~ 1 Hz,
 // which should be okay for an ambient sensor.
 
 // There are no optional extra features available because this implementation uses
@@ -35,7 +35,7 @@ static const uint8_t SHT20_CMD_READ_USER_REG   = 0xE7;
 
 // For now just wait 100ms after each command.
 // This should be safe, since the maximum expected exec delay for the SHT20 is < 90ms.
-static const uint8_t SHT20_DELAY = 100;
+static const uint8_t SHT20_COMMAND_TIMEOUT = 100;
 
 bool SHT20Component::send_command_( uint8_t cmd )
 {
@@ -120,7 +120,7 @@ void SHT20Component::advance_measurements_()
       }
       break;
     case 5:
-      ESP_LOGD( TAG, "SHT20 reading humidity value" );
+      ESP_LOGD( TAG, "SHT20 reading humidity" );
       if ( this->read( & this->measurement_results_[ 2 ], 2 ) != i2c::ERROR_OK )
       {
         ESP_LOGE( TAG, "SHT20 humidity reading not ready yet!" );
@@ -159,10 +159,9 @@ void SHT20Component::advance_measurements_()
   else
   { // not done yet : continue with next step
     this->measurement_progress_ += 1;
-    this->set_timeout( SHT20_DELAY, [this]() { this->advance_measurements_(); } );
+    this->set_timeout( SHT20_COMMAND_TIMEOUT, [this]() { this->advance_measurements_(); } );
   }
 }
-
 
 bool SHT20Component::force_otp_reload_()
 { // force OTP reload during next measurement ( see SHT20 datasheet section 5.8 )
