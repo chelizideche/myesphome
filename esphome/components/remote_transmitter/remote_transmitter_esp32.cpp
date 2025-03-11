@@ -3,6 +3,7 @@
 #include "esphome/core/application.h"
 
 #ifdef USE_ESP32
+#include <driver/gpio.h>
 
 namespace esphome {
 namespace remote_transmitter {
@@ -11,13 +12,13 @@ static const char *const TAG = "remote_transmitter";
 
 void RemoteTransmitterComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Remote Transmitter...");
+  this->inverted_ = this->pin_->is_inverted();
   this->configure_rmt_();
 }
 
 void RemoteTransmitterComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Transmitter:");
 #if ESP_IDF_VERSION_MAJOR >= 5
-  ESP_LOGCONFIG(TAG, "  One wire: %s", this->one_wire_ ? "true" : "false");
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
   ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
 #else
@@ -37,11 +38,37 @@ void RemoteTransmitterComponent::dump_config() {
   }
 }
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+void RemoteTransmitterComponent::digital_write(bool value) {
+  rmt_symbol_word_t symbol = {
+      .duration0 = 1,
+      .level0 = value,
+      .duration1 = 0,
+      .level1 = value,
+  };
+  rmt_transmit_config_t config;
+  memset(&config, 0, sizeof(config));
+  config.loop_count = 0;
+  config.flags.eot_level = value;
+  esp_err_t error = rmt_transmit(this->channel_, this->encoder_, &symbol, sizeof(symbol), &config);
+  if (error != ESP_OK) {
+    ESP_LOGW(TAG, "rmt_transmit failed: %s", esp_err_to_name(error));
+    this->status_set_warning();
+  }
+  error = rmt_tx_wait_all_done(this->channel_, -1);
+  if (error != ESP_OK) {
+    ESP_LOGW(TAG, "rmt_tx_wait_all_done failed: %s", esp_err_to_name(error));
+    this->status_set_warning();
+  }
+}
+#endif
+
 void RemoteTransmitterComponent::configure_rmt_() {
 #if ESP_IDF_VERSION_MAJOR >= 5
   esp_err_t error;
 
   if (!this->initialized_) {
+    bool open_drain = (this->pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
     rmt_tx_channel_config_t channel;
     memset(&channel, 0, sizeof(channel));
     channel.clk_src = RMT_CLK_SRC_DEFAULT;
@@ -49,8 +76,8 @@ void RemoteTransmitterComponent::configure_rmt_() {
     channel.gpio_num = gpio_num_t(this->pin_->get_pin());
     channel.mem_block_symbols = this->rmt_symbols_;
     channel.trans_queue_depth = 1;
-    channel.flags.io_loop_back = this->one_wire_;
-    channel.flags.io_od_mode = this->one_wire_;
+    channel.flags.io_loop_back = open_drain;
+    channel.flags.io_od_mode = open_drain;
     channel.flags.invert_out = 0;
     channel.flags.with_dma = this->with_dma_;
     channel.intr_priority = 0;
@@ -64,6 +91,11 @@ void RemoteTransmitterComponent::configure_rmt_() {
       }
       this->mark_failed();
       return;
+    }
+    if (this->pin_->get_flags() & gpio::FLAG_PULLUP) {
+      gpio_pullup_en(gpio_num_t(this->pin_->get_pin()));
+    } else {
+      gpio_pullup_dis(gpio_num_t(this->pin_->get_pin()));
     }
 
     rmt_copy_encoder_config_t encoder;
@@ -83,6 +115,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
       this->mark_failed();
       return;
     }
+    this->digital_write(open_drain || this->inverted_);
     this->initialized_ = true;
   }
 
@@ -120,13 +153,12 @@ void RemoteTransmitterComponent::configure_rmt_() {
   }
 
   c.tx_config.idle_output_en = true;
-  if (!this->pin_->is_inverted()) {
+  if (!this->inverted_) {
     c.tx_config.carrier_level = RMT_CARRIER_LEVEL_HIGH;
     c.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
   } else {
     c.tx_config.carrier_level = RMT_CARRIER_LEVEL_LOW;
     c.tx_config.idle_level = RMT_IDLE_LEVEL_HIGH;
-    this->inverted_ = true;
   }
 
   esp_err_t error = rmt_config(&c);
@@ -210,7 +242,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
     rmt_transmit_config_t config;
     memset(&config, 0, sizeof(config));
     config.loop_count = 0;
-    config.flags.eot_level = this->inverted_;
+    config.flags.eot_level = this->eot_level_;
     esp_err_t error = rmt_transmit(this->channel_, this->encoder_, this->rmt_temp_.data(),
                                    this->rmt_temp_.size() * sizeof(rmt_symbol_word_t), &config);
     if (error != ESP_OK) {
@@ -223,8 +255,6 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
     if (error != ESP_OK) {
       ESP_LOGW(TAG, "rmt_tx_wait_all_done failed: %s", esp_err_to_name(error));
       this->status_set_warning();
-    } else {
-      this->status_clear_warning();
     }
     if (i + 1 < send_times)
       delayMicroseconds(send_wait);
