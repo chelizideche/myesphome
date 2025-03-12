@@ -408,26 +408,6 @@ def validate_thermostat(config):
                         f"{CONF_DEFAULT_TARGET_TEMPERATURE_HIGH} for {preset_config[CONF_NAME]} is set to {preset_max_temperature} which is more than the visual maximum temperature of {visual_max_temperature}"
                     )
 
-        # Keep temperature validation
-        for preset_config in config[CONF_PRESET]:
-            try:
-                preset_min_temperature = preset_config[
-                    CONF_DEFAULT_TARGET_TEMPERATURE_LOW
-                ]
-                preset_max_temperature = preset_config[
-                    CONF_DEFAULT_TARGET_TEMPERATURE_HIGH
-                ]
-            except KeyError:
-                pass
-            else:
-                if (
-                    str(preset_min_temperature).lower() == TEMPERATURE_VALUE_KEEP
-                    or str(preset_max_temperature).lower() == TEMPERATURE_VALUE_KEEP
-                ):
-                    raise cv.Invalid(
-                        f"with two-point target temperature {CONF_DEFAULT_TARGET_TEMPERATURE_LOW} and {CONF_DEFAULT_TARGET_TEMPERATURE_HIGH} cannot be {TEMPERATURE_VALUE_KEEP} as in preset {preset_config[CONF_NAME]} "
-                    )
-
         # Mode validation
         for preset_config in config[CONF_PRESET]:
             if CONF_MODE not in preset_config:
@@ -929,32 +909,42 @@ async def to_code(config):
                 standard_preset = climate.CLIMATE_PRESETS[name.upper()]
 
             if two_points_available:
+                preset_min_temperature = preset_config[
+                    CONF_DEFAULT_TARGET_TEMPERATURE_LOW
+                ]
+                preset_max_temperature = preset_config[
+                    CONF_DEFAULT_TARGET_TEMPERATURE_HIGH
+                ]
                 preset_target_config = ThermostatClimateTargetTempConfig(
-                    preset_config[CONF_DEFAULT_TARGET_TEMPERATURE_LOW],
-                    preset_config[CONF_DEFAULT_TARGET_TEMPERATURE_HIGH],
+                    preset_min_temperature
+                    if preset_min_temperature != TEMPERATURE_VALUE_KEEP
+                    else float("nan"),
+                    preset_max_temperature
+                    if preset_max_temperature != TEMPERATURE_VALUE_KEEP
+                    else float("nan"),
                 )
             elif CONF_DEFAULT_TARGET_TEMPERATURE_HIGH in preset_config:
                 preset_max_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_HIGH
                 ]
-                # due to config validation, the preset_max_temperature can be TEMPERATURE_VALUE_KEEP or a float value
-                if preset_max_temperature == TEMPERATURE_VALUE_KEEP:
-                    preset_target_config = ThermostatClimateTargetTempConfig()
-                else:
-                    preset_target_config = ThermostatClimateTargetTempConfig(
-                        preset_max_temperature
-                    )
+                preset_target_config = ThermostatClimateTargetTempConfig(
+                    # Due to config validation, the preset_max_temperature can be
+                    # a float value or TEMPERATURE_VALUE_KEEP, no other values.
+                    preset_max_temperature
+                    if preset_max_temperature != TEMPERATURE_VALUE_KEEP
+                    else float("nan")
+                )
             elif CONF_DEFAULT_TARGET_TEMPERATURE_LOW in preset_config:
                 preset_min_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_LOW
                 ]
-                # due to config validation, the preset_min_temperature can be TEMPERATURE_VALUE_KEEP or a float value
-                if preset_min_temperature == TEMPERATURE_VALUE_KEEP:
-                    preset_target_config = ThermostatClimateTargetTempConfig()
-                else:
-                    preset_target_config = ThermostatClimateTargetTempConfig(
-                        preset_min_temperature
-                    )
+                preset_target_config = ThermostatClimateTargetTempConfig(
+                    # Due to config validation, the preset_min_temperature can be
+                    # a float value or TEMPERATURE_VALUE_KEEP, no other values.
+                    preset_min_temperature
+                    if preset_min_temperature != TEMPERATURE_VALUE_KEEP
+                    else float("nan")
+                )
             else:
                 preset_target_config = None
 

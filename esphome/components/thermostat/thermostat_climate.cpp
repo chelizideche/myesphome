@@ -1049,16 +1049,25 @@ bool ThermostatClimate::change_preset_internal_(const ThermostatClimateTargetTem
   bool something_changed = false;
 
   if (this->supports_two_points_) {
-    if (this->target_temperature_low != config.default_temperature_low) {
+    if (std::isnan(config.default_temperature_low)) {
+      ESP_LOGV(TAG, "Preset's default_temperature_low is NaN, not changing current target value %.2f",
+               this->target_temperature_low);
+    } else if (this->target_temperature_low != config.default_temperature_low) {
       this->target_temperature_low = config.default_temperature_low;
       something_changed = true;
     }
-    if (this->target_temperature_high != config.default_temperature_high) {
+    if (std::isnan(config.default_temperature_high)) {
+      ESP_LOGV(TAG, "Preset's default_temperature_high is NaN, not changing current target value %.2f",
+               this->target_temperature_high);
+    } else if (this->target_temperature_high != config.default_temperature_high) {
       this->target_temperature_high = config.default_temperature_high;
       something_changed = true;
     }
   } else {
-    if (std::isfinite(config.default_temperature) && (this->target_temperature != config.default_temperature)) {
+    if (std::isnan(config.default_temperature)) {
+      ESP_LOGV(TAG, "Preset's default_temperature is NaN, not changing current target value %.2f",
+               this->target_temperature);
+    } else if (this->target_temperature != config.default_temperature) {
       this->target_temperature = config.default_temperature;
       something_changed = true;
     }
