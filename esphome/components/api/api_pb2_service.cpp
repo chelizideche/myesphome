@@ -282,24 +282,6 @@ bool APIServerConnectionBase::send_select_state_response(const SelectStateRespon
 #endif
 #ifdef USE_SELECT
 #endif
-#ifdef USE_SIREN
-bool APIServerConnectionBase::send_list_entities_siren_response(const ListEntitiesSirenResponse &msg) {
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  ESP_LOGVV(TAG, "send_list_entities_siren_response: %s", msg.dump().c_str());
-#endif
-  return this->send_message_<ListEntitiesSirenResponse>(msg, 55);
-}
-#endif
-#ifdef USE_SIREN
-bool APIServerConnectionBase::send_siren_state_response(const SirenStateResponse &msg) {
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  ESP_LOGVV(TAG, "send_siren_state_response: %s", msg.dump().c_str());
-#endif
-  return this->send_message_<SirenStateResponse>(msg, 56);
-}
-#endif
-#ifdef USE_SIREN
-#endif
 #ifdef USE_LOCK
 bool APIServerConnectionBase::send_list_entities_lock_response(const ListEntitiesLockResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -345,6 +327,8 @@ bool APIServerConnectionBase::send_media_player_state_response(const MediaPlayer
 }
 #endif
 #ifdef USE_MEDIA_PLAYER
+#endif
+#ifdef USE_BLUETOOTH_PROXY
 #endif
 #ifdef USE_BLUETOOTH_PROXY
 bool APIServerConnectionBase::send_bluetooth_le_advertisement_response(const BluetoothLEAdvertisementResponse &msg) {
@@ -467,6 +451,8 @@ bool APIServerConnectionBase::send_bluetooth_device_unpairing_response(const Blu
 #endif
   return this->send_message_<BluetoothDeviceUnpairingResponse>(msg, 86);
 }
+#endif
+#ifdef USE_BLUETOOTH_PROXY
 #endif
 #ifdef USE_BLUETOOTH_PROXY
 bool APIServerConnectionBase::send_bluetooth_device_clear_cache_response(const BluetoothDeviceClearCacheResponse &msg) {
@@ -900,17 +886,6 @@ bool APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 #endif
       break;
     }
-    case 57: {
-#ifdef USE_SIREN
-      SirenCommandRequest msg;
-      msg.decode(msg_data, msg_size);
-#ifdef HAS_PROTO_MESSAGE_DUMP
-      ESP_LOGVV(TAG, "on_siren_command_request: %s", msg.dump().c_str());
-#endif
-      this->on_siren_command_request(msg);
-#endif
-      break;
-    }
     case 60: {
 #ifdef USE_LOCK
       LockCommandRequest msg;
@@ -945,12 +920,14 @@ bool APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       break;
     }
     case 66: {
+#ifdef USE_BLUETOOTH_PROXY
       SubscribeBluetoothLEAdvertisementsRequest msg;
       msg.decode(msg_data, msg_size);
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_subscribe_bluetooth_le_advertisements_request: %s", msg.dump().c_str());
 #endif
       this->on_subscribe_bluetooth_le_advertisements_request(msg);
+#endif
       break;
     }
     case 68: {
@@ -1042,12 +1019,14 @@ bool APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       break;
     }
     case 87: {
+#ifdef USE_BLUETOOTH_PROXY
       UnsubscribeBluetoothLEAdvertisementsRequest msg;
       msg.decode(msg_data, msg_size);
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_unsubscribe_bluetooth_le_advertisements_request: %s", msg.dump().c_str());
 #endif
       this->on_unsubscribe_bluetooth_le_advertisements_request(msg);
+#endif
       break;
     }
     case 89: {
@@ -1423,19 +1402,6 @@ void APIServerConnection::on_number_command_request(const NumberCommandRequest &
   this->number_command(msg);
 }
 #endif
-#ifdef USE_SELECT
-void APIServerConnection::on_select_command_request(const SelectCommandRequest &msg) {
-  if (!this->is_connection_setup()) {
-    this->on_no_setup_connection();
-    return;
-  }
-  if (!this->is_authenticated()) {
-    this->on_unauthenticated_access();
-    return;
-  }
-  this->select_command(msg);
-}
-#endif
 #ifdef USE_TEXT
 void APIServerConnection::on_text_command_request(const TextCommandRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1449,8 +1415,8 @@ void APIServerConnection::on_text_command_request(const TextCommandRequest &msg)
   this->text_command(msg);
 }
 #endif
-#ifdef USE_SIREN
-void APIServerConnection::on_siren_command_request(const SirenCommandRequest &msg) {
+#ifdef USE_SELECT
+void APIServerConnection::on_select_command_request(const SelectCommandRequest &msg) {
   if (!this->is_connection_setup()) {
     this->on_no_setup_connection();
     return;
@@ -1459,7 +1425,7 @@ void APIServerConnection::on_siren_command_request(const SirenCommandRequest &ms
     this->on_unauthenticated_access();
     return;
   }
-  this->siren_command(msg);
+  this->select_command(msg);
 }
 #endif
 #ifdef USE_BUTTON
@@ -1553,6 +1519,20 @@ void APIServerConnection::on_date_time_command_request(const DateTimeCommandRequ
   this->datetime_command(msg);
 }
 #endif
+#ifdef USE_UPDATE
+void APIServerConnection::on_update_command_request(const UpdateCommandRequest &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  this->update_command(msg);
+}
+#endif
+#ifdef USE_BLUETOOTH_PROXY
 void APIServerConnection::on_subscribe_bluetooth_le_advertisements_request(
     const SubscribeBluetoothLEAdvertisementsRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1565,6 +1545,7 @@ void APIServerConnection::on_subscribe_bluetooth_le_advertisements_request(
   }
   this->subscribe_bluetooth_le_advertisements(msg);
 }
+#endif
 #ifdef USE_BLUETOOTH_PROXY
 void APIServerConnection::on_bluetooth_device_request(const BluetoothDeviceRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1656,6 +1637,24 @@ void APIServerConnection::on_bluetooth_gatt_notify_request(const BluetoothGATTNo
   this->bluetooth_gatt_notify(msg);
 }
 #endif
+#ifdef USE_BLUETOOTH_PROXY
+void APIServerConnection::on_subscribe_bluetooth_connections_free_request(
+    const SubscribeBluetoothConnectionsFreeRequest &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  BluetoothConnectionsFreeResponse ret = this->subscribe_bluetooth_connections_free(msg);
+  if (!this->send_bluetooth_connections_free_response(ret)) {
+    this->on_fatal_error();
+  }
+}
+#endif
+#ifdef USE_BLUETOOTH_PROXY
 void APIServerConnection::on_unsubscribe_bluetooth_le_advertisements_request(
     const UnsubscribeBluetoothLEAdvertisementsRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1668,6 +1667,7 @@ void APIServerConnection::on_unsubscribe_bluetooth_le_advertisements_request(
   }
   this->unsubscribe_bluetooth_le_advertisements(msg);
 }
+#endif
 #ifdef USE_VOICE_ASSISTANT
 void APIServerConnection::on_subscribe_voice_assistant_request(const SubscribeVoiceAssistantRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1679,6 +1679,35 @@ void APIServerConnection::on_subscribe_voice_assistant_request(const SubscribeVo
     return;
   }
   this->subscribe_voice_assistant(msg);
+}
+#endif
+#ifdef USE_VOICE_ASSISTANT
+void APIServerConnection::on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  VoiceAssistantConfigurationResponse ret = this->voice_assistant_get_configuration(msg);
+  if (!this->send_voice_assistant_configuration_response(ret)) {
+    this->on_fatal_error();
+  }
+}
+#endif
+#ifdef USE_VOICE_ASSISTANT
+void APIServerConnection::on_voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  this->voice_assistant_set_configuration(msg);
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL

@@ -37,6 +37,18 @@ enum FanDirection : uint32_t {
   FAN_DIRECTION_FORWARD = 0,
   FAN_DIRECTION_REVERSE = 1,
 };
+enum ColorMode : uint32_t {
+  COLOR_MODE_UNKNOWN = 0,
+  COLOR_MODE_ON_OFF = 1,
+  COLOR_MODE_BRIGHTNESS = 2,
+  COLOR_MODE_WHITE = 7,
+  COLOR_MODE_COLOR_TEMPERATURE = 11,
+  COLOR_MODE_COLD_WARM_WHITE = 19,
+  COLOR_MODE_RGB = 35,
+  COLOR_MODE_RGB_WHITE = 39,
+  COLOR_MODE_RGB_COLOR_TEMPERATURE = 47,
+  COLOR_MODE_RGB_COLD_WARM_WHITE = 51,
+};
 enum SensorStateClass : uint32_t {
   STATE_CLASS_NONE = 0,
   STATE_CLASS_MEASUREMENT = 1,
@@ -160,6 +172,11 @@ enum BluetoothDeviceRequestType : uint32_t {
 enum VoiceAssistantSubscribeFlag : uint32_t {
   VOICE_ASSISTANT_SUBSCRIBE_NONE = 0,
   VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO = 1,
+};
+enum VoiceAssistantRequestFlag : uint32_t {
+  VOICE_ASSISTANT_REQUEST_NONE = 0,
+  VOICE_ASSISTANT_REQUEST_USE_VAD = 1,
+  VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD = 2,
 };
 enum VoiceAssistantEvent : uint32_t {
   VOICE_ASSISTANT_ERROR = 0,
@@ -477,7 +494,7 @@ class ListEntitiesFanResponse : public ProtoMessage {
   bool supports_oscillation{false};
   bool supports_speed{false};
   bool supports_direction{false};
-  int32_t supported_speed_levels{0};
+  int32_t supported_speed_count{0};
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
@@ -542,7 +559,7 @@ class ListEntitiesLightResponse : public ProtoMessage {
   uint32_t key{0};
   std::string name{};
   std::string unique_id{};
-  std::vector<int32_t> supported_color_modes{};
+  std::vector<enums::ColorMode> supported_color_modes{};
   bool legacy_supports_brightness{false};
   bool legacy_supports_rgb{false};
   bool legacy_supports_white_value{false};
@@ -568,7 +585,7 @@ class LightStateResponse : public ProtoMessage {
   uint32_t key{0};
   bool state{false};
   float brightness{0.0f};
-  int32_t color_mode{0};
+  enums::ColorMode color_mode{};
   float color_brightness{0.0f};
   float red{0.0f};
   float green{0.0f};
@@ -596,7 +613,7 @@ class LightCommandRequest : public ProtoMessage {
   bool has_brightness{false};
   float brightness{0.0f};
   bool has_color_mode{false};
-  int32_t color_mode{0};
+  enums::ColorMode color_mode{};
   bool has_color_brightness{false};
   float color_brightness{0.0f};
   bool has_rgb{false};
@@ -639,7 +656,7 @@ class ListEntitiesSensorResponse : public ProtoMessage {
   bool force_update{false};
   std::string device_class{};
   enums::SensorStateClass state_class{};
-  enums::SensorLastResetType last_reset_type{};
+  enums::SensorLastResetType legacy_last_reset_type{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
   void encode(ProtoWriteBuffer buffer) const override;
@@ -1019,7 +1036,7 @@ class ClimateStateResponse : public ProtoMessage {
   float target_temperature{0.0f};
   float target_temperature_low{0.0f};
   float target_temperature_high{0.0f};
-  bool legacy_away{false};
+  bool unused_legacy_away{false};
   enums::ClimateAction action{};
   enums::ClimateFanMode fan_mode{};
   enums::ClimateSwingMode swing_mode{};
@@ -1049,8 +1066,8 @@ class ClimateCommandRequest : public ProtoMessage {
   float target_temperature_low{0.0f};
   bool has_target_temperature_high{false};
   float target_temperature_high{0.0f};
-  bool has_legacy_away{false};
-  bool legacy_away{false};
+  bool unused_has_legacy_away{false};
+  bool unused_legacy_away{false};
   bool has_fan_mode{false};
   enums::ClimateFanMode fan_mode{};
   bool has_swing_mode{false};
@@ -1171,62 +1188,6 @@ class SelectCommandRequest : public ProtoMessage {
  protected:
   bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-};
-class ListEntitiesSirenResponse : public ProtoMessage {
- public:
-  std::string object_id{};
-  uint32_t key{0};
-  std::string name{};
-  std::string unique_id{};
-  std::string icon{};
-  bool disabled_by_default{false};
-  std::vector<std::string> tones{};
-  bool supports_duration{false};
-  bool supports_volume{false};
-  enums::EntityCategory entity_category{};
-  void encode(ProtoWriteBuffer buffer) const override;
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  void dump_to(std::string &out) const override;
-#endif
-
- protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
-};
-class SirenStateResponse : public ProtoMessage {
- public:
-  uint32_t key{0};
-  bool state{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  void dump_to(std::string &out) const override;
-#endif
-
- protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
-};
-class SirenCommandRequest : public ProtoMessage {
- public:
-  uint32_t key{0};
-  bool has_state{false};
-  bool state{false};
-  bool has_tone{false};
-  std::string tone{};
-  bool has_duration{false};
-  uint32_t duration{0};
-  bool has_volume{false};
-  float volume{0.0f};
-  void encode(ProtoWriteBuffer buffer) const override;
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  void dump_to(std::string &out) const override;
-#endif
-
- protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ListEntitiesLockResponse : public ProtoMessage {
  public:
@@ -1386,7 +1347,7 @@ class MediaPlayerCommandRequest : public ProtoMessage {
 };
 class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
-  int32_t flags{0};
+  uint32_t flags{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
