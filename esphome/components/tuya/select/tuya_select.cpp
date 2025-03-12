@@ -31,7 +31,10 @@ void TuyaSelect::control(const std::string &value) {
   if (idx.has_value()) {
     uint8_t mapping = this->mappings_.at(idx.value());
     ESP_LOGV(TAG, "Setting %u datapoint value to %u:%s", this->select_id_, mapping, value.c_str());
-    this->parent_->set_enum_datapoint_value(this->select_id_, mapping);
+    if (this->data_type_)
+      this->parent_->set_integer_datapoint_value(this->select_id_, mapping);
+    else
+      this->parent_->set_enum_datapoint_value(this->select_id_, mapping);
     return;
   }
 
@@ -41,6 +44,7 @@ void TuyaSelect::control(const std::string &value) {
 void TuyaSelect::dump_config() {
   LOG_SELECT("", "Tuya Select", this);
   ESP_LOGCONFIG(TAG, "  Select has datapoint ID %u", this->select_id_);
+  ESP_LOGCONFIG(TAG, "  Data type: %s", this->data_type_ ? "int" : "enum");
   ESP_LOGCONFIG(TAG, "  Options are:");
   auto options = this->traits.get_options();
   for (auto i = 0; i < this->mappings_.size(); i++) {

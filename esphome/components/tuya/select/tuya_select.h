@@ -18,6 +18,7 @@ class TuyaSelect : public select::Select, public Component {
   void set_optimistic(bool optimistic) { this->optimistic_ = optimistic; }
   void set_select_id(uint8_t select_id) { this->select_id_ = select_id; }
   void set_select_mappings(std::vector<uint8_t> mappings) { this->mappings_ = std::move(mappings); }
+  void set_data_type(uint8_t data_type) { this->data_type_ = data_type; }
 
  protected:
   void control(const std::string &value) override;
@@ -26,6 +27,7 @@ class TuyaSelect : public select::Select, public Component {
   bool optimistic_ = false;
   uint8_t select_id_;
   std::vector<uint8_t> mappings_;
+  uint8_t data_type_;
 };
 
 }  // namespace tuya

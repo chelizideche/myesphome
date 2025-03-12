@@ -7,6 +7,10 @@ from .. import tuya_ns, CONF_TUYA_ID, Tuya
 DEPENDENCIES = ["tuya"]
 CODEOWNERS = ["@bearpawmaxim"]
 
+CONF_DATA_TYPE = "data_type"
+
+DATA_TYPE = {"enum": 0, "int": 1}
+
 TuyaSelect = tuya_ns.class_("TuyaSelect", select.Select, cg.Component)
 
 
@@ -33,6 +37,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_ENUM_DATAPOINT): cv.uint8_t,
             cv.Required(CONF_OPTIONS): ensure_option_map,
             cv.Optional(CONF_OPTIMISTIC, default=False): cv.boolean,
+            cv.Optional(CONF_DATA_TYPE, default="enum"): cv.enum(DATA_TYPE, lower=True),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -48,3 +53,4 @@ async def to_code(config):
     cg.add(var.set_tuya_parent(parent))
     cg.add(var.set_select_id(config[CONF_ENUM_DATAPOINT]))
     cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))
+    cg.add(var.set_data_type(config[CONF_DATA_TYPE]))
