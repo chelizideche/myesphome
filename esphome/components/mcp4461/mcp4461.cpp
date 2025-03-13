@@ -207,7 +207,7 @@ uint16_t Mcp4461Component::get_wiper_level_(Mcp4461WiperIdx wiper) {
   }
   if (!(this->reg_[wiper_idx].enabled)) {
     ESP_LOGW(TAG, "reading from disabled volatile wiper %" PRIu8 ", returning 0", wiper_idx);
-    return static_cast<uint16_t>(0);
+    return 0;
   }
   return this->read_wiper_level_(wiper_idx);
 }
