@@ -2,3 +2,16 @@ Import("env")
 
 board_config = env.BoardConfig()
 board_config.update("frameworks", ["arduino", "zephyr"])
+
+# Fix build flags to ensure proper spacing
+build_flags = env.get("BUILD_FLAGS", [])
+fixed_build_flags = []
+
+for flag in build_flags:
+    # Ensure flags that might be concatenated with include paths have a space at the end
+    if flag.startswith("-fno-exceptions") and not flag.endswith(" "):
+        fixed_build_flags.append(flag + " ")
+    else:
+        fixed_build_flags.append(flag)
+
+env.Replace(BUILD_FLAGS=fixed_build_flags)
