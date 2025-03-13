@@ -154,7 +154,7 @@ void WeatherStationProtocol::dump(const WeatherStationData &data) {
 
 // WS2032
 
-void WS2032Protocol::setup() {
+void WeatherStation2032Protocol::setup() {
   this->sync_high_ = 2000;
   this->sync_low_ = 500;
   this->zero_high_ = 500;
@@ -167,7 +167,7 @@ void WS2032Protocol::setup() {
   this->reversed_ = true;
 }
 
-bool WS2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStation2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint32_t chksum = 0;
   for (uint8_t i = 0, pos = 103; i < 12; i++, pos -= 8) {
     chksum += GET_BITS(code, pos, 8);
@@ -195,14 +195,14 @@ bool WS2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationD
   return true;
 }
 
-bool WS2032Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStation2032Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode WS2032");
   return false;
 }
 
 // 4LD631
 
-void WS4LD631Protocol::setup() {
+void WeatherStation4LD631Protocol::setup() {
   this->sync_high_ = 4000;
   this->sync_low_ = 500;
   this->zero_high_ = 1000;
@@ -215,7 +215,7 @@ void WS4LD631Protocol::setup() {
   this->reversed_ = true;
 }
 
-bool WS4LD631Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStation4LD631Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   if ((uint8_t) GET_BITS(code, 24, 4) != 0b1111) {  // unknown, always 0b1111?
     ESP_LOGV(TAG, "[24:27] should be 0b1111");
     return false;
@@ -231,7 +231,7 @@ bool WS4LD631Protocol::transform(const std::vector<uint8_t> &code, WeatherStatio
   return true;
 }
 
-bool WS4LD631Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStation4LD631Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   SET_BITS(code, 44, 8, data.id);
   SET_BITS(code, 43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
   // SET_BITS(code, 42, 1, 0);
@@ -245,7 +245,7 @@ bool WS4LD631Protocol::transform(const WeatherStationData &data, std::vector<uin
 
 // H10515
 
-void WSH10515Protocol::setup() {
+void WeatherStationH10515Protocol::setup() {
   this->sync_high_ = 500;
   this->sync_low_ = 9000;
   this->zero_high_ = 500;
@@ -258,7 +258,7 @@ void WSH10515Protocol::setup() {
   this->reversed_ = false;
 }
 
-bool WSH10515Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStationH10515Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint8_t chksum = 0;
   for (int i = 0; i < 8; i++) {
     chksum = (chksum + (uint8_t) GET_BITS(code, i * 4, 4)) & 0b1111;
@@ -285,14 +285,14 @@ bool WSH10515Protocol::transform(const std::vector<uint8_t> &code, WeatherStatio
   return true;
 }
 
-bool WSH10515Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStationH10515Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode H10515");
   return true;
 }
 
 // L08037A
 
-void WSL08037AProtocol::setup() {
+void WeatherStationL08037AProtocol::setup() {
   this->sync_high_ = 500;
   this->sync_low_ = 9500;
   this->zero_high_ = 500;
@@ -305,7 +305,7 @@ void WSL08037AProtocol::setup() {
   this->reversed_ = true;
 }
 
-bool WSL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint8_t chksum = 0b1111;
   for (int i = 0; i < 6; i++) {
     chksum = (chksum + (uint8_t) GET_BITS(code, i * 4, 4)) & 0b1111;
@@ -325,14 +325,14 @@ bool WSL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStati
   return true;
 }
 
-bool WSL08037AProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStationL08037AProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode l08037a");
   return true;
 }
 
 // NEXUS
 
-void WSNexusProtocol::setup() {
+void WeatherStationNexusProtocol::setup() {
   this->sync_high_ = 500;
   this->sync_low_ = 4000;
   this->zero_high_ = 500;
@@ -345,7 +345,7 @@ void WSNexusProtocol::setup() {
   this->reversed_ = true;
 }
 
-bool WSNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   // 3E806DF2F id=3E, battery ok, 10.9C, 47%
   // 0011 1110 1000 0000 0110 1101 1111 0010 1111
 
@@ -366,7 +366,7 @@ bool WSNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStation
   return true;
 }
 
-bool WSNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode nexus");
   return true;
 }
