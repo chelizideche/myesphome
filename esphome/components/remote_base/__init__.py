@@ -22,7 +22,6 @@ from esphome.const import (
     CONF_INVERTED,
     CONF_LEVEL,
     CONF_MAGNITUDE,
-    CONF_MODEL,
     CONF_NBITS,
     CONF_ONE,
     CONF_PROTOCOL,
@@ -2025,17 +2024,25 @@ async def Toto_action(var, config, args):
     cg.add(var.set_command(template_))
 
 
-# LidlAuriol
-(
-    LidlAuriolData,
-    LidlAuriolBinarySensor,
-    LidlAuriolTrigger,
-    LidlAuriolAction,
-    LidlAuriolDumper,
-) = declare_protocol("LidlAuriol")
-LIDL_AURIOL_SCHEMA = cv.Schema(
+# WeatherStation
+WeatherStationData = ns.struct("WeatherStationData")
+# WeatherStationBinarySensor = ns.class_("BinarySensorBinarySensor", RemoteReceiverBinarySensorBase)
+# WeatherStationTrigger = ns.class_("WeatherStationTrigger", RemoteReceiverTrigger)
+WeatherStationAction = ns.class_("WeatherStationAction", RemoteTransmitterActionBase)
+WeatherStationDumper = ns.class_("WeatherStationDumper", RemoteTransmitterDumper)
+WS2032Trigger = ns.class_("WS2032Trigger", RemoteReceiverTrigger)
+WS2032Action = ns.class_("WS2032Action", WeatherStationAction)
+WS4LD631Trigger = ns.class_("WS4LD631Trigger", RemoteReceiverTrigger)
+WS4LD631Action = ns.class_("WS4LD631Action", WeatherStationAction)
+WSH10515Trigger = ns.class_("WSH10515Trigger", RemoteReceiverTrigger)
+WSH10515Action = ns.class_("WSH10515Action", WeatherStationAction)
+WSL08037ATrigger = ns.class_("WSL08037ATrigger", RemoteReceiverTrigger)
+WSL08037AAction = ns.class_("WSL08037AAction", WeatherStationAction)
+WSNexusTrigger = ns.class_("WSNexusTrigger", RemoteReceiverTrigger)
+WSNexusAction = ns.class_("WSNexusAction", WeatherStationAction)
+
+WEATHER_STATION_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_MODEL): cv.string,
         cv.Optional(CONF_ID): cv.uint8_t,
         cv.Optional(CONF_BATTERY_LEVEL): cv.float_,
         cv.Optional(CONF_CHANNEL): cv.uint8_t,
@@ -2049,21 +2056,45 @@ LIDL_AURIOL_SCHEMA = cv.Schema(
 )
 
 
-@register_trigger("lidl_auriol", LidlAuriolTrigger, LidlAuriolData)
-def lidl_auriol_trigger(var, config):
+@register_dumper("weather_station", WeatherStationDumper)
+def weather_station_dumper(var, config):
     pass
 
 
-@register_dumper("lidl_auriol", LidlAuriolDumper)
-def lidl_auriol_dumper(var, config):
+@register_trigger("ws_2032", WS2032Trigger, WeatherStationData)
+def ws_2032_trigger(var, config):
     pass
 
 
-@register_action("lidl_auriol", LidlAuriolAction, LIDL_AURIOL_SCHEMA)
-def lidl_auriol_action(var, config, args):
-    cg.add(
-        var.set_model((yield cg.templatable(config[CONF_MODEL], args, cg.std_string)))
-    )
+@register_trigger("ws_4ld631", WS4LD631Trigger, WeatherStationData)
+def ws_4ld631_trigger(var, config):
+    pass
+
+
+@register_trigger("ws_h10515", WSH10515Trigger, WeatherStationData)
+def ws_h10515_trigger(var, config):
+    pass
+
+
+@register_trigger("ws_l08037a", WSL08037ATrigger, WeatherStationData)
+def ws_l08037a_trigger(var, config):
+    pass
+
+
+@register_trigger("ws_nexus", WSNexusTrigger, WeatherStationData)
+def ws_nexus_trigger(var, config):
+    pass
+
+
+# TODO: set_* only the necessary fields
+
+
+# @register_action("ws_2032", WS2032Action, WEATHER_STATION_SCHEMA)
+@register_action("ws_4ld631", WS4LD631Action, WEATHER_STATION_SCHEMA)
+# @register_action("ws_h10515", WSH10515Action, WEATHER_STATION_SCHEMA)
+# @register_action("ws_l08037a", WSL08037AAction, WEATHER_STATION_SCHEMA)
+# @register_action("ws_nexus", WSNexusAction, WEATHER_STATION_SCHEMA)
+def weather_station_action(var, config, args):
     if CONF_ID in config:
         cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
     if CONF_BATTERY_LEVEL in config:
