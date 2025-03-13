@@ -72,110 +72,119 @@ template<typename... Ts> class WeatherStationAction : public RemoteTransmitterAc
   }
 };
 
+template<typename T> class WeatherStationBinarySensor : public RemoteReceiverBinarySensorBase {
+ protected:
+  bool matches(RemoteReceiveData src) override {
+    auto proto = T();
+    auto res = proto.decode(src);
+    return res.has_value();
+  }
+};
+
 using WeatherStationDumper = RemoteReceiverDumper<WeatherStationProtocol>;
 
 // WS2032
 
-class WS2032Protocol : public WeatherStationProtocol {
+class WeatherStation2032Protocol : public WeatherStationProtocol {
  protected:
   void setup() override;
   bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override;
   bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override;
 };
 
-using WS2032BinarySensor = RemoteReceiverBinarySensor<WS2032Protocol>;
-using WS2032Trigger = RemoteReceiverTrigger<WS2032Protocol>;
+using WeatherStation2032BinarySensor = WeatherStationBinarySensor<WeatherStation2032Protocol>;
+using WeatherStation2032Trigger = RemoteReceiverTrigger<WeatherStation2032Protocol>;
 
-template<typename... Ts> class WS2032Action : public WeatherStationAction<Ts...> {
+template<typename... Ts> class WeatherStation2032Action : public WeatherStationAction<Ts...> {
  public:
   void encode(RemoteTransmitData *dst, Ts... x) override {
     WeatherStationData data{};
     this->get_data_(data, x...);
-    WS2032Protocol().encode(dst, data);
+    WeatherStation2032Protocol().encode(dst, data);
   }
 };
 
 // 4LD631
 
-class WS4LD631Protocol : public WeatherStationProtocol {
+class WeatherStation4LD631Protocol : public WeatherStationProtocol {
  protected:
   void setup() override;
   bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override;
   bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override;
 };
 
-using WS4LD631BinarySensor = RemoteReceiverBinarySensor<WS4LD631Protocol>;
-using WS4LD631Trigger = RemoteReceiverTrigger<WS4LD631Protocol>;
+using WeatherStation4LD631BinarySensor = WeatherStationBinarySensor<WeatherStation4LD631Protocol>;
+using WeatherStation4LD631Trigger = RemoteReceiverTrigger<WeatherStation4LD631Protocol>;
 
-template<typename... Ts> class WS4LD631Action : public WeatherStationAction<Ts...> {
+template<typename... Ts> class WeatherStation4LD631Action : public WeatherStationAction<Ts...> {
  public:
   void encode(RemoteTransmitData *dst, Ts... x) override {
     WeatherStationData data{};
     this->get_data_(data, x...);
-    WS4LD631Protocol().encode(dst, data);
+    WeatherStation4LD631Protocol().encode(dst, data);
   }
 };
 
 // H10515
 
-class WSH10515Protocol : public WeatherStationProtocol {
+class WeatherStationH10515Protocol : public WeatherStationProtocol {
  protected:
   void setup() override;
   bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override;
   bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override;
 };
 
-using WSH10515BinarySensor = RemoteReceiverBinarySensor<WSH10515Protocol>;
-using WSH10515Trigger = RemoteReceiverTrigger<WSH10515Protocol>;
+using WeatherStationH10515BinarySensor = WeatherStationBinarySensor<WeatherStationH10515Protocol>;
+using WeatherStationH10515Trigger = RemoteReceiverTrigger<WeatherStationH10515Protocol>;
 
-template<typename... Ts> class WSH10515Action : public WeatherStationAction<Ts...> {
+template<typename... Ts> class WeatherStationH10515Action : public WeatherStationAction<Ts...> {
  public:
   void encode(RemoteTransmitData *dst, Ts... x) override {
     WeatherStationData data{};
     this->get_data_(data, x...);
-    WSH10515Protocol().encode(dst, data);
+    WeatherStationH10515Protocol().encode(dst, data);
   }
 };
 
 // L08037A
 
-class WSL08037AProtocol : public WeatherStationProtocol {
+class WeatherStationL08037AProtocol : public WeatherStationProtocol {
  protected:
   void setup() override;
   bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override;
   bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override;
 };
 
-using WSL08037ABinarySensor = RemoteReceiverBinarySensor<WSL08037AProtocol>;
-using WSL08037ATrigger = RemoteReceiverTrigger<WSL08037AProtocol>;
+using WeatherStationL08037ABinarySensor = WeatherStationBinarySensor<WeatherStationL08037AProtocol>;
+using WeatherStationL08037ATrigger = RemoteReceiverTrigger<WeatherStationL08037AProtocol>;
 
-template<typename... Ts> class WSL08037AAction : public WeatherStationAction<Ts...> {
+template<typename... Ts> class WeatherStationL08037AAction : public WeatherStationAction<Ts...> {
  public:
   void encode(RemoteTransmitData *dst, Ts... x) override {
     WeatherStationData data{};
     this->get_data_(data, x...);
-    WSL08037AProtocol().encode(dst, data);
+    WeatherStationL08037AProtocol().encode(dst, data);
   }
 };
 
 // NEXUS
 
-class WSNexusProtocol : public WeatherStationProtocol {
+class WeatherStationNexusProtocol : public WeatherStationProtocol {
  protected:
   void setup() override;
   bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override;
   bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override;
 };
 
-using WSNexusBinarySensor = RemoteReceiverBinarySensor<WSNexusProtocol>;
-using WSNexusTrigger = RemoteReceiverTrigger<WSNexusProtocol>;
+using WeatherStationNexusBinarySensor = WeatherStationBinarySensor<WeatherStationNexusProtocol>;
+using WeatherStationNexusTrigger = RemoteReceiverTrigger<WeatherStationNexusProtocol>;
 
-template<typename... Ts> class WSNexusAction : public WeatherStationAction<Ts...> {
+template<typename... Ts> class WeatherStationNexusAction : public WeatherStationAction<Ts...> {
  public:
   void encode(RemoteTransmitData *dst, Ts... x) override {
     WeatherStationData data{};
     this->get_data_(data, x...);
-    WSNexusProtocol().encode(dst, data);
+    WeatherStationNexusProtocol().encode(dst, data);
   }
 };
 

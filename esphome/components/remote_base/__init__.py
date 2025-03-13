@@ -2025,21 +2025,14 @@ async def Toto_action(var, config, args):
 
 
 # WeatherStation
-WeatherStationData = ns.struct("WeatherStationData")
-# WeatherStationBinarySensor = ns.class_("BinarySensorBinarySensor", RemoteReceiverBinarySensorBase)
-# WeatherStationTrigger = ns.class_("WeatherStationTrigger", RemoteReceiverTrigger)
-WeatherStationAction = ns.class_("WeatherStationAction", RemoteTransmitterActionBase)
-WeatherStationDumper = ns.class_("WeatherStationDumper", RemoteTransmitterDumper)
-WS2032Trigger = ns.class_("WS2032Trigger", RemoteReceiverTrigger)
-WS2032Action = ns.class_("WS2032Action", WeatherStationAction)
-WS4LD631Trigger = ns.class_("WS4LD631Trigger", RemoteReceiverTrigger)
-WS4LD631Action = ns.class_("WS4LD631Action", WeatherStationAction)
-WSH10515Trigger = ns.class_("WSH10515Trigger", RemoteReceiverTrigger)
-WSH10515Action = ns.class_("WSH10515Action", WeatherStationAction)
-WSL08037ATrigger = ns.class_("WSL08037ATrigger", RemoteReceiverTrigger)
-WSL08037AAction = ns.class_("WSL08037AAction", WeatherStationAction)
-WSNexusTrigger = ns.class_("WSNexusTrigger", RemoteReceiverTrigger)
-WSNexusAction = ns.class_("WSNexusAction", WeatherStationAction)
+
+(
+    WeatherStationData,
+    WeatherStationBinarySensor,
+    WeatherStationTrigger,
+    WeatherStationAction,
+    WeatherStationDumper,
+) = declare_protocol("WeatherStation")
 
 WEATHER_STATION_SCHEMA = cv.Schema(
     {
@@ -2056,44 +2049,19 @@ WEATHER_STATION_SCHEMA = cv.Schema(
 )
 
 
+def weather_station_binary_sensor(var, config):
+    pass
+
+
+def weather_station_trigger(var, config):
+    pass
+
+
 @register_dumper("weather_station", WeatherStationDumper)
 def weather_station_dumper(var, config):
     pass
 
 
-@register_trigger("ws_2032", WS2032Trigger, WeatherStationData)
-def ws_2032_trigger(var, config):
-    pass
-
-
-@register_trigger("ws_4ld631", WS4LD631Trigger, WeatherStationData)
-def ws_4ld631_trigger(var, config):
-    pass
-
-
-@register_trigger("ws_h10515", WSH10515Trigger, WeatherStationData)
-def ws_h10515_trigger(var, config):
-    pass
-
-
-@register_trigger("ws_l08037a", WSL08037ATrigger, WeatherStationData)
-def ws_l08037a_trigger(var, config):
-    pass
-
-
-@register_trigger("ws_nexus", WSNexusTrigger, WeatherStationData)
-def ws_nexus_trigger(var, config):
-    pass
-
-
-# TODO: set_* only the necessary fields
-
-
-# @register_action("ws_2032", WS2032Action, WEATHER_STATION_SCHEMA)
-@register_action("ws_4ld631", WS4LD631Action, WEATHER_STATION_SCHEMA)
-# @register_action("ws_h10515", WSH10515Action, WEATHER_STATION_SCHEMA)
-# @register_action("ws_l08037a", WSL08037AAction, WEATHER_STATION_SCHEMA)
-# @register_action("ws_nexus", WSNexusAction, WEATHER_STATION_SCHEMA)
 def weather_station_action(var, config, args):
     if CONF_ID in config:
         cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
@@ -2145,3 +2113,112 @@ def weather_station_action(var, config, args):
                 (yield cg.templatable(config[CONF_WIND_GUST], args, cg.float_))
             )
         )
+
+
+# WeatherStation2032
+
+WeatherStation2032BinarySensor = ns.class_(
+    "WeatherStation2032BinarySensor", WeatherStationBinarySensor
+)
+WeatherStation2032Trigger = ns.class_(
+    "WeatherStation2032Trigger", RemoteReceiverTrigger
+)
+WeatherStation2032Action = ns.class_("WeatherStation2032Action", WeatherStationAction)
+
+weather_station_2032_binary_sensor = register_binary_sensor(
+    "weather_station_2032", WeatherStation2032BinarySensor, WEATHER_STATION_SCHEMA
+)(weather_station_binary_sensor)
+
+weather_station_2032_trigger = register_trigger(
+    "weather_station_2032", WeatherStation2032Trigger, WeatherStationData
+)(weather_station_trigger)
+
+weather_station_2032_action = register_action(
+    "weather_station_2032", WeatherStation2032Action, WEATHER_STATION_SCHEMA
+)(weather_station_action)
+
+# WeatherStation4LD631
+
+WeatherStation4LD631BinarySensor = ns.class_(
+    "WeatherStation4LD631BinarySensor", WeatherStationBinarySensor
+)
+WeatherStation4LD631Trigger = ns.class_(
+    "WeatherStation4LD631Trigger", RemoteReceiverTrigger
+)
+WeatherStation4LD631Action = ns.class_(
+    "WeatherStation4LD631Action", WeatherStationAction
+)
+
+weather_station_4ld631_binary_sensor = register_binary_sensor(
+    "weather_station_4ld631", WeatherStation4LD631BinarySensor, WEATHER_STATION_SCHEMA
+)(weather_station_binary_sensor)
+weather_station_4ld631_trigger = register_trigger(
+    "weather_station_4ld631", WeatherStation4LD631Trigger, WeatherStationData
+)(weather_station_trigger)
+weather_station_4ld631_action = register_action(
+    "weather_station_4ld631", WeatherStation4LD631Action, WEATHER_STATION_SCHEMA
+)(weather_station_action)
+
+# WeatherStationH10515
+
+WeatherStationH10515BinarySensor = ns.class_(
+    "WeatherStationH10515BinarySensor", WeatherStationBinarySensor
+)
+WeatherStationH10515Trigger = ns.class_(
+    "WeatherStationH10515Trigger", RemoteReceiverTrigger
+)
+WeatherStationH10515Action = ns.class_(
+    "WeatherStationH10515Action", WeatherStationAction
+)
+
+weather_station_h10515_binary_sensor = register_binary_sensor(
+    "weather_station_h10515", WeatherStationH10515BinarySensor, WEATHER_STATION_SCHEMA
+)(weather_station_binary_sensor)
+weather_station_h10515_trigger = register_trigger(
+    "weather_station_h10515", WeatherStationH10515Trigger, WeatherStationData
+)(weather_station_trigger)
+weather_station_h10515_action = register_action(
+    "weather_station_h10515", WeatherStationH10515Action, WEATHER_STATION_SCHEMA
+)(weather_station_action)
+
+# WeatherStationL08037A
+
+WeatherStationL08037ABinarySensor = ns.class_(
+    "WeatherStationL08037ABinarySensor", WeatherStationBinarySensor
+)
+WeatherStationL08037ATrigger = ns.class_(
+    "WeatherStationL08037ATrigger", RemoteReceiverTrigger
+)
+WeatherStationL08037AAction = ns.class_(
+    "WeatherStationL08037AAction", WeatherStationAction
+)
+
+weather_station_l08037a_binary_sensor = register_binary_sensor(
+    "weather_station_l08037a", WeatherStationL08037ABinarySensor, WEATHER_STATION_SCHEMA
+)(weather_station_binary_sensor)
+weather_station_l08037a_trigger = register_trigger(
+    "weather_station_l08037a", WeatherStationL08037ATrigger, WeatherStationData
+)(weather_station_trigger)
+weather_station_l08037a_action = register_action(
+    "weather_station_l08037a", WeatherStationL08037AAction, WEATHER_STATION_SCHEMA
+)(weather_station_action)
+
+# WeatherStationNexus
+
+WeatherStationNexusBinarySensor = ns.class_(
+    "WeatherStationNexusBinarySensor", WeatherStationBinarySensor
+)
+WeatherStationNexusTrigger = ns.class_(
+    "WeatherStationNexusTrigger", RemoteReceiverTrigger
+)
+WeatherStationNexusAction = ns.class_("WeatherStationNexusAction", WeatherStationAction)
+
+weather_station_nexus_binary_sensor = register_binary_sensor(
+    "weather_station_nexus", WeatherStationNexusBinarySensor, WEATHER_STATION_SCHEMA
+)(weather_station_binary_sensor)
+weather_station_nexus_trigger = register_trigger(
+    "weather_station_nexus", WeatherStationNexusTrigger, WeatherStationData
+)(weather_station_trigger)
+weather_station_nexus_action = register_action(
+    "weather_station_nexus", WeatherStationNexusAction, WEATHER_STATION_SCHEMA
+)(weather_station_action)
