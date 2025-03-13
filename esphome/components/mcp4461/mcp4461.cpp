@@ -53,10 +53,13 @@ void Mcp4461Component::initialize_terminal_disabled(Mcp4461WiperIdx wiper, char 
   switch (terminal) {
     case 'a':
       this->reg_[wiper_idx].terminal_a = false;
+      break;
     case 'b':
       this->reg_[wiper_idx].terminal_b = false;
+      break;
     case 'w':
       this->reg_[wiper_idx].terminal_w = false;
+      break;
   }
 }
 
