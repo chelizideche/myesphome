@@ -53,13 +53,10 @@ void Mcp4461Component::initialize_terminal_disabled(Mcp4461WiperIdx wiper, char 
   switch (terminal) {
     case 'a':
       this->reg_[wiper_idx].terminal_a = false;
-      break;
     case 'b':
       this->reg_[wiper_idx].terminal_b = false;
-      break;
     case 'w':
       this->reg_[wiper_idx].terminal_w = false;
-      break;
   }
 }
 
@@ -407,21 +404,16 @@ uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx termi
   } else {
     i = 2;
   }
-  uint8_t new_value_byte_array[8];
-  new_value_byte_array[0] = static_cast<uint8_t>(this->reg_[i].terminal_b);
-  new_value_byte_array[1] = static_cast<uint8_t>(this->reg_[i].terminal_w);
-  new_value_byte_array[2] = static_cast<uint8_t>(this->reg_[i].terminal_a);
-  new_value_byte_array[3] = static_cast<uint8_t>(this->reg_[i].terminal_hw);
-  new_value_byte_array[4] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b);
-  new_value_byte_array[5] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w);
-  new_value_byte_array[6] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a);
-  new_value_byte_array[7] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw);
-  unsigned char new_value_byte = 0;
-  uint8_t b;
-  for (b = 0; b < 8; b++) {
-    new_value_byte += (new_value_byte_array[b] << (7 - b));
-  }
-  return static_cast<uint8_t>(new_value_byte);
+  uint8_t new_value_byte;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b);
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w) << 1;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a) << 2;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw) << 3;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b) << 4;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w) << 5;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a) << 6;
+  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw) << 7;
+  return new_value_byte;
 }
 
 uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
