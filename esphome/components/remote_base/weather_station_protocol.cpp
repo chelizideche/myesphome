@@ -13,10 +13,11 @@ static const char *const TAG = "remote.weather_station";
 optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData src) {
   this->setup();
 
+  WeatherStationData data;
   std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8));
   uint32_t index_limit = (uint32_t) std::max(src.size() - (this->nbits_ + 1) * 2, (int32_t) 0);
-
   //  TODO: limit search to nbits * N, where N is a small number, preferably
+
   while (src.get_index() <= index_limit) {
     uint32_t index = src.get_index();
     if (!this->receive_(src, code)) {
@@ -25,9 +26,9 @@ optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData sr
       continue;
     }
 
-    WeatherStationData data;
+    // transform may also return false if it needs more packets to complete data
     if (this->transform(code, data)) {
-      ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+      ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.2f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
                data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
                data.wind_gust);
       return data;
@@ -40,7 +41,7 @@ void WeatherStationProtocol::encode(RemoteTransmitData *dst, const WeatherStatio
   this->setup();
   std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8), 0);
   if (this->transform(data, code)) {
-    ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+    ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.2f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
              data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
              data.wind_gust);
     dst->set_carrier_frequency(38000);  // TODO: channel?
@@ -51,7 +52,7 @@ void WeatherStationProtocol::encode(RemoteTransmitData *dst, const WeatherStatio
 }
 
 void WeatherStationProtocol::dump(const WeatherStationData &data) {
-  ESP_LOGI(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+  ESP_LOGI(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.2f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
            data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
            data.wind_gust);
 }
@@ -370,6 +371,88 @@ bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, We
 
 bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode nexus");
+  return true;
+}
+
+// H13726
+
+void WeatherStationH13726Protocol::setup() {
+  this->sync_high_ = 500;
+  this->sync_low_ = 9000;
+  this->zero_high_ = 500;
+  this->zero_low_ = 2000;
+  this->one_high_ = 500;
+  this->one_low_ = 4000;
+  this->inverted_ = false;
+  this->nbits_ = 36;
+  this->repeat_ = 8;
+  this->reversed_ = false;
+}
+
+bool WeatherStationH13726Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  // https://github.com/gabest11/datasheet/blob/main/auriol_protocol_v20.pdf
+
+  // only the rain sensor was tested, the other part is beyond repair, it has spent 20 years outside
+
+  uint8_t chksum1 = 0b1111;
+  uint8_t chksum2 = 0b0111;
+
+  for (int i = 0; i < 8; i++) {
+    uint8_t b = (uint8_t) get_bits(code, i * 4, 4);
+    chksum1 = (chksum1 - b) & 0b1111;
+    chksum2 = (chksum2 + b) & 0b1111;
+  }
+
+  uint8_t chksum = (uint8_t) get_bits(code, 32, 4);
+
+  if (get_bits(code, 9, 2) != 0b11) {  // temperature and humidity
+    if (chksum != chksum1) {
+      ESP_LOGV(TAG, "chksum1 mismatch %x != %x", chksum, chksum1);
+      return false;
+    }
+    data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) << 4)) / 160;
+    data.humidity = 10.0f * get_bits(code, 28, 4) + get_bits(code, 24, 4);
+    // TODO: wind packets may also be in this transmission burst, not sure
+    // return false;
+  } else {
+    uint8_t type = get_bits(code, 12, 3);
+    if (type == 0b011) {  // rain
+      // D000B3602 2.75mm
+      // 1101 0000 0000 0000 1011 0011 0110 0000 0010
+      if (chksum != chksum2) {
+        ESP_LOGV(TAG, "chksum2 mismatch %x != %x", chksum, chksum2);
+        return false;
+      }
+      if (get_bits(code, 15, 1) != 0) {  // always 0?
+        return false;
+      }
+      data.rain = (float) get_bits(code, 16, 16) * 0.25f;
+    } else {
+      if (chksum != chksum1) {
+        ESP_LOGV(TAG, "chksum1 mismatch %x != %x", chksum, chksum1);
+        return false;
+      }
+      if (type == 0b001) {  // wind part 1
+        data.wind_speed = (float) get_bits(code, 24, 8) * 0.2f;
+        // we still need to see the "wind part 2"
+        return false;
+      } else if (type == 0b111) {  // wind part 2
+        data.wind_direction_degrees = get_bits(code, 15, 9);
+        data.wind_gust = (float) get_bits(code, 24, 8) * 0.2f;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  data.id = get_bits(code, 0, 8);  // keeps changing between resets
+  data.battery_level = get_bits(code, 8, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = get_bits(code, 11, 1) == 1;
+  return true;
+}
+
+bool WeatherStationH13726Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode h13726");
   return true;
 }
 
