@@ -8,36 +8,53 @@ namespace remote_base {
 
 static const char *const TAG = "remote.weather_station";
 
-uint32_t GET_BITS(const std::vector<uint8_t> &code, uint8_t pos, uint8_t nbits) {
-  if (pos + nbits > code.size() * 8) {
-    ESP_LOGE(TAG, "GET_BITS out of range");
-    return 0;
-  }
-
-  uint32_t c = 0;
-
-  if ((pos & 7) == 0) {
-    for (uint8_t i = 0; i < nbits; i += 8, pos += 8) {
-      c |= (uint32_t) code[pos >> 3] << i;
-    }
-    if ((nbits & 7) != 0) {
-      c &= 0xffffffff >> (32 - nbits);
-    }
-  } else {
-    for (uint8_t i = 0; i < nbits; i++, pos++) {
-      if (code[pos >> 3] & (1 << (pos & 7)))
-        c |= (uint32_t) 1 << i;
-    }
-  }
-
-  return c;
-}
-
-void SET_BITS(std::vector<uint8_t> &code, uint8_t pos, uint8_t nbits, uint32_t c) {
-  // TODO
-}
-
 // WeatherStationProtocol
+
+optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData src) {
+  this->setup();
+
+  std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8));
+  uint32_t index_limit = (uint32_t) std::max(src.size() - (this->nbits_ + 1) * 2, (int32_t) 0);
+
+  //  TODO: limit search to nbits * N, where N is a small number, preferably
+  while (src.get_index() <= index_limit) {
+    uint32_t index = src.get_index();
+    if (!this->receive_(src, code)) {
+      src.reset();
+      src.advance(index + 1);
+      continue;
+    }
+
+    WeatherStationData data;
+    if (this->transform(code, data)) {
+      ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+               data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
+               data.wind_gust);
+      return data;
+    }
+  }
+  return {};
+}
+
+void WeatherStationProtocol::encode(RemoteTransmitData *dst, const WeatherStationData &data) {
+  this->setup();
+  std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8), 0);
+  if (this->transform(data, code)) {
+    ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+             data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
+             data.wind_gust);
+    dst->set_carrier_frequency(38000);  // TODO: channel?
+    for (int i = 0; i < this->repeat_; i++) {
+      this->transmit_(dst, code);
+    }
+  }
+}
+
+void WeatherStationProtocol::dump(const WeatherStationData &data) {
+  ESP_LOGI(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+           data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
+           data.wind_gust);
+}
 
 bool WeatherStationProtocol::receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const {
   if (!this->inverted_) {
@@ -106,50 +123,35 @@ void WeatherStationProtocol::transmit_(RemoteTransmitData *dst, const std::vecto
   }
 }
 
-optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData src) {
-  this->setup();
+//
 
-  std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8));
-  int32_t index_limit = std::max(src.size() - (this->nbits_ + 1) * 2, (int32_t) 0);
+static uint32_t get_bits(const std::vector<uint8_t> &code, uint8_t pos, uint8_t nbits) {
+  if (pos + nbits > code.size() * 8) {
+    ESP_LOGE(TAG, "get_bits_ out of range");
+    return 0;
+  }
 
-  //  TODO: limit search to nbits * N, where N is a small number, preferably
-  while (src.get_index() <= index_limit) {
-    uint32_t index = src.get_index();
-    if (!this->receive_(src, code)) {
-      src.reset();
-      src.advance(index + 1);
-      continue;
+  uint32_t c = 0;
+
+  if ((pos & 7) == 0) {
+    for (uint8_t i = 0; i < nbits; i += 8, pos += 8) {
+      c |= (uint32_t) code[pos >> 3] << i;
     }
-
-    WeatherStationData data;
-    if (this->transform(code, data)) {
-      ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
-               data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
-               data.wind_gust);
-      return data;
+    if ((nbits & 7) != 0) {
+      c &= 0xffffffff >> (32 - nbits);
+    }
+  } else {
+    for (uint8_t i = 0; i < nbits; i++, pos++) {
+      if (code[pos >> 3] & (1 << (pos & 7)))
+        c |= (uint32_t) 1 << i;
     }
   }
-  return {};
+
+  return c;
 }
 
-void WeatherStationProtocol::encode(RemoteTransmitData *dst, const WeatherStationData &data) {
-  this->setup();
-  std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8), 0);
-  if (this->transform(data, code)) {
-    ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
-             data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
-             data.wind_gust);
-    dst->set_carrier_frequency(38000);  // TODO: channel?
-    for (int i = 0; i < this->repeat_; i++) {
-      this->transmit_(dst, code);
-    }
-  }
-}
-
-void WeatherStationProtocol::dump(const WeatherStationData &data) {
-  ESP_LOGI(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.1f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
-           data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
-           data.wind_gust);
+static void set_bits(std::vector<uint8_t> &code, uint8_t pos, uint8_t nbits, uint32_t c) {
+  // TODO
 }
 
 // WS2032
@@ -170,27 +172,27 @@ void WeatherStation2032Protocol::setup() {
 bool WeatherStation2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint32_t chksum = 0;
   for (uint8_t i = 0, pos = 103; i < 12; i++, pos -= 8) {
-    chksum += GET_BITS(code, pos, 8);
+    chksum += get_bits(code, pos, 8);
   }
   chksum &= 0xff;
-  if (GET_BITS(code, 7, 8) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) GET_BITS(code, 7, 8), chksum);
+  if (get_bits(code, 7, 8) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 7, 8), chksum);
     return false;
   }
 
   // TODO: crc8
 
-  // PRE = GET_BITS(code, 103, 8)
-  data.id = GET_BITS(code, 87, 16);
-  data.battery_level = (GET_BITS(code, 79, 8) & 1) ? 100.0f : 0;
-  // FLAG = GET_BITS(code, 79, 8)
-  data.wind_direction_degrees = 22.5f * GET_BITS(code, 75, 4);
-  data.temperature = (GET_BITS(code, 74, 1) ? -0.1f : 0.1f) * GET_BITS(code, 63, 11);
-  data.humidity = GET_BITS(code, 55, 8);
-  data.wind_speed = 0.43f * GET_BITS(code, 47, 8);
-  data.wind_gust = 0.43f * GET_BITS(code, 39, 8);
-  data.rain = (float) GET_BITS(code, 15, 24);  // conversion to mm?
-  // ? = GET_BITS(code, 0, 7)
+  // PRE = get_bits(code, 103, 8)
+  data.id = get_bits(code, 87, 16);
+  data.battery_level = (get_bits(code, 79, 8) & 1) ? 100.0f : 0;
+  // FLAG = get_bits(code, 79, 8)
+  data.wind_direction_degrees = 22.5f * get_bits(code, 75, 4);
+  data.temperature = (get_bits(code, 74, 1) ? -0.1f : 0.1f) * get_bits(code, 63, 11);
+  data.humidity = get_bits(code, 55, 8);
+  data.wind_speed = 0.43f * get_bits(code, 47, 8);
+  data.wind_gust = 0.43f * get_bits(code, 39, 8);
+  data.rain = (float) get_bits(code, 15, 24);  // conversion to mm?
+  // ? = get_bits(code, 0, 7)
 
   return true;
 }
@@ -216,30 +218,30 @@ void WeatherStation4LD631Protocol::setup() {
 }
 
 bool WeatherStation4LD631Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  if ((uint8_t) GET_BITS(code, 24, 4) != 0b1111) {  // unknown, always 0b1111?
+  if ((uint8_t) get_bits(code, 24, 4) != 0b1111) {  // unknown, always 0b1111?
     ESP_LOGV(TAG, "[24:27] should be 0b1111");
     return false;
   }
 
-  data.id = (uint16_t) GET_BITS(code, 44, 8);
-  data.battery_level = (uint8_t) GET_BITS(code, 43, 1) == 1 ? 100.0f : 0;
-  // 0 = (uint8_t) GET_BITS(code, 42, 1); // ?
-  data.channel = (uint8_t) GET_BITS(code, 40, 2);
-  data.temperature = (float) ((int16_t) (GET_BITS(code, 28, 12) << 4)) / 160;
-  data.humidity = (uint8_t) GET_BITS(code, 16, 8);
-  data.rain = (float) GET_BITS(code, 0, 16) * 0.242f;
+  data.id = (uint16_t) get_bits(code, 44, 8);
+  data.battery_level = (uint8_t) get_bits(code, 43, 1) == 1 ? 100.0f : 0;
+  // 0 = (uint8_t) get_bits(code, 42, 1); // ?
+  data.channel = (uint8_t) get_bits(code, 40, 2);
+  data.temperature = (float) ((int16_t) (get_bits(code, 28, 12) << 4)) / 160;
+  data.humidity = (uint8_t) get_bits(code, 16, 8);
+  data.rain = (float) get_bits(code, 0, 16) * 0.242f;
   return true;
 }
 
 bool WeatherStation4LD631Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  SET_BITS(code, 44, 8, data.id);
-  SET_BITS(code, 43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
-  // SET_BITS(code, 42, 1, 0);
-  SET_BITS(code, 40, 2, data.channel);
-  SET_BITS(code, 28, 12, (uint64_t) ((int16_t) (data.temperature * 160) >> 4));
-  SET_BITS(code, 24, 4, 0b1111);
-  SET_BITS(code, 16, 8, data.humidity);
-  SET_BITS(code, 0, 16, (uint64_t) (data.rain / 0.242f));
+  set_bits(code, 44, 8, data.id);
+  set_bits(code, 43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
+  // set_bits(code, 42, 1, 0);
+  set_bits(code, 40, 2, data.channel);
+  set_bits(code, 28, 12, (uint64_t) ((int16_t) (data.temperature * 160) >> 4));
+  set_bits(code, 24, 4, 0b1111);
+  set_bits(code, 16, 8, data.humidity);
+  set_bits(code, 0, 16, (uint64_t) (data.rain / 0.242f));
   return true;
 }
 
@@ -261,27 +263,27 @@ void WeatherStationH10515Protocol::setup() {
 bool WeatherStationH10515Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint8_t chksum = 0;
   for (int i = 0; i < 8; i++) {
-    chksum = (chksum + (uint8_t) GET_BITS(code, i * 4, 4)) & 0b1111;
+    chksum = (chksum + (uint8_t) get_bits(code, i * 4, 4)) & 0b1111;
   }
   chksum = ~chksum & 0b1111;
-  if ((uint8_t) GET_BITS(code, 32, 4) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) GET_BITS(code, 32, 4), chksum);
+  if ((uint8_t) get_bits(code, 32, 4) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 32, 4), chksum);
     return false;
   }
-  if (GET_BITS(code, 8, 4) != 0) {  // unknown, always zero(?), sometimes 0b0010
+  if (get_bits(code, 8, 4) != 0) {  // unknown, always zero(?), sometimes 0b0010
     ESP_LOGV(TAG, "[8:11] should be 0");
     // return false;
   }
 
-  data.id = (uint16_t) GET_BITS(code, 0, 4);  // keeps changing between resets
-  data.channel = (uint8_t) ((GET_BITS(code, 4, 1) << 1) | GET_BITS(code, 5, 1));
+  data.id = (uint16_t) get_bits(code, 0, 4);  // keeps changing between resets
+  data.channel = (uint8_t) ((get_bits(code, 4, 1) << 1) | get_bits(code, 5, 1));
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
     return false;
   }
-  // ? == GET_BITS(code, 6, 2) // unknown, battery(?)
-  data.temperature = (GET_BITS(code, 22, 1) ? -0.1f : 0.1f) * GET_BITS(code, 12, 11);
-  data.humidity = 10.0f * GET_BITS(code, 28, 4) + GET_BITS(code, 24, 4);
+  // ? == get_bits(code, 6, 2) // unknown, battery(?)
+  data.temperature = (get_bits(code, 22, 1) ? -0.1f : 0.1f) * get_bits(code, 12, 11);
+  data.humidity = 10.0f * get_bits(code, 28, 4) + get_bits(code, 24, 4);
   return true;
 }
 
@@ -308,20 +310,20 @@ void WeatherStationL08037AProtocol::setup() {
 bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   uint8_t chksum = 0b1111;
   for (int i = 0; i < 6; i++) {
-    chksum = (chksum + (uint8_t) GET_BITS(code, i * 4, 4)) & 0b1111;
+    chksum = (chksum + (uint8_t) get_bits(code, i * 4, 4)) & 0b1111;
   }
-  if ((uint8_t) GET_BITS(code, 24, 4) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) GET_BITS(code, 24, 4), chksum);
+  if ((uint8_t) get_bits(code, 24, 4) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 24, 4), chksum);
     return false;
   }
 
-  data.id = (uint16_t) GET_BITS(code, 16, 8);
-  data.channel = (uint8_t) GET_BITS(code, 2, 2);
+  data.id = (uint16_t) get_bits(code, 16, 8);
+  data.channel = (uint8_t) get_bits(code, 2, 2);
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
     return false;
   }
-  data.temperature = (float) ((int16_t) (GET_BITS(code, 4, 12) << 4)) / 160;
+  data.temperature = (float) ((int16_t) (get_bits(code, 4, 12) << 4)) / 160;
   return true;
 }
 
@@ -353,16 +355,16 @@ bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, We
   // additional valid bits before the next sync
 
   // TODO: chksum?
-  if (GET_BITS(code, 8, 4) != 0b1111) {
+  if (get_bits(code, 8, 4) != 0b1111) {
     ESP_LOGV(TAG, "[8:11] should be 0b1111");
     return false;
   }
 
-  data.id = (uint16_t) GET_BITS(code, 28, 8);
-  data.battery_level = (uint8_t) GET_BITS(code, 27, 1) == 1 ? 100.0f : 0;
-  data.channel = (uint8_t) GET_BITS(code, 24, 2) + 1;
-  data.temperature = (float) ((int16_t) (GET_BITS(code, 12, 12) << 4)) / 160;
-  data.humidity = (uint8_t) GET_BITS(code, 0, 8);
+  data.id = (uint16_t) get_bits(code, 28, 8);
+  data.battery_level = (uint8_t) get_bits(code, 27, 1) == 1 ? 100.0f : 0;
+  data.channel = (uint8_t) get_bits(code, 24, 2) + 1;
+  data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) << 4)) / 160;
+  data.humidity = (uint8_t) get_bits(code, 0, 8);
   return true;
 }
 
