@@ -205,13 +205,17 @@ def validate_font_config(config):
         ]
 
     if font.has_fixed_sizes:
-        available_sizes = [pt_to_px(x.size) for x in font.available_sizes]
-        if CONF_SIZE not in config:
-            config[CONF_SIZE] = available_sizes[0]
-        elif config[CONF_SIZE] not in available_sizes:
-            print(available_sizes, len(available_sizes))
+        sizes = [pt_to_px(x.size) for x in font.available_sizes]
+        if not sizes:
             raise cv.Invalid(
-                f"Font {FontCache.get_name(fileconf)} only has size{'s' if len(available_sizes) != 1 else ''} {', '.join(str(x) for x in available_sizes)}"
+                f"Font {FontCache.get_name(fileconf)} has no available sizes"
+            )
+        if CONF_SIZE not in config:
+            config[CONF_SIZE] = sizes[0]
+        elif config[CONF_SIZE] not in sizes:
+            sizes = ", ".join(str(x) for x in sizes)
+            raise cv.Invalid(
+                f"Font {FontCache.get_name(fileconf)} only has size{'s' if len(sizes) != 1 else ''} {sizes} available"
             )
     elif CONF_SIZE not in config:
         config[CONF_SIZE] = 20
@@ -503,7 +507,9 @@ async def to_code(config):
     # create the data array for all glyphs
     for codepoint in codepoints:
         font = point_font_map[codepoint]
-        font.set_pixel_sizes(size, 0)
+        format = font.get_format().decode("utf-8")
+        if format != "PCF":
+            font.set_pixel_sizes(size, 0)
         font.load_char(codepoint)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
