@@ -128,6 +128,16 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// @param sample_count The number of samples (e.g., 1, 4, 8).
   void set_sample_count(uint8_t sample_count);
 
+  /// Set the sampling mode for how multiple ADC samples are combined into a single measurement.
+  /// 
+  /// When multiple samples are taken (controlled by set_sample_count), they can be combined
+  /// in one of three ways:
+  ///   - SamplingMode::AVG: Compute the average (default)
+  ///   - SamplingMode::MIN: Use the lowest sample value
+  ///   - SamplingMode::MAX: Use the highest sample value
+  /// @param sampling_mode The desired sampling mode to use for aggregating ADC samples.
+  void set_sampling_mode(SamplingMode sampling_mode);
+
   /// Perform a single ADC sampling operation and return the measured value.
   /// This function handles raw readings, calibration, and averaging as needed.
   /// @return The sampled value as a float.
@@ -191,19 +201,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// @param autorange Boolean indicating whether to enable autoranging.
   void set_autorange(bool autorange) { this->autorange_ = autorange; }
 #endif  // USE_ESP32
-
-  /// Update ADC values
-  void update() override;
-  /// Setup ADC
-  void setup() override;
-  void dump_config() override;
-  /// `HARDWARE_LATE` setup priority
-  float get_setup_priority() const override;
-  void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
-  void set_output_raw(bool output_raw) { this->output_raw_ = output_raw; }
-  void set_sample_count(uint8_t sample_count);
-  void set_sampling_mode(SamplingMode sampling_mode);
-  float sample() override;
 
 #ifdef USE_ESP8266
   std::string unique_id() override;
