@@ -1,4 +1,4 @@
-#include "lidl_auriol_protocol.h"
+#include "weather_station_protocol.h"
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 #include <cinttypes>
