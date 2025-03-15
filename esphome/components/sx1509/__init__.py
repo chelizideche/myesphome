@@ -1,13 +1,13 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import automation, pins
+import esphome.codegen as cg
 from esphome.components import i2c, key_provider
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_INPUT,
     CONF_INVERTED,
-    CONF_NUMBER,
     CONF_MODE,
+    CONF_NUMBER,
     CONF_ON_KEY,
     CONF_OPEN_DRAIN,
     CONF_OUTPUT,
@@ -31,17 +31,23 @@ MULTI_CONF = True
 
 sx1509_ns = cg.esphome_ns.namespace("sx1509")
 
-SX1509Component = sx1509_ns.class_("SX1509Component", cg.Component, i2c.I2CDevice, key_provider.KeyProvider)
+SX1509Component = sx1509_ns.class_(
+    "SX1509Component", cg.Component, i2c.I2CDevice, key_provider.KeyProvider
+)
 SX1509GPIOPin = sx1509_ns.class_("SX1509GPIOPin", cg.GPIOPin)
 SX1509KeyTrigger = sx1509_ns.class_(
     "SX1509KeyTrigger", automation.Trigger.template(cg.uint8)
 )
 
+
 def check_keys(config):
     if CONF_KEYS in config:
         if len(config[CONF_KEYS]) != config[CONF_KEY_ROWS] * config[CONF_KEY_COLUMNS]:
-            raise cv.Invalid("The number of key codes must equal the number of rows * columns")
+            raise cv.Invalid(
+                "The number of key codes must equal the number of rows * columns"
+            )
     return config
+
 
 KEYPAD_SCHEMA = cv.All(
     cv.Schema(
