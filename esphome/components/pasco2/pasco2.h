@@ -60,6 +60,7 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
   unsigned long last_action_time_;
   uint8_t remaining_retries_;
   bool initialized_{false};
+  bool calibrating_{false};
 
   bool ambient_pressure_compensation_;
   uint16_t ambient_pressure_;

@@ -292,7 +292,7 @@ void PASCO2Component::dump_config() {
 }
 
 void PASCO2Component::update() {
-  if (!initialized_) {
+  if (!initialized_ || calibrating_) {
     return;
   }
 
@@ -339,31 +339,69 @@ void PASCO2Component::update() {
 }
 
 bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentration) {
-  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG,
-                        XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE | XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE |
-                            XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN,
-                        true)) {
+  calibrating_ = true;
+  
+  //set device to idle 
+  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE, true)) {
     ESP_LOGE(TAG, "Failed to stop measurements");
     this->status_set_warning();
   }
-
-  this->set_timeout(500, [this, current_co2_concentration]() {
-    if (this->write_byte_16(XENSIV_PASCO2_REG_CALIB_REF_H, current_co2_concentration)) {
-      ESP_LOGD(TAG, "setting forced calibration Co2 level %d ppm", current_co2_concentration);
-      delay(400);  // NOLINT wait 400 ms for calibration
-      if (!this->start_measurement_()) {
-        return false;
-      } else {
-        ESP_LOGD(TAG, "forced calibration complete");
-      }
-      return true;
-    } else {
-      ESP_LOGE(TAG, "force calibration failed");
-      this->error_code_ = FRC_FAILED;
+  //set update period to 10s per calibration guide
+  if (!this->write_byte_16(XENSIV_PASCO2_REG_MEAS_RATE_H, (uint16_t)XENSIV_PASCO2_FCS_MEAS_RATE_S)){
+    ESP_LOGW(TAG, "Failed to set measurement period to 10s");
+    this->status_set_warning();
+  }
+  //load calibration value 
+	if (this->write_byte_16(XENSIV_PASCO2_REG_CALIB_REF_H, current_co2_concentration)) {
+      ESP_LOGD(TAG, "setting forced calibration CO2 level %d ppm", current_co2_concentration);
+	}
+   //set force calibration flag, this starts the calibration process and data acquisition
+  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE | XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
+    ESP_LOGE(TAG, "Failed to force calibration");
+    this->status_set_warning();
+  }  
+  //the arduino example code doesn't actually read the values back, it just waits for XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE to be cleared.
+  set_retry(6000, 10, [this](const uint8_t remaining_attempts) {
+		uint8_t read_back = 0;
+		
+		if (!this->read_bytes(XENSIV_PASCO2_REG_MEAS_CFG, &read_back, 1)) {
+		  ESP_LOGD(TAG, "MEAS_CFG read failed");
       this->status_set_warning();
-      return false;
+		  return  RetryResult::RETRY;
+		}
+    
+		if(read_back & XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE)
+    {
+      ESP_LOGD(TAG, "Calibrating...");
+      
+      if(remaining_attempts ==0)
+      {
+        ESP_LOGD(TAG, "calibration timed out!");
+        this->status_set_warning();
+      }
+      return  RetryResult::RETRY;
     }
-  });
+    
+    if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG,XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE, true)) {
+      ESP_LOGE(TAG, "Failed to idle measurement");
+      this->status_set_warning();
+    }
+    
+    //store calibraiton data to NVRAM
+    if (!this->write_byte(XENSIV_PASCO2_REG_SENS_RST, XENSIV_PASCO2_CMD_SAVE_FCS_CALIB_OFFSET, true)) {
+      ESP_LOGE(TAG, "Failed to save calibration to NVRAM");
+      this->status_set_warning();
+    }  
+
+    ESP_LOGD(TAG, "calibration complete!");
+        
+    //restart acquiring co2 data using new calibration, delay seems to reduce odds chip doesn't respond   
+    this->set_timeout(100, [this]() { start_measurement_();});
+    this->set_timeout(200, [this]() { calibrating_ = false;});
+
+		return RetryResult::DONE;
+	}, 1.0f);
+
   return true;
 }
 
