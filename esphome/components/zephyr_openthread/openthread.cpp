@@ -390,6 +390,12 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   }
 }
 
+void *OpenThreadZephyr::pool_alloc_(size_t size) {
+  uint8_t *ptr = new uint8_t[size];
+  this->memory_pool_.emplace_back(std::unique_ptr<uint8_t[]>(ptr));
+  return ptr;
+}
+
 void OpenThreadZephyr::setup_srp_services() {
   otInstance *instance = openthread_get_default_instance();
   if (instance == nullptr) {
@@ -464,32 +470,20 @@ void OpenThreadZephyr::setup_srp_services() {
       // Set TXT records if available
       if (!service.txt_records.empty()) {
         // Allocate memory for TXT entries
-        otDnsTxtEntry *txt_entries = new otDnsTxtEntry[service.txt_records.size()];
-
-        // Store TXT keys and values in member variables to ensure lifetime
-        this->txt_keys_.push_back(std::vector<std::string>());
-        this->txt_values_.push_back(std::vector<std::string>());
-        auto &keys = this->txt_keys_.back();
-        auto &values = this->txt_values_.back();
+        otDnsTxtEntry *mTxtEntries =
+            reinterpret_cast<otDnsTxtEntry *>(this->pool_alloc_(sizeof(otDnsTxtEntry) * service.txt_records.size()));
 
         // Fill TXT entries
         for (size_t i = 0; i < service.txt_records.size(); i++) {
           const auto &txt = service.txt_records[i];
 
-          // Store keys and values
-          keys.push_back(txt.key);
-          values.push_back(txt.value);
-
-          txt_entries[i].mKey = keys.back().c_str();
-          txt_entries[i].mValue = reinterpret_cast<const uint8_t *>(values.back().c_str());
-          txt_entries[i].mValueLength = values.back().size();
+          mTxtEntries[i].mKey = txt.key.c_str();
+          mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(txt.value.c_str());
+          mTxtEntries[i].mValueLength = txt.value.size();
         }
 
-        entry->mService.mTxtEntries = txt_entries;
+        entry->mService.mTxtEntries = mTxtEntries;
         entry->mService.mNumTxtEntries = service.txt_records.size();
-
-        // Store pointer to free later
-        this->txt_entries_.push_back(txt_entries);
       } else {
         entry->mService.mNumTxtEntries = 0;
         entry->mService.mTxtEntries = nullptr;
@@ -560,12 +554,6 @@ void OpenThreadZephyr::on_shutdown() {
     otSrpClientStop(instance);
     ESP_LOGD(TAG, "SRP client stopped");
   }
-
-  // Free allocated memory for TXT entries
-  for (auto txt_entry : this->txt_entries_) {
-    delete[] txt_entry;
-  }
-  this->txt_entries_.clear();
 }
 
 network::IPAddresses OpenThreadZephyr::get_ip_addresses() {

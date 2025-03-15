@@ -75,6 +75,10 @@ class OpenThreadZephyr : public Component {
   // Add get_ip_addresses method
   network::IPAddresses get_ip_addresses();
 
+ private:
+  std::vector<std::unique_ptr<uint8_t[]>> memory_pool_;
+  void *pool_alloc_(size_t size);
+
  protected:
   uint8_t channel_{15};
   uint16_t panid_{0xABCD};
@@ -98,9 +102,6 @@ class OpenThreadZephyr : public Component {
   // SRP service related properties
   std::string host_name_{};
   std::vector<std::string> service_names_{};
-  std::vector<std::vector<std::string>> txt_keys_{};
-  std::vector<std::vector<std::string>> txt_values_{};
-  std::vector<otDnsTxtEntry *> txt_entries_{};
 
   void update_ipv6_addresses();
   void configure_operational_dataset();
