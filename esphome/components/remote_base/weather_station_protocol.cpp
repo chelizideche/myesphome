@@ -157,6 +157,8 @@ static void set_bits(std::vector<uint8_t> &code, uint8_t pos, uint8_t nbits, uin
 
 // WS2032
 
+// Not sure about the different models, sold on Aliexpress
+
 void WeatherStation2032Protocol::setup() {
   this->sync_high_ = 2000;
   this->sync_low_ = 500;
@@ -203,9 +205,16 @@ bool WeatherStation2032Protocol::transform(const WeatherStationData &data, std::
   return false;
 }
 
-// 4LD631
+// Lidl Auriol 4LD*
 
-void WeatherStation4LD631Protocol::setup() {
+// 4-LD5661
+// 4-LD5972
+// 4-LD6313
+// 4-LD6654
+// ... there are many models
+// some don't have a humidity sensor, that field will be zero
+
+void WeatherStation4LDProtocol::setup() {
   this->sync_high_ = 4000;
   this->sync_low_ = 500;
   this->zero_high_ = 1000;
@@ -218,7 +227,7 @@ void WeatherStation4LD631Protocol::setup() {
   this->reversed_ = true;
 }
 
-bool WeatherStation4LD631Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStation4LDProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
   if ((uint8_t) get_bits(code, 24, 4) != 0b1111) {  // unknown, always 0b1111?
     ESP_LOGV(TAG, "[24:27] should be 0b1111");
     return false;
@@ -234,7 +243,7 @@ bool WeatherStation4LD631Protocol::transform(const std::vector<uint8_t> &code, W
   return true;
 }
 
-bool WeatherStation4LD631Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+bool WeatherStation4LDProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   set_bits(code, 44, 8, data.id);
   set_bits(code, 43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
   // set_bits(code, 42, 1, 0);
@@ -247,6 +256,8 @@ bool WeatherStation4LD631Protocol::transform(const WeatherStationData &data, std
 }
 
 // H10515
+
+// Lidl H10515/DCF
 
 void WeatherStationH10515Protocol::setup() {
   this->sync_high_ = 500;
@@ -293,88 +304,15 @@ bool WeatherStationH10515Protocol::transform(const WeatherStationData &data, std
   return true;
 }
 
-// L08037A
-
-void WeatherStationL08037AProtocol::setup() {
-  this->sync_high_ = 500;
-  this->sync_low_ = 9500;
-  this->zero_high_ = 500;
-  this->zero_low_ = 2000;
-  this->one_high_ = 500;
-  this->one_low_ = 4500;
-  this->inverted_ = false;
-  this->nbits_ = 28;
-  this->repeat_ = 8;
-  this->reversed_ = true;
-}
-
-bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  uint8_t chksum = 0b1111;
-  for (int i = 0; i < 6; i++) {
-    chksum = (chksum + (uint8_t) get_bits(code, i * 4, 4)) & 0b1111;
-  }
-  if ((uint8_t) get_bits(code, 24, 4) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 24, 4), chksum);
-    return false;
-  }
-
-  data.id = (uint16_t) get_bits(code, 16, 8);
-  data.channel = (uint8_t) get_bits(code, 2, 2);
-  if (data.channel == 0) {
-    ESP_LOGV(TAG, "channel invalid %d", data.channel);
-    return false;
-  }
-  data.temperature = (float) ((int16_t) (get_bits(code, 4, 12) << 4)) / 160;
-  return true;
-}
-
-bool WeatherStationL08037AProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode l08037a");
-  return true;
-}
-
-// NEXUS
-
-void WeatherStationNexusProtocol::setup() {
-  this->sync_high_ = 500;
-  this->sync_low_ = 4000;
-  this->zero_high_ = 500;
-  this->zero_low_ = 1000;
-  this->one_high_ = 500;
-  this->one_low_ = 2000;
-  this->inverted_ = false;
-  this->nbits_ = 36;
-  this->repeat_ = 8;
-  this->reversed_ = true;
-}
-
-bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  // 3E806DF2F id=3E, battery ok, 10.9C, 47%
-  // 0011 1110 1000 0000 0110 1101 1111 0010 1111
-
-  // the beginning of 4LD631 can be accepted here without chksum, it is only filtered out by checking the presence of
-  // additional valid bits before the next sync
-
-  // TODO: chksum?
-  if (get_bits(code, 8, 4) != 0b1111) {
-    ESP_LOGV(TAG, "[8:11] should be 0b1111");
-    return false;
-  }
-
-  data.id = (uint16_t) get_bits(code, 28, 8);
-  data.battery_level = (uint8_t) get_bits(code, 27, 1) == 1 ? 100.0f : 0;
-  data.channel = (uint8_t) get_bits(code, 24, 2) + 1;
-  data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) << 4)) / 160;
-  data.humidity = (uint8_t) get_bits(code, 0, 8);
-  return true;
-}
-
-bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode nexus");
-  return true;
-}
-
 // H13726
+
+// Lidl Auriol H13726
+// Ventus WS155,
+// Hama EWS 1500,
+// Meteoscan W155/W160
+// https://github.com/gabest11/datasheet/blob/main/auriol_protocol_v20.pdf
+// Unitec W186-F
+// https://github.com/merbanan/rtl_433/blob/master/src/devices/alecto.c
 
 void WeatherStationH13726Protocol::setup() {
   this->sync_high_ = 500;
@@ -390,8 +328,6 @@ void WeatherStationH13726Protocol::setup() {
 }
 
 bool WeatherStationH13726Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  // https://github.com/gabest11/datasheet/blob/main/auriol_protocol_v20.pdf
-
   // only the rain sensor was tested, the other part is beyond repair, it has spent 20 years outside
 
   uint8_t chksum1 = 0b1111;
@@ -453,6 +389,89 @@ bool WeatherStationH13726Protocol::transform(const std::vector<uint8_t> &code, W
 
 bool WeatherStationH13726Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
   ESP_LOGW(TAG, "TODO: encode h13726");
+  return true;
+}
+
+// L08037A
+
+// Lidl 40782 L08037A
+
+void WeatherStationL08037AProtocol::setup() {
+  this->sync_high_ = 500;
+  this->sync_low_ = 9500;
+  this->zero_high_ = 500;
+  this->zero_low_ = 2000;
+  this->one_high_ = 500;
+  this->one_low_ = 4500;
+  this->inverted_ = false;
+  this->nbits_ = 28;
+  this->repeat_ = 8;
+  this->reversed_ = true;
+}
+
+bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  uint8_t chksum = 0b1111;
+  for (int i = 0; i < 6; i++) {
+    chksum = (chksum + (uint8_t) get_bits(code, i * 4, 4)) & 0b1111;
+  }
+  if ((uint8_t) get_bits(code, 24, 4) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 24, 4), chksum);
+    return false;
+  }
+
+  data.id = (uint16_t) get_bits(code, 16, 8);
+  data.channel = (uint8_t) get_bits(code, 2, 2);
+  if (data.channel == 0) {
+    ESP_LOGV(TAG, "channel invalid %d", data.channel);
+    return false;
+  }
+  data.temperature = (float) ((int16_t) (get_bits(code, 4, 12) << 4)) / 160;
+  return true;
+}
+
+bool WeatherStationL08037AProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode l08037a");
+  return true;
+}
+
+// NEXUS
+
+void WeatherStationNexusProtocol::setup() {
+  this->sync_high_ = 500;
+  this->sync_low_ = 4000;
+  this->zero_high_ = 500;
+  this->zero_low_ = 1000;
+  this->one_high_ = 500;
+  this->one_low_ = 2000;
+  this->inverted_ = false;
+  this->nbits_ = 36;
+  this->repeat_ = 8;
+  this->reversed_ = true;
+}
+
+bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  // 3E806DF2F id=3E, battery ok, 10.9C, 47%
+  // 0011 1110 1000 0000 0110 1101 1111 0010 1111
+
+  // the beginning of Lidl Auriol 4LD can be accepted here without chksum, it is only filtered out by checking the
+  // presence of additional valid bits before the next sync
+
+  // TODO: chksum?
+  if (get_bits(code, 8, 4) != 0b1111) {
+    ESP_LOGV(TAG, "[8:11] should be 0b1111");
+    return false;
+  }
+
+  data.id = (uint16_t) get_bits(code, 28, 8);
+  data.battery_level = (uint8_t) get_bits(code, 27, 1) == 1 ? 100.0f : 0;
+  data.channel = (uint8_t) get_bits(code, 24, 2) + 1;
+  data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) << 4)) / 160;
+  data.humidity = (uint8_t) get_bits(code, 0, 8);
+  return true;
+}
+
+bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode nexus");
   return true;
 }
 
