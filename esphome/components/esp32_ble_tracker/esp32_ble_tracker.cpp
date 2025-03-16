@@ -426,7 +426,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
   xSemaphoreGive(this->scan_end_lock_);
 }
 
-void ESP32BLETracker::check_reboot_timeout_(const uint32_t now) {
+void ESP32BLETracker::check_reboot_timeout_(uint32_t now) {
   if (now - this->last_scanned_ >= this->reboot_timeout_) {
     ESP_LOGE(TAG, "Can't get scan results, rebooting...");
     App.reboot();
