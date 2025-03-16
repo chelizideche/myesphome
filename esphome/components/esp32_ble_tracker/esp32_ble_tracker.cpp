@@ -720,7 +720,7 @@ void ESP32BLETracker::dump_config() {
   if (this->reboot_timeout_) {
     uint32_t elapsed =
         this->scanner_idle_ || this->last_scanned_ == 0 ? this->last_scanned_ : millis() - this->last_scanned_;
-    ESP_LOGCONFIG(TAG, "  Elapsed reboot timeout %" PRIu32 "%s", elapsed / 1000,
+    ESP_LOGCONFIG(TAG, "  Elapsed Reboot Timeout: %" PRIu32 "%s", elapsed / 1000,
                   this->last_scanned_ != 0 ? "s" : " (no scan results yet)");
   }
 }
