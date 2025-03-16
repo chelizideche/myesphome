@@ -280,7 +280,7 @@ class ESP32BLETracker : public Component,
   int searching_{0};
   int disconnecting_{0};
   uint32_t last_scanned_{0};
-  uint32_t reboot_timeout_{};
+  uint32_t reboot_timeout_{0};
 };
 
 // NOLINTNEXTLINE
