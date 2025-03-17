@@ -113,7 +113,8 @@ void MAX7219Component::display() {
   // Fill the pixel parameter with display data
   // Send the data to the chip
   for (uint8_t chip_line = 0; chip_line < this->num_chip_lines_; chip_line++) {
-    bool reverse = (chip_line % 2 != 0 && this->chip_lines_style_ == ChipLinesStyle::SNAKE) ? !this->reverse_ : this->reverse_;
+    bool reverse =
+        (chip_line % 2 != 0 && this->chip_lines_style_ == ChipLinesStyle::SNAKE) ? !this->reverse_ : this->reverse_;
     for (uint8_t chip_idx = 0; chip_idx < this->num_chips_ / this->num_chip_lines_; chip_idx++) {
       uint8_t chip = reverse ? (this->num_chips_ / this->num_chip_lines_ - 1 - chip_idx) : chip_idx;
       for (uint8_t j = 0; j < 8; j++) {
@@ -288,7 +289,7 @@ void MAX7219Component::send64pixels(uint8_t chip, const uint8_t pixels[8]) {
     for (int i = 0; i < this->num_chips_ - chip - 1; i++)  // end with enough NOPs so later chips don't update
       this->send_byte_(MAX7219_REGISTER_NOOP, MAX7219_REGISTER_NOOP);
     this->disable();  // all done disable SPI
-  }                   // end of for each column
+  }  // end of for each column
 }  // end of send64pixels
 
 uint8_t MAX7219Component::printdigit(const char *str) { return this->printdigit(0, str); }
