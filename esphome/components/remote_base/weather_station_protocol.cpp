@@ -233,7 +233,7 @@ bool WeatherStation4LDProtocol::transform(const std::vector<uint8_t> &code, Weat
     return false;
   }
 
-  data.id = (uint16_t) get_bits(code, 44, 8);
+  data.id = (uint8_t) get_bits(code, 44, 8);
   data.battery_level = (uint8_t) get_bits(code, 43, 1) == 1 ? 100.0f : 0;
   // 0 = (uint8_t) get_bits(code, 42, 1); // ?
   data.channel = (uint8_t) get_bits(code, 40, 2);
@@ -252,6 +252,84 @@ bool WeatherStation4LDProtocol::transform(const WeatherStationData &data, std::v
   set_bits(code, 24, 4, 0b1111);
   set_bits(code, 16, 8, data.humidity);
   set_bits(code, 0, 16, (uint64_t) (data.rain / 0.242f));
+  return true;
+}
+
+// Bresser3CH
+
+void WeatherStationBresser3CHProtocol::setup() {
+  this->sync_high_ = 750;
+  this->sync_low_ = 750;
+  this->zero_high_ = 250;
+  this->zero_low_ = 500;
+  this->one_high_ = 500;
+  this->one_low_ = 250;
+  this->inverted_ = false;
+  this->nbits_ = 40;
+  this->repeat_ = 8;
+  this->reversed_ = false;
+}
+
+bool WeatherStationBresser3CHProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  uint8_t chksum = 0;
+  for (int i = 1; i < 5; i++) {
+    chksum = (chksum + (uint8_t) get_bits(code, i * 8, 8));
+  }
+  chksum &= 0xff;
+  if ((uint8_t) get_bits(code, 0, 8) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 0, 8), chksum);
+    return false;
+  }
+
+  data.id = (uint8_t) get_bits(code, 32, 8);
+  data.battery_level = (uint8_t) get_bits(code, 31, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = get_bits(code, 30, 1);
+  data.channel = (uint8_t) get_bits(code, 28, 2);  // is ch0 a valid option?
+  data.temperature = (float) get_bits(code, 16, 12) * 0.1f - 90;
+  data.temperature = (data.temperature - 32.0f) * 5.0f / 9.0f;  // F to C
+  data.humidity = (uint8_t) get_bits(code, 8, 8);
+  return true;
+}
+
+bool WeatherStationBresser3CHProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode Bresser3CH");
+  return true;
+}
+
+// Eurochron
+
+void WeatherStationEurochronProtocol::setup() {
+  this->sync_high_ = 500;
+  this->sync_low_ = 4000;
+  this->zero_high_ = 500;
+  this->zero_low_ = 1000;
+  this->one_high_ = 500;
+  this->one_low_ = 2000;
+  this->inverted_ = false;
+  this->nbits_ = 36;
+  this->repeat_ = 8;
+  this->reversed_ = true;
+}
+
+bool WeatherStationEurochronProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  // this may catch Nexus packets, if the 3rd nibblet is 1111, temperature is simply negative
+
+  uint8_t flags = get_bits(code, 20, 8);
+  if ((flags & 0b01101111) != 0) {
+    ESP_LOGV(TAG, "[20:23] and [25:26] should be 0");
+    return false;
+  }
+
+  data.id = (uint8_t) get_bits(code, 28, 8);
+  data.battery_level = (uint8_t) get_bits(code, 27, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = get_bits(code, 24, 1);
+  data.temperature = (float) ((int16_t) (get_bits(code, 0, 12) << 4)) / 160;
+  data.humidity = (uint8_t) get_bits(code, 12, 8);
+  return true;
+}
+
+bool WeatherStationEurochronProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode Eurochron");
   return true;
 }
 
@@ -287,7 +365,7 @@ bool WeatherStationH10515Protocol::transform(const std::vector<uint8_t> &code, W
     // return false;
   }
 
-  data.id = (uint16_t) get_bits(code, 0, 4);  // keeps changing between resets
+  data.id = (uint8_t) get_bits(code, 0, 4);  // keeps changing between resets
   data.channel = (uint8_t) ((get_bits(code, 4, 1) << 1) | get_bits(code, 5, 1));
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
@@ -419,7 +497,7 @@ bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, 
     return false;
   }
 
-  data.id = (uint16_t) get_bits(code, 16, 8);
+  data.id = (uint8_t) get_bits(code, 16, 8);
   data.channel = (uint8_t) get_bits(code, 2, 2);
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
@@ -450,19 +528,16 @@ void WeatherStationNexusProtocol::setup() {
 }
 
 bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  // 3E806DF2F id=3E, battery ok, 10.9C, 47%
-  // 0011 1110 1000 0000 0110 1101 1111 0010 1111
-
   // the beginning of Lidl Auriol 4LD can be accepted here without chksum, it is only filtered out by checking the
   // presence of additional valid bits before the next sync
 
-  // TODO: chksum?
-  if (get_bits(code, 8, 4) != 0b1111) {
-    ESP_LOGV(TAG, "[8:11] should be 0b1111");
+  uint8_t chk = get_bits(code, 8, 4);
+  if (chk != 0b1111 && chk != 0b1010) {
+    ESP_LOGV(TAG, "[8:11] should be 0b1111 or 0b1010");
     return false;
   }
 
-  data.id = (uint16_t) get_bits(code, 28, 8);
+  data.id = (uint8_t) get_bits(code, 28, 8);
   data.battery_level = (uint8_t) get_bits(code, 27, 1) == 1 ? 100.0f : 0;
   data.channel = (uint8_t) get_bits(code, 24, 2) + 1;
   data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) << 4)) / 160;
