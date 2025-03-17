@@ -2139,6 +2139,8 @@ def registere_weather_station_protocol(name):
 
 registere_weather_station_protocol("2032")
 registere_weather_station_protocol("4LD")
+registere_weather_station_protocol("Bresser3CH")
+registere_weather_station_protocol("Eurochron")
 registere_weather_station_protocol("H10515")
 registere_weather_station_protocol("H13726")
 registere_weather_station_protocol("L08037A")

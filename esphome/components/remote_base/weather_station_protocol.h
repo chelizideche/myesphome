@@ -6,7 +6,7 @@ namespace esphome {
 namespace remote_base {
 
 struct WeatherStationData {
-  uint16_t id{};
+  uint8_t id{};
   float battery_level{};
   uint8_t channel{};
   float temperature{};
@@ -97,6 +97,8 @@ template<typename T> class WeatherStationBinarySensor : public RemoteReceiverBin
 
 DECLARE_WEATHER_STATION_PROTOCOL(WeatherStation2032)
 DECLARE_WEATHER_STATION_PROTOCOL(WeatherStation4LD)
+DECLARE_WEATHER_STATION_PROTOCOL(WeatherStationBresser3CH)
+DECLARE_WEATHER_STATION_PROTOCOL(WeatherStationEurochron)
 DECLARE_WEATHER_STATION_PROTOCOL(WeatherStationH10515)
 DECLARE_WEATHER_STATION_PROTOCOL(WeatherStationH13726)
 DECLARE_WEATHER_STATION_PROTOCOL(WeatherStationL08037A)
