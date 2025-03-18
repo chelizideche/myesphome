@@ -89,10 +89,12 @@ bool WeatherStationProtocol::receive_(RemoteReceiveData &src, std::vector<uint8_
 
       if (++nbits == this->nbits_) {
         ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &code[0], nbits);
-        if (this->receive_item_(src, this->zero_high_, this->zero_low_) ||
-            this->receive_item_(src, this->one_high_, this->one_low_)) {
-          ESP_LOGD(TAG, "ignore %" PRIx64 " (%d)", *(uint64_t *) &code[0], nbits);
-          return false;
+        if (src.get_index() < src.size() - 1) {
+          if (this->receive_item_(src, this->zero_high_, this->zero_low_) ||
+              this->receive_item_(src, this->one_high_, this->one_low_)) {
+            ESP_LOGD(TAG, "ignore %" PRIx64 " (%d)", *(uint64_t *) &code[0], nbits);
+            return false;
+          }
         }
         return true;
       }
