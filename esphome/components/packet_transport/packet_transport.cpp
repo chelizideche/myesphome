@@ -66,6 +66,13 @@ enum DataKey {
   ROLLING_CODE_KEY,
 };
 
+enum DecodeResult {
+  DECODE_OK,
+  DECODE_UNMATCHED,
+  DECODE_ERROR,
+  DECODE_EMPTY,
+};
+
 static const size_t MAX_PING_KEYS = 4;
 
 static inline void add(std::vector<uint8_t> &vec, uint32_t data) {
@@ -75,19 +82,101 @@ static inline void add(std::vector<uint8_t> &vec, uint32_t data) {
   vec.push_back((data >> 24) & 0xFF);
 }
 
-static inline uint32_t get_uint32(uint8_t *&buf) {
-  uint32_t data = *buf++;
-  data += *buf++ << 8;
-  data += *buf++ << 16;
-  data += *buf++ << 24;
-  return data;
-}
+class PacketDecoder {
+ public:
+  PacketDecoder(const char *buffer, size_t len) : buffer_(buffer), len_(len) {}
 
-static inline uint16_t get_uint16(uint8_t *&buf) {
-  uint16_t data = *buf++;
-  data += *buf++ << 8;
-  return data;
-}
+  DecodeResult decode_string(char *data, size_t maxlen) {
+    if (this->position_ == this->len_)
+      return DECODE_EMPTY;
+    auto len = this->buffer_[this->position_];
+    if (len == 0 || this->position_ + 1 + len > this->len_ || len >= maxlen)
+      return DECODE_ERROR;
+    this->position_++;
+    memcpy(data, this->buffer_ + this->position_, len);
+    data[len] = 0;
+    this->position_ += len;
+    return DECODE_OK;
+  }
+
+  template<typename T> DecodeResult get(T &data) {
+    if (this->position_ + sizeof(T) > this->len_)
+      return DECODE_ERROR;
+    T value = 0;
+    for (size_t i = 0; i != sizeof(T); ++i) {
+      value += this->buffer_[this->position_++] << (i * 8);
+    }
+    data = value;
+    return DECODE_OK;
+  }
+
+  template<typename T> DecodeResult decode(uint8_t key, T &data) {
+    if (this->position_ == this->len_)
+      return DECODE_EMPTY;
+    if (this->buffer_[this->position_] != key)
+      return DECODE_UNMATCHED;
+    if (this->position_ + 1 + sizeof(T) > this->len_)
+      return DECODE_ERROR;
+    this->position_++;
+    T value = 0;
+    for (size_t i = 0; i != sizeof(T); ++i) {
+      value += this->buffer_[this->position_++] << (i * 8);
+    }
+    data = value;
+    return DECODE_OK;
+  }
+
+  template<typename T> DecodeResult decode(uint8_t key, char *buf, size_t buflen, T &data) {
+    if (this->position_ == this->len_)
+      return DECODE_EMPTY;
+    if (this->buffer_[this->position_] != key)
+      return DECODE_UNMATCHED;
+    this->position_++;
+    T value = 0;
+    for (size_t i = 0; i != sizeof(T); ++i) {
+      value += this->buffer_[this->position_++] << (i * 8);
+    }
+    data = value;
+    return this->decode_string(buf, buflen);
+  }
+
+  DecodeResult decode(uint8_t key) {
+    if (this->position_ == this->len_)
+      return DECODE_EMPTY;
+    if (this->buffer_[this->position_] != key)
+      return DECODE_UNMATCHED;
+    this->position_++;
+    return DECODE_OK;
+  }
+
+  size_t get_remaining_size() const { return this->len_ - this->position_; }
+
+  // align the pointer to the given byte boundary
+  bool bump_to(size_t boundary) {
+    auto newpos = this->position_;
+    auto offset = this->position_ % boundary;
+    if (offset != 0) {
+      newpos += boundary - offset;
+    }
+    if (newpos >= this->len_)
+      return false;
+    this->position_ = newpos;
+    return true;
+  }
+
+  bool decrypt(const uint32_t *key) {
+    if (this->get_remaining_size() % 4 != 0) {
+      return false;
+    }
+    xxtea::decrypt((uint32_t *) (this->buffer_ + this->position_), this->get_remaining_size() / 4, key);
+    return true;
+  }
+
+ protected:
+  const char *buffer_;
+  size_t len_;
+  size_t position_{};
+};
 
 static inline void add(std::vector<uint8_t> &vec, uint8_t data) { vec.push_back(data); }
 static inline void add(std::vector<uint8_t> &vec, uint16_t data) {
@@ -117,6 +206,8 @@ void PacketTransport::setup() {
     this->pref_.load(&this->rolling_code_[1]);
     this->rolling_code_[1]++;
     this->pref_.save(&this->rolling_code_[1]);
+    // must make sure it's saved immediately
+    global_preferences->sync();
     this->ping_key_ = random_uint32();
     ESP_LOGV(TAG, "Rolling code incremented, upper part now %u", (unsigned) this->rolling_code_[1]);
   }
@@ -242,21 +333,12 @@ void PacketTransport::add_key_(const char *name, uint32_t key) {
   ESP_LOGV(TAG, "Ping key from %s now %X", name, (unsigned) key);
 }
 
-void PacketTransport::process_ping_request_(const char *name, uint8_t *ptr, size_t len) {
-  if (len != 4) {
-    ESP_LOGW(TAG, "Bad ping request");
-    return;
-  }
-  auto key = get_uint32(ptr);
-  this->add_key_(name, key);
-  ESP_LOGV(TAG, "Updated ping key for %s to %08X", name, (unsigned) key);
-}
-
-static bool process_rolling_code(Provider &provider, uint8_t *&buf, const uint8_t *end) {
-  if (end - buf < 8)
+static bool process_rolling_code(Provider &provider, PacketDecoder &decoder) {
+  uint32_t code0, code1;
+  if (decoder.get(code0) != DECODE_OK || decoder.get(code1) != DECODE_OK) {
+    ESP_LOGW(TAG, "Rolling code requires 8 bytes");
     return false;
-  auto code0 = get_uint32(buf);
-  auto code1 = get_uint32(buf);
+  }
   if (code1 < provider.last_code[1] || (code1 == provider.last_code[1] && code0 <= provider.last_code[0])) {
     ESP_LOGW(TAG, "Rolling code for %s %08lX:%08lX is old", provider.name, (unsigned long) code1,
              (unsigned long) code0);
@@ -264,6 +346,7 @@ static bool process_rolling_code(Provider &provider, uint8_t *&buf, const uint8_
   }
   provider.last_code[0] = code0;
   provider.last_code[1] = code1;
+  ESP_LOGV(TAG, "Saw new rolling code for %s %08lX:%08lX", provider.name, (unsigned long) code1, (unsigned long) code0);
   return true;
 }
 
@@ -272,46 +355,36 @@ static bool process_rolling_code(Provider &provider, uint8_t *&buf, const uint8_
  */
 void PacketTransport::process_(std::vector<uint8_t> &data) {
   auto ping_key_seen = !this->ping_pong_enable_;
-  auto len = data.size();
-  if (len < 8) {
-    ESP_LOGV(TAG, "Bad length %zu", len);
-    return;
-  }
+  PacketDecoder decoder((const char *) data.data(), data.size());
   char namebuf[256]{};
   uint8_t byte;
-  auto *buf = data.data();
-  uint8_t *start_ptr = buf;
-  const uint8_t *end = buf + len;
   FuData rdata{};
-  auto magic = get_uint16(buf);
+  uint16_t magic;
+  if (decoder.get(magic) != DECODE_OK) {
+    ESP_LOGD(TAG, "Short buffer");
+    return;
+  }
   if (magic != MAGIC_NUMBER && magic != MAGIC_PING) {
     ESP_LOGV(TAG, "Bad magic %X", magic);
     return;
   }
 
-  auto hlen = *buf++;
-  if (hlen > len - 3) {
-    ESP_LOGV(TAG, "Bad hostname length %u > %zu", hlen, len - 3);
+  if (decoder.decode_string(namebuf, sizeof namebuf) != DECODE_OK) {
+    ESP_LOGV(TAG, "Bad hostname length");
     return;
   }
-  memcpy(namebuf, buf, hlen);
   if (strcmp(this->name_, namebuf) == 0) {
-    ESP_LOGV(TAG, "Ignoring our own data");
+    ESP_LOGVV(TAG, "Ignoring our own data");
     return;
   }
-  buf += hlen;
   if (magic == MAGIC_PING) {
-    this->process_ping_request_(namebuf, buf, end - buf);
-    return;
-  }
-  if (round4(len) != len) {
-    ESP_LOGW(TAG, "Bad length %zu", len);
-    return;
-  }
-  hlen = round4(hlen + 3);
-  buf = start_ptr + hlen;
-  if (buf == end) {
-    ESP_LOGV(TAG, "No data after header");
+    uint32_t key;
+    if (decoder.get(key) != DECODE_OK) {
+      ESP_LOGW(TAG, "Bad ping request");
+      return;
+    }
+    this->add_key_(namebuf, key);
+    ESP_LOGV(TAG, "Updated ping key for %s to %08X", namebuf, (unsigned) key);
     return;
   }
 
@@ -319,12 +392,8 @@ void PacketTransport::process_(std::vector<uint8_t> &data) {
     ESP_LOGVV(TAG, "Unknown hostname %s", namebuf);
     return;
   }
-  auto &provider = this->providers_[namebuf];
-  // if encryption not used with this host, ping check is pointless since it would be easily spoofed.
-  if (provider.encryption_key.empty())
-    ping_key_seen = true;
-
   ESP_LOGV(TAG, "Found hostname %s", namebuf);
+
 #ifdef USE_SENSOR
   auto &sensors = this->remote_sensors_[namebuf];
 #endif
@@ -332,27 +401,40 @@ void PacketTransport::process_(std::vector<uint8_t> &data) {
   auto &binary_sensors = this->remote_binary_sensors_[namebuf];
 #endif
 
-  if (!provider.encryption_key.empty()) {
-    xxtea::decrypt((uint32_t *) buf, (end - buf) / 4, (uint32_t *) provider.encryption_key.data());
+  if (!decoder.bump_to(4)) {
+    ESP_LOGW(TAG, "Bad packet length %zu", data.size());
   }
-  byte = *buf++;
+  auto len = decoder.get_remaining_size();
+  if (round4(len) != len) {
+    ESP_LOGW(TAG, "Bad payload length %zu", len);
+    return;
+  }
+
+  auto &provider = this->providers_[namebuf];
+  // if encryption not used with this host, ping check is pointless since it would be easily spoofed.
+  if (provider.encryption_key.empty())
+    ping_key_seen = true;
+
+  if (!provider.encryption_key.empty()) {
+    decoder.decrypt((const uint32_t *) provider.encryption_key.data());
+  }
+  if (decoder.get(byte) != DECODE_OK) {
+    ESP_LOGV(TAG, "No key byte");
+    return;
+  }
+
   if (byte == ROLLING_CODE_KEY) {
-    if (!process_rolling_code(provider, buf, end))
+    if (!process_rolling_code(provider, decoder))
       return;
   } else if (byte != DATA_KEY) {
     ESP_LOGV(TAG, "Expected rolling_key or data_key, got %X", byte);
     return;
   }
-  while (buf < end) {
-    byte = *buf++;
-    if (byte == ZERO_FILL_KEY)
+  uint32_t key;
+  while (decoder.get_remaining_size() != 0) {
+    if (decoder.decode(ZERO_FILL_KEY) == DECODE_OK)
       continue;
-    if (byte == PING_KEY) {
-      if (end - buf < 4) {
-        ESP_LOGV(TAG, "PING_KEY requires 4 more bytes");
-        return;
-      }
-      auto key = get_uint32(buf);
+    if (decoder.decode(PING_KEY, key) == DECODE_OK) {
       if (key == this->ping_key_) {
         ping_key_seen = true;
         ESP_LOGV(TAG, "Found good ping key %X", (unsigned) key);
@@ -366,40 +448,28 @@ void PacketTransport::process_(std::vector<uint8_t> &data) {
       this->resend_ping_key_ = true;
       break;
     }
-    if (byte == BINARY_SENSOR_KEY) {
-      if (end - buf < 3) {
-        ESP_LOGV(TAG, "Binary sensor key requires at least 3 more bytes");
-        return;
-      }
-      rdata.u32 = *buf++;
-    } else if (byte == SENSOR_KEY) {
-      if (end - buf < 6) {
-        ESP_LOGV(TAG, "Sensor key requires at least 6 more bytes");
-        return;
-      }
-      rdata.u32 = get_uint32(buf);
-    } else {
-      ESP_LOGW(TAG, "Unknown key byte %X", byte);
-      return;
-    }
-
-    hlen = *buf++;
-    if (end - buf < hlen) {
-      ESP_LOGV(TAG, "Name length of %u not available", hlen);
-      return;
-    }
-    memset(namebuf, 0, sizeof namebuf);
-    memcpy(namebuf, buf, hlen);
-    ESP_LOGV(TAG, "Found sensor key %d, id %s, data %lX", byte, namebuf, (unsigned long) rdata.u32);
-    buf += hlen;
-#ifdef USE_SENSOR
-    if (byte == SENSOR_KEY && sensors.count(namebuf) != 0)
-      sensors[namebuf]->publish_state(rdata.f32);
-#endif
+    if (decoder.decode(BINARY_SENSOR_KEY, namebuf, sizeof(namebuf), byte) == DECODE_OK) {
+      ESP_LOGV(TAG, "Got binary sensor %s %d", namebuf, byte);
 #ifdef USE_BINARY_SENSOR
-    if (byte == BINARY_SENSOR_KEY && binary_sensors.count(namebuf) != 0)
-      binary_sensors[namebuf]->publish_state(rdata.u32 != 0);
+      if (binary_sensors.count(namebuf) != 0)
+        binary_sensors[namebuf]->publish_state(byte != 0);
 #endif
+      continue;
+    }
+    if (decoder.decode(SENSOR_KEY, namebuf, sizeof(namebuf), rdata.u32) == DECODE_OK) {
+      ESP_LOGV(TAG, "Got sensor %s %f", namebuf, rdata.f32);
+#ifdef USE_SENSOR
+      if (sensors.count(namebuf) != 0)
+        sensors[namebuf]->publish_state(rdata.f32);
+#endif
+      continue;
+    }
+    if (decoder.get(byte) == DECODE_OK) {
+      ESP_LOGW(TAG, "Unknown key %X", byte);
+      ESP_LOGD(TAG, "Buffer pos: %zu contents: %s", data.size() - decoder.get_remaining_size(),
+               format_hex_pretty(data).c_str());
+    }
+    break;
   }
 }
 
@@ -434,6 +504,8 @@ void PacketTransport::increment_code_() {
     if (++this->rolling_code_[0] == 0) {
       this->rolling_code_[1]++;
       this->pref_.save(&this->rolling_code_[1]);
+      // must make sure it's saved immediately
+      global_preferences->sync();
     }
   }
 }
