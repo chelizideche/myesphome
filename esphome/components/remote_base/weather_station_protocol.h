@@ -5,16 +5,6 @@
 namespace esphome {
 namespace remote_base {
 
-enum WeatherStationFlag : uint8_t {
-  TYPE_PWM = 0b00000000,
-  TYPE_PPM = 0b00000001,
-  // ... = 0b00000010,
-  // ... = 0b00000011,
-  TYPE_MASK = 0b00000011,
-  INVERTED = 0b00000100,
-  REVERSED = 0b00001000,
-};
-
 struct WeatherStationData {
   uint8_t id{};
   float battery_level{};
@@ -45,14 +35,24 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
   uint8_t repeat_;
   uint8_t flags_;
 
+  enum WeatherStationFlag : uint8_t {
+    TYPE_PWM = 0b00000000,
+    TYPE_PPM = 0b00000001,
+    // ... = 0b00000010,
+    // ... = 0b00000011,
+    TYPE_MASK = 0b00000011,
+    INVERTED = 0b00000100,
+    REVERSED = 0b00001000,
+  };
+
   virtual void setup() = 0;
   virtual bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const = 0;
   virtual bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const = 0;
 
-  bool is_pwm_() const { return (this->flags_ & WeatherStationFlag::TYPE_MASK) == WeatherStationFlag::TYPE_PWM; }
-  bool is_ppm_() const { return (this->flags_ & WeatherStationFlag::TYPE_MASK) == WeatherStationFlag::TYPE_PPM; }
-  bool is_inverted_() const { return (this->flags_ & WeatherStationFlag::INVERTED) != 0; }
-  bool is_reversed_() const { return (this->flags_ & WeatherStationFlag::REVERSED) != 0; }
+  bool is_pwm_() const { return (this->flags_ & TYPE_MASK) == TYPE_PWM; }
+  bool is_ppm_() const { return (this->flags_ & TYPE_MASK) == TYPE_PPM; }
+  bool is_inverted_() const { return (this->flags_ & INVERTED) != 0; }
+  bool is_reversed_() const { return (this->flags_ & REVERSED) != 0; }
 
   bool receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const;
   bool receive_code_(RemoteReceiveData &src, std::vector<uint8_t> &code) const;
