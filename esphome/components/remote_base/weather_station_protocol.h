@@ -5,6 +5,16 @@
 namespace esphome {
 namespace remote_base {
 
+enum WeatherStationFlag : uint8_t {
+  TypePwm = 0b00000000,
+  TypePpm = 0b00000001,
+  // ... = 0b00000010,
+  // ... = 0b00000011,
+  TypeMask = 0b00000011,
+  Inverted = 0b00000100,
+  Reversed = 0b00001000,
+};
+
 struct WeatherStationData {
   uint8_t id{};
   float battery_level{};
@@ -31,14 +41,18 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
   uint16_t zero_low_;
   uint16_t one_high_;
   uint16_t one_low_;
-  bool inverted_;
   uint8_t nbits_;
   uint8_t repeat_;
-  bool reversed_;
+  uint8_t flags_;
 
   virtual void setup() = 0;
   virtual bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const = 0;
   virtual bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const = 0;
+
+  bool is_pwm_() const { return (this->flags_ & WeatherStationFlag::TypeMask) == WeatherStationFlag::TypePwm; }
+  bool is_ppm_() const { return (this->flags_ & WeatherStationFlag::TypeMask) == WeatherStationFlag::TypePpm; }
+  bool is_inverted_() const { return (this->flags_ & WeatherStationFlag::Inverted) != 0; }
+  bool is_reversed_() const { return (this->flags_ & WeatherStationFlag::Reversed) != 0; }
 
   bool receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const;
   bool receive_code_(RemoteReceiveData &src, std::vector<uint8_t> &code) const;

@@ -62,14 +62,26 @@ void WeatherStationProtocol::dump(const WeatherStationData &data) {
 }
 
 bool WeatherStationProtocol::receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const {
-  if (!this->inverted_) {
-    if (!src.peek_mark(high, 0) || !src.peek_space(low, 1))
+  if (!this->is_inverted_()) {
+    if (!(this->is_ppm_() ? src.peek_mark_at_most(high, 0) : src.peek_mark(high, 0)))
       return false;
+    if (!src.peek_space(low, 1))
+      return false;
+    src.advance(2);
   } else {
-    if (!src.peek_space(high, 0) || !src.peek_mark(low, 1))
-      return false;
+    if (src.get_index() == 0) {
+      // assume space at the beginning
+      if (!(this->is_ppm_() ? src.peek_mark_at_most(low, 0) : src.peek_mark(low, 0)))
+        return false;
+      src.advance(1);
+    } else {
+      if (!src.peek_space(high, 0))
+        return false;
+      if (!(this->is_ppm_() ? src.peek_mark_at_most(low, 1) : src.peek_mark(low, 1)))
+        return false;
+      src.advance(2);
+    }
   }
-  src.advance(2);
   return true;
 }
 
@@ -77,7 +89,7 @@ bool WeatherStationProtocol::receive_code_(RemoteReceiveData &src, std::vector<u
   uint8_t nbits = 0;
 
   while (nbits < this->nbits_ && src.get_index() < src.size() - 1) {
-    size_t pos = !this->reversed_ ? nbits : this->nbits_ - nbits - 1;
+    size_t pos = !this->is_reversed_() ? nbits : this->nbits_ - nbits - 1;
     uint8_t bit = 1 << (pos & 7);
     uint8_t &dst = code[pos >> 3];
 
@@ -108,7 +120,7 @@ bool WeatherStationProtocol::receive_code_(RemoteReceiveData &src, std::vector<u
 }
 
 void WeatherStationProtocol::transmit_item_(RemoteTransmitData *dst, uint32_t high, uint32_t low) const {
-  if (!this->inverted_) {
+  if (!this->is_inverted_()) {
     dst->mark(high);
     dst->space(low);
   } else {
@@ -120,7 +132,7 @@ void WeatherStationProtocol::transmit_item_(RemoteTransmitData *dst, uint32_t hi
 void WeatherStationProtocol::transmit_code_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const {
   this->transmit_item_(dst, this->sync_high_, this->sync_low_);
   for (uint8_t j = 0; j < this->nbits_; j++) {
-    uint8_t i = this->reversed_ ? j : this->nbits_ - j - 1;
+    uint8_t i = this->is_reversed_() ? j : this->nbits_ - j - 1;
     if (code[i >> 3] & (1 << (i & 7))) {
       this->transmit_item_(dst, this->one_high_, this->one_low_);
     } else {
@@ -171,10 +183,9 @@ void WeatherStation2032Protocol::setup() {
   this->zero_low_ = 500;
   this->one_high_ = 1000;
   this->one_low_ = 500;
-  this->inverted_ = false;
   this->nbits_ = 111;
   this->repeat_ = 3;
-  this->reversed_ = true;
+  this->flags_ = WeatherStationFlag::TypePpm | WeatherStationFlag::Reversed;
 }
 
 bool WeatherStation2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -226,10 +237,9 @@ void WeatherStation4LDProtocol::setup() {
   this->zero_low_ = 500;
   this->one_high_ = 2000;
   this->one_low_ = 500;
-  this->inverted_ = true;
   this->nbits_ = 52;
   this->repeat_ = 7;
-  this->reversed_ = true;
+  this->flags_ = WeatherStationFlag::TypePpm | WeatherStationFlag::Inverted | WeatherStationFlag::Reversed;
 }
 
 bool WeatherStation4LDProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -269,10 +279,9 @@ void WeatherStationBresser3CHProtocol::setup() {
   this->zero_low_ = 500;
   this->one_high_ = 500;
   this->one_low_ = 250;
-  this->inverted_ = false;
   this->nbits_ = 40;
   this->repeat_ = 8;
-  this->reversed_ = false;
+  this->flags_ = WeatherStationFlag::TypePwm;
 }
 
 bool WeatherStationBresser3CHProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -310,10 +319,9 @@ void WeatherStationEurochronProtocol::setup() {
   this->zero_low_ = 1000;
   this->one_high_ = 500;
   this->one_low_ = 2000;
-  this->inverted_ = false;
   this->nbits_ = 36;
   this->repeat_ = 8;
-  this->reversed_ = true;
+  this->flags_ = WeatherStationFlag::TypePpm | WeatherStationFlag::Reversed;
 }
 
 bool WeatherStationEurochronProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -349,10 +357,9 @@ void WeatherStationH10515Protocol::setup() {
   this->zero_low_ = 2000;
   this->one_high_ = 500;
   this->one_low_ = 4000;
-  this->inverted_ = false;
   this->nbits_ = 36;
   this->repeat_ = 8;
-  this->reversed_ = false;
+  this->flags_ = WeatherStationFlag::TypePpm;
 }
 
 bool WeatherStationH10515Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -404,10 +411,9 @@ void WeatherStationH13726Protocol::setup() {
   this->zero_low_ = 2000;
   this->one_high_ = 500;
   this->one_low_ = 4000;
-  this->inverted_ = false;
   this->nbits_ = 36;
   this->repeat_ = 8;
-  this->reversed_ = false;
+  this->flags_ = WeatherStationFlag::TypePpm;
 }
 
 bool WeatherStationH13726Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -486,10 +492,9 @@ void WeatherStationL08037AProtocol::setup() {
   this->zero_low_ = 2000;
   this->one_high_ = 500;
   this->one_low_ = 4500;
-  this->inverted_ = false;
   this->nbits_ = 28;
   this->repeat_ = 8;
-  this->reversed_ = true;
+  this->flags_ = WeatherStationFlag::TypePpm | WeatherStationFlag::Reversed;
 }
 
 bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
@@ -526,10 +531,9 @@ void WeatherStationNexusProtocol::setup() {
   this->zero_low_ = 1000;
   this->one_high_ = 500;
   this->one_low_ = 2000;
-  this->inverted_ = false;
   this->nbits_ = 36;
   this->repeat_ = 8;
-  this->reversed_ = true;
+  this->flags_ = WeatherStationFlag::TypePpm | WeatherStationFlag::Reversed;
 }
 
 bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
