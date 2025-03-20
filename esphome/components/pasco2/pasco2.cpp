@@ -302,30 +302,45 @@ void PASCO2Component::update() {
     }
   }
 
-  uint32_t wait_time = 0;
+  //the sensor will not respond to I2C commands for approximately 1 second during measurement cycles. To avoid missing
+  //  data, read the sensor up to 4 times over a 1.05 second interval, this should always succeed regardless of when 
+  //  update is called.
+
+  uint32_t wait_time = 350;  
   if (this->measurement_mode_ == SINGLE_SHOT) {
     start_measurement_();
-    wait_time = 5000;  // Single shot measurement takes 5 secs
+    wait_time = 1500;  // Single shot measurement takes ~1 sec
   }
-  this->set_timeout(wait_time, [this]() {
+  
+  set_retry(wait_time, 4, [this](const uint8_t remaining_attempts) {
+    
     // Check if data is ready
     uint8_t read_back[3];
-    if (!this->read_bytes(XENSIV_PASCO2_REG_MEAS_STS, &read_back[0], 1)) {
-      this->status_set_warning();
-      return;
+ 
+    int errorCode = this->read_register(XENSIV_PASCO2_REG_MEAS_STS, &read_back[0], 1, true);   
+    switch (errorCode) {
+      case i2c::ErrorCode::NO_ERROR:
+        break;
+      case i2c::ErrorCode::ERROR_NOT_ACKNOWLEDGED:
+        //device does not ACK reads during the measurement cycle in periodic mode, so not an error, retry after a delay
+        if (this->measurement_mode_ == PERIODIC) 
+          ESP_LOGD(TAG, "Device busy measuring, waiting to retry i2c read");
+        return  RetryResult::RETRY;
+      default:
+        //should not happen
+        ESP_LOGW(TAG, "MEAS_STS Reading Failed: error %d", errorCode);
+        this->status_set_warning(); //this is an actual problem
+        return  RetryResult::RETRY;
     }
-
     int16_t co2result;
     if (read_back[0] & XENSIV_PASCO2_REG_MEAS_STS_DRDY_MSK) {
       if (!this->read_byte_16(XENSIV_PASCO2_REG_CO2PPM_H, (uint16_t *)&co2result)) {
-        ESP_LOGW(TAG, "Result Reading Failed!");
-        this->status_set_warning();
-        return;
+        ESP_LOGW(TAG, "Result Reading Failed, retrying!");
+        return  RetryResult::RETRY;
       }
     } else {
-      ESP_LOGW(TAG, "Data not ready yet!");
-      this->status_set_warning();
-      return;
+      ESP_LOGW(TAG, "Data not ready yet, retrying!");
+      return  RetryResult::RETRY;
     }
 
     if (this->co2_sensor_ != nullptr)
@@ -334,7 +349,8 @@ void PASCO2Component::update() {
     ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
 
     this->status_clear_warning();
-  });  // set_timeout
+    return RetryResult::DONE;
+  }, 1.0f);  // set_retry
 }
 
 bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentration) {
