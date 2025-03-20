@@ -41,9 +41,9 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
   virtual bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const = 0;
 
   bool receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const;
-  bool receive_(RemoteReceiveData &src, std::vector<uint8_t> &code) const;
+  bool receive_code_(RemoteReceiveData &src, std::vector<uint8_t> &code) const;
   void transmit_item_(RemoteTransmitData *dst, uint32_t high, uint32_t low) const;
-  void transmit_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const;
+  void transmit_code_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const;
 };
 
 template<typename P, typename... Ts> class WeatherStationAction : public RemoteTransmitterActionBase<Ts...> {

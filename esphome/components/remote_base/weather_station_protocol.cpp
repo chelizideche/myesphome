@@ -15,25 +15,29 @@ optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData sr
 
   WeatherStationData data;
   std::vector<uint8_t> code(std::max((this->nbits_ + 7) >> 3, 8));
-  uint32_t index_limit = (uint32_t) std::max(src.size() - (this->nbits_ + 1) * 2, (int32_t) 0);
-  //  TODO: limit search to nbits * N, where N is a small number, preferably
 
-  while (src.get_index() <= index_limit) {
-    uint32_t index = src.get_index();
-    if (!this->receive_(src, code)) {
-      src.reset();
-      src.advance(index + 1);
-      continue;
-    }
+  uint32_t samples = (this->nbits_ + 1) * 2;                                    // sync + nbits
+  uint32_t search_end = src.size() > samples ? src.size() - samples + 1 : 0ul;  // last possible sync + 1
+  uint32_t search_limit = std::min(search_end, samples);                        // limit search
 
-    // transform may also return false if it needs more packets to complete data
-    if (this->transform(code, data)) {
-      ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.2f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
-               data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees, data.wind_speed,
-               data.wind_gust);
-      return data;
+  while (src.get_index() < search_limit) {
+    if (this->receive_item_(src, this->sync_high_, this->sync_low_)) {
+      if (this->receive_code_(src, code)) {
+        // found something, extend search till the end
+        search_limit = search_end;
+        // transform may also return false if it needs more packets to complete data
+        if (this->transform(code, data)) {
+          ESP_LOGD(TAG, "id=%d b=%.0f ch=%d t=%.1f h=%d r=%.2f wd=%.1f ws=%.2f wg=%.2f", data.id, data.battery_level,
+                   data.channel, data.temperature, data.humidity, data.rain, data.wind_direction_degrees,
+                   data.wind_speed, data.wind_gust);
+          return data;
+        }
+      }
+    } else {
+      src.advance(1);
     }
   }
+
   return {};
 }
 
@@ -46,7 +50,7 @@ void WeatherStationProtocol::encode(RemoteTransmitData *dst, const WeatherStatio
              data.wind_gust);
     dst->set_carrier_frequency(38000);  // TODO: channel?
     for (int i = 0; i < this->repeat_; i++) {
-      this->transmit_(dst, code);
+      this->transmit_code_(dst, code);
     }
   }
 }
@@ -69,35 +73,34 @@ bool WeatherStationProtocol::receive_item_(RemoteReceiveData &src, uint32_t high
   return true;
 }
 
-bool WeatherStationProtocol::receive_(RemoteReceiveData &src, std::vector<uint8_t> &code) const {
-  if (this->receive_item_(src, this->sync_high_, this->sync_low_)) {
-    ESP_LOGV(TAG, "sync %" PRId32 " %d %d ", src.get_index(), this->sync_high_, this->sync_low_);
-    uint8_t nbits = 0;
+bool WeatherStationProtocol::receive_code_(RemoteReceiveData &src, std::vector<uint8_t> &code) const {
+  uint8_t nbits = 0;
 
-    while (nbits < this->nbits_ && src.get_index() < src.size() - 1) {
-      size_t pos = !this->reversed_ ? nbits : this->nbits_ - nbits - 1;
-      uint8_t bit = 1 << (pos & 7);
-      uint8_t &dst = code[pos >> 3];
+  while (nbits < this->nbits_ && src.get_index() < src.size() - 1) {
+    size_t pos = !this->reversed_ ? nbits : this->nbits_ - nbits - 1;
+    uint8_t bit = 1 << (pos & 7);
+    uint8_t &dst = code[pos >> 3];
 
-      if (this->receive_item_(src, this->zero_high_, this->zero_low_)) {
-        dst &= ~bit;
-      } else if (this->receive_item_(src, this->one_high_, this->one_low_)) {
-        dst |= bit;
-      } else {
-        break;
-      }
-
-      if (++nbits == this->nbits_) {
-        ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &code[0], nbits);
-        if (src.get_index() < src.size() - 1) {
-          if (this->receive_item_(src, this->zero_high_, this->zero_low_) ||
-              this->receive_item_(src, this->one_high_, this->one_low_)) {
-            ESP_LOGD(TAG, "ignore %" PRIx64 " (%d)", *(uint64_t *) &code[0], nbits);
-            return false;
-          }
+    if (this->receive_item_(src, this->zero_high_, this->zero_low_)) {
+      dst &= ~bit;
+    } else if (this->receive_item_(src, this->one_high_, this->one_low_)) {
+      dst |= bit;
+    } else {
+      break;
+    }
+    if (++nbits == this->nbits_) {
+      ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &code[0], nbits);
+      if (src.get_index() < src.size() - 1) {
+        uint32_t index = src.get_index();
+        if (this->receive_item_(src, this->zero_high_, this->zero_low_) ||
+            this->receive_item_(src, this->one_high_, this->one_low_)) {
+          ESP_LOGD(TAG, "ignore %" PRIx64 " (%d)", *(uint64_t *) &code[0], nbits);
+          src.reset();
+          src.advance(index);
+          break;
         }
-        return true;
       }
+      return true;
     }
   }
 
@@ -114,7 +117,7 @@ void WeatherStationProtocol::transmit_item_(RemoteTransmitData *dst, uint32_t hi
   }
 }
 
-void WeatherStationProtocol::transmit_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const {
+void WeatherStationProtocol::transmit_code_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const {
   this->transmit_item_(dst, this->sync_high_, this->sync_low_);
   for (uint8_t j = 0; j < this->nbits_; j++) {
     uint8_t i = this->reversed_ ? j : this->nbits_ - j - 1;
