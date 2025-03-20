@@ -378,7 +378,7 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
   }  
   //the arduino example code doesn't actually read the values back, it just waits for 
   //    XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE to be cleared.
-  set_retry(6000, 10, [this](const uint8_t remaining_attempts) {
+  set_retry(6200, 10, [this](const uint8_t remaining_attempts) {
 		uint8_t read_back = 0;
 		
 		if (!this->read_bytes(XENSIV_PASCO2_REG_MEAS_CFG, &read_back, 1)) {
