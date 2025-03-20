@@ -2759,7 +2759,7 @@ void WaveshareEPaper5P65InF::initialize() {
   this->command(0xE3);
   this->data(0xAA);
 
-  delay(100); // NOLINT
+  delay(100);  // NOLINT
   this->command(0x50);
   this->data(0x37);
 
