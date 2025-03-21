@@ -423,8 +423,6 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
   this->disp_drv_.full_refresh = this->full_refresh_;
   this->disp_drv_.flush_cb = static_flush_cb;
   this->disp_drv_.rounder_cb = rounder_cb;
-  this->disp_drv_.hor_res = 0;
-  this->disp_drv_.ver_res = 0;
   this->disp_ = lv_disp_drv_register(&this->disp_drv_);
 }
 
