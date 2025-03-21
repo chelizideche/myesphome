@@ -305,6 +305,27 @@ void DalyBmsComponent::decode_data_(std::vector<uint8_t> data) {
                   this->cell_18_voltage_sensor_->publish_state((float) encode_uint16(it[9], it[10]) / 1000);
                 }
                 break;
+              case 7:
+                if (this->cell_19_voltage_sensor_) {
+                  this->cell_19_voltage_sensor_->publish_state((float) encode_uint16(it[5], it[6]) / 1000);
+                }
+                if (this->cell_20_voltage_sensor_) {
+                  this->cell_20_voltage_sensor_->publish_state((float) encode_uint16(it[7], it[8]) / 1000);
+                }
+                if (this->cell_21_voltage_sensor_) {
+                  this->cell_21_voltage_sensor_->publish_state((float) encode_uint16(it[9], it[10]) / 1000);
+                }
+              case 8:
+                if (this->cell_22_voltage_sensor_) {
+                  this->cell_22_voltage_sensor_->publish_state((float) encode_uint16(it[5], it[6]) / 1000);
+                }
+                if (this->cell_23_voltage_sensor_) {
+                  this->cell_23_voltage_sensor_->publish_state((float) encode_uint16(it[7], it[8]) / 1000);
+                }
+                if (this->cell_24_voltage_sensor_) {
+                  this->cell_24_voltage_sensor_->publish_state((float) encode_uint16(it[9], it[10]) / 1000);
+                }
+                break;
             }
             break;
 #endif

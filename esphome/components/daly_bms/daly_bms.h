@@ -56,6 +56,12 @@ class DalyBmsComponent : public PollingComponent, public uart::UARTDevice {
   SUB_SENSOR(cell_16_voltage)
   SUB_SENSOR(cell_17_voltage)
   SUB_SENSOR(cell_18_voltage)
+  SUB_SENSOR(cell_19_voltage)
+  SUB_SENSOR(cell_20_voltage)
+  SUB_SENSOR(cell_21_voltage)
+  SUB_SENSOR(cell_22_voltage)
+  SUB_SENSOR(cell_23_voltage)
+  SUB_SENSOR(cell_24_voltage)
 #endif
 
 #ifdef USE_TEXT_SENSOR
