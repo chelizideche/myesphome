@@ -507,9 +507,12 @@ async def to_code(config):
     # create the data array for all glyphs
     for codepoint in codepoints:
         font = point_font_map[codepoint]
-        format = font.get_format().decode("utf-8")
-        if format != "PCF":
-            font.set_pixel_sizes(size, 0)
+        if font.has_fixed_sizes:
+            sizes = [pt_to_px(x.size) for x in font.available_sizes]
+            if size in sizes:
+                font.select_size(sizes.index(size))
+        else:
+            font.set_char_size(size, 0)
         font.load_char(codepoint)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
