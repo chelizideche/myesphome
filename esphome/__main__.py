@@ -244,10 +244,10 @@ def compile_program(args, config):
     return 0 if idedata is not None else 1
 
 
-def upload_using_esptool(config, port, file):
+def upload_using_esptool(config, port, file, speed):
     from esphome import platformio_api
 
-    first_baudrate = config[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS].get(
+    first_baudrate = speed or config[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS].get(
         "upload_speed", os.getenv("ESPHOME_UPLOAD_SPEED", "460800")
     )
 
@@ -348,7 +348,7 @@ def upload_program(config, args, host):
         check_permissions(host)
         if CORE.target_platform in (PLATFORM_ESP32, PLATFORM_ESP8266):
             file = getattr(args, "file", None)
-            return upload_using_esptool(config, host, file)
+            return upload_using_esptool(config, host, file, args.upload_speed)
 
         if CORE.target_platform in (PLATFORM_RP2040):
             return upload_using_platformio(config, args.device)
@@ -840,8 +840,11 @@ def parse_args(argv):
     )
     parser_upload.add_argument(
         "--device",
-        "-d",
         help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
+    )
+    parser_upload.add_argument(
+        "--upload_speed",
+        help="Override the default or configured upload speed.",
     )
     parser_upload.add_argument(
         "--file",
@@ -859,7 +862,6 @@ def parse_args(argv):
     )
     parser_logs.add_argument(
         "--device",
-        "-d",
         help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
     )
     parser_logs.add_argument(
@@ -889,8 +891,11 @@ def parse_args(argv):
     )
     parser_run.add_argument(
         "--device",
-        "-d",
         help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
+    )
+    parser_run.add_argument(
+        "--upload_speed",
+        help="Override the default or configured upload speed.",
     )
     parser_run.add_argument(
         "--no-logs", help="Disable starting logs.", action="store_true"
