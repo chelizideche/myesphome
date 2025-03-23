@@ -37,7 +37,6 @@ void ES8388Hub::setup() {
 #endif
 }
 
-// Set Baud rate
 void ES8388Hub::set_dac_output(const std::string &state) {
   this->dac_output_ = DAC_OUTPUT_ENUM_TO_INT.at(state);
   static uint8_t dac_power = 0;
@@ -56,7 +55,7 @@ void ES8388Hub::set_dac_output(const std::string &state) {
       break;
   };
 
-  // Set output line
+  // Set es8388 dac power
   this->audio_dac_->set_dac_power(dac_power);
 }
 
