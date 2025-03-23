@@ -559,5 +559,87 @@ bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std:
   return true;
 }
 
+// Z32171
+
+void WeatherStationZ32171Protocol::setup() {
+  this->sync_high_ = 500;
+  this->sync_low_ = 8000;
+  this->zero_high_ = 500;
+  this->zero_low_ = 2000;
+  this->one_high_ = 500;
+  this->one_low_ = 4000;
+  this->nbits_ = 40;
+  this->repeat_ = 8;
+  this->flags_ = TYPE_PPM | REVERSED;
+}
+
+bool WeatherStationZ32171Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  data.id = (uint16_t) get_bits(code, 32, 8);
+  data.battery_level = (uint8_t) get_bits(code, 26, 1) == 0 ? 100.0f : 0;
+  data.channel = (uint8_t) get_bits(code, 0, 2);
+  data.temperature = (float) ((int16_t) (get_bits(code, 12, 12) - 1220) * 5 / 90.0);
+  data.humidity = (uint8_t) get_bits(code, 8, 4) * 10 + (uint8_t) get_bits(code, 4, 4);
+  return true;
+}
+
+bool WeatherStationZ32171Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode z32171");
+  return true;
+}
+
+// AHFL
+
+void WeatherStationAHFLProtocol::setup() {
+  this->sync_high_ = 600;
+  this->sync_low_ = 9000;
+  this->zero_high_ = 600;
+  this->zero_low_ = 2100;
+  this->one_high_ = 600;
+  this->one_low_ = 4200;
+  this->nbits_ = 42;
+  this->repeat_ = 8;
+  this->flags_ = TYPE_PPM | REVERSED;
+}
+
+bool WeatherStationAHFLProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  data.id = (uint16_t) get_bits(code, 34, 8);
+  data.battery_level = (uint8_t) get_bits(code, 33, 1) == 0 ? 100.0f : 0;
+  data.channel = (uint8_t) get_bits(code, 30, 2) + 1;
+  data.temperature = (float) ((int16_t) (get_bits(code, 18, 12) << 4)) / 160;
+  data.humidity = (uint8_t) get_bits(code, 11, 7);
+  return true;
+}
+
+bool WeatherStationAHFLProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode ahfl");
+  return true;
+}
+
+// AuriolLegacy
+
+void WeatherStationAuriolLegacyProtocol::setup() {
+  this->sync_high_ = 400;
+  this->sync_low_ = 9500;
+  this->zero_high_ = 400;
+  this->zero_low_ = 2000;
+  this->one_high_ = 400;
+  this->one_low_ = 4000;
+  this->nbits_ = 32;
+  this->repeat_ = 8;
+  this->flags_ = TYPE_PPM | REVERSED;
+}
+
+bool WeatherStationAuriolLegacyProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  data.id = (uint16_t) get_bits(code, 24, 8);
+  data.battery_level = (uint8_t) get_bits(code, 23, 1) == 1 ? 100.0f : 0;
+  data.temperature = (float) ((int16_t) (get_bits(code, 8, 12) << 4)) / 160;
+  return true;
+}
+
+bool WeatherStationAuriolLegacyProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGW(TAG, "TODO: encode auriollegacy");
+  return true;
+}
+
 }  // namespace remote_base
 }  // namespace esphome
