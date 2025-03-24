@@ -195,7 +195,7 @@ enum class MaxDvgaGain : uint8_t {
 
 // AGCCTRL1
 
-// CARRIER_SENSE_ABS_THR => number -7..+7
+// CARRIER_SENSE_ABS_THR => number -7..+7, -8 is disabled
 
 enum class CarrierSenseRelThr : uint8_t {
   CARRIER_SENSE_REL_THR_DEFAULT,

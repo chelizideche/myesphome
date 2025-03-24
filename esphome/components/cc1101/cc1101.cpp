@@ -335,7 +335,7 @@ void CC1101Component::end_tx() {
 
 void CC1101Component::strobe_(Command cmd) {
   uint8_t index = (uint8_t) cmd;
-  if (!(cmd >= Command::RES && cmd <= Command::NOP)) {
+  if (cmd < Command::RES || cmd > Command::NOP) {
     ESP_LOGE(TAG, "%s(0x%02X) invalid register address", __func__, index);
     return;
   }
@@ -629,14 +629,14 @@ template<typename T> T GET_ENUM_LAST(T value) { return T::LAST; }
   }
 
 #define CHECK_FLOAT_RANGE(value, min_value, max_value) \
-  if (!((min_value) <= (value) && (value) <= (max_value))) { \
+  if ((value) < (min_value) || (value) > (max_value)) { \
     ESP_LOGE(TAG, "%s(%.2f) invalid (%.2f - %.2f)", __func__, value, min_value, max_value); \
     return; \
   }
 
 #define CHECK_INT_RANGE(value, min_value, max_value) \
-  if (!((min_value) <= (value) && (value) <= (max_value))) { \
-    ESP_LOGE(TAG, "%s(%d) invalid (%d - %d)", __func__, (int) value, (int) min_value, (int) max_value); \
+  if ((value) < (min_value) || (value) > (max_value)) { \
+    ESP_LOGE(TAG, "%s(%d) invalid (%d - %d)", __func__, (int) (value), (int) (min_value), (int) (max_value)); \
     return; \
   }
 
