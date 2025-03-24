@@ -17,6 +17,22 @@
 namespace esphome {
 namespace ethernet {
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+// work around IDF compile issue on P4 https://github.com/espressif/esp-idf/pull/15637
+#ifdef USE_ESP32_VARIANT_ESP32P4
+#undef ETH_ESP32_EMAC_DEFAULT_CONFIG
+#define ETH_ESP32_EMAC_DEFAULT_CONFIG() \
+  { \
+    .smi_gpio = {.mdc_num = 31, .mdio_num = 52}, .interface = EMAC_DATA_INTERFACE_RMII, \
+    .clock_config = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = (emac_rmii_clock_gpio_t) 50}}, \
+    .dma_burst_len = ETH_DMA_BURST_LEN_32, .intr_priority = 0, \
+    .emac_dataif_gpio = \
+        {.rmii = {.tx_en_num = 49, .txd0_num = 34, .txd1_num = 35, .crs_dv_num = 28, .rxd0_num = 29, .rxd1_num = 30}}, \
+    .clock_config_out_in = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = (emac_rmii_clock_gpio_t) -1}}, \
+  }
+#endif
+#endif
+
 static const char *const TAG = "ethernet";
 
 EthernetComponent *global_eth_component;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -129,17 +145,16 @@ void EthernetComponent::setup() {
   phy_config.phy_addr = this->phy_addr_;
   phy_config.reset_gpio_num = this->power_pin_;
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-  eth_esp32_emac_config_t esp32_emac_config = {
-      .smi_gpio = {.mdc_num = 31, .mdio_num = 27},
-      .interface = EMAC_DATA_INTERFACE_RMII,
-      .clock_config = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = (emac_rmii_clock_gpio_t) 50}},
-      .dma_burst_len = ETH_DMA_BURST_LEN_32,
-      .intr_priority = 0,
-      .emac_dataif_gpio =
-          {.rmii = {.tx_en_num = 49, .txd0_num = 34, .txd1_num = 35, .crs_dv_num = 28, .rxd0_num = 29, .rxd1_num = 30}},
-      .clock_config_out_in = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = (emac_rmii_clock_gpio_t) -1}},
-  };
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+  esp32_emac_config.smi_gpio.mdc_num = this->mdc_pin_;
+  esp32_emac_config.smi_gpio.mdio_num = this->mdio_pin_;
+  esp32_emac_config.clock_config.rmii.clock_mode = this->clk_mode_;
+  esp32_emac_config.clock_config.rmii.clock_gpio = this->clk_pin_;
+
+  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+#elif ESP_IDF_VERSION_MAJOR >= 5
+  eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
   esp32_emac_config.smi_mdc_gpio_num = this->mdc_pin_;
   esp32_emac_config.smi_mdio_gpio_num = this->mdio_pin_;
   esp32_emac_config.clock_config.rmii.clock_mode = this->clk_mode_;
