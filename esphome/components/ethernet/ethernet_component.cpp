@@ -579,8 +579,8 @@ void EthernetComponent::set_phy_addr(uint8_t phy_addr) { this->phy_addr_ = phy_a
 void EthernetComponent::set_power_pin(int power_pin) { this->power_pin_ = power_pin; }
 void EthernetComponent::set_mdc_pin(uint8_t mdc_pin) { this->mdc_pin_ = mdc_pin; }
 void EthernetComponent::set_mdio_pin(uint8_t mdio_pin) { this->mdio_pin_ = mdio_pin; }
-void EthernetComponent::set_clk_mode(emac_rmii_clock_mode_t clk_mode) { this->clk_mode_ = clk_mode; }
 void EthernetComponent::set_clk_pin(uint8_t clk_pin) { this->clk_pin_ = (emac_rmii_clock_gpio_t) clk_pin; }
+void EthernetComponent::set_clk_mode(emac_rmii_clock_mode_t clk_mode) { this->clk_mode_ = clk_mode; }
 void EthernetComponent::add_phy_register(PHYRegister register_value) { this->phy_registers_.push_back(register_value); }
 #endif
 void EthernetComponent::set_type(EthernetType type) { this->type_ = type; }
