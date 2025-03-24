@@ -124,7 +124,7 @@ class EthernetComponent : public Component {
   uint8_t mdc_pin_{23};
   uint8_t mdio_pin_{18};
   emac_rmii_clock_mode_t clk_mode_{EMAC_CLK_EXT_IN};
-  emac_rmii_clock_gpio_t clk_pin_{0};
+  emac_rmii_clock_gpio_t clk_pin_{(emac_rmii_clock_gpio_t) 0};
   std::vector<PHYRegister> phy_registers_{};
 #endif
   EthernetType type_{ETHERNET_TYPE_UNKNOWN};

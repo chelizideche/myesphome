@@ -370,6 +370,7 @@ void EthernetComponent::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  MDC Pin: %u", this->mdc_pin_);
   ESP_LOGCONFIG(TAG, "  MDIO Pin: %u", this->mdio_pin_);
+  ESP_LOGCONFIG(TAG, "  CLK Pin: %u", this->clk_pin_);
   ESP_LOGCONFIG(TAG, "  PHY addr: %u", this->phy_addr_);
 #endif
   ESP_LOGCONFIG(TAG, "  Type: %s", eth_type);
@@ -562,8 +563,8 @@ void EthernetComponent::dump_connect_params_() {
   ESP_LOGCONFIG(TAG, "  Link Speed: %u", this->get_link_speed() == ETH_SPEED_100M ? 100 : 10);
 }
 
-void EthernetComponent::set_clk_pin(uint8_t clk_pin) { this->clk_pin_ = clk_pin; }
 #ifdef USE_ETHERNET_SPI
+void EthernetComponent::set_clk_pin(uint8_t clk_pin) { this->clk_pin_ = clk_pin; }
 void EthernetComponent::set_miso_pin(uint8_t miso_pin) { this->miso_pin_ = miso_pin; }
 void EthernetComponent::set_mosi_pin(uint8_t mosi_pin) { this->mosi_pin_ = mosi_pin; }
 void EthernetComponent::set_cs_pin(uint8_t cs_pin) { this->cs_pin_ = cs_pin; }
@@ -579,6 +580,7 @@ void EthernetComponent::set_power_pin(int power_pin) { this->power_pin_ = power_
 void EthernetComponent::set_mdc_pin(uint8_t mdc_pin) { this->mdc_pin_ = mdc_pin; }
 void EthernetComponent::set_mdio_pin(uint8_t mdio_pin) { this->mdio_pin_ = mdio_pin; }
 void EthernetComponent::set_clk_mode(emac_rmii_clock_mode_t clk_mode) { this->clk_mode_ = clk_mode; }
+void EthernetComponent::set_clk_pin(uint8_t clk_pin) { this->clk_pin_ = (emac_rmii_clock_gpio_t) clk_pin; }
 void EthernetComponent::add_phy_register(PHYRegister register_value) { this->phy_registers_.push_back(register_value); }
 #endif
 void EthernetComponent::set_type(EthernetType type) { this->type_ = type; }
