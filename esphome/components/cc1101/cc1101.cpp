@@ -539,7 +539,6 @@ void CC1101Component::set_output_power(float value) {
   uint8_t a = 0xC0;
 
   if (freq >= 300000 && freq <= 348000) {
-    ESP_LOGI(TAG, "*** %zu", sizeof(PA_TABLE_315));
     a = PowerTable::find(PA_TABLE_315, sizeof(PA_TABLE_315) / sizeof(PA_TABLE_315[0]), value);
   } else if (freq >= 378000 && freq <= 464000) {
     a = PowerTable::find(PA_TABLE_433, sizeof(PA_TABLE_433) / sizeof(PA_TABLE_433[0]), value);

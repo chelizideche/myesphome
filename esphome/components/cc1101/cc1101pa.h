@@ -23,7 +23,7 @@ struct PowerTable {
  public:
   static float find(const PowerTableItem *items, size_t count, float &dbm_target) {
     int dbmi = 120;
-    int dbmi_target = (int) lround(dbm_target * 10);
+    int dbmi_target = (int) std::lround(dbm_target * 10);
     for (size_t i = 0; i < count; i++) {
       dbmi -= items[i].dbm_diff;
       if (dbmi_target >= dbmi) {
