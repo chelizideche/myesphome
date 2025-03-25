@@ -7,6 +7,9 @@ namespace esphome {
 namespace cm1106 {
 
 static const char *const TAG = "cm1106";
+static const uint8_t c_m1106_cmd_get_co2_[4] = {0x11, 0x01, 0x01, 0xED};
+static const uint8_t c_m1106_cmd_set_co2_calib_[6] = {0x11, 0x03, 0x03, 0x00, 0x00, 0x00};
+static const uint8_t c_m1106_cmd_set_co2_calib_response_[4] = {0x16, 0x01, 0x03, 0xE6};
 
 uint8_t cm1106_checksum(const uint8_t *response, size_t len) {
   uint8_t crc = 0;
@@ -83,13 +86,13 @@ void CM1106Component::calibrate_zero(uint16_t ppm) {
   ESP_LOGD(TAG, "CM1106 Successfully calibrated sensor to %uppm", ppm);
 }
 
-bool CM1106Component::cm1106_write_command_(uint8_t *command, size_t command_len, uint8_t *response,
+bool CM1106Component::cm1106_write_command_(const uint8_t *command, size_t command_len, uint8_t *response,
                                             size_t response_len) {
   // Empty RX Buffer
   while (this->available())
     this->read();
-  command[command_len - 1] = cm1106_checksum(command, command_len);
-  this->write_array(command, command_len);
+  this->write_array(command, command_len - 1);
+  this->write_byte(cm1106_checksum(command, command_len));
   this->flush();
 
   if (response == nullptr)
