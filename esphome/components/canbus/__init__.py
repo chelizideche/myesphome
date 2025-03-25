@@ -1,3 +1,4 @@
+import re
 from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
@@ -68,31 +69,15 @@ CAN_SPEEDS = {
     "800KBPS": CanSpeed.CAN_800KBPS,
     "1000KBPS": CanSpeed.CAN_1000KBPS,
 }
-CAN_SPEEDS_NUMERIC = {
-    "1KBPS": 1_000,
-    "5KBPS": 5_000,
-    "10KBPS": 10_000,
-    "12K5BPS": 12_500,
-    "16KBPS": 16_000,
-    "20KBPS": 20_000,
-    "25KBPS": 25_000,
-    "31K25BPS": 31_250,
-    "33KBPS": 33_000,
-    "40KBPS": 40_000,
-    "50KBPS": 50_000,
-    "80KBPS": 80_000,
-    "83K3BPS": 83_300,
-    "95KBPS": 95_000,
-    "100KBPS": 100_000,
-    "125KBPS": 125_000,
-    "200KBPS": 200_000,
-    "250KBPS": 250_000,
-    "500KBPS": 500_000,
-    "800KBPS": 800_000,
-    "1000KBPS": 1_000_000,
-}
 
-assert CAN_SPEEDS.keys() == CAN_SPEEDS_NUMERIC.keys()
+
+def get_rate(value):
+    match = re.match(r"(\d+)(?:K(\d+)?)?BPS", value, re.IGNORECASE)
+    if not match:
+        raise ValueError(f"Invalid rate format: {value}")
+    fraction = match.group(2) or "0"
+    return int((float(match.group(1)) + float(f"0.{fraction}")) * 1000)
+
 
 CANBUS_SCHEMA = cv.Schema(
     {

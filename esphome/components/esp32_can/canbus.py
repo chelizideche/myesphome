@@ -3,12 +3,7 @@ import math
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import canbus
-from esphome.components.canbus import (
-    CONF_BIT_RATE,
-    CAN_SPEEDS_NUMERIC,
-    CanbusComponent,
-    CanSpeed,
-)
+from esphome.components.canbus import CONF_BIT_RATE, CanbusComponent, CanSpeed
 from esphome.components.esp32 import get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -99,7 +94,7 @@ CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
 
 
 def get_default_tx_enqueue_timeout(bit_rate):
-    bit_rate_numeric = CAN_SPEEDS_NUMERIC[bit_rate]
+    bit_rate_numeric = canbus.get_rate(bit_rate)
     bits_per_packet = 140  # ~max CAN message length
     ms_per_packet = bits_per_packet / bit_rate_numeric * 1000
     return int(
