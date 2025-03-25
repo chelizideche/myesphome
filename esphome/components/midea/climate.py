@@ -18,6 +18,7 @@ from esphome.const import (
     CONF_SUPPORTED_SWING_MODES,
     CONF_TIMEOUT,
     CONF_TEMPERATURE,
+    CONF_USE_FAHRENHEIT,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_HUMIDITY,
@@ -172,11 +173,10 @@ MIDEA_ACTION_BASE_SCHEMA = cv.Schema(
 )
 
 # FollowMe action
-MIDEA_FOLLOW_ME_MIN = 0
-MIDEA_FOLLOW_ME_MAX = 37
 MIDEA_FOLLOW_ME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_TEMPERATURE): cv.templatable(cv.temperature),
+        cv.Optional(CONF_USE_FAHRENHEIT, default=False): cv.templatable(cv.boolean),
         cv.Optional(CONF_BEEPER, default=False): cv.templatable(cv.boolean),
     }
 )
@@ -186,6 +186,8 @@ MIDEA_FOLLOW_ME_SCHEMA = cv.Schema(
 async def follow_me_to_code(var, config, args):
     template_ = await cg.templatable(config[CONF_BEEPER], args, cg.bool_)
     cg.add(var.set_beeper(template_))
+    template_ = await cg.templatable(config[CONF_USE_FAHRENHEIT], args, cg.bool_)
+    cg.add(var.set_use_fahrenheit(template_))
     template_ = await cg.templatable(config[CONF_TEMPERATURE], args, cg.float_)
     cg.add(var.set_temperature(template_))
 
@@ -293,4 +295,4 @@ async def to_code(config):
     if CONF_HUMIDITY_SETPOINT in config:
         sens = await sensor.new_sensor(config[CONF_HUMIDITY_SETPOINT])
         cg.add(var.set_humidity_setpoint_sensor(sens))
-    cg.add_library("dudanov/MideaUART", "1.1.8")
+    cg.add_library("dudanov/MideaUART", "1.1.9")
