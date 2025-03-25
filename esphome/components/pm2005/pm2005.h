@@ -16,8 +16,6 @@ class PM2005Component : public PollingComponent, public i2c::I2CDevice {
  public:
   float get_setup_priority() const override { return esphome::setup_priority::DATA; }
 
-  PM2005Component() = default;
-
   void set_sensor_type(SensorType sensor_type) { this->sensor_type_ = sensor_type; }
 
   void set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { this->pm_1_0_sensor_ = pm_1_0_sensor; }
@@ -31,7 +29,7 @@ class PM2005Component : public PollingComponent, public i2c::I2CDevice {
  protected:
   uint8_t sensor_situation_{0};
   uint8_t data_buffer_[12];
-  SensorType sensor_type_;
+  SensorType sensor_type_{PM2005};
 
   sensor::Sensor *pm_1_0_sensor_{nullptr};
   sensor::Sensor *pm_2_5_sensor_{nullptr};
