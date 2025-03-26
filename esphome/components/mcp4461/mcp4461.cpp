@@ -475,7 +475,7 @@ void Mcp4461Component::enable_terminal_(Mcp4461WiperIdx wiper, char terminal) {
     return;
   }
   uint8_t wiper_idx = static_cast<uint8_t>(wiper);
-  ESP_LOGV(TAG, "Enabling terminal %c of wiper %" PRIu8 "", terminal, wiper_idx);
+  ESP_LOGV(TAG, "Enabling terminal %c of wiper %u", terminal, wiper_idx);
   switch (terminal) {
     case 'h':
       this->reg_[wiper_idx].terminal_hw = true;
