@@ -560,7 +560,7 @@ bool Mcp4461Component::set_eeprom_value(Mcp4461EepromLocation location, uint16_t
   if (!(this->mcp4461_write_(addr, value, true))) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
-    ESP_LOGW(TAG, "Error writing EEPRom value");
+    ESP_LOGW(TAG, "Error writing EEPROM value");
     return false;
   }
   return true;
