@@ -18,13 +18,16 @@ void ADS1100Component::setup() {
   ESP_LOGD(TAG, "I2C Address: 0x%02X", this->address_);
 
   // Initialize I2C
-  if (!this->read_byte(0x00)) {
-    ESP_LOGE(TAG, "Failed to initialize I2C communication");
+  ESP_LOGD(TAG, "Attempting to initialize I2C communication...");
+  uint8_t test_byte;
+  if (!this->read_byte(0x00, &test_byte)) {
+    ESP_LOGE(TAG, "Failed to initialize I2C communication - read_byte failed");
     this->mark_failed();
     return;
   }
+  ESP_LOGD(TAG, "Initial I2C read successful, test byte: 0x%02X", test_byte);
   this->i2c_initialized_ = true;
-  ESP_LOGD(TAG, "I2C communication initialized successfully");
+  delay(10);  // Small delay after initialization
 
   // First try to read the conversion register to verify communication
   uint16_t value;
