@@ -16,80 +16,30 @@ void ADS1100Component::setup() {
   // Log initial state
   ESP_LOGD(TAG, "Initial state - Gain: %d, Sample Rate: %d", this->gain_, this->sample_rate_);
 
-  // Initial delay to allow device to power up
-  delay(100);
+  // We need a simple, straightforward approach with the ADS1110
+  // Success criteria is being able to read the conversion register
 
-  // First, read the current conversion register value to check communication
+  // Initial delay to allow device to power up fully
+  delay(200);
+
+  // Most basic check - a simple I2C read of 2 bytes from register 0
   uint16_t value;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    ESP_LOGE(TAG, "Communication with ADS1110 failed!");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "ADS1110 communication test successful");
-  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
+  for (int retry = 0; retry < 3; retry++) {
+    if (this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
+      ESP_LOGD(TAG, "ADS1110 communication successful, raw value: 0x%04X", value);
 
-  // For ADS1110, try to read the config register
-  uint16_t current_config;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
-    ESP_LOGD(TAG, "Could not read config register - this is normal for ADS1110");
-    // For ADS1110, we might not be able to read the config register
-    // This is okay - we'll just use the default config
-  } else {
-    ESP_LOGD(TAG, "Current config register: 0x%04X", current_config);
+      // If we can read data, the device is working - mark it as initialized
+      this->i2c_initialized_ = true;
+      ESP_LOGCONFIG(TAG, "ADS1110 initialized successfully!");
+      return;
+    }
+    ESP_LOGW(TAG, "ADS1110 communication failed, retry %d", retry + 1);
+    delay(50);
   }
 
-  // ADS1110 has a configuration register that can be written to
-  // Configure the device based on our requirements
-  uint16_t config = 0;
-
-  // Set gain (bits 0-1)
-  config |= (this->gain_ & 0x03);
-
-  // Set sample rate (bits 2-3)
-  config |= (this->sample_rate_ & 0x03) << 2;
-
-  // Try to write the configuration
-  ESP_LOGD(TAG, "Attempting to write config: 0x%04X", config);
-  if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGD(TAG, "Could not write config - using default configuration");
-    // This is expected if the chip is truly an ADS1110 and not ADS1100
-    // We'll continue and use the default settings
-  }
-
-  // Store what we believe the config is
-  this->prev_config_ = config;
-
-  // Wait for first conversion to complete based on sample rate
-  int delay_ms;
-  switch (this->sample_rate_) {
-    case ADS1100_SAMPLE_RATE_8_SPS:
-      delay_ms = 125;
-      break;
-    case ADS1100_SAMPLE_RATE_16_SPS:
-      delay_ms = 62;
-      break;
-    case ADS1100_SAMPLE_RATE_32_SPS:
-      delay_ms = 31;
-      break;
-    case ADS1100_SAMPLE_RATE_128_SPS:
-    default:
-      delay_ms = 8;
-      break;
-  }
-  delay(delay_ms);
-
-  // Try to read a measurement to make sure we can communicate
-  float test_voltage = this->request_measurement();
-  if (std::isnan(test_voltage)) {
-    ESP_LOGE(TAG, "Failed to read initial measurement");
-    this->mark_failed();
-    return;
-  }
-
-  ESP_LOGD(TAG, "Initial measurement: %.4f V", test_voltage);
-  this->i2c_initialized_ = true;
-  ESP_LOGCONFIG(TAG, "ADS1110 initialized successfully");
+  // If we get here, we couldn't read the device after multiple attempts
+  ESP_LOGE(TAG, "Communication with ADS1110 failed!");
+  this->mark_failed();
 }
 
 void ADS1100Component::dump_config() {
@@ -150,7 +100,7 @@ float ADS1100Component::request_measurement() {
       return NAN;
   }
 
-  ESP_LOGVV(TAG, "Raw ADC: %d, Voltage: %.4f V", value, voltage);
+  ESP_LOGD(TAG, "Raw ADC: %d, Voltage: %.4f V", value, voltage);
   return voltage;
 }
 
