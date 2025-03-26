@@ -218,7 +218,7 @@ uint16_t Mcp4461Component::read_wiper_level_(uint8_t wiper) {
   if (!(this->read_byte_16(reg, &buf))) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
-    ESP_LOGW(TAG, "Error fetching %swiper %" PRIu8 " value", (wiper > 3) ? "nonvolatile " : "", wiper);
+    ESP_LOGW(TAG, "Error fetching %swiper %u value", (wiper > 3) ? "nonvolatile " : "", wiper);
     return 0;
   }
   return buf;
