@@ -192,7 +192,7 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
 }
 
 void NECBinarySensor::dump_config() {
-  LOG_BINARY_SENSOR("", "Remote Receiver Binary Sensor", this);
+  LOG_BINARY_SENSOR("", "Remote Receiver NEC Binary Sensor", this);
   ESP_LOGCONFIG(TAG, "  Repeat Timeout: %u ms", this->repeat_timeout_ms_);
 }
 
