@@ -33,60 +33,23 @@ void ADS1100Component::setup() {
   this->i2c_initialized_ = true;
   delay(10);  // Small delay after initialization
 
-  // First try to read the conversion register to verify communication
-  uint16_t value;
-  ESP_LOGD(TAG, "Attempting to read conversion register...");
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    ESP_LOGE(TAG, "Failed to read conversion register:");
-    ESP_LOGE(TAG, "  - I2C communication error at register 0x%02X", ADS1100_REGISTER_CONVERSION);
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
-  delay(10);  // Small delay after read
-
-  // Read current config to see what we're working with
-  uint16_t current_config;
-  ESP_LOGD(TAG, "Reading current config...");
-  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
-    ESP_LOGE(TAG, "Failed to read current config:");
-    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
-  ESP_LOGD(TAG, "Current config bits:");
-  ESP_LOGD(TAG, "  Single-shot: %d", (current_config >> 15) & 0x01);
-  ESP_LOGD(TAG, "  Sample Rate: %d", (current_config >> 2) & 0x03);
-  ESP_LOGD(TAG, "  Gain: %d", current_config & 0x03);
-
   // Configure the device with a fresh configuration
   uint16_t config = 0;
 
   // Set single-shot mode (bit 15)
-  //        0b1xxxxxxxxxxxxxxx
-  config |= 0b1000000000000000;
+  config |= 0x8000;  // ADS1100_REG_CONFIG_OS_SINGLE
 
   // Set continuous mode (bit 8)
-  //        0bxxxxxxx0xxxxxxxx
-  config &= ~(1 << 8);
+  config &= ~0x0100;  // ADS1100_REG_CONFIG_MODE_CONTIN
 
   // Set sample rate (bits 2-3)
-  //        0bxxxxxxxxBBxxxxxx
   config |= (this->sample_rate_ & 0x03) << 2;
 
   // Set gain (bits 0-1)
-  //        0bxxxxxxxxxxBBxxxx
   config |= (this->gain_ & 0x03);
 
-  ESP_LOGD(TAG, "Writing new config: 0x%04X", config);
-  ESP_LOGD(TAG, "New config bits:");
+  ESP_LOGD(TAG, "Writing initial config: 0x%04X", config);
+  ESP_LOGD(TAG, "Config bits:");
   ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
   ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
   ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
@@ -161,22 +124,9 @@ float ADS1100Component::request_measurement() {
     return NAN;
   }
 
-  // Read current config first
-  uint16_t current_config;
-  ESP_LOGD(TAG, "Reading current config before conversion...");
-  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
-    ESP_LOGE(TAG, "Failed to read current config:");
-    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
-    return NAN;
-  }
-  ESP_LOGD(TAG, "Current config before conversion: 0x%04X", current_config);
-
   // Start a new conversion
-  uint16_t config = current_config;
-  config |= 0b1000000000000000;  // Set single-shot mode
+  uint16_t config = this->prev_config_;
+  config |= 0x8000;  // Set single-shot mode (ADS1100_REG_CONFIG_OS_SINGLE)
   ESP_LOGD(TAG, "Starting conversion with config: 0x%04X", config);
   ESP_LOGD(TAG, "Config bits:");
   ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
@@ -193,8 +143,25 @@ float ADS1100Component::request_measurement() {
     return NAN;
   }
 
-  // Wait for conversion to complete
-  delay(10);  // Minimum delay based on sample rate
+  // Wait for conversion to complete based on sample rate
+  int delay_ms;
+  switch (this->sample_rate_) {
+    case ADS1100_SAMPLE_RATE_8_SPS:
+      delay_ms = 126;  // NOLINT
+      break;
+    case ADS1100_SAMPLE_RATE_16_SPS:
+      delay_ms = 63;  // NOLINT
+      break;
+    case ADS1100_SAMPLE_RATE_32_SPS:
+      delay_ms = 32;
+      break;
+    case ADS1100_SAMPLE_RATE_128_SPS:
+    default:
+      delay_ms = 9;
+      break;
+  }
+  ESP_LOGD(TAG, "Waiting %d ms for conversion", delay_ms);
+  delay(delay_ms);
 
   // Read the conversion result
   uint16_t raw_value;
