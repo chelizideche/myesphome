@@ -83,8 +83,7 @@ void Mcp4461Component::dump_config() {
     // so also invalid for nonvolatile. For these, only print current level.
     // reworked to be a one-line intentionally, as output would not be in order
     if (i < 4) {
-      ESP_LOGCONFIG(TAG,
-                    "  ├── Volatile wiper [%u] level: %u, Status: %s, HW: %s, A: %s, B: %s, W: %s", i,
+      ESP_LOGCONFIG(TAG, "  ├── Volatile wiper [%u] level: %u, Status: %s, HW: %s, A: %s, B: %s, W: %s", i,
                     this->reg_[i].state, ONOFF(this->reg_[i].terminal_hw), ONOFF(this->reg_[i].terminal_a),
                     ONOFF(this->reg_[i].terminal_b), ONOFF(this->reg_[i].terminal_w), ONOFF(this->reg_[i].enabled));
     } else {
@@ -110,7 +109,8 @@ void Mcp4461Component::loop() {
     // is prohibited in public methods
     if (this->reg_[i].update_terminal) {
       // set terminal register changes
-      Mcp4461TerminalIdx terminal_connector =  i < 2 ? Mcp4461TerminalIdx::MCP4461_TERMINAL_0 : Mcp4461TerminalIdx::MCP4461_TERMINAL_1;
+      Mcp4461TerminalIdx terminal_connector =
+        i < 2 ? Mcp4461TerminalIdx::MCP4461_TERMINAL_0 : Mcp4461TerminalIdx::MCP4461_TERMINAL_1;
       uint8_t new_terminal_value = this->calc_terminal_connector_byte_(terminal_connector);
       ESP_LOGV(TAG, "updating terminal %u to new value %u", static_cast<uint8_t>(terminal_connector),
                new_terminal_value);
