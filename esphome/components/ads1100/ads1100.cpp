@@ -19,21 +19,85 @@ void ADS1100Component::setup() {
 
   // Initialize I2C
   ESP_LOGD(TAG, "Attempting to initialize I2C communication...");
+
+  // First try a simple I2C scan to verify device presence
   uint8_t test_byte;
+  ESP_LOGD(TAG, "Performing I2C device scan...");
   if (!this->read_byte(0x00, &test_byte)) {
-    ESP_LOGE(TAG, "Failed to initialize I2C communication:");
-    ESP_LOGE(TAG, "  - Device not responding at address 0x%02X", this->address_);
+    ESP_LOGE(TAG, "Failed to detect device at address 0x%02X:", this->address_);
+    ESP_LOGE(TAG, "  - Device not responding to basic I2C read");
     ESP_LOGE(TAG, "  - Check if device is properly connected");
     ESP_LOGE(TAG, "  - Verify I2C bus is properly configured");
     ESP_LOGE(TAG, "  - Check if pull-up resistors are present");
     this->mark_failed();
     return;
   }
-  ESP_LOGD(TAG, "Initial I2C read successful, test byte: 0x%02X", test_byte);
-  this->i2c_initialized_ = true;
-  delay(10);  // Small delay after initialization
+  ESP_LOGD(TAG, "Device detected at address 0x%02X", this->address_);
+  delay(10);  // Small delay after scan
 
-  // Configure the device with a fresh configuration
+  // Try to read the conversion register to check device state
+  uint16_t initial_value;
+  ESP_LOGD(TAG, "Reading initial conversion value...");
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &initial_value)) {
+    ESP_LOGE(TAG, "Failed to read conversion register:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONVERSION);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", initial_value);
+  delay(10);  // Small delay after read
+
+  // Read current config to understand device state
+  uint16_t current_config;
+  ESP_LOGD(TAG, "Reading current config...");
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
+  ESP_LOGD(TAG, "Current config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (current_config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (current_config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", current_config & 0x03);
+  delay(10);  // Small delay after read
+
+  // Try to reset the device by writing a known good config
+  ESP_LOGD(TAG, "Attempting device reset...");
+  uint16_t reset_config = 0x8000;  // Single-shot mode, default settings
+  if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, reset_config)) {
+    ESP_LOGE(TAG, "Failed to write reset config:");
+    ESP_LOGE(TAG, "  - I2C write error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Device may be locked or in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  delay(50);  // Longer delay after reset
+
+  // Verify reset config
+  uint16_t reset_verify;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &reset_verify)) {
+    ESP_LOGE(TAG, "Failed to verify reset config:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Reset config verification: 0x%04X", reset_verify);
+  delay(10);  // Small delay after verification
+
+  // Now configure the device with desired settings
   uint16_t config = 0;
 
   // Set single-shot mode (bit 15)
@@ -48,8 +112,8 @@ void ADS1100Component::setup() {
   // Set gain (bits 0-1)
   config |= (this->gain_ & 0x03);
 
-  ESP_LOGD(TAG, "Writing initial config: 0x%04X", config);
-  ESP_LOGD(TAG, "Config bits:");
+  ESP_LOGD(TAG, "Writing new config: 0x%04X", config);
+  ESP_LOGD(TAG, "New config bits:");
   ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
   ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
   ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
@@ -101,6 +165,21 @@ void ADS1100Component::setup() {
     return;
   }
 
+  // Try a test conversion
+  ESP_LOGD(TAG, "Attempting test conversion...");
+  float test_voltage = this->request_measurement();
+  if (std::isnan(test_voltage)) {
+    ESP_LOGE(TAG, "Test conversion failed:");
+    ESP_LOGE(TAG, "  - Failed to read conversion result");
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Test conversion successful, voltage: %.3f V", test_voltage);
+
+  this->i2c_initialized_ = true;
   ESP_LOGD(TAG, "ADS1100 setup completed successfully");
 }
 
