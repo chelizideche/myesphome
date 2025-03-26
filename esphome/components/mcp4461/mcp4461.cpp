@@ -265,10 +265,7 @@ bool Mcp4461Component::set_wiper_level_(Mcp4461WiperIdx wiper, uint16_t value) {
 }
 
 void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
-  bool nonvolatile = false;
-  if (wiper > 3) {
-    nonvolatile = true;
-  }
+  bool nonvolatile = wiper > 3;
   if (!(this->mcp4461_write_(this->get_wiper_address_(wiper), value, nonvolatile))) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
