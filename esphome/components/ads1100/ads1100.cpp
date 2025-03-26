@@ -48,6 +48,24 @@ void ADS1100Component::setup() {
   ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
   delay(10);  // Small delay after read
 
+  // Read current config to see what we're working with
+  uint16_t current_config;
+  ESP_LOGD(TAG, "Reading current config...");
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
+  ESP_LOGD(TAG, "Current config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (current_config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (current_config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", current_config & 0x03);
+
   // Configure the device with a fresh configuration
   uint16_t config = 0;
 
@@ -67,8 +85,8 @@ void ADS1100Component::setup() {
   //        0bxxxxxxxxxxBBxxxx
   config |= (this->gain_ & 0x03);
 
-  ESP_LOGD(TAG, "Writing initial config: 0x%04X", config);
-  ESP_LOGD(TAG, "Config bits:");
+  ESP_LOGD(TAG, "Writing new config: 0x%04X", config);
+  ESP_LOGD(TAG, "New config bits:");
   ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
   ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
   ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
@@ -143,8 +161,21 @@ float ADS1100Component::request_measurement() {
     return NAN;
   }
 
+  // Read current config first
+  uint16_t current_config;
+  ESP_LOGD(TAG, "Reading current config before conversion...");
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    return NAN;
+  }
+  ESP_LOGD(TAG, "Current config before conversion: 0x%04X", current_config);
+
   // Start a new conversion
-  uint16_t config = this->prev_config_;
+  uint16_t config = current_config;
   config |= 0b1000000000000000;  // Set single-shot mode
   ESP_LOGD(TAG, "Starting conversion with config: 0x%04X", config);
   ESP_LOGD(TAG, "Config bits:");
