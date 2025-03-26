@@ -370,8 +370,7 @@ bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
   }
   ESP_LOGV(TAG, "Decreasing wiper %u", wiper_idx);
   uint8_t reg = 0;
-  uint8_t addr;
-  addr = this->get_wiper_address_(wiper_idx);
+  uint8_t addr = this->get_wiper_address_(wiper_idx);
   reg |= addr;
   reg |= static_cast<uint8_t>(Mcp4461Commands::DECREMENT);
   auto err = this->write(&this->address_, reg, sizeof(reg));
