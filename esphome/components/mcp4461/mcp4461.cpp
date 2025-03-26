@@ -234,8 +234,7 @@ bool Mcp4461Component::update_wiper_level_(Mcp4461WiperIdx wiper) {
     ESP_LOGW(TAG, "%s", LOG_STR_ARG(this->get_message_string(MCP4461_WIPER_DISABLED)));
     return false;
   }
-  uint16_t data;
-  data = this->get_wiper_level_(wiper);
+  uint16_t data = this->get_wiper_level_(wiper);
   ESP_LOGV(TAG, "Got value %u from wiper %u", data, wiper_idx);
   this->reg_[wiper_idx].state = data;
   return true;
