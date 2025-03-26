@@ -13,11 +13,11 @@ enum ADS1100Gain {
   ADS1100_GAIN_8 = 0b11,
 };
 
-enum ADS1100DataRate {
-  ADS1100_DATA_RATE_128_SPS = 0b00,
-  ADS1100_DATA_RATE_32_SPS = 0b01,
-  ADS1100_DATA_RATE_16_SPS = 0b10,
-  ADS1100_DATA_RATE_8_SPS = 0b11,
+enum ADS1100SampleRate {
+  ADS1100_SAMPLE_RATE_128_SPS = 0b00,
+  ADS1100_SAMPLE_RATE_32_SPS = 0b01,
+  ADS1100_SAMPLE_RATE_16_SPS = 0b10,
+  ADS1100_SAMPLE_RATE_8_SPS = 0b11,
 };
 
 class ADS1100Component : public Component, public i2c::I2CDevice {
@@ -32,13 +32,13 @@ class ADS1100Component : public Component, public i2c::I2CDevice {
 
   /// Set the gain of the ADC
   void set_gain(ADS1100Gain gain) { gain_ = gain; }
-  /// Set the data rate of the ADC
-  void set_data_rate(ADS1100DataRate data_rate) { data_rate_ = data_rate; }
+  /// Set the sample rate of the ADC
+  void set_sample_rate(ADS1100SampleRate sample_rate) { sample_rate_ = sample_rate; }
 
  protected:
   uint16_t prev_config_{0};
   ADS1100Gain gain_{ADS1100_GAIN_1};
-  ADS1100DataRate data_rate_{ADS1100_DATA_RATE_128_SPS};
+  ADS1100SampleRate sample_rate_{ADS1100_SAMPLE_RATE_128_SPS};
 };
 
 }  // namespace ads1100

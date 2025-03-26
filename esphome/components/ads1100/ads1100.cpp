@@ -23,15 +23,15 @@ void ADS1100Component::setup() {
   //        0bxxxxxxx0xxxxxxxx
   config |= 0b0000000000000000;
 
-  // Set data rate
+  // Set sample rate
   //        0bxxxxxxxxBBxxxxxx
-  config |= (this->data_rate_ & 0b11) << 2;
+  config |= (this->sample_rate_ & 0b11) << 2;
 
   // Set gain
   //        0bxxxxxxxxxxBBxxxx
   config |= (this->gain_ & 0b11);
 
-  ESP_LOGD(TAG, "Writing config: 0x%04X (gain: %d, data_rate: %d)", config, this->gain_, this->data_rate_);
+  ESP_LOGD(TAG, "Writing config: 0x%04X (gain: %d, sample_rate: %d)", config, this->gain_, this->sample_rate_);
 
   // First try to read current config
   uint16_t current_config;
@@ -82,11 +82,11 @@ void ADS1100Component::dump_config() {
     ESP_LOGE(TAG, "Communication with ADS1100 failed!");
   }
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
-  ESP_LOGCONFIG(TAG, "  Data Rate: %d SPS",
-                this->data_rate_ == ADS1100_DATA_RATE_128_SPS  ? 128
-                : this->data_rate_ == ADS1100_DATA_RATE_32_SPS ? 32
-                : this->data_rate_ == ADS1100_DATA_RATE_16_SPS ? 16
-                                                               : 8);
+  ESP_LOGCONFIG(TAG, "  Sample Rate: %d SPS",
+                this->sample_rate_ == ADS1100_SAMPLE_RATE_128_SPS  ? 128
+                : this->sample_rate_ == ADS1100_SAMPLE_RATE_32_SPS ? 32
+                : this->sample_rate_ == ADS1100_SAMPLE_RATE_16_SPS ? 16
+                                                                   : 8);
 }
 
 float ADS1100Component::request_measurement() {
@@ -103,19 +103,19 @@ float ADS1100Component::request_measurement() {
   }
   this->prev_config_ = config;
 
-  // Wait for conversion to complete based on data rate
+  // Wait for conversion to complete based on sample rate
   int delay_ms;
-  switch (this->data_rate_) {
-    case ADS1100_DATA_RATE_8_SPS:
+  switch (this->sample_rate_) {
+    case ADS1100_SAMPLE_RATE_8_SPS:
       delay_ms = 126;  // NOLINT
       break;
-    case ADS1100_DATA_RATE_16_SPS:
+    case ADS1100_SAMPLE_RATE_16_SPS:
       delay_ms = 63;  // NOLINT
       break;
-    case ADS1100_DATA_RATE_32_SPS:
+    case ADS1100_SAMPLE_RATE_32_SPS:
       delay_ms = 32;
       break;
-    case ADS1100_DATA_RATE_128_SPS:
+    case ADS1100_SAMPLE_RATE_128_SPS:
     default:
       delay_ms = 9;
       break;

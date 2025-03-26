@@ -12,8 +12,8 @@ from esphome.const import (
 
 from .. import (
     CONF_ADS1100_ID,
-    DATA_RATE_OPTIONS,
     GAIN_OPTIONS,
+    SAMPLE_RATE_OPTIONS,
     ADS1100Component,
     ads1100_ns,
 )
@@ -36,7 +36,7 @@ CONFIG_SCHEMA = (
             cv.GenerateID(CONF_ADS1100_ID): cv.use_id(ADS1100Component),
             cv.Optional(CONF_GAIN, default="1"): cv.enum(GAIN_OPTIONS, upper=True),
             cv.Optional(CONF_SAMPLE_RATE, default="128"): cv.enum(
-                DATA_RATE_OPTIONS, upper=True
+                SAMPLE_RATE_OPTIONS, upper=True
             ),
         }
     )
