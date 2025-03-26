@@ -236,7 +236,7 @@ bool Mcp4461Component::update_wiper_level_(Mcp4461WiperIdx wiper) {
   }
   uint16_t data;
   data = this->get_wiper_level_(wiper);
-  ESP_LOGV(TAG, "Got value %" PRIu16 " from wiper %" PRIu8, data, wiper_idx);
+  ESP_LOGV(TAG, "Got value %u from wiper %u", data, wiper_idx);
   this->reg_[wiper_idx].state = data;
   return true;
 }
