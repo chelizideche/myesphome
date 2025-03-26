@@ -365,7 +365,7 @@ bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
     return false;
   }
   if (this->reg_[wiper_idx].state == 0) {
-    ESP_LOGV(TAG, "Minimum wiper level reached, further decrease of wiper %" PRIu8 " prohibited", wiper_idx);
+    ESP_LOGV(TAG, "Minimum wiper level reached, further decrease of wiper %u prohibited", wiper_idx);
     return false;
   }
   ESP_LOGV(TAG, "Decreasing wiper %" PRIu8 "", wiper_idx);
