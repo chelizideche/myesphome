@@ -44,6 +44,7 @@ class ADS1100Component : public Component, public i2c::I2CDevice {
   uint16_t prev_config_{0};
   ADS1100Gain gain_{ADS1100_GAIN_1};
   ADS1100SampleRate sample_rate_{ADS1100_SAMPLE_RATE_128_SPS};
+  bool i2c_initialized_{false};
 };
 
 }  // namespace ads1100

@@ -13,10 +13,24 @@ void ADS1100Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1100...");
   LOG_I2C_DEVICE(this);
 
+  // Log initial state
+  ESP_LOGD(TAG, "Initial state - Gain: %d, Sample Rate: %d", this->gain_, this->sample_rate_);
+  ESP_LOGD(TAG, "I2C Address: 0x%02X", this->address_);
+
+  // Initialize I2C
+  if (!this->read_byte(0x00)) {
+    ESP_LOGE(TAG, "Failed to initialize I2C communication");
+    this->mark_failed();
+    return;
+  }
+  this->i2c_initialized_ = true;
+  ESP_LOGD(TAG, "I2C communication initialized successfully");
+
   // First try to read the conversion register to verify communication
   uint16_t value;
+  ESP_LOGD(TAG, "Attempting to read conversion register...");
   if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    ESP_LOGE(TAG, "Failed to read conversion register");
+    ESP_LOGE(TAG, "Failed to read conversion register - I2C error");
     this->mark_failed();
     return;
   }
@@ -25,8 +39,9 @@ void ADS1100Component::setup() {
 
   // Read current config
   uint16_t current_config;
+  ESP_LOGD(TAG, "Attempting to read config register...");
   if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
-    ESP_LOGE(TAG, "Failed to read current config register");
+    ESP_LOGE(TAG, "Failed to read config register - I2C error");
     this->mark_failed();
     return;
   }
@@ -55,7 +70,7 @@ void ADS1100Component::setup() {
 
   // Write new config
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGE(TAG, "Failed to write config register");
+    ESP_LOGE(TAG, "Failed to write config register - I2C error");
     this->mark_failed();
     return;
   }
@@ -64,8 +79,9 @@ void ADS1100Component::setup() {
 
   // Verify the config was written correctly
   uint16_t read_config;
+  ESP_LOGD(TAG, "Verifying config write...");
   if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &read_config)) {
-    ESP_LOGE(TAG, "Failed to read back config register");
+    ESP_LOGE(TAG, "Failed to read back config register - I2C error");
     this->mark_failed();
     return;
   }
@@ -76,10 +92,12 @@ void ADS1100Component::setup() {
     this->mark_failed();
     return;
   }
+
+  ESP_LOGD(TAG, "ADS1100 setup completed successfully");
 }
 
 void ADS1100Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "Setting up ADS1100...");
+  ESP_LOGCONFIG(TAG, "ADS1100:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Communication with ADS1100 failed!");
