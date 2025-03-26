@@ -15,12 +15,16 @@ void ADS1100Sensor::setup() {
   }
 
   ESP_LOGD(TAG, "Current sensor settings - Gain: %d, Sample Rate: %d", this->gain_, this->sample_rate_);
+  ESP_LOGD(TAG, "Parent component settings - Gain: %d, Sample Rate: %d", this->parent_->get_gain(),
+           this->parent_->get_sample_rate());
 
   // Propagate settings to parent component
   this->parent_->set_gain(static_cast<ADS1100Gain>(this->gain_));
   this->parent_->set_sample_rate(static_cast<ADS1100SampleRate>(this->sample_rate_));
 
   ESP_LOGD(TAG, "Settings propagated to parent component");
+  ESP_LOGD(TAG, "Updated parent component settings - Gain: %d, Sample Rate: %d", this->parent_->get_gain(),
+           this->parent_->get_sample_rate());
 }
 
 void ADS1100Sensor::dump_config() {

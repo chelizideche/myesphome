@@ -32,8 +32,13 @@ class ADS1100Component : public Component, public i2c::I2CDevice {
 
   /// Set the gain of the ADC
   void set_gain(ADS1100Gain gain) { gain_ = gain; }
+  /// Get the current gain setting
+  ADS1100Gain get_gain() const { return gain_; }
+
   /// Set the sample rate of the ADC
   void set_sample_rate(ADS1100SampleRate sample_rate) { sample_rate_ = sample_rate; }
+  /// Get the current sample rate setting
+  ADS1100SampleRate get_sample_rate() const { return sample_rate_; }
 
  protected:
   uint16_t prev_config_{0};
