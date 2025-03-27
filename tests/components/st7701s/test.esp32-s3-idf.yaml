@@ -8,4 +8,8 @@ substitutions:
   vsync_pin: GPIO17
   pclk_pin: GPIO21
 
+psram:
+  mode: octal
+  speed: 80MHz
+
 <<: !include common.yaml
