@@ -60,7 +60,7 @@ struct NECData {
 };
 
 /// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode(RemoteReceiveData)`
-static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_ONLY};
+extern const NECData NEC_REPEAT_CODE_DATA;
 
 /// @brief NECProtocol handles encoding, decoding, and validation of NEC infrared signals.
 /// @details This class provides methods to encode and decode NEC IR signals while ensuring compliance

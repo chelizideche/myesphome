@@ -13,14 +13,21 @@ static const char *const TAG = "remote.nec";
 // // NOLINT https://www.renesas.com/ja/document/apn/1184-remote-control-ir-receiver-decoder
 
 // Timing constants in microseconds
-static const uint32_t AGC_HIGH_US = 9000;            // AGC burst: 9ms HIGH
-static const uint32_t LONG_PAUSE_LOW_US = 4500;      // After AGC burst: 4.5ms LOW
-static const uint32_t SHORT_PAUSE_LOW_US = 2250;     // After AGC burst: 2.25ms LOW
-static const uint32_t BIT_HIGH_US = 562;             // Bit HIGH duration: 562.5µs
-static const uint32_t BIT_ONE_LOW_US = 1687;         // Logic '1': 562.5µs HIGH + 1687.5µs LOW
-static const uint32_t BIT_ZERO_LOW_US = 562;         // Logic '0': 562.5µs HIGH + 562.5µs LOW
-static const uint32_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
+static const uint16_t AGC_HIGH_US = 9000;            // AGC burst: 9ms HIGH
+static const uint16_t LONG_PAUSE_LOW_US = 4500;      // After AGC burst: 4.5ms LOW
+static const uint16_t SHORT_PAUSE_LOW_US = 2250;     // After AGC burst: 2.25ms LOW
+static const uint16_t BIT_HIGH_US = 562;             // Bit HIGH duration: 562.5µs
+static const uint16_t BIT_ONE_LOW_US = 1687;         // Logic '1': 562.5µs HIGH + 1687.5µs LOW
+static const uint16_t BIT_ZERO_LOW_US = 562;         // Logic '0': 562.5µs HIGH + 562.5µs LOW
+static const uint16_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
 static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
+
+const NECData NEC_REPEAT_CODE_DATA{
+    .address = 0,
+    .command = 0,
+    .repeats = 1,
+    .type = NECCodeType::REPEATS_ONLY,
+};
 
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   ESP_LOGV(TAG, "Encoding %s", this->get_protocol_type_and_fields_str(data).c_str());
