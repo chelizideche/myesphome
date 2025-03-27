@@ -76,10 +76,11 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
     // Stop bit to end the message frame
     dst->mark(BIT_HIGH_US);
 
+#if !defined(USE_REMOTE_TRANSMITTER_NEC_FULL_LEN)
     // Space between message frame and first repeat code
-    if (data.repeats > 0) {
+    if (data.repeats > 0)
+#endif
       dst->space(SPACE_INTER_FRAME_US);
-    }
   }
 
   // Send AGC Repeat Codes if requested
@@ -88,10 +89,11 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
     dst->item(AGC_HIGH_US, SHORT_PAUSE_LOW_US);  // Shortened AGC header
     dst->mark(BIT_HIGH_US);                      // Stop bit to complete the repeat code
 
+#if !defined(USE_REMOTE_TRANSMITTER_NEC_FULL_LEN)
     // Add space after repeat code, except after the final repeat
-    if (repeats < data.repeats - 1) {
+    if (repeats < data.repeats - 1)
+#endif
       dst->space(SPACE_AGC_REPEAT_US);
-    }
   }
 }
 
