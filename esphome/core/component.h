@@ -279,6 +279,7 @@ class Component {
   uint32_t component_state_{0x0000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
+  std::string error_message_{};
 };
 
 /** This class simplifies creating components that periodically check a state.
