@@ -40,4 +40,4 @@ void FastLEDLightOutput::write_state(light::LightState *state) {
 }  // namespace fastled_base
 }  // namespace esphome
 
-#endif // USE_ARDUINO
+#endif  // USE_ARDUINO
