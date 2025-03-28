@@ -120,7 +120,7 @@ uint8_t Mcp4461Component::get_status_register_() {
     ESP_LOGE(TAG, "%s", LOG_STR_ARG(this->get_message_string(this->error_code_)));
     return 0;
   }
-  uint8_t addr = static_cast<uint8_t>(Mcp4461Addresses::MCP4461_STATUS)
+  uint8_t addr = static_cast<uint8_t>(Mcp4461Addresses::MCP4461_STATUS);
   uint8_t reg = addr | static_cast<uint8_t>(Mcp4461Commands::READ);
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
@@ -202,7 +202,7 @@ uint16_t Mcp4461Component::get_wiper_level_(Mcp4461WiperIdx wiper) {
 uint16_t Mcp4461Component::read_wiper_level_(uint8_t wiper_idx) {
   uint8_t addr = this->get_wiper_address_(wiper_idx);
   uint8_t reg = addr | static_cast<uint8_t>(Mcp4461Commands::INCREMENT);
-  if (wiper > 3) {
+  if (wiper_idx > 3) {
     if (!this->is_eeprom_ready_for_writing_(true)) {
       return 0;
     }
@@ -211,7 +211,7 @@ uint16_t Mcp4461Component::read_wiper_level_(uint8_t wiper_idx) {
   if (!(this->read_byte_16(reg, &buf))) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
-    ESP_LOGW(TAG, "Error fetching %swiper %u value", (wiper > 3) ? "nonvolatile " : "", wiper);
+    ESP_LOGW(TAG, "Error fetching %swiper %u value", (wiper_idx > 3) ? "nonvolatile " : "", wiper_idx);
     return 0;
   }
   return buf;
