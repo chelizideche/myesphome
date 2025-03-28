@@ -15,7 +15,7 @@ void DlmsMeterComponent::dump_config() {
   ESP_LOGVV(TAG, "decryption_key: %s",
             format_hex_pretty(&this->decryption_key_[0], this->decryption_key_length_).c_str());
 
-  ESP_LOGCONFIG(TAG, "read_timeout: %ld", this->read_timeout_);
+  ESP_LOGCONFIG(TAG, "read_timeout: %u", this->read_timeout_);
 
 #define DLMS_METER_LOG_SENSOR(s) LOG_SENSOR("  ", #s, this->s##_sensor_);
   DLMS_METER_SENSOR_LIST(DLMS_METER_LOG_SENSOR, )
@@ -321,10 +321,10 @@ void DlmsMeterComponent::loop() {
         if (this->provider_ == PROVIDER_NETZNOE) {
           // Needed so the Timestamp at DECODER_START_OFFSET gets read correctly
           // as it doesn't have an obisMedium
-          if (timestampFound == true) {
+          if (timestampFound) {
             ESP_LOGV(TAG, "Found Timestamp without obisMedium");
             code_type = CodeType::TIMESTAMP;
-          } else if (meterNumberFound == true) {
+          } else if (meterNumberFound) {
             ESP_LOGV(TAG, "Found MeterNumber without obisMedium");
             code_type = CodeType::METER_NUMBER;
           } else {
@@ -456,12 +456,12 @@ void DlmsMeterComponent::loop() {
             data.timestamp = timestamp;
           } else if (this->provider_ == PROVIDER_NETZNOE && code_type == CodeType::METER_NUMBER) {
             ESP_LOGV(TAG, "Constructing MeterNumber...");
-            char meterNumber[13];  // 121110284568
+            char meter_number[13];  // 121110284568
 
-            memcpy(meterNumber, &plaintext[current_position], data_length);
-            meterNumber[12] = '\0';
+            memcpy(meter_number, &plaintext[current_position], data_length);
+            meter_number[12] = '\0';
 
-            data.meternumber = meterNumber;
+            data.meternumber = meter_number;
           }
           break;
         default:
@@ -474,7 +474,7 @@ void DlmsMeterComponent::loop() {
 
       if (this->provider_ == PROVIDER_NETZNOE) {
         // Don't skip the break on the first Timestamp, as there's none
-        if (timestampFound == false) {
+        if (!timestampFound) {
           current_position += 2;  // Skip break after data
         }
       } else {
