@@ -16,7 +16,7 @@ static const char *const TAG = "http_request.arduino";
 
 std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::string method, std::string body,
                                                          std::list<Header> request_headers,
-                                                         std::set<std::string> collect_header_names) {
+                                                         std::set<std::string> collect_headers) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
     ESP_LOGW(TAG, "HTTP Request failed; Not connected to network");
@@ -101,9 +101,9 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   }
 
   // returned needed headers must be collected before the requests
-  const char *header_keys[collect_header_names.size()];
+  const char *header_keys[collect_headers.size()];
   int index = 0;
-  for (auto const &header_name : collect_header_names) {
+  for (auto const &header_name : collect_headers) {
     header_keys[index++] = header_name.c_str();
   }
   // header names must be lowercase
@@ -130,8 +130,8 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   auto header_count = container->client_.headers();
   for (int i = 0; i < header_count; i++) {
     const std::string header_name = str_lower_case(container->client_.headerName(i).c_str());
-    for (const auto &collect_header_name : collect_header_names) {
-      if (str_equals_case_insensitive(collect_header_name, header_name)) {
+    for (const auto &collect_header : collect_headers) {
+      if (str_equals_case_insensitive(collect_header, header_name)) {
         std::string header_value = container->client_.header(i).c_str();
         ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
         container->response_headers_[header_name].push_back(header_value);

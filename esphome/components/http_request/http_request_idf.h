@@ -35,7 +35,7 @@ class HttpRequestIDF : public HttpRequestComponent {
 
   std::shared_ptr<HttpContainer> start(std::string url, std::string method, std::string body,
                                        std::list<Header> request_headers,
-                                       std::set<std::string> collect_header_names) override;
+                                       std::set<std::string> collect_headers) override;
 
   void set_buffer_size_rx(uint16_t buffer_size_rx) { this->buffer_size_rx_ = buffer_size_rx; }
   void set_buffer_size_tx(uint16_t buffer_size_tx) { this->buffer_size_tx_ = buffer_size_tx; }

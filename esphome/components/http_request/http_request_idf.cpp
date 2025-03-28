@@ -20,7 +20,7 @@ namespace http_request {
 static const char *const TAG = "http_request.idf";
 
 struct UserData {
-  const std::set<std::string> &collect_header_names;
+  const std::set<std::string> &collect_headers;
   std::map<std::string, std::list<std::string>> response_headers;
 };
 
@@ -36,8 +36,8 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   switch (evt->event_id) {
     case HTTP_EVENT_ON_HEADER: {
       const std::string header_name = str_lower_case(evt->header_key);
-      for (const auto &collect_header_name : user_data->collect_header_names) {
-        if (str_equals_case_insensitive(collect_header_name, header_name)) {
+      for (const auto &collect_header : user_data->collect_headers) {
+        if (str_equals_case_insensitive(collect_header, header_name)) {
           const std::string header_value = evt->header_value;
           ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
           user_data->response_headers[header_name].push_back(header_value);
@@ -55,7 +55,7 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
 
 std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::string method, std::string body,
                                                      std::list<Header> request_headers,
-                                                     std::set<std::string> collect_header_names) {
+                                                     std::set<std::string> collect_headers) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
     ESP_LOGE(TAG, "HTTP Request failed; Not connected to network");
@@ -106,7 +106,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   watchdog::WatchdogManager wdm(this->get_watchdog_timeout());
 
   config.event_handler = http_event_handler;
-  auto user_data = UserData{collect_header_names, {}};
+  auto user_data = UserData{collect_headers, {}};
   config.user_data = static_cast<void *>(&user_data);
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
