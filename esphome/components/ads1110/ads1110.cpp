@@ -1,15 +1,15 @@
-#include "ads1100.h"
+#include "ads1110.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace ads1100 {
+namespace ads1110 {
 
-static const char *const TAG = "ads1100";
-static const uint8_t ADS1100_REGISTER_CONVERSION = 0x00;
-static const uint8_t ADS1100_REGISTER_CONFIG = 0x01;
+static const char *const TAG = "ads1110";
+static const uint8_t ADS1110_REGISTER_CONVERSION = 0x00;
+static const uint8_t ADS1110_REGISTER_CONFIG = 0x01;
 
-void ADS1100Component::setup() {
+void ADS1110Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1110...");
   LOG_I2C_DEVICE(this);
 
@@ -25,7 +25,7 @@ void ADS1100Component::setup() {
   // Most basic check - a simple I2C read of 2 bytes from register 0
   uint16_t value;
   for (int retry = 0; retry < 3; retry++) {
-    if (this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
+    if (this->read_byte_16(ADS1110_REGISTER_CONVERSION, &value)) {
       ESP_LOGD(TAG, "ADS1110 communication successful, raw value: 0x%04X", value);
 
       // If we can read data, the device is working - mark it as initialized
@@ -42,7 +42,7 @@ void ADS1100Component::setup() {
   this->mark_failed();
 }
 
-void ADS1100Component::dump_config() {
+void ADS1110Component::dump_config() {
   ESP_LOGCONFIG(TAG, "ADS1110:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
@@ -50,13 +50,13 @@ void ADS1100Component::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
   ESP_LOGCONFIG(TAG, "  Sample Rate: %d SPS",
-                this->sample_rate_ == ADS1100_SAMPLE_RATE_128_SPS  ? 128
-                : this->sample_rate_ == ADS1100_SAMPLE_RATE_32_SPS ? 32
-                : this->sample_rate_ == ADS1100_SAMPLE_RATE_16_SPS ? 16
+                this->sample_rate_ == ADS1110_SAMPLE_RATE_128_SPS  ? 128
+                : this->sample_rate_ == ADS1110_SAMPLE_RATE_32_SPS ? 32
+                : this->sample_rate_ == ADS1110_SAMPLE_RATE_16_SPS ? 16
                                                                    : 8);
 }
 
-float ADS1100Component::request_measurement() {
+float ADS1110Component::request_measurement() {
   if (!this->i2c_initialized_) {
     ESP_LOGE(TAG, "ADS1110 not initialized");
     return NAN;
@@ -65,7 +65,7 @@ float ADS1100Component::request_measurement() {
   // For ADS1110, we just read the conversion register
   // It operates in continuous conversion mode by default
   uint16_t raw_adc;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_adc)) {
+  if (!this->read_byte_16(ADS1110_REGISTER_CONVERSION, &raw_adc)) {
     ESP_LOGE(TAG, "Failed to read ADC value");
     return NAN;
   }
@@ -83,16 +83,16 @@ float ADS1100Component::request_measurement() {
   // Gain=8: ±0.256V
   float voltage;
   switch (this->gain_) {
-    case ADS1100_GAIN_1:
+    case ADS1110_GAIN_1:
       voltage = value * 2.048f / 32768.0f;
       break;
-    case ADS1100_GAIN_2:
+    case ADS1110_GAIN_2:
       voltage = value * 1.024f / 32768.0f;
       break;
-    case ADS1100_GAIN_4:
+    case ADS1110_GAIN_4:
       voltage = value * 0.512f / 32768.0f;
       break;
-    case ADS1100_GAIN_8:
+    case ADS1110_GAIN_8:
       voltage = value * 0.256f / 32768.0f;
       break;
     default:
@@ -104,5 +104,5 @@ float ADS1100Component::request_measurement() {
   return voltage;
 }
 
-}  // namespace ads1100
+}  // namespace ads1110
 }  // namespace esphome

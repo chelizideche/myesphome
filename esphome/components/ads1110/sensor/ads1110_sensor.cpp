@@ -1,12 +1,12 @@
-#include "ads1100_sensor.h"
+#include "ads1110_sensor.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace ads1100 {
+namespace ads1110 {
 
-static const char *const TAG = "ads1100.sensor";
+static const char *const TAG = "ads1110.sensor";
 
-void ADS1100Sensor::setup() {
+void ADS1110Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1110 Sensor...");
   if (this->parent_ == nullptr) {
     ESP_LOGE(TAG, "ADS1110 parent not set!");
@@ -19,12 +19,12 @@ void ADS1100Sensor::setup() {
   // We just use the default device settings.
 }
 
-void ADS1100Sensor::dump_config() {
+void ADS1110Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "ADS1110 Sensor:");
   LOG_SENSOR("  ", "Voltage", this);
 }
 
-void ADS1100Sensor::update() {
+void ADS1110Sensor::update() {
   if (this->parent_ == nullptr) {
     ESP_LOGE(TAG, "Parent component not set!");
     this->status_set_error();
@@ -43,5 +43,5 @@ void ADS1100Sensor::update() {
   this->status_clear_error();
 }
 
-}  // namespace ads1100
+}  // namespace ads1110
 }  // namespace esphome

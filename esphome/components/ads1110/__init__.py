@@ -7,15 +7,15 @@ CODEOWNERS = ["@esphome/core"]
 DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
 
-CONF_ADS1100_ID = "ads1100_id"
+CONF_ADS1110_ID = "ads1110_id"
 
-ads1100_ns = cg.esphome_ns.namespace("ads1100")
-ADS1100Component = ads1100_ns.class_("ADS1100Component", cg.Component, i2c.I2CDevice)
+ads1110_ns = cg.esphome_ns.namespace("ads1110")
+ADS1110Component = ads1110_ns.class_("ADS1110Component", cg.Component, i2c.I2CDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(ADS1100Component),
+            cv.GenerateID(): cv.declare_id(ADS1110Component),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
