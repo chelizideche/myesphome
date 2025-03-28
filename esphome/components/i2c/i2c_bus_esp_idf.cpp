@@ -1,6 +1,8 @@
 #ifdef USE_ESP_IDF
 
 #include "i2c_bus_esp_idf.h"
+#include <cinttypes>
+#include <cstring>
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
