@@ -150,6 +150,14 @@ enum class State : uint8_t {
   TXFIFO_UNDERFLOW,
 };
 
+enum class RxAttenuation : uint8_t {
+  RX_ATTENUATION_0DB,
+  RX_ATTENUATION_6DB,
+  RX_ATTENUATION_12DB,
+  RX_ATTENUATION_18DB,
+  LAST,
+};
+
 enum class Modulation : uint8_t {
   MODULATION_2_FSK,
   MODULATION_GFSK,
@@ -287,7 +295,7 @@ struct CC1101State {
     uint8_t FIFOTHR;
     struct {
       uint8_t FIFO_THR : 4;
-      uint8_t CLOSE_IN_RX : 2;
+      uint8_t CLOSE_IN_RX : 2;  // RxAttenuation
       uint8_t ADC_RETENTION : 1;
       uint8_t : 1;
     };

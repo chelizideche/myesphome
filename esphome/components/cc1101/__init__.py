@@ -58,6 +58,8 @@ CONF_CC1101_ID = "cc1101_id"
 CONF_GDO0_PIN = "gdo0_pin"
 CONF_GDO0_ADC_ID = "gdo0_adc_id"
 CONF_OUTPUT_POWER = "output_power"
+CONF_RX_ATTENUATION = "rx_attenuation"
+CONF_DC_BLOCKING_FILTER = "dc_blocking_filter"
 
 # tuner
 CONF_TUNER = "tuner"
@@ -100,6 +102,14 @@ MODULATION = {
     "UNUSED 5": Modulation.MODULATION_UNUSED_5,
     "UNUSED 6": Modulation.MODULATION_UNUSED_6,
     "MSK": Modulation.MODULATION_MSK,
+}
+
+RxAttenuation = ns.enum("RxAttenuation", True)
+RX_ATTENUATION = {
+    "0dB": RxAttenuation.RX_ATTENUATION_0DB,
+    "6dB": RxAttenuation.RX_ATTENUATION_6DB,
+    "12dB": RxAttenuation.RX_ATTENUATION_12DB,
+    "18dB": RxAttenuation.RX_ATTENUATION_18DB,
 }
 
 MagnTarget = ns.enum("MagnTarget", True)
@@ -254,6 +264,8 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_GDO0_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_GDO0_ADC_ID): cv.use_id(voltage_sampler.VoltageSampler),
             cv.Optional(CONF_OUTPUT_POWER): cv.float_range(-70, 11),
+            cv.Optional(CONF_RX_ATTENUATION): cv.enum(RX_ATTENUATION),
+            cv.Optional(CONF_DC_BLOCKING_FILTER): cv.boolean,
             cv.Optional(CONF_TUNER): TUNER_SCHEMA,
             cv.Optional(CONF_AGC): AGC_SCHEMA,
             cv.Optional(CONF_SENSOR): SENSOR_SCHEMA,
@@ -268,6 +280,8 @@ VARIABLES = {
         [CONF_GDO0_PIN],
         [CONF_GDO0_ADC_ID],
         [CONF_OUTPUT_POWER],
+        [CONF_RX_ATTENUATION],
+        [CONF_DC_BLOCKING_FILTER],
     ],
     CONF_TUNER: [
         [CONF_FREQUENCY],

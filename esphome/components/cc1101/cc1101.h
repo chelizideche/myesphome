@@ -37,6 +37,8 @@ class CC1101Component : public PollingComponent,
   void end_tx();
 
   CC1101_SUB_NUMBER(output_power, float)
+  CC1101_SUB_SELECT(rx_attenuation, RxAttenuation)
+  CC1101_SUB_SWITCH(dc_blocking_filter)
   CC1101_SUB_NUMBER(tuner_frequency, float)
   CC1101_SUB_NUMBER(tuner_if_frequency, float)
   CC1101_SUB_NUMBER(tuner_bandwidth, float)

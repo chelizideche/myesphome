@@ -6,12 +6,14 @@ from esphome.const import DEVICE_CLASS_SWITCH, ENTITY_CATEGORY_CONFIG
 from .. import (
     CONF_AGC,
     CONF_CC1101_ID,
+    CONF_DC_BLOCKING_FILTER,
     CONF_LNA_PRIORITY,
     CC1101Component,
     for_each_conf,
     ns,
 )
 
+DcBlockingFilterSwitch = ns.class_("DcBlockingFilterSwitch", switch.Switch)
 AgcLnaPrioritySwitch = ns.class_("AgcLnaPrioritySwitch", switch.Switch)
 
 AGC_SCHEMA = cv.Schema(
@@ -28,12 +30,20 @@ AGC_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_CC1101_ID): cv.use_id(CC1101Component),
+        cv.Optional(CONF_DC_BLOCKING_FILTER): switch.switch_schema(
+            DcBlockingFilterSwitch,
+            device_class=DEVICE_CLASS_SWITCH,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            # icon=ICON_,
+        ),
         cv.Optional(CONF_AGC): AGC_SCHEMA,
     }
 )
 
 VARIABLES = {
-    None: [],
+    None: [
+        [CONF_DC_BLOCKING_FILTER],
+    ],
     CONF_AGC: [
         [CONF_LNA_PRIORITY],
     ],

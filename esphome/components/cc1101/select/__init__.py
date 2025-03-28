@@ -16,6 +16,7 @@ from .. import (
     CONF_MAX_DVA_GAIN,
     CONF_MAX_LNA_GAIN,
     CONF_MODULATION,
+    CONF_RX_ATTENUATION,
     CONF_TUNER,
     FILTER_LENGTH_ASK_OOK,
     FILTER_LENGTH_FSK_MSK,
@@ -25,12 +26,14 @@ from .. import (
     MAX_DVA_GAIN,
     MAX_LNA_GAIN,
     MODULATION,
+    RX_ATTENUATION,
     WAIT_TIME,
     CC1101Component,
     for_each_conf,
     ns,
 )
 
+RxAttenuationSelect = ns.class_("RxAttenuationSelect", select.Select)
 TunerModulationSelect = ns.class_("TunerModulationSelect", select.Select)
 AgcMagnTargetSelect = ns.class_("AgcMagnTargetSelect", select.Select)
 AgcMaxLnaGainSelect = ns.class_("AgcMaxLnaGainSelect", select.Select)
@@ -105,13 +108,18 @@ AGC_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_CC1101_ID): cv.use_id(CC1101Component),
+        cv.Optional(CONF_RX_ATTENUATION): select.select_schema(
+            RxAttenuationSelect,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            # icon=ICON_,
+        ),
         cv.Optional(CONF_TUNER): TUNER_SCHEMA,
         cv.Optional(CONF_AGC): AGC_SCHEMA,
     }
 )
 
 VARIABLES = {
-    None: [],
+    None: [[CONF_RX_ATTENUATION, RX_ATTENUATION]],
     CONF_TUNER: [
         [CONF_MODULATION, MODULATION],
     ],

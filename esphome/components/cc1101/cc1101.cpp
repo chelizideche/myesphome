@@ -213,6 +213,8 @@ void CC1101Component::setup() {
   this->send_(Command::RX);
 
   this->publish_output_power();
+  this->publish_rx_attenuation();
+  this->publish_dc_blocking_filter();
   this->publish_tuner_frequency();
   this->publish_tuner_if_frequency();
   this->publish_tuner_bandwidth();
@@ -248,6 +250,9 @@ void CC1101Component::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Chip: %s", this->chip_id_.c_str());
   ESP_LOGCONFIG(TAG, "  Tuner:");
+  ESP_LOGCONFIG(TAG, "    Output Power: %.1f dBm", this->get_output_power());
+  ESP_LOGCONFIG(TAG, "    Rx Attenuation: %d dB", (int) this->get_rx_attenuation() * 6);
+  ESP_LOGCONFIG(TAG, "    DC Blocking Filter: %d", (int) this->get_dc_blocking_filter());
   ESP_LOGCONFIG(TAG, "    Frequency: %d KHz", (int) this->get_tuner_frequency());
   ESP_LOGCONFIG(TAG, "    IF Frequency: %d KHz", (int) this->get_tuner_if_frequency());
   ESP_LOGCONFIG(TAG, "    Bandwith: %d KHz", (int) this->get_tuner_bandwidth());
@@ -573,6 +578,40 @@ void CC1101Component::set_output_power(float value) {
 }
 
 float CC1101Component::get_output_power() { return this->output_power_effective_; }
+
+void CC1101Component::set_rx_attenuation(RxAttenuation value) {
+  CHECK_ENUM(value)
+
+  this->state_.CLOSE_IN_RX = (uint8_t) value;
+
+  ESP_LOGD(TAG, "set_rx_attenuation(%d)", (int) value);
+
+  this->publish_rx_attenuation();
+
+  if (!this->reset_) {
+    return;
+  }
+
+  this->write_(Register::FIFOTHR);
+}
+
+RxAttenuation CC1101Component::get_rx_attenuation() { return (RxAttenuation) this->state_.CLOSE_IN_RX; }
+
+void CC1101Component::set_dc_blocking_filter(bool value) {
+  this->state_.DEM_DCFILT_OFF = value ? 0 : 1;  // inverted logic, 0 is Enable
+
+  ESP_LOGD(TAG, "set_dc_blocking_filter(%d)", value ? 1 : 0);
+
+  this->publish_dc_blocking_filter();
+
+  if (!this->reset_) {
+    return;
+  }
+
+  this->write_(Register::MDMCFG2);
+}
+
+bool CC1101Component::get_dc_blocking_filter() { return this->state_.DEM_DCFILT_OFF == 0; }
 
 // tuner_*
 

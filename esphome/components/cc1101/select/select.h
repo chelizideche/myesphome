@@ -6,6 +6,16 @@
 namespace esphome {
 namespace cc1101 {
 
+class RxAttenuationSelect : public select::Select, public Parented<CC1101Component> {
+ protected:
+  void control(const std::string &value) override {
+    this->publish_state(value);
+    if (auto index = this->active_index()) {
+      this->parent_->set_rx_attenuation((RxAttenuation) *index);
+    }
+  }
+};
+
 class TunerModulationSelect : public select::Select, public Parented<CC1101Component> {
  protected:
   void control(const std::string &value) override {
