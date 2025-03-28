@@ -144,7 +144,7 @@ void IDFI2CBus::dump_config() {
 
 ErrorCode IDFI2CBus::probe(uint8_t address) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-  esp_err_t err = i2c_master_probe(bus_, address, timeout_ / 1000);
+  esp_err_t err = i2c_master_probe(bus_, address, 10);
   if (err != ESP_OK) {
     ESP_LOGVV(TAG, "Probing %02X failed: %s", address, esp_err_to_name(err));
     return ERROR_UNKNOWN;
