@@ -161,29 +161,42 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
-  i2c_master_dev_handle_t device;
-  i2c_device_config_t conf{};
-  memset(&conf, 0, sizeof(conf));
-  conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-  conf.device_address = address;
-  conf.scl_speed_hz = frequency_;
-  esp_err_t err = i2c_master_bus_add_device(bus_, &conf, &device);
-  if (err != ESP_OK) {
-    ESP_LOGVV(TAG, "RX from %02X master start failed: %s", address, esp_err_to_name(err));
-    return ERROR_UNKNOWN;
-  }
+  uint8_t read = (address << 1) | I2C_MASTER_READ;
+  this->jobs_.clear();
+  this->jobs_.reserve(cnt + 2);
+
+  i2c_operation_job_t start{};
+  start.command = I2C_MASTER_CMD_START;
+  this->jobs_.push_back(start);
+
+  i2c_operation_job_t cmd{};
+  cmd.command = I2C_MASTER_CMD_WRITE;
+  cmd.write.ack_check = true;
+  cmd.write.data = &read;
+  cmd.write.total_bytes = 1;
+  this->jobs_.push_back(cmd);
+
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
     if (buf.len == 0)
       continue;
-    err = i2c_master_receive(device, buf.data, buf.len, timeout_);
-    if (err != ESP_OK) {
-      ESP_LOGVV(TAG, "RX from %02X data read failed: %s", address, esp_err_to_name(err));
-      i2c_master_bus_rm_device(device);
-      return ERROR_UNKNOWN;
-    }
+    i2c_operation_job_t data{};
+    data.command = I2C_MASTER_CMD_READ;
+    data.read.ack_value = (i == cnt - 1) ? I2C_NACK_VAL : I2C_ACK_VAL;
+    data.read.data = (uint8_t *) buf.data;
+    data.read.total_bytes = buf.len;
+    this->jobs_.push_back(data);
   }
-  i2c_master_bus_rm_device(device);
+
+  i2c_operation_job_t stop{};
+  stop.command = I2C_MASTER_CMD_STOP;
+  this->jobs_.push_back(stop);
+
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
+  if (err != ESP_OK) {
+    ESP_LOGVV(TAG, "TX to %02X master execute failed: %s", address, esp_err_to_name(err));
+    return ERROR_UNKNOWN;
+  }
 #else
   i2c_cmd_handle_t cmd = i2c_cmd_link_create();
   esp_err_t err = i2c_master_start(cmd);
@@ -272,29 +285,44 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
-  i2c_master_dev_handle_t device;
-  i2c_device_config_t conf{};
-  memset(&conf, 0, sizeof(conf));
-  conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-  conf.device_address = address;
-  conf.scl_speed_hz = frequency_;
-  esp_err_t err = i2c_master_bus_add_device(bus_, &conf, &device);
-  if (err != ESP_OK) {
-    ESP_LOGVV(TAG, "TX from %02X master start failed: %s", address, esp_err_to_name(err));
-    return ERROR_UNKNOWN;
-  }
+  uint8_t write = (address << 1) | I2C_MASTER_WRITE;
+  this->jobs_.clear();
+  this->jobs_.reserve(cnt + 2);
+
+  i2c_operation_job_t start{};
+  start.command = I2C_MASTER_CMD_START;
+  this->jobs_.push_back(start);
+
+  i2c_operation_job_t cmd{};
+  cmd.command = I2C_MASTER_CMD_WRITE;
+  cmd.write.ack_check = true;
+  cmd.write.data = &write;
+  cmd.write.total_bytes = 1;
+  this->jobs_.push_back(cmd);
+
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
     if (buf.len == 0)
       continue;
-    err = i2c_master_transmit(device, buf.data, buf.len, timeout_);
-    if (err != ESP_OK) {
-      ESP_LOGVV(TAG, "RX from %02X data write failed: %s", address, esp_err_to_name(err));
-      i2c_master_bus_rm_device(device);
-      return ERROR_UNKNOWN;
-    }
+    i2c_operation_job_t data{};
+    data.command = I2C_MASTER_CMD_WRITE;
+    data.write.ack_check = true;
+    data.write.data = (uint8_t *) buf.data;
+    data.write.total_bytes = buf.len;
+    this->jobs_.push_back(data);
   }
-  i2c_master_bus_rm_device(device);
+
+  if (stop) {
+    i2c_operation_job_t stop{};
+    stop.command = I2C_MASTER_CMD_STOP;
+    this->jobs_.push_back(stop);
+  }
+
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
+  if (err != ESP_OK) {
+    ESP_LOGVV(TAG, "TX to %02X master execute failed: %s", address, esp_err_to_name(err));
+    return ERROR_UNKNOWN;
+  }
 #else
   i2c_cmd_handle_t cmd = i2c_cmd_link_create();
   esp_err_t err = i2c_master_start(cmd);

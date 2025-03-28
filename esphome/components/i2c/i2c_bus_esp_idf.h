@@ -42,6 +42,7 @@ class IDFI2CBus : public I2CBus, public Component {
 
  protected:
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+  std::vector<i2c_operation_job_t> jobs_;
   i2c_master_dev_handle_t dev_;
   i2c_master_bus_handle_t bus_;
 #endif
