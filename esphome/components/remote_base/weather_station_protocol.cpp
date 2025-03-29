@@ -217,7 +217,7 @@ bool WeatherStation2032Protocol::transform(const std::vector<uint8_t> &code, Wea
 }
 
 bool WeatherStation2032Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode WS2032");
+  ESP_LOGD(TAG, "TODO: encode WS2032");
   return false;
 }
 
@@ -306,7 +306,7 @@ bool WeatherStationBresser3CHProtocol::transform(const std::vector<uint8_t> &cod
 }
 
 bool WeatherStationBresser3CHProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode Bresser3CH");
+  ESP_LOGD(TAG, "TODO: encode Bresser3CH");
   return true;
 }
 
@@ -342,7 +342,7 @@ bool WeatherStationEurochronProtocol::transform(const std::vector<uint8_t> &code
 }
 
 bool WeatherStationEurochronProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode Eurochron");
+  ESP_LOGD(TAG, "TODO: encode Eurochron");
   return true;
 }
 
@@ -390,7 +390,7 @@ bool WeatherStationH10515Protocol::transform(const std::vector<uint8_t> &code, W
 }
 
 bool WeatherStationH10515Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode H10515");
+  ESP_LOGD(TAG, "TODO: encode H10515");
   return true;
 }
 
@@ -477,7 +477,7 @@ bool WeatherStationH13726Protocol::transform(const std::vector<uint8_t> &code, W
 }
 
 bool WeatherStationH13726Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode h13726");
+  ESP_LOGD(TAG, "TODO: encode h13726");
   return true;
 }
 
@@ -518,7 +518,7 @@ bool WeatherStationL08037AProtocol::transform(const std::vector<uint8_t> &code, 
 }
 
 bool WeatherStationL08037AProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode l08037a");
+  ESP_LOGD(TAG, "TODO: encode l08037a");
   return true;
 }
 
@@ -555,7 +555,7 @@ bool WeatherStationNexusProtocol::transform(const std::vector<uint8_t> &code, We
 }
 
 bool WeatherStationNexusProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode nexus");
+  ESP_LOGD(TAG, "TODO: encode nexus");
   return true;
 }
 
@@ -583,7 +583,7 @@ bool WeatherStationZ32171Protocol::transform(const std::vector<uint8_t> &code, W
 }
 
 bool WeatherStationZ32171Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode z32171");
+  ESP_LOGD(TAG, "TODO: encode z32171");
   return true;
 }
 
@@ -602,6 +602,19 @@ void WeatherStationAHFLProtocol::setup() {
 }
 
 bool WeatherStationAHFLProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  uint8_t chksum = get_bits(code, 6, 4);
+  if (chksum != 0b0100) {
+    ESP_LOGV(TAG, "[6:9] should be 0b0100");
+    return false;
+  }
+  for (int i = 10; i <= 38; i += 4) {
+    chksum += (uint8_t) get_bits(code, i, 4);
+  }
+  if ((chksum & 0x3F) != get_bits(code, 0, 6)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", get_bits(code, 0, 6), chksum & 0x3F);
+    return false;
+  }
+
   data.id = (uint16_t) get_bits(code, 34, 8);
   data.battery_level = (uint8_t) get_bits(code, 33, 1) == 0 ? 100.0f : 0;
   data.channel = (uint8_t) get_bits(code, 30, 2) + 1;
@@ -611,7 +624,7 @@ bool WeatherStationAHFLProtocol::transform(const std::vector<uint8_t> &code, Wea
 }
 
 bool WeatherStationAHFLProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode ahfl");
+  ESP_LOGD(TAG, "TODO: encode ahfl");
   return true;
 }
 
@@ -637,7 +650,7 @@ bool WeatherStationAuriolLegacyProtocol::transform(const std::vector<uint8_t> &c
 }
 
 bool WeatherStationAuriolLegacyProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGW(TAG, "TODO: encode auriollegacy");
+  ESP_LOGD(TAG, "TODO: encode auriollegacy");
   return true;
 }
 
