@@ -183,7 +183,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
     if (buf.len == 0)
       continue;
     // the last byte of read before stop should always be nack,
-    // split the last read len is larger than 1
+    // split the last read if len is larger than 1
     if (i == cnt - 1) {
       if (buf.len > 1) {
         i2c_operation_job_t data{};
