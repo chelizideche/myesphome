@@ -165,7 +165,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   uint8_t read = (address << 1) | I2C_MASTER_READ;
   this->jobs_.clear();
-  this->jobs_.reserve(cnt + 3);
+  this->jobs_.reserve(cnt + 4);
 
   i2c_operation_job_t start{};
   start.command = I2C_MASTER_CMD_START;
@@ -311,7 +311,7 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   uint8_t write = (address << 1) | I2C_MASTER_WRITE;
   this->jobs_.clear();
-  this->jobs_.reserve(cnt + 2);
+  this->jobs_.reserve(cnt + 3);
 
   i2c_operation_job_t start{};
   start.command = I2C_MASTER_CMD_START;
