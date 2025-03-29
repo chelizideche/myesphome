@@ -165,7 +165,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   uint8_t read = (address << 1) | I2C_MASTER_READ;
   this->jobs_.clear();
-  this->jobs_.reserve(cnt + 2);
+  this->jobs_.reserve(cnt + 3);
 
   i2c_operation_job_t start{};
   start.command = I2C_MASTER_CMD_START;
@@ -182,12 +182,29 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
     const auto &buf = buffers[i];
     if (buf.len == 0)
       continue;
-    i2c_operation_job_t data{};
-    data.command = I2C_MASTER_CMD_READ;
-    data.read.ack_value = (i == cnt - 1) ? I2C_NACK_VAL : I2C_ACK_VAL;
-    data.read.data = (uint8_t *) buf.data;
-    data.read.total_bytes = buf.len;
-    this->jobs_.push_back(data);
+    if (i == cnt - 1) {
+      if (buf.len > 1) {
+        i2c_operation_job_t data{};
+        data.command = I2C_MASTER_CMD_READ;
+        data.read.ack_value = I2C_ACK_VAL;
+        data.read.data = (uint8_t *) buf.data;
+        data.read.total_bytes = buf.len - 1;
+        this->jobs_.push_back(data);
+      }
+      i2c_operation_job_t data{};
+      data.command = I2C_MASTER_CMD_READ;
+      data.read.ack_value = I2C_NACK_VAL;
+      data.read.data = (uint8_t *) buf.data + buf.len - 1;
+      data.read.total_bytes = 1;
+      this->jobs_.push_back(data);
+    } else {
+      i2c_operation_job_t data{};
+      data.command = I2C_MASTER_CMD_READ;
+      data.read.ack_value = I2C_ACK_VAL;
+      data.read.data = (uint8_t *) buf.data;
+      data.read.total_bytes = buf.len;
+      this->jobs_.push_back(data);
+    }
   }
 
   i2c_operation_job_t stop{};
