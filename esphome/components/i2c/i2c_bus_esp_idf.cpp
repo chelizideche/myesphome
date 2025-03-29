@@ -19,17 +19,12 @@ namespace i2c {
 static const char *const TAG = "i2c.idf";
 
 void IDFI2CBus::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up I2C bus...");
   static i2c_port_t next_port = I2C_NUM_0;
-  port_ = next_port;
-#if SOC_HP_I2C_NUM > 1
-  next_port = (next_port == I2C_NUM_0) ? I2C_NUM_1 : I2C_NUM_MAX;
-#else
-  next_port = I2C_NUM_MAX;
-#endif
+  ESP_LOGCONFIG(TAG, "Setting up I2C bus...");
 
+  port_ = next_port;
   if (port_ == I2C_NUM_MAX) {
-    ESP_LOGE(TAG, "Too many I2C buses configured. Max %u supported.", SOC_HP_I2C_NUM);
+    ESP_LOGE(TAG, "Too many I2C buses configured. Max %u supported.", I2C_NUM_MAX);
     this->mark_failed();
     return;
   }
@@ -37,7 +32,7 @@ void IDFI2CBus::setup() {
   recover_();
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
-  esp_err_t err;
+  next_port = (i2c_port_t) (next_port + 1);
 
   i2c_master_bus_config_t bus_conf{};
   memset(&bus_conf, 0, sizeof(bus_conf));
@@ -45,9 +40,17 @@ void IDFI2CBus::setup() {
   bus_conf.scl_io_num = gpio_num_t(scl_pin_);
   bus_conf.i2c_port = this->port_;
   bus_conf.glitch_ignore_cnt = 7;
-  bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
+#if SOC_LP_I2C_SUPPORTED
+  if (this->port_ < SOC_HP_I2C_NUM) {
+    bus_conf.clk_source = (i2c_clock_source_t) I2C_CLK_SRC_DEFAULT;
+  } else {
+    bus_conf.clk_source = (i2c_clock_source_t) LP_I2C_SCLK_DEFAULT;
+  }
+#else
+  bus_conf.clk_source = (i2c_clock_source_t) I2C_CLK_SRC_DEFAULT;
+#endif
   bus_conf.flags.enable_internal_pullup = sda_pullup_enabled_ || scl_pullup_enabled_;
-  err = i2c_new_master_bus(&bus_conf, &this->bus_);
+  esp_err_t err = i2c_new_master_bus(&bus_conf, &this->bus_);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(err));
     this->mark_failed();
@@ -73,6 +76,12 @@ void IDFI2CBus::setup() {
     this->i2c_scan_();
   }
 #else
+#if SOC_HP_I2C_NUM > 1
+  next_port = (next_port == I2C_NUM_0) ? I2C_NUM_1 : I2C_NUM_MAX;
+#else
+  next_port = I2C_NUM_MAX;
+#endif
+
   i2c_config_t conf{};
   memset(&conf, 0, sizeof(conf));
   conf.mode = I2C_MODE_MASTER;
