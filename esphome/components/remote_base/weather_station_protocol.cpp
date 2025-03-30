@@ -652,9 +652,9 @@ bool WeatherStationAHFLProtocol::transform(const WeatherStationData &data, std::
   return true;
 }
 
-// AuriolLegacy
+// Z31743
 
-void WeatherStationAuriolLegacyProtocol::setup() {
+void WeatherStationZ31743Protocol::setup() {
   this->sync_high_ = 400;
   this->sync_low_ = 9500;
   this->zero_high_ = 400;
@@ -666,15 +666,29 @@ void WeatherStationAuriolLegacyProtocol::setup() {
   this->flags_ = TYPE_PPM | REVERSED;
 }
 
-bool WeatherStationAuriolLegacyProtocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+bool WeatherStationZ31743Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  if (get_bits(code, 20, 3) != 0) {
+    ESP_LOGV(TAG, "[20:22] should be 0b000");
+    return false;
+  }
+
+  uint8_t parity = 0;
+  for (int i = 0; i < 32; i++) {
+    parity ^= (uint8_t) get_bits(code, i, 1);
+  }
+  if (parity != 0) {
+    ESP_LOGV(TAG, "parity error");
+    return false;
+  }
+
   data.id = (uint16_t) get_bits(code, 24, 8);
   data.battery_level = (uint8_t) get_bits(code, 23, 1) == 1 ? 100.0f : 0;
   data.temperature = (float) ((int16_t) (get_bits(code, 8, 12) << 4)) / 160;
   return true;
 }
 
-bool WeatherStationAuriolLegacyProtocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
-  ESP_LOGD(TAG, "TODO: encode auriollegacy");
+bool WeatherStationZ31743Protocol::transform(const WeatherStationData &data, std::vector<uint8_t> &code) const {
+  ESP_LOGD(TAG, "TODO: encode z31743");
   return true;
 }
 
