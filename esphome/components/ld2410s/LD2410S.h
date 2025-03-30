@@ -13,7 +13,6 @@
 #include "esphome/components/select/select.h"
 #endif
 
-
 #include "esphome/core/automation.h"
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -23,341 +22,338 @@
 #include <sstream>
 #include <iomanip>
 
-
 namespace esphome {
-    namespace ld2410s {
+namespace ld2410s {
 
-        static std::string ver = "ni 25.03.29.1859";
+static std::string ver = "ni 25.03.29.1859";
 
-        static const char* TAG = "ld2410s";
+static const char *TAG = "ld2410s";
 
-        static const uint8_t SHORT_DATA_FRAME_HEADER           = 0x6E;
-        static const uint8_t SHORT_DATA_FRAME_FOOTER           = 0x62;
+static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
+static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
 
-        static const uint32_t STD_DATA_FRAME_HEADER             = 0xF1F2F3F4;
-        static const uint32_t STD_DATA_FRAME_FOOTER             = 0xF5F6F7F8;
+static const uint32_t STD_DATA_FRAME_HEADER = 0xF1F2F3F4;
+static const uint32_t STD_DATA_FRAME_FOOTER = 0xF5F6F7F8;
 
-        static const uint32_t CMD_FRAME_HEADER                  = 0xFAFBFCFD;
-        static const uint32_t CMD_FRAME_FOOTER                  = 0x01020304;
+static const uint32_t CMD_FRAME_HEADER = 0xFAFBFCFD;
+static const uint32_t CMD_FRAME_FOOTER = 0x01020304;
 
+static const uint16_t CONFIG_MODE_START_CMD = 0x00FF;
+static const uint16_t CONFIG_MODE_START_REPLY = 0x01FF;
+static const uint8_t CONFIG_MODE_START_VALUE[] = {0x01, 0x00};
 
-        static const uint16_t CONFIG_MODE_START_CMD             = 0x00FF;
-        static const uint16_t CONFIG_MODE_START_REPLY           = 0x01FF;
-        static const uint8_t  CONFIG_MODE_START_VALUE[]         = { 0x01, 0x00 };
+static const uint16_t CONFIG_MODE_END_CMD = 0x00FE;
+static const uint16_t CONFIG_MODE_END_REPLY = 0x01FE;
 
-        static const uint16_t CONFIG_MODE_END_CMD               = 0x00FE;
-        static const uint16_t CONFIG_MODE_END_REPLY             = 0x01FE;
+static const uint16_t OUTPUT_MODE_SWITCH_CMD = 0x007A;
+static const uint16_t OUTPUT_MODE_SWITCH_REPLY = 0x017A;
+static const uint8_t OUTPUT_MODE_VALUE_STD[] = {0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
+static const uint8_t OUTPUT_MODE_VALUE_MIN[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+static const uint16_t FW_READ_CMD = 0x0000;
+static const uint16_t FW_READ_REPLY = 0x0100;
 
-        static const uint16_t OUTPUT_MODE_SWITCH_CMD            = 0x007A;
-        static const uint16_t OUTPUT_MODE_SWITCH_REPLY          = 0x017A;
-        static const uint8_t  OUTPUT_MODE_VALUE_STD[]           = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
-        static const uint8_t  OUTPUT_MODE_VALUE_MIN[]           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static const uint16_t SN_READ_CMD = 0x0011;
+static const uint16_t SN_READ_REPLY = 0x0111;
+static const uint16_t SN_WRITE_CMD = 0x0010;
+static const uint16_t SN_WRITE_REPLY = 0x0110;
 
-        static const uint16_t FW_READ_CMD                       = 0x0000;
-        static const uint16_t FW_READ_REPLY                     = 0x0100;
+static const uint16_t PARAMS_READ_CMD = 0x0071;
+static const uint16_t PARAMS_READ_REPLY = 0x0171;
+static const uint16_t PARAMS_WRITE_CMD = 0x0070;
+static const uint16_t PARAMS_WRITE_REPLY = 0x0170;
+static const uint16_t CFG_MAX_DETECTION_VALUE = 0x0005;
+static const uint16_t CFG_MIN_DETECTION_VALUE = 0x000A;
+static const uint16_t CFG_NO_DELAY_VALUE = 0x0006;
+static const uint16_t CFG_STATUS_FREQ_VALUE = 0x0002;
+static const uint16_t CFG_DISTANCE_FREQ_VALUE = 0x000C;
+static const uint16_t CFG_RESPONSE_SPEED_VALUE = 0x000B;
+static const std::string RESPONSE_SPEED_NORMAL = "Normal";
+static const std::string RESPONSE_SPEED_FAST = "Fast";
 
-        static const uint16_t SN_READ_CMD                       = 0x0011;
-        static const uint16_t SN_READ_REPLY                     = 0x0111;
-        static const uint16_t SN_WRITE_CMD                      = 0x0010;
-        static const uint16_t SN_WRITE_REPLY                    = 0x0110;
+static const uint16_t CALIBRATION_CMD = 0x0009;
+static const uint16_t CALIBRATION_TRIGGER_VALUE = 0x0002;
+static const uint16_t CALIBRATION_RETENTION_VALUE = 0x0001;
+static const uint16_t CALIBRATION_TIME_VALUE = 0x001E;  // 0x0078
 
-        static const uint16_t PARAMS_READ_CMD                   = 0x0071;
-        static const uint16_t PARAMS_READ_REPLY                 = 0x0171;
-        static const uint16_t PARAMS_WRITE_CMD                  = 0x0070;
-        static const uint16_t PARAMS_WRITE_REPLY                = 0x0170;
-        static const uint16_t CFG_MAX_DETECTION_VALUE           = 0x0005;
-        static const uint16_t CFG_MIN_DETECTION_VALUE           = 0x000A;
-        static const uint16_t CFG_NO_DELAY_VALUE                = 0x0006;
-        static const uint16_t CFG_STATUS_FREQ_VALUE             = 0x0002;
-        static const uint16_t CFG_DISTANCE_FREQ_VALUE           = 0x000C;
-        static const uint16_t CFG_RESPONSE_SPEED_VALUE          = 0x000B;
-        static const std::string RESPONSE_SPEED_NORMAL          = "Normal";
-        static const std::string RESPONSE_SPEED_FAST            = "Fast";
+static const uint16_t THRASHOLDS_TRIGGER_READ_CMD = 0x0077;
+static const uint16_t THRASHOLDS_TRIGGER_READ_REPLY = 0x0177;
+static const uint16_t THRASHOLDS_TRIGGER_WRITE_CMD = 0x0076;
+static const uint16_t THRASHOLDS_TRIGGER_WRITE_REPLY = 0x0176;
+static const uint32_t THRASHOLDS_TRIGGER_WRITE_DATA[] = {
+    // 10~95 dB
 
-        static const uint16_t CALIBRATION_CMD                   = 0x0009;
-        static const uint16_t CALIBRATION_TRIGGER_VALUE         = 0x0002;
-        static const uint16_t CALIBRATION_RETENTION_VALUE       = 0x0001;
-        static const uint16_t CALIBRATION_TIME_VALUE            = 0x001E; // 0x0078
+    // Factory defaults:
+    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    48, 42, 36, 34, 32, 31, 31, 31, 31,
+    31, 31, 31, 31, 31, 31, 31
 
-        static const uint16_t THRASHOLDS_TRIGGER_READ_CMD       = 0x0077;
-        static const uint16_t THRASHOLDS_TRIGGER_READ_REPLY     = 0x0177;
-        static const uint16_t THRASHOLDS_TRIGGER_WRITE_CMD      = 0x0076;
-        static const uint16_t THRASHOLDS_TRIGGER_WRITE_REPLY    = 0x0176;
-        static const uint32_t THRASHOLDS_TRIGGER_WRITE_DATA[]   = {
-            // 10~95 dB
+    // My:
+    // 60, 55, 50, 46, 43, 42, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35
 
-            // Factory defaults: 
-            //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-               48, 42, 36, 34, 32, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
+    // AutoCalibration:
+    // 80, 70, 65, 60, 55, 50, 45, 43, 41, 40, 39, 38, 37, 36, 35, 34
 
-            // My:
-            // 60, 55, 50, 46, 43, 42, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35
+    // Doc, questionable:
+    //   https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
+    // 50, 46, 34, 32, 32, 32, 32, 32, 25, 25, 25, 25, 25, 25, 25, 25
+};
 
-            // AutoCalibration:
-            // 80, 70, 65, 60, 55, 50, 45, 43, 41, 40, 39, 38, 37, 36, 35, 34
+static const uint16_t THRASHOLDS_HOLD_READ_CMD = 0x0073;
+static const uint16_t THRASHOLDS_HOLD_READ_REPLY = 0x0173;
+static const uint16_t THRASHOLDS_HOLD_WRITE_CMD = 0x0072;
+static const uint16_t THRASHOLDS_HOLD_WRITE_REPLY = 0x0172;
+static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[] = {
+    // 10~95 dB
 
-            // Doc, questionable: 
-            //   https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
-            // 50, 46, 34, 32, 32, 32, 32, 32, 25, 25, 25, 25, 25, 25, 25, 25
-        };
+    // Factory defaults:
+    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    45, 42, 33, 32, 28, 28, 28, 28, 28,
+    28, 28, 28, 28, 28, 28, 28
 
-        static const uint16_t THRASHOLDS_HOLD_READ_CMD          = 0x0073;
-        static const uint16_t THRASHOLDS_HOLD_READ_REPLY        = 0x0173;
-        static const uint16_t THRASHOLDS_HOLD_WRITE_CMD         = 0x0072;
-        static const uint16_t THRASHOLDS_HOLD_WRITE_REPLY       = 0x0172;
-        static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[]      = {
-            // 10~95 dB
+    // My:
+    // 53, 49, 45, 42, 40, 39, 33, 33, 33, 33, 33, 33, 33, 33, 33, 33
 
-            // Factory defaults: 
-            //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-               45, 42, 33, 32, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+    // AutoCalibration:
+    // 78, 68, 63, 58, 53, 48, 43, 41, 39, 38, 37, 36, 35, 34, 33, 32
+};
 
-            // My:
-            // 53, 49, 45, 42, 40, 39, 33, 33, 33, 33, 33, 33, 33, 33, 33, 33
+static const uint16_t THRASHOLDS_SNR_READ_CMD = 0x0075;
+static const uint16_t THRASHOLDS_SNR_READ_REPLY = 0x0175;
+static const uint16_t THRASHOLDS_SNR_WRITE_CMD = 0x0074;
+static const uint16_t THRASHOLDS_SNR_WRITE_REPLY = 0x0174;
+static const uint32_t THRASHOLDS_SNR_WRITE_DATA[] = {
+    // 5~63 dB
 
-            // AutoCalibration:
-            // 78, 68, 63, 58, 53, 48, 43, 41, 39, 38, 37, 36, 35, 34, 33, 32
-        }; 
+    25, 25, 25, 25, 25, 25, 25, 25, 25,
+    25, 25, 25, 25, 25, 25, 25
 
-        static const uint16_t THRASHOLDS_SNR_READ_CMD          = 0x0075;
-        static const uint16_t THRASHOLDS_SNR_READ_REPLY        = 0x0175;
-        static const uint16_t THRASHOLDS_SNR_WRITE_CMD         = 0x0074;
-        static const uint16_t THRASHOLDS_SNR_WRITE_REPLY       = 0x0174;
-        static const uint32_t THRASHOLDS_SNR_WRITE_DATA[]      = {
-            // 5~63 dB
+    // AutoCalibration:
+    // 45, 42, 39, 36, 36, 36, 36, 35, 35, 35, 35, 34, 34, 34, 34, 34
+};
 
-            25, 25 ,25, 25, 25, 25 ,25, 25, 25, 25 ,25, 25, 25, 25, 25, 25
+static const uint32_t CMD_EXEC_TIMEOUT = 1000;
+static const uint8_t CMD_EXEC_REPEAT = 3;
+static const uint8_t CMD_EXEC_BUFFER_SIZE = 32;
 
-            // AutoCalibration:
-            // 45, 42, 39, 36, 36, 36, 36, 35, 35, 35, 35, 34, 34, 34, 34, 34
-        };
+struct TriggersT {
+  uint8_t selected_gate{0};
+  uint32_t threshold[16];
+  uint32_t hold[16];
+  uint32_t snr[16];
+};
 
-        static const uint32_t CMD_EXEC_TIMEOUT = 1000;
-        static const uint8_t CMD_EXEC_REPEAT = 3;
-        static const uint8_t CMD_EXEC_BUFFER_SIZE = 32;
+struct CmdFrameT {
+  uint32_t header;
+  uint16_t length;
+  uint16_t command;
+  uint8_t data[128];
+  uint16_t data_length;
+  uint32_t footer;
+};
 
-        struct TriggersT {
-            uint8_t selected_gate{0};
-            uint32_t threshold[16];
-            uint32_t hold[16];
-            uint32_t snr[16];
-        };
+struct CmdAckT {
+  uint16_t command{0};
+  uint8_t data[128];
+  uint16_t length{0};
+  bool result{false};
+};
+enum class PackageType { SHORT_DATA_FRAME, STD_DATA_FRAME, CMD_FRAME, UNKNOWN, BAD_SIZE };
 
-        struct CmdFrameT {
-            uint32_t header;
-            uint16_t length;
-            uint16_t command;
-            uint8_t data[128];
-            uint16_t data_length; 
-            uint32_t footer;
-        };  
+enum class CmdState { EMPTY, SCHEDULED, SENT };
+struct CmdT {
+  CmdState state = CmdState::EMPTY;
+  CmdFrameT *cmd_frame;
+  uint32_t time_started;
+  uint8_t retry;
+};
 
-        struct CmdAckT {
-            uint16_t command{ 0 };
-            uint8_t data[128];
-            uint16_t length{ 0 };
-            bool result{ false };
-        };
-        enum class PackageType {
-            SHORT_DATA_FRAME,
-            STD_DATA_FRAME,
-            CMD_FRAME,
-            UNKNOWN,
-            BAD_SIZE
-        };
+class LD2410SListener {
+ public:
+  virtual void on_presence(bool presence){};
+  virtual void on_distance(int distance){};
+  virtual void on_threshold_update(bool running){};
+  virtual void on_threshold_progress(int progress){};
+  virtual void on_fw_version(std::string &val){};
+  virtual void on_trigger_threshold_ts(std::string &val){};
+  virtual void on_trigger_hold_ts(std::string &val){};
+  virtual void on_trigger_snr_ts(std::string &val){};
+  virtual void on_energy_values_ts(std::string &val){};
+};
 
-        enum class CmdState {
-            EMPTY,
-            SCHEDULED,
-            SENT
-        };
-        struct CmdT {
-            CmdState state = CmdState::EMPTY;
-            CmdFrameT* cmd_frame;
-            uint32_t time_started;
-            uint8_t retry;
-        };
+class LD2410S : public uart::UARTDevice, public Component {
+ public:
+  void setup() override;
+  void loop() override;
+  float get_setup_priority() const override;
 
-        class LD2410SListener {
-        public:
-            virtual void on_presence(bool presence) {};
-            virtual void on_distance(int distance) {};
-            virtual void on_threshold_update(bool running) {};
-            virtual void on_threshold_progress(int progress) {};
-            virtual void on_fw_version(std::string& val) {};
-            virtual void on_trigger_threshold_ts(std::string& val) {};
-            virtual void on_trigger_hold_ts(std::string& val) {};
-            virtual void on_trigger_snr_ts(std::string& val) {};
-            virtual void on_energy_values_ts(std::string& val) {}; 
-        };
+  void register_listener(LD2410SListener *listener) { this->listeners.push_back(listener); };
 
-        class LD2410S : public uart::UARTDevice, public Component {
-        public:
+  void read_all();
+  void apply_config();
+  void calibration();
+  void factory_reset();
+  void toggle_minimal();
 
-            void setup() override;
-            void loop() override;
-            float get_setup_priority() const override;
-
-            void register_listener(LD2410SListener* listener) { this->listeners.push_back(listener); };
-
-            void read_all();
-            void apply_config();
-            void calibration();
-            void factory_reset();
-            void toggle_minimal();            
-            
-            void set_delay(float delay);
-            void set_distance_reporting_freq(float distance_reporting_freq);
-            void set_max_distance(float max_distance);
-            void set_min_distance(float min_distance);
-            void set_status_reporting_freq(float status_reporting_freq);
-            void set_trigger_selected_gate(float trigger_selected_gate);
-            void set_trigger_threshold(float trigger_threshold);
-            void set_trigger_hold(float trigger_hold);
-            void set_trigger_snr(float trigger_snr);
-            void set_response_speed_select(const std::string &response_speed_select);
+  void set_delay(float delay);
+  void set_distance_reporting_freq(float distance_reporting_freq);
+  void set_max_distance(float max_distance);
+  void set_min_distance(float min_distance);
+  void set_status_reporting_freq(float status_reporting_freq);
+  void set_trigger_selected_gate(float trigger_selected_gate);
+  void set_trigger_threshold(float trigger_threshold);
+  void set_trigger_hold(float trigger_hold);
+  void set_trigger_snr(float trigger_snr);
+  void set_response_speed_select(const std::string &response_speed_select);
 
 #ifdef USE_NUMBER
-            void set_max_distance_number(number::Number* max_distance_number) { this->max_distance_number = max_distance_number; };
-            void set_min_distance_number(number::Number* min_distance_number) { this->min_distance_number = min_distance_number; };
-            void set_no_delay_number(number::Number* delay_number) { this->no_delay_number = delay_number; };
-            void set_status_reporting_freq_number(number::Number* status_reporting_freq_number) { this->status_reporting_freq_number = status_reporting_freq_number; };
-            void set_distance_reporting_freq_number(number::Number* distance_reporting_freq_number) { this->distance_reporting_freq_number = distance_reporting_freq_number; };
+  void set_max_distance_number(number::Number *max_distance_number) {
+    this->max_distance_number = max_distance_number;
+  };
+  void set_min_distance_number(number::Number *min_distance_number) {
+    this->min_distance_number = min_distance_number;
+  };
+  void set_no_delay_number(number::Number *delay_number) { this->no_delay_number = delay_number; };
+  void set_status_reporting_freq_number(number::Number *status_reporting_freq_number) {
+    this->status_reporting_freq_number = status_reporting_freq_number;
+  };
+  void set_distance_reporting_freq_number(number::Number *distance_reporting_freq_number) {
+    this->distance_reporting_freq_number = distance_reporting_freq_number;
+  };
 
-            void set_trigger_threshold_number(number::Number* trigger_threshold_number) { this->trigger_threshold_number = trigger_threshold_number; };
-            void set_trigger_hold_number(number::Number* trigger_hold_number) { this->trigger_hold_number = trigger_hold_number; };
-            void set_trigger_snr_number(number::Number* trigger_snr_number) { this->trigger_snr_number = trigger_snr_number; };
-            void set_trigger_selected_gate_number(number::Number* trigger_selected_gate_number) { 
-                this->trigger_selected_gate_number = trigger_selected_gate_number; 
-    #ifdef USE_NUMBER
-                this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
-                this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
-                this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
-                this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
-    #endif
-            };
+  void set_trigger_threshold_number(number::Number *trigger_threshold_number) {
+    this->trigger_threshold_number = trigger_threshold_number;
+  };
+  void set_trigger_hold_number(number::Number *trigger_hold_number) {
+    this->trigger_hold_number = trigger_hold_number;
+  };
+  void set_trigger_snr_number(number::Number *trigger_snr_number) { this->trigger_snr_number = trigger_snr_number; };
+  void set_trigger_selected_gate_number(number::Number *trigger_selected_gate_number) {
+    this->trigger_selected_gate_number = trigger_selected_gate_number;
+#ifdef USE_NUMBER
+    this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
+    this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
+    this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
+    this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+#endif
+  };
 
 #endif
 
 #ifdef USE_BUTTON
-            void set_read_all_button(button::Button* button) { this->read_all_button = button; };
-            void set_apply_config_button(button::Button* button) { this->apply_config_button = button; };
-            void set_calibration_button(button::Button* button) { this->calibration_button = button; };
-            void set_factory_reset_button(button::Button* button) { this->factory_reset_button = button; };
-            void set_toggle_minimal_output_button(button::Button* button) { this->toggle_minimal_output_button = button; };
-            // void set_enable_config_button(button::Button* button) { this->enable_config_button = button; };
-            // void set_disable_config_button(button::Button* button) { this->disable_config_button = button; };
+  void set_read_all_button(button::Button *button) { this->read_all_button = button; };
+  void set_apply_config_button(button::Button *button) { this->apply_config_button = button; };
+  void set_calibration_button(button::Button *button) { this->calibration_button = button; };
+  void set_factory_reset_button(button::Button *button) { this->factory_reset_button = button; };
+  void set_toggle_minimal_output_button(button::Button *button) { this->toggle_minimal_output_button = button; };
+    // void set_enable_config_button(button::Button* button) { this->enable_config_button = button; };
+    // void set_disable_config_button(button::Button* button) { this->disable_config_button = button; };
 #endif
 
 #ifdef USE_SELECT
-            void set_response_speed_select(select::Select* selector) { this->response_speed_select = selector; };
+  void set_response_speed_select(select::Select *selector) { this->response_speed_select = selector; };
 #endif
-        private:
-            std::vector<LD2410SListener*> listeners{};
-            // Config current_config; 
-            bool cmd_active{ false };
+ private:
+  std::vector<LD2410SListener *> listeners{};
+  // Config current_config;
+  bool cmd_active{false};
 
-            TriggersT triggers;
+  TriggersT triggers;
 
-            uint32_t max_dist{ 0 };     //
-            uint32_t min_dist{ 0 };     //
-            uint32_t delay{ 0 };        //
-            uint32_t status_freq{ 0 };  //
-            uint32_t dist_freq{ 0 };    //
-            uint32_t resp_speed{ 0 };   //
-            bool minimal_output { true };
-            uint32_t energy_values[16];
-            uint32_t energy_values_count = 0;
-            std::string energy_values_str = "";
+  uint32_t max_dist{0};     //
+  uint32_t min_dist{0};     //
+  uint32_t delay{0};        //
+  uint32_t status_freq{0};  //
+  uint32_t dist_freq{0};    //
+  uint32_t resp_speed{0};   //
+  bool minimal_output{true};
+  uint32_t energy_values[16];
+  uint32_t energy_values_count = 0;
+  std::string energy_values_str = "";
 
+  uint8_t active = 0;
+  uint8_t last = 0;
+  CmdT commands[CMD_EXEC_BUFFER_SIZE];
 
-            uint8_t active = 0;
-            uint8_t last = 0;
-            CmdT commands[CMD_EXEC_BUFFER_SIZE];
+  int report_count = 0;
 
-            int report_count = 0;
+  void loop_exec();
+  void cmd_add(CmdFrameT *cmd_frame);
+  void cmd_buffer_insert(CmdT *cmd);
+  void cmd_buffer_finished();
+  void cmd_buffer_inc(uint8_t &index);
 
-            void loop_exec();
-            void cmd_add(CmdFrameT* cmd_frame); 
-            void cmd_buffer_insert(CmdT* cmd);
-            void cmd_buffer_finished();
-            void cmd_buffer_inc(uint8_t& index);
-
-            void send_cmd(const char* msg, uint16_t command, uint16_t sub_command = 0);
-            void publish_thresholds();
-
+  void send_cmd(const char *msg, uint16_t command, uint16_t sub_command = 0);
+  void publish_thresholds();
 
 #ifdef USE_NUMBER
-            number::Number* max_distance_number{ nullptr };
-            number::Number* min_distance_number{ nullptr };
-            number::Number* no_delay_number{ nullptr };
-            number::Number* status_reporting_freq_number{ nullptr };
-            number::Number* distance_reporting_freq_number{ nullptr };
+  number::Number *max_distance_number{nullptr};
+  number::Number *min_distance_number{nullptr};
+  number::Number *no_delay_number{nullptr};
+  number::Number *status_reporting_freq_number{nullptr};
+  number::Number *distance_reporting_freq_number{nullptr};
 
-            number::Number* trigger_threshold_number{ nullptr };
-            number::Number* trigger_hold_number{ nullptr };
-            number::Number* trigger_snr_number{ nullptr };
-            number::Number* trigger_selected_gate_number{ nullptr };            
+  number::Number *trigger_threshold_number{nullptr};
+  number::Number *trigger_hold_number{nullptr};
+  number::Number *trigger_snr_number{nullptr};
+  number::Number *trigger_selected_gate_number{nullptr};
 #endif
 
 #ifdef USE_BUTTON
-            button::Button* read_all_button{ nullptr };
-            button::Button* apply_config_button{ nullptr };
-            button::Button* calibration_button{ nullptr };
-            button::Button* factory_reset_button{ nullptr };
-            button::Button* toggle_minimal_output_button{ nullptr };
-            // button::Button* enable_config_button{ nullptr };
-            // button::Button* disable_config_button{ nullptr };
+  button::Button *read_all_button{nullptr};
+  button::Button *apply_config_button{nullptr};
+  button::Button *calibration_button{nullptr};
+  button::Button *factory_reset_button{nullptr};
+  button::Button *toggle_minimal_output_button{nullptr};
+  // button::Button* enable_config_button{ nullptr };
+  // button::Button* disable_config_button{ nullptr };
 #endif
 
 #ifdef USE_SELECT
-            select::Select* response_speed_select{ nullptr };
+  select::Select *response_speed_select{nullptr};
 #endif
 
+  void receive(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &replay);
+  PackageType get_frame_type(uint8_t *buffer, size_t pos);
+  size_t get_frame_start(uint8_t *buffer, size_t end_pos, PackageType type);
+  size_t get_data_size(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
+  size_t get_data_start_pos(PackageType type, size_t start_pos);
 
-            void receive(uint8_t* buffer, size_t buffer_size, size_t& pos, bool& replay);
-            PackageType get_frame_type(uint8_t* buffer, size_t pos);
-            size_t get_frame_start(uint8_t* buffer, size_t end_pos, PackageType type);
-            size_t get_data_size(uint8_t* buffer, size_t end_pos, PackageType type, size_t start_pos);
-            size_t get_data_start_pos(PackageType type, size_t start_pos);
+  bool process_frame(PackageType type, uint8_t *buffer, size_t data_size);
+  void process_short_data_frame(uint8_t *data);
+  void process_data_frame(uint8_t *data);
+  bool process_cmd_frame(uint8_t *buffer, size_t data_size);
 
-            bool process_frame(PackageType type, uint8_t* buffer, size_t data_size);
-            void process_short_data_frame(uint8_t* data);
-            void process_data_frame(uint8_t* data);
-            bool process_cmd_frame(uint8_t* buffer, size_t data_size);
+  CmdAckT parse_ack(uint8_t *buffer, size_t length);
 
-            CmdAckT parse_ack(uint8_t* buffer, size_t length);
+  void process_data_distance(uint8_t *data);
+  void process_data_progress(uint8_t *data);
+  void process_data_energy_levels(uint8_t *data);
 
-            void process_data_distance(uint8_t* data);
-            void process_data_progress(uint8_t* data);
-            void process_data_energy_levels(uint8_t* data);
+  void send_cmd_frame(uint16_t command, uint16_t sub_command = 0);
 
-            void send_cmd_frame(uint16_t command, uint16_t sub_command = 0);            
+  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
+  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);
+  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size);
 
-            void cmd_frame_append_data(CmdFrameT* cmd_frame, const uint8_t* append_data, size_t append_data_size);
-            void cmd_frame_append_data(CmdFrameT* cmd_frame, const uint16_t* append_data, size_t append_data_size);
-            void cmd_frame_append_data(CmdFrameT* cmd_frame, const uint32_t* append_data, size_t append_data_size);
+  void send_command(CmdFrameT *cmd_frame);
 
-            void send_command(CmdFrameT* cmd_frame);
+  void process_config_read_ack(uint8_t *data);
+  void process_ack_fw_read(uint8_t *data);
+  void process_ack_trigger_threshold_read(uint8_t *data);
+  void process_ack_trigger_hold_read(uint8_t *data);
+  void process_ack_trigger_snr_read(uint8_t *data);
+  void process_data_energy_values_read(uint8_t *data);
 
-            void process_config_read_ack(uint8_t* data);
-            void process_ack_fw_read(uint8_t* data);
-            void process_ack_trigger_threshold_read(uint8_t* data);
-            void process_ack_trigger_hold_read(uint8_t* data);
-            void process_ack_trigger_snr_read(uint8_t* data);
-            void process_data_energy_values_read(uint8_t* data);
+  std::string format_int(uint32_t *val, uint8_t len, uint8_t min_w);
+  void four_byte_to_int_array(uint8_t *in, uint32_t *out, uint8_t out_len);
+  void hex_diag(const char *msg, const uint8_t *data, size_t length);
+  int read_int(uint8_t *buffer, size_t pos, size_t len);
+  int two_byte_to_int(uint8_t byte1, uint8_t byte2);
+  uint32_t four_byte_to_int(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
+  uint16_t swapEndian(uint16_t value);
+  uint32_t swapEndian(uint32_t value);
+};
 
-            std::string format_int(uint32_t* val, uint8_t len, uint8_t min_w);
-            void four_byte_to_int_array(uint8_t* in, uint32_t* out, uint8_t out_len);
-            void hex_diag(const char* msg, const uint8_t* data, size_t length); 
-            int read_int(uint8_t* buffer, size_t pos, size_t len);
-            int two_byte_to_int(uint8_t byte1, uint8_t byte2);
-            uint32_t four_byte_to_int(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
-            uint16_t swapEndian(uint16_t value);
-            uint32_t swapEndian(uint32_t value);
-
-        };
-
-    }
-}
+}  // namespace ld2410s
+}  // namespace esphome

@@ -2,13 +2,13 @@ import esphome.codegen as cg
 from esphome.components import select
 import esphome.config_validation as cv
 from esphome.const import ENTITY_CATEGORY_CONFIG
+
 from .. import CONF_LD2410S_ID, LD2410S, ld2410s_ns
 
+CODEOWNERS = ["@NovakIrs"]
+
 CONF_RESPONSE_SPEED = "response_speed"
-CONF_SELECTS = [
-    "Normal",
-    "Fast"
-]
+CONF_SELECTS = ["Normal", "Fast"]
 
 
 CMD_EXEC = "exec_command"
@@ -24,10 +24,12 @@ CMD_EXEC_SELECTS = [
     "Read s/n",
     "Read ",
     "Enable Configuration",
-    "Disable Configuration"
+    "Disable Configuration",
 ]
 
-LD2410sResponseSpeedSelect = ld2410s_ns.class_("LD2410sResponseSpeedSelect", cg.Component)
+LD2410sResponseSpeedSelect = ld2410s_ns.class_(
+    "LD2410sResponseSpeedSelect", cg.Component
+)
 LD2410sExecCommandSelect = ld2410s_ns.class_("LD241s0ExecCommandSelect", cg.Component)
 
 CONFIG_SCHEMA = {

@@ -3,26 +3,23 @@
 #include "../LD2410S.h"
 #include "esphome/components/select/select.h"
 
-namespace esphome
-{
-    namespace ld2410s
-    {
-        class LD2410sResponseSpeedSelect : public Component, public select::Select, public Parented<LD2410S>
-        {
-        public:
-            LD2410sResponseSpeedSelect() = default;
+namespace esphome {
+namespace ld2410s {
+class LD2410sResponseSpeedSelect : public Component, public select::Select, public Parented<LD2410S> {
+ public:
+  LD2410sResponseSpeedSelect() = default;
 
-        protected:
-            void control(const std::string &value) override;
-        };
+ protected:
+  void control(const std::string &value) override;
+};
 
-        // class LD2410sExecCommandSelect : public Component, public select::Select, public Parented<LD2410S>
-        // {
-        // public:
-        //     LD2410sExecCommandSelect() = default;
+// class LD2410sExecCommandSelect : public Component, public select::Select, public Parented<LD2410S>
+// {
+// public:
+//     LD2410sExecCommandSelect() = default;
 
-        // protected:
-        //     void control(const std::string &value) override;
-        // };    
-    }
-}
+// protected:
+//     void control(const std::string &value) override;
+// };
+}  // namespace ld2410s
+}  // namespace esphome

@@ -1,1017 +1,936 @@
 #include "esphome/core/log.h"
 #include "LD2410S.h"
 
-namespace esphome
-{
-    namespace ld2410s
-    {
+namespace esphome {
+namespace ld2410s {
 
-        void LD2410S::setup() {
-            this->minimal_output = true;
-            this->send_cmd_frame(CONFIG_MODE_START_CMD);
-            this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
-            this->send_cmd_frame(FW_READ_CMD);
-            this->send_cmd_frame(PARAMS_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
-            this->send_cmd_frame(CONFIG_MODE_END_CMD);
+void LD2410S::setup() {
+  this->minimal_output = true;
+  this->send_cmd_frame(CONFIG_MODE_START_CMD);
+  this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
+  this->send_cmd_frame(FW_READ_CMD);
+  this->send_cmd_frame(PARAMS_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame(CONFIG_MODE_END_CMD);
+}
+void LD2410S::loop() {
+  if (!this->cmd_active) {
+    if (available()) {
+      static uint8_t buffer[128];
+      static size_t pos = 0;
+      bool reply = false;
+      this->receive(buffer, sizeof(buffer), pos, reply);
+    } else {
+      this->loop_exec();
+    }
+  }
 
-        }
-        void LD2410S::loop() {
+  // report_count++;
+  // if (report_count > 1000) {
+  //     report_count = 0;
+  //     // ESP_LOGD(TAG, "loop active:%d, last:%d", active, last);
+  //     ESP_LOGD(TAG, "loop current:%d, new:%d", this->current_config.resp_speed, this->resp_speed);
+  // }
+}
 
-            if (!this->cmd_active) {
-                if (available()){
-                    static uint8_t buffer[128];
-                    static size_t pos = 0;
-                    bool reply = false;
-                    this->receive(buffer, sizeof(buffer), pos, reply);
-                }
-                else {
-                    this->loop_exec();
-                }
-            }
+void LD2410S::loop_exec() {
+  CmdT *cmd = &commands[active];
+  uint32_t now = millis();
 
-            // report_count++;
-            // if (report_count > 1000) {
-            //     report_count = 0;
-            //     // ESP_LOGD(TAG, "loop active:%d, last:%d", active, last);
-            //     ESP_LOGD(TAG, "loop current:%d, new:%d", this->current_config.resp_speed, this->resp_speed);
-            // }
-        }
+  if (cmd->state == CmdState::SCHEDULED) {
+    // ESP_LOGD(TAG, "loop_exec Send new command active:%d, last:%d", active, last);
+    this->send_command(cmd->cmd_frame);
+    cmd->state = CmdState::SENT;
+    cmd->time_started = now;
 
+  } else if (cmd->state == CmdState::SENT) {
+    if (now >= cmd->time_started + CMD_EXEC_TIMEOUT) {
+      if (cmd->retry < CMD_EXEC_REPEAT) {
+        ESP_LOGD(TAG, "loop_exec Send Retry active:%d, last:%d", this->active, this->last);
+        cmd->retry++;
+        cmd->time_started = now;
+        this->send_command(cmd->cmd_frame);
+      } else {
+        ESP_LOGD(TAG, "loop_exec Send to Give up active:%d, last:%d", this->active, this->last);
+        cmd->state = CmdState::EMPTY;
+        this->cmd_buffer_finished();
+      }
+    }
+  } else if (cmd->state == CmdState::EMPTY & this->active == this->last & this->active != 0) {
+    this->active = 0;
+    this->last = 0;
+    // ESP_LOGD(TAG, "loop_exec Sending Done");
+  }
+  // else {
+  //     int8_t next = active;
+  //     this->cmd_buffer_finished();
+  // }
+}
 
-        void LD2410S::loop_exec() {
-            CmdT* cmd = &commands[active];
-            uint32_t now = millis();
+void LD2410S::cmd_add(CmdFrameT *cmd_frame) {
+  // ESP_LOGD(TAG, "cmd_add command:%0x, lengt:%d", cmd_frame->command, cmd_frame->length);
+  CmdT cmd;
+  cmd.state = CmdState::SCHEDULED;
+  cmd.cmd_frame = cmd_frame;
+  cmd.time_started = 0;
+  cmd.retry = 0;
 
-            if (cmd->state == CmdState::SCHEDULED) {
+  this->cmd_buffer_insert(&cmd);
+}
 
-                // ESP_LOGD(TAG, "loop_exec Send new command active:%d, last:%d", active, last);
-                this->send_command(cmd->cmd_frame);
-                cmd->state = CmdState::SENT;
-                cmd->time_started = now;
+void LD2410S::cmd_buffer_insert(CmdT *cmd) {
+  if (!cmd) {
+    ESP_LOGD(TAG, "cmd_buffer_insert cmd is empty !!! active:%d, last:%d", active, last);
+    return;
+  }
 
-            }
-            else if (cmd->state==CmdState::SENT)
-            {
-                if (now >= cmd->time_started + CMD_EXEC_TIMEOUT) {
+  if (commands[last].state != CmdState::EMPTY) {
+    uint8_t next = last;
+    this->cmd_buffer_inc(next);
+    if (commands[next].state != CmdState::EMPTY) {  //  || next == active) {
+      ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", active, last);
+      return;
+    }
+    last = next;
+  }
 
+  commands[last] = *cmd;  // Shallow copy of state, time_started, retry
 
-                    if (cmd->retry < CMD_EXEC_REPEAT) {
+  if (cmd->cmd_frame) {
+    commands[last].cmd_frame = new CmdFrameT(*cmd->cmd_frame);  // Deep copy
+  } else {
+    commands[last].cmd_frame = nullptr;
+  }
 
-                        ESP_LOGD(TAG, "loop_exec Send Retry active:%d, last:%d", this->active, this->last);
-                        cmd->retry++;
-                        cmd->time_started = now;
-                        this->send_command(cmd->cmd_frame);
-                    }
-                    else {
+  // ESP_LOGD(TAG, "cmd_buffer_insert  command:%0x, lengt:%d, active:%d, last:%d", cmd->cmd_frame->command,
+  // cmd->cmd_frame->length, active, last);
+}
+void LD2410S::cmd_buffer_finished() {
+  commands[active].state = CmdState::EMPTY;
 
-                        ESP_LOGD(TAG, "loop_exec Send to Give up active:%d, last:%d", this->active, this->last);
-                        cmd->state = CmdState::EMPTY;
-                        this->cmd_buffer_finished(); 
-                    }
-                }
-            }
-            else if (cmd->state==CmdState::EMPTY & this->active==this->last & this->active!=0){
-                this->active=0;
-                this->last=0;
-                // ESP_LOGD(TAG, "loop_exec Sending Done");
-            }
-            // else {
-            //     int8_t next = active;
-            //     this->cmd_buffer_finished();
-            // }
-        }
+  if (commands[active + 1].state != CmdState::EMPTY) {
+    this->cmd_buffer_inc(active);
+  }
 
-        void LD2410S::cmd_add(CmdFrameT* cmd_frame) {
-            // ESP_LOGD(TAG, "cmd_add command:%0x, lengt:%d", cmd_frame->command, cmd_frame->length); 
-            CmdT cmd;
-            cmd.state = CmdState::SCHEDULED;
-            cmd.cmd_frame = cmd_frame;
-            cmd.time_started = 0;
-            cmd.retry = 0;
+  // ESP_LOGD(TAG, "cmd_buffer_finished active:%d, last:%d", active, last);
+}
 
-            this->cmd_buffer_insert(&cmd);
-        }
+void LD2410S::cmd_buffer_inc(uint8_t &index) {
+  index++;
+  if (index >= CMD_EXEC_BUFFER_SIZE) {
+    index = 0;
+  }
+}
 
-        void LD2410S::cmd_buffer_insert(CmdT* cmd) {
-            if (!cmd) {
-                ESP_LOGD(TAG, "cmd_buffer_insert cmd is empty !!! active:%d, last:%d", active, last);
-                return;
-            }
+float LD2410S::get_setup_priority() const { return setup_priority::HARDWARE; }
 
-            if (commands[last].state != CmdState::EMPTY ) {
-                uint8_t next = last;
-                this->cmd_buffer_inc(next);
-                if (commands[next].state != CmdState::EMPTY) { //  || next == active) {
-                    ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", active, last);
-                    return;
-                }
-                last = next;
-            }
+void LD2410S::read_all() {
+  this->status_set_warning("read_all");
 
-            commands[last] = *cmd;  // Shallow copy of state, time_started, retry
-        
-            if (cmd->cmd_frame) {  
-                commands[last].cmd_frame = new CmdFrameT(*cmd->cmd_frame);  // Deep copy
-            } else {
-                commands[last].cmd_frame = nullptr;
-            }
+  this->send_cmd_frame(CONFIG_MODE_START_CMD);
+  this->send_cmd_frame(FW_READ_CMD);
+  this->send_cmd_frame(PARAMS_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame(CONFIG_MODE_END_CMD);
 
-            // ESP_LOGD(TAG, "cmd_buffer_insert  command:%0x, lengt:%d, active:%d, last:%d", cmd->cmd_frame->command, cmd->cmd_frame->length, active, last); 
-        }
-        void LD2410S::cmd_buffer_finished() {
+  this->status_clear_warning();
+}
 
-            commands[active].state = CmdState::EMPTY;
+void LD2410S::apply_config() {
+  this->status_set_warning("apply_config");
+  this->send_cmd_frame(CONFIG_MODE_START_CMD);
 
-            if( commands[active+1].state != CmdState::EMPTY) {
-                this->cmd_buffer_inc(active);
-            }
+  this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
+  this->send_cmd_frame(PARAMS_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_WRITE_CMD);
 
-            // ESP_LOGD(TAG, "cmd_buffer_finished active:%d, last:%d", active, last);
-        }
+  this->send_cmd_frame(PARAMS_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
 
-        void LD2410S::cmd_buffer_inc(uint8_t& index) {
-            index++;
-            if (index >= CMD_EXEC_BUFFER_SIZE) { 
-                index = 0;
-            }            
-        }
+  this->send_cmd_frame(CONFIG_MODE_END_CMD);
+  this->status_clear_warning();
+}
 
-        float LD2410S::get_setup_priority() const
-        {
-            return setup_priority::HARDWARE;
-        }
+void LD2410S::calibration() { this->send_cmd("start_calibration\0", CALIBRATION_CMD); }
 
-        void LD2410S::read_all() {
-            this->status_set_warning("read_all");
+void LD2410S::factory_reset() {
+  this->minimal_output = true;
 
-            this->send_cmd_frame(CONFIG_MODE_START_CMD);
-            this->send_cmd_frame(FW_READ_CMD);
-            this->send_cmd_frame(PARAMS_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
-            this->send_cmd_frame(CONFIG_MODE_END_CMD);
+  this->max_dist = 8;
+  this->min_dist = 0;
+  this->delay = 10;
+  this->status_freq = 80;
+  this->dist_freq = 80;
+  this->resp_speed = 5;
 
-            this->status_clear_warning();
+  for (int i = 0; i < 16; i++) {
+    this->triggers.threshold[i] = THRASHOLDS_TRIGGER_WRITE_DATA[i];
+    this->triggers.hold[i] = THRASHOLDS_HOLD_WRITE_DATA[i];
+    this->triggers.snr[i] = THRASHOLDS_SNR_WRITE_DATA[i];
+  }
 
-        }
+  this->status_set_warning("factory_reset");
+  this->send_cmd_frame(CONFIG_MODE_START_CMD);
 
-        void LD2410S::apply_config() {
-            this->status_set_warning("apply_config");
-            this->send_cmd_frame(CONFIG_MODE_START_CMD);
+  this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
 
-            this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
-            this->send_cmd_frame(PARAMS_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_WRITE_CMD);
+  this->send_cmd_frame(PARAMS_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_WRITE_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_WRITE_CMD);
 
-            this->send_cmd_frame(PARAMS_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame(PARAMS_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
+  this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
 
-            this->send_cmd_frame(CONFIG_MODE_END_CMD);
-            this->status_clear_warning(); 
-        }
-    
-        void LD2410S::calibration() {
-            this->send_cmd("start_calibration\0", CALIBRATION_CMD);
-        }
+  this->send_cmd_frame(CONFIG_MODE_END_CMD);
+  this->status_clear_warning();
+}
 
-        void LD2410S::factory_reset() {
+void LD2410S::toggle_minimal() {
+  this->minimal_output = !this->minimal_output;
+  this->send_cmd("toggle_minimal_output\0", OUTPUT_MODE_SWITCH_CMD);
+}
 
-            this->minimal_output = true;
-
-            this->max_dist     = 8;
-            this->min_dist     = 0;
-            this->delay        = 10;
-            this->status_freq  = 80;
-            this->dist_freq    = 80;
-            this->resp_speed   = 5;
-
-            for (int i=0; i<16; i++) {
-                this->triggers.threshold[i]=THRASHOLDS_TRIGGER_WRITE_DATA[i];
-                this->triggers.hold[i]=THRASHOLDS_HOLD_WRITE_DATA[i];
-                this->triggers.snr[i]=THRASHOLDS_SNR_WRITE_DATA[i];
-            }
-                
-            this->status_set_warning("factory_reset");
-            this->send_cmd_frame(CONFIG_MODE_START_CMD);
-
-            this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
-
-            this->send_cmd_frame(PARAMS_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_WRITE_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_WRITE_CMD);
-
-            this->send_cmd_frame(PARAMS_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_TRIGGER_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_HOLD_READ_CMD);
-            this->send_cmd_frame(THRASHOLDS_SNR_READ_CMD);
-
-            this->send_cmd_frame(CONFIG_MODE_END_CMD);
-            this->status_clear_warning();
-        }
-
-        void LD2410S::toggle_minimal() {
-            this->minimal_output = ! this->minimal_output;
-            this->send_cmd("toggle_minimal_output\0", OUTPUT_MODE_SWITCH_CMD);
-        }
-
-        void LD2410S::set_delay(float delay){
-            this->delay = delay;
-            this->send_cmd("set_delay\0", PARAMS_WRITE_CMD, CFG_NO_DELAY_VALUE);
-        }
-        void LD2410S::set_distance_reporting_freq(float distance_reporting_freq){
-            this->dist_freq = distance_reporting_freq * 10;
-            this->send_cmd("set_distance_reporting_freq\0", PARAMS_WRITE_CMD, CFG_DISTANCE_FREQ_VALUE);
-        }
-        void LD2410S::set_max_distance(float max_distance){         
-            this->max_dist = max_distance;
-            this->send_cmd("set_max_distance\0", PARAMS_WRITE_CMD, CFG_MAX_DETECTION_VALUE);
-        }
-        void LD2410S::set_min_distance(float min_distance){
-            this->min_dist = min_distance;
-            this->send_cmd("set_min_distance\0", PARAMS_WRITE_CMD, CFG_MIN_DETECTION_VALUE);
-        }
-        void LD2410S::set_status_reporting_freq(float status_reporting_freq){
-            this->status_freq = status_reporting_freq * 10;
-            this->send_cmd("set_status_reporting_freq\0", PARAMS_WRITE_CMD, CFG_STATUS_FREQ_VALUE);
-        }
-        void LD2410S::set_trigger_selected_gate(float trigger_selected_gate){
-            this->triggers.selected_gate = trigger_selected_gate;
+void LD2410S::set_delay(float delay) {
+  this->delay = delay;
+  this->send_cmd("set_delay\0", PARAMS_WRITE_CMD, CFG_NO_DELAY_VALUE);
+}
+void LD2410S::set_distance_reporting_freq(float distance_reporting_freq) {
+  this->dist_freq = distance_reporting_freq * 10;
+  this->send_cmd("set_distance_reporting_freq\0", PARAMS_WRITE_CMD, CFG_DISTANCE_FREQ_VALUE);
+}
+void LD2410S::set_max_distance(float max_distance) {
+  this->max_dist = max_distance;
+  this->send_cmd("set_max_distance\0", PARAMS_WRITE_CMD, CFG_MAX_DETECTION_VALUE);
+}
+void LD2410S::set_min_distance(float min_distance) {
+  this->min_dist = min_distance;
+  this->send_cmd("set_min_distance\0", PARAMS_WRITE_CMD, CFG_MIN_DETECTION_VALUE);
+}
+void LD2410S::set_status_reporting_freq(float status_reporting_freq) {
+  this->status_freq = status_reporting_freq * 10;
+  this->send_cmd("set_status_reporting_freq\0", PARAMS_WRITE_CMD, CFG_STATUS_FREQ_VALUE);
+}
+void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
+  this->triggers.selected_gate = trigger_selected_gate;
 #ifdef USE_NUMBER
-            this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
-            this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
-            this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
-            this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+  this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
+  this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
+  this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
+  this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
 #endif
+}
+void LD2410S::set_trigger_threshold(float trigger_threshold) {
+  this->triggers.threshold[this->triggers.selected_gate] = trigger_threshold;
+}
+void LD2410S::set_trigger_hold(float trigger_hold) { this->triggers.hold[this->triggers.selected_gate] = trigger_hold; }
+void LD2410S::set_trigger_snr(float trigger_snr) { this->triggers.snr[this->triggers.selected_gate] = trigger_snr; }
+void LD2410S::set_response_speed_select(const std::string &response_speed_select) {
+  this->resp_speed = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
+  this->send_cmd("set_response_speed_select\0", PARAMS_WRITE_CMD, CFG_RESPONSE_SPEED_VALUE);
+}
+
+void LD2410S::send_cmd(const char *msg, uint16_t command, uint16_t sub_command) {
+  this->status_set_warning(msg);
+
+  this->send_cmd_frame(CONFIG_MODE_START_CMD);
+  this->send_cmd_frame(command, sub_command);
+  this->send_cmd_frame(CONFIG_MODE_END_CMD);
+
+  this->status_clear_warning();
+}
+
+void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
+  // ESP_LOGD(TAG, "send_cmd_frame %x", command);
+
+  CmdFrameT cmd_frame = {.header = CMD_FRAME_HEADER, .command = command, .data_length = 0, .footer = CMD_FRAME_FOOTER};
+
+  switch (command) {
+    case OUTPUT_MODE_SWITCH_CMD: {
+      if (this->minimal_output) {
+        this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_MIN[0], 4);
+      } else {
+        this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_STD[0], 4);
+      }
+    } break;
+
+    case CONFIG_MODE_START_CMD:
+      this->cmd_frame_append_data(&cmd_frame, &CONFIG_MODE_START_VALUE[0], 2);
+      break;
+
+    case CONFIG_MODE_END_CMD:
+      break;
+
+    case PARAMS_READ_CMD:
+
+      switch (sub_command) {
+        case CFG_MAX_DETECTION_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
+          break;
+
+        case CFG_MIN_DETECTION_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
+          break;
+
+        case CFG_NO_DELAY_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
+          break;
+
+        case CFG_STATUS_FREQ_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
+          break;
+
+        case CFG_DISTANCE_FREQ_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
+          break;
+
+        case CFG_RESPONSE_SPEED_VALUE:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
+          break;
+
+        default:
+          this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
+          this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
+          this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
+          this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
+          this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
+          this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
+          break;
+      }
+
+      break;
+
+    case FW_READ_CMD:
+      break;
+
+    case PARAMS_WRITE_CMD:
+      if (this->resp_speed == 0) {
+        ESP_LOGD(TAG, "PARAMS_WRITE_CMD Error, bad new_config");
+        return;
+      } else {
+        switch (sub_command) {
+          case CFG_MAX_DETECTION_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
+            break;
+
+          case CFG_MIN_DETECTION_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
+            break;
+
+          case CFG_NO_DELAY_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->delay, 1);
+            break;
+
+          case CFG_STATUS_FREQ_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
+            break;
+
+          case CFG_DISTANCE_FREQ_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
+            break;
+
+          case CFG_RESPONSE_SPEED_VALUE:
+            this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
+            break;
+          default:
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->delay, 1);
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
+
+            this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
+            break;
         }
-        void LD2410S::set_trigger_threshold(float trigger_threshold){
-            this->triggers.threshold[this->triggers.selected_gate] = trigger_threshold;
+        break;
+      }
+
+    case CALIBRATION_CMD:
+      this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_TRIGGER_VALUE, 1);
+      this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_RETENTION_VALUE, 1);
+      this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_TIME_VALUE, 1);
+      break;
+
+    case THRASHOLDS_TRIGGER_READ_CMD:
+    case THRASHOLDS_HOLD_READ_CMD:
+    case THRASHOLDS_SNR_READ_CMD:
+      if (sub_command != 0) {
+        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
+      } else {
+        for (uint16_t i = 0; i < 16; i++) {
+          this->cmd_frame_append_data(&cmd_frame, &i, 1);
         }
-        void LD2410S::set_trigger_hold(float trigger_hold){
-            this->triggers.hold[this->triggers.selected_gate] = trigger_hold;
+      }
+      break;
+
+    case THRASHOLDS_TRIGGER_WRITE_CMD:
+      if (sub_command != 0) {
+        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[sub_command], 1);
+      } else {
+        for (uint16_t i = 0; i < 16; i++) {
+          this->cmd_frame_append_data(&cmd_frame, &i, 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[i], 1);
         }
-        void LD2410S::set_trigger_snr(float trigger_snr){
-            this->triggers.snr[this->triggers.selected_gate] = trigger_snr;
+      }
+      break;
+
+    case THRASHOLDS_HOLD_WRITE_CMD:
+      if (sub_command != 0) {
+        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[sub_command], 1);
+      } else {
+        for (uint16_t i = 0; i < 16; i++) {
+          this->cmd_frame_append_data(&cmd_frame, &i, 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[i], 1);
         }
-        void LD2410S::set_response_speed_select(const std::string &response_speed_select){
-            this->resp_speed = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
-            this->send_cmd("set_response_speed_select\0", PARAMS_WRITE_CMD, CFG_RESPONSE_SPEED_VALUE);
+      }
+      break;
+
+    case THRASHOLDS_SNR_WRITE_CMD:
+      if (sub_command != 0) {
+        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[sub_command], 1);
+      } else {
+        for (uint16_t i = 0; i < 16; i++) {
+          this->cmd_frame_append_data(&cmd_frame, &i, 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[i], 1);
         }
-
-
-        void LD2410S::send_cmd(const char* msg, uint16_t command, uint16_t sub_command) {
-            this->status_set_warning(msg);
-
-            this->send_cmd_frame(CONFIG_MODE_START_CMD);
-            this->send_cmd_frame(command, sub_command);
-            this->send_cmd_frame(CONFIG_MODE_END_CMD);
-
-            this->status_clear_warning();
-        }
-
-
-        void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
-            // ESP_LOGD(TAG, "send_cmd_frame %x", command);
-
-            CmdFrameT cmd_frame = {
-                .header = CMD_FRAME_HEADER,
-                .command = command,
-                .data_length = 0,
-                .footer = CMD_FRAME_FOOTER
-            };
-
-            switch (command) {
-                case OUTPUT_MODE_SWITCH_CMD:
-                    {
-                        if (this->minimal_output) {
-                            this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_MIN[0], 4);
-                        }
-                        else {
-                            this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_STD[0], 4);
-                        }            
-                    }
-                    break;
-
-                case CONFIG_MODE_START_CMD:
-                        this->cmd_frame_append_data(&cmd_frame, &CONFIG_MODE_START_VALUE[0], 2);
-                    break;
-
-                case CONFIG_MODE_END_CMD:
-                    break;
-
-                case PARAMS_READ_CMD:
-
-                    switch (sub_command) {
-                        case CFG_MAX_DETECTION_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-                            break;
-
-                        case CFG_MIN_DETECTION_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-                            break;
-
-                        case CFG_NO_DELAY_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-                            break;
-
-                        case CFG_STATUS_FREQ_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-                            break;
-
-                        case CFG_DISTANCE_FREQ_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-                            break;
-
-                        case CFG_RESPONSE_SPEED_VALUE:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-                            break;
-
-                        default:
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-                            break;
-                        }
-
-                    break;
-
-                case FW_READ_CMD:
-                    break;
-
-                case PARAMS_WRITE_CMD:
-                    if (this->resp_speed == 0) {
-                        ESP_LOGD(TAG, "PARAMS_WRITE_CMD Error, bad new_config");
-                        return;
-                    } 
-                    else {
-                        switch (sub_command) {
-                            case CFG_MAX_DETECTION_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
-                                break;
-
-                            case CFG_MIN_DETECTION_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
-                                break;
-
-                            case CFG_NO_DELAY_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->delay, 1);
-                                break;
-
-                            case CFG_STATUS_FREQ_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
-                                break;
-
-                            case CFG_DISTANCE_FREQ_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
-                                break;
-
-                            case CFG_RESPONSE_SPEED_VALUE:
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
-                                break;
-                            default:
-
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
-                    
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
-
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->delay, 1);
-                    
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
-                
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
-
-                                this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-                                this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
-                                break;
-                        }
-                        break;
-                    }
-                    
-                case CALIBRATION_CMD:
-                    this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_TRIGGER_VALUE, 1);
-                    this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_RETENTION_VALUE, 1);
-                    this->cmd_frame_append_data(&cmd_frame, &CALIBRATION_TIME_VALUE, 1);
-                    break;
-
-                case THRASHOLDS_TRIGGER_READ_CMD:
-                case THRASHOLDS_HOLD_READ_CMD:
-                case THRASHOLDS_SNR_READ_CMD:                    
-                    if (sub_command !=0 ) {
-                        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-                    }
-                    else {
-                        for (uint16_t i = 0; i < 16; i++) {
-                            this->cmd_frame_append_data(&cmd_frame, &i, 1);
-                        }
-                    }
-                    break;
-
-                case THRASHOLDS_TRIGGER_WRITE_CMD:
-                    if (sub_command !=0 ) {
-                        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-                        this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[sub_command], 1);
-                    }
-                    else {
-                        for (uint16_t i = 0; i < 16; i++) {
-                            this->cmd_frame_append_data(&cmd_frame, &i, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[i], 1);
-                        }    
-                    }
-                    break;
-                    
-                case THRASHOLDS_HOLD_WRITE_CMD:
-                    if (sub_command !=0 ) {
-                        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-                        this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[sub_command], 1);
-                    }
-                    else {
-                        for (uint16_t i = 0; i < 16; i++) {
-                            this->cmd_frame_append_data(&cmd_frame, &i, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[i], 1);
-                        }
-                    }
-                    break;
-
-                
-                case THRASHOLDS_SNR_WRITE_CMD:
-                    if (sub_command !=0 ) {
-                        this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-                        this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[sub_command], 1);
-                    }
-                    else {
-                        for (uint16_t i = 0; i < 16; i++) {
-                            this->cmd_frame_append_data(&cmd_frame, &i, 1);
-                            this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[i], 1);
-                        }    
-                    }
-                    break;
-
-                default:
-
-                break;                
-            }
-
-            // ESP_LOGD(TAG, "send_cmd_frame frame_data_adr:%04x", &cmd_frame.data[0]);
-            // this->hex_diag("send_cmd_frame:", &cmd_frame.data[0], cmd_frame.data_length);
-            
-            this->cmd_add(&cmd_frame);
-            // this->send_command(cmd_frame);
-        }
-
-        void LD2410S::cmd_frame_append_data(CmdFrameT* cmd_frame, const uint8_t* append_data, size_t append_data_size) {       
-            memcpy(
-                &cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), 
-                append_data, 
-                append_data_size * sizeof(*append_data));
-
-            cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
-        }
-        void LD2410S::cmd_frame_append_data(CmdFrameT* cmd_frame, const uint16_t* append_data, size_t append_data_size) {
-            memcpy(
-                &cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), 
-                append_data, 
-                append_data_size * sizeof(*append_data));
-
-            cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
-        }
-        void LD2410S::cmd_frame_append_data(CmdFrameT* cmd_frame, const uint32_t* append_data, size_t append_data_size) {
-            memcpy(
-                &cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), 
-                append_data, 
-                append_data_size * sizeof(*append_data));
-
-            cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
-        }
-    
-        void LD2410S::send_command(CmdFrameT* frame)
-        { 
-            // ESP_LOGD(TAG, "Sending command Cmd:%04X, data_length:%d", frame->command, frame->data_length);
-            // this->hex_diag("Sending command:", &frame->data[0], frame->data_length); 
-
-            this->cmd_active = true;
-            uint8_t cmd_buffer[128];
-
-            frame->length = 0;
-            uint16_t frame_data_bytes = frame->data_length + 2;
-            // HEADER
-            memcpy(&cmd_buffer[frame->length], &frame->header, sizeof(frame->header));
-            frame->length += sizeof(frame->header);
-            // SIZE
-            memcpy(&cmd_buffer[frame->length], &frame_data_bytes, sizeof(frame->data_length));
-            frame->length += sizeof(frame->data_length);
-            // COMMAND
-            memcpy(&cmd_buffer[frame->length], &frame->command, sizeof(frame->command));
-            frame->length += sizeof(frame->command);
-            // DATA
-            for (uint16_t index = 0; index < frame->data_length; index++)
-            {
-                memcpy(&cmd_buffer[frame->length], &frame->data[index], sizeof(frame->data[index]));
-                frame->length += sizeof(frame->data[index]);
-            }
-            // FOOTER
-            memcpy(cmd_buffer + frame->length, &frame->footer, sizeof(frame->footer));
-            frame->length += sizeof(frame->footer);
-
-            // this->hex_diag(">", cmd_buffer, frame->length);
-
-
-            // WRITE
-            for (uint16_t index = 0; index < frame->length; index++)
-            {
-                this->write_byte(cmd_buffer[index]);
-            }
-
-            this->flush();
-
-            this->cmd_active = false;
-        }        
-        
-        void LD2410S::receive(uint8_t* buffer, size_t buffer_size, size_t& end_pos, bool& reply) {
-            while (available()) {
-                buffer[end_pos] = read();
-
-                PackageType type = this->get_frame_type(buffer, end_pos);
-                if(type != PackageType::UNKNOWN) {
-
-                    size_t start_pos = get_frame_start(buffer, end_pos, type);
-
-                    if(start_pos != end_pos) {
-
-                        size_t data_size = get_data_size(buffer, end_pos, type, start_pos);
-
-                        if(data_size != 0) {
-
-                            // this->hex_diag("<", &buffer[0], end_pos+1-start_pos);
-
-                            switch (type) {
-                                case PackageType::SHORT_DATA_FRAME:
-                                    this->process_short_data_frame(&buffer[start_pos + 1]); 
-                                    break;
-                                case PackageType::STD_DATA_FRAME:
-                                    this->process_data_frame(&buffer[start_pos + 6]);
-                                    break;
-                                case PackageType::CMD_FRAME:
-                                    reply = this->process_cmd_frame(buffer, end_pos + 1);     
-                                    this->cmd_buffer_finished();
-                                    break;
-                                case PackageType::BAD_SIZE:
-                                this->hex_diag("Received BAD sized package <", &buffer[0], end_pos+1-start_pos);
-                                    break;
-                                default:
-                                    this->hex_diag("Received Unknown Package <", &buffer[0], end_pos+1-start_pos);
-                                    break;
-                            }
-                   //         ESP_LOGD(TAG, "after process package: reply:%s", reply);
-                        }
-                    }
-
-                    end_pos = 0;
-                }
-                else {
-                    end_pos++;
-                    if(end_pos >= buffer_size-1) {
-                        end_pos = 0;
-                    }
-                }
-            }                    
-        }
-
-        PackageType LD2410S::get_frame_type(uint8_t* buffer, size_t end_pos) {
-            if (end_pos < 4) {
-                return PackageType::UNKNOWN;
-            }
-            else if ( buffer[end_pos] == SHORT_DATA_FRAME_FOOTER ) {
-                return PackageType::SHORT_DATA_FRAME;
-            }
-            else if (end_pos < 10) {
-                return PackageType::UNKNOWN;
-            }            
-            else if ( memcmp(&buffer[end_pos - 3], &STD_DATA_FRAME_FOOTER, sizeof(STD_DATA_FRAME_FOOTER)) == 0 ) {
-                return  PackageType::STD_DATA_FRAME;
-            }            
-            else if ( memcmp(&buffer[end_pos - 3], &CMD_FRAME_FOOTER, sizeof(CMD_FRAME_FOOTER)) == 0 ) {
-                return  PackageType::CMD_FRAME;
-            }
-            return PackageType::UNKNOWN;
-        }
-        size_t LD2410S::get_frame_start(uint8_t* buffer, size_t end_pos, PackageType type) {
-
-            size_t min_length = 0;
-            uint32_t header_frame = 0;
-            int header_frame_len = 0;
-
-            switch (type) {
-
-                case PackageType::SHORT_DATA_FRAME:
-                    min_length = 4;
-                    header_frame = SHORT_DATA_FRAME_HEADER;
-                    header_frame_len = sizeof(SHORT_DATA_FRAME_HEADER);
-                    break;
-
-                case PackageType::STD_DATA_FRAME:
-                    min_length = 12;
-                    header_frame = STD_DATA_FRAME_HEADER;
-                    header_frame_len = sizeof(STD_DATA_FRAME_HEADER);
-                    break;
-
-                case PackageType::CMD_FRAME:
-                    min_length = 12;
-                    header_frame = CMD_FRAME_HEADER;
-                    header_frame_len = sizeof(CMD_FRAME_HEADER);
-                    break;
-
-                default:
-                    return end_pos;
-                    break;
-            }
-
-            if (end_pos + 1 < min_length){
-                return end_pos;
-            }
-
-            for(int i = end_pos - min_length; i >= 0; i--){
-                if(header_frame == read_int(buffer, i, header_frame_len)) {
-                    return i;
-                }
-            }
-            
-            return end_pos;
-        }
-        size_t LD2410S::get_data_size(uint8_t* buffer, size_t end_pos, PackageType type, size_t start_pos) {
-
-            size_t data_size = 0;
-            size_t expected_full_frame_size = 0;
-
-            switch (type) {
-
-                case PackageType::SHORT_DATA_FRAME:
-                    data_size = 3;
-                    expected_full_frame_size = 1 + data_size + 1;
-                    break;
-
-                case PackageType::STD_DATA_FRAME:
-                    data_size = read_int(buffer, start_pos + 4, 2);
-                    expected_full_frame_size = 4 + 2 + data_size + 4;
-                    break;
-
-                case PackageType::CMD_FRAME:
-                    data_size = read_int(buffer, start_pos + 4, 2);
-                    expected_full_frame_size = 4 + 2 + data_size + 4;
-                    break;
-
-                default:
-                    return 0;
-                    break;
-            }                    
-
-            // ESP_LOGD(TAG, "< start_pos:%d,  end_pos:%d, data_size:%d, expected_full_frame_size:%d, actual_frame_size:%d", 
-            //     start_pos, end_pos, data_size,expected_full_frame_size, end_pos - start_pos + 1);
-            
-            if (expected_full_frame_size != end_pos - start_pos + 1){
-                return 0;
-            }
-            
-            return data_size;
-        }
-
-        void LD2410S::process_short_data_frame(uint8_t* data) {
-//            ESP_LOGD(TAG, "process_short_data_package");
-            
-            const bool presenceState = data[0] > 1;
-            int distance = this->two_byte_to_int(data[1], data[2]);
-            if (!presenceState)
-                distance = 0;
-            //ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
-            for (auto& listener : this->listeners) {
-                listener->on_presence(presenceState);
-                listener->on_distance(distance);
-            }
-        }
-        void LD2410S::process_data_frame(uint8_t* data) {
-
-            switch (data[0]) {
-
-                case 0x01: // standard data
-                {
-                    const bool presenceState = data[1] > 1;
-                    int distance = this->two_byte_to_int(data[2], data[3]);
-                    if (!presenceState)
-                        distance = 0;
-                    //ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
-                    for (auto& listener : this->listeners) {
-                        listener->on_presence(presenceState);
-                        listener->on_distance(distance);
-                    }
-                    // this->hex_diag("energy < ", &data[6], 64);
-                    this->process_data_energy_values_read(&data[6]);
-                    break;
-                }
-
-                case 0x03: // calibration progress
-                {
-                    int progress = this->two_byte_to_int(data[1], data[2]); 
-                    for (auto& listener : this->listeners) {
-                        if (progress == 100) {
-                            listener->on_threshold_progress(0);
-                            listener->on_threshold_update(false);
-                        }
-                        else {
-                            listener->on_threshold_progress(progress);
-                            listener->on_threshold_update(true);
-                        }
-                    }        
-                    break;
-                }
-
-                default:
-                    break;
-            }
-
-
-        }
-        bool LD2410S::process_cmd_frame(uint8_t* buffer, size_t len) {
-            CmdAckT ack = this->parse_ack(buffer, len);
-            int command_word = ack.command;
-            bool result = ack.result;
-            if (!result) {
-                ESP_LOGW(TAG, "Command %x failed", command_word);
-                return false;
-            }
-
-            uint8_t* data = ack.data;
-
-            switch (command_word) {
-
-            case PARAMS_READ_REPLY:
-                this->process_config_read_ack(data);
-                break;
-
-            case FW_READ_REPLY:
-                this->process_ack_fw_read(data);
-                break;
-
-            case THRASHOLDS_TRIGGER_READ_REPLY: 
-                this->process_ack_trigger_threshold_read(data);
-                break;
-
-            case THRASHOLDS_HOLD_READ_REPLY:
-                this->process_ack_trigger_hold_read(data);
-                break;
-
-            case THRASHOLDS_SNR_READ_REPLY:
-                this->process_ack_trigger_snr_read(data);
-                break;                
-
-            case CONFIG_MODE_START_REPLY:
-                ESP_LOGI(TAG, "Config mode enabled");
-                break;
-
-            case CONFIG_MODE_END_REPLY:
-                ESP_LOGI(TAG, "Config mode disabled");
-                break;
-
-            case PARAMS_WRITE_REPLY:
-                ESP_LOGI(TAG, "Config written");
-                break;
-
-            case THRASHOLDS_TRIGGER_WRITE_REPLY:
-                ESP_LOGI(TAG, "Trigger Thrashold written");
-                break;
-
-            case THRASHOLDS_HOLD_WRITE_REPLY:
-                ESP_LOGI(TAG, "Trigger Hold written");
-                break;
-
-            case THRASHOLDS_SNR_WRITE_REPLY:
-                ESP_LOGI(TAG, "Trigger SNR written");
-                break;                
-
-            case OUTPUT_MODE_SWITCH_REPLY:
-                ESP_LOGI(TAG, "Minimal Output Mode switched");
-                break;
-
+      }
+      break;
+
+    default:
+
+      break;
+  }
+
+  // ESP_LOGD(TAG, "send_cmd_frame frame_data_adr:%04x", &cmd_frame.data[0]);
+  // this->hex_diag("send_cmd_frame:", &cmd_frame.data[0], cmd_frame.data_length);
+
+  this->cmd_add(&cmd_frame);
+  // this->send_command(cmd_frame);
+}
+
+void LD2410S::cmd_frame_append_data(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size) {
+  memcpy(&cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), append_data,
+         append_data_size * sizeof(*append_data));
+
+  cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
+}
+void LD2410S::cmd_frame_append_data(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size) {
+  memcpy(&cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), append_data,
+         append_data_size * sizeof(*append_data));
+
+  cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
+}
+void LD2410S::cmd_frame_append_data(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size) {
+  memcpy(&cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), append_data,
+         append_data_size * sizeof(*append_data));
+
+  cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
+}
+
+void LD2410S::send_command(CmdFrameT *frame) {
+  // ESP_LOGD(TAG, "Sending command Cmd:%04X, data_length:%d", frame->command, frame->data_length);
+  // this->hex_diag("Sending command:", &frame->data[0], frame->data_length);
+
+  this->cmd_active = true;
+  uint8_t cmd_buffer[128];
+
+  frame->length = 0;
+  uint16_t frame_data_bytes = frame->data_length + 2;
+  // HEADER
+  memcpy(&cmd_buffer[frame->length], &frame->header, sizeof(frame->header));
+  frame->length += sizeof(frame->header);
+  // SIZE
+  memcpy(&cmd_buffer[frame->length], &frame_data_bytes, sizeof(frame->data_length));
+  frame->length += sizeof(frame->data_length);
+  // COMMAND
+  memcpy(&cmd_buffer[frame->length], &frame->command, sizeof(frame->command));
+  frame->length += sizeof(frame->command);
+  // DATA
+  for (uint16_t index = 0; index < frame->data_length; index++) {
+    memcpy(&cmd_buffer[frame->length], &frame->data[index], sizeof(frame->data[index]));
+    frame->length += sizeof(frame->data[index]);
+  }
+  // FOOTER
+  memcpy(cmd_buffer + frame->length, &frame->footer, sizeof(frame->footer));
+  frame->length += sizeof(frame->footer);
+
+  // this->hex_diag(">", cmd_buffer, frame->length);
+
+  // WRITE
+  for (uint16_t index = 0; index < frame->length; index++) {
+    this->write_byte(cmd_buffer[index]);
+  }
+
+  this->flush();
+
+  this->cmd_active = false;
+}
+
+void LD2410S::receive(uint8_t *buffer, size_t buffer_size, size_t &end_pos, bool &reply) {
+  while (available()) {
+    buffer[end_pos] = read();
+
+    PackageType type = this->get_frame_type(buffer, end_pos);
+    if (type != PackageType::UNKNOWN) {
+      size_t start_pos = get_frame_start(buffer, end_pos, type);
+
+      if (start_pos != end_pos) {
+        size_t data_size = get_data_size(buffer, end_pos, type, start_pos);
+
+        if (data_size != 0) {
+          // this->hex_diag("<", &buffer[0], end_pos+1-start_pos);
+
+          switch (type) {
+            case PackageType::SHORT_DATA_FRAME:
+              this->process_short_data_frame(&buffer[start_pos + 1]);
+              break;
+            case PackageType::STD_DATA_FRAME:
+              this->process_data_frame(&buffer[start_pos + 6]);
+              break;
+            case PackageType::CMD_FRAME:
+              reply = this->process_cmd_frame(buffer, end_pos + 1);
+              this->cmd_buffer_finished();
+              break;
+            case PackageType::BAD_SIZE:
+              this->hex_diag("Received BAD sized package <", &buffer[0], end_pos + 1 - start_pos);
+              break;
             default:
-                ESP_LOGW(TAG, "< Unknown: %4x", command_word);
-                break;
-            }
-
-            return true;
+              this->hex_diag("Received Unknown Package <", &buffer[0], end_pos + 1 - start_pos);
+              break;
+          }
+          //         ESP_LOGD(TAG, "after process package: reply:%s", reply);
         }
+      }
 
-        CmdAckT LD2410S::parse_ack(uint8_t* buffer, size_t length) {
-            CmdAckT result;
-            size_t start = -1;
-            for (size_t i = 0; i < length; i++) {
-                if (memcmp(&buffer[i], &CMD_FRAME_HEADER, sizeof(CMD_FRAME_HEADER)) == 0) {
-                    start = i;
-                    break;
-                }
-            }
-            if (start == -1) {
-                ESP_LOGE(TAG, "Can't find cmd header");
-                result.result = false;
-                return result;
-            }
-            int data_length = this->two_byte_to_int(buffer[start + 4], buffer[start + 5]);
-            result.length = data_length;
-            int command_word = this->two_byte_to_int(buffer[start + 6], buffer[start + 7]);
-            result.command = command_word;
-            bool ack = buffer[start + 8] == 0x00 && buffer[start + 9] == 0x00;
-            result.result = ack;
-            for (size_t idx = 0; idx < result.length; idx++) {
-                memcpy(&result.data[idx], &buffer[idx + 10], sizeof(buffer[idx + 10]));
-            }
-            return result;
+      end_pos = 0;
+    } else {
+      end_pos++;
+      if (end_pos >= buffer_size - 1) {
+        end_pos = 0;
+      }
+    }
+  }
+}
+
+PackageType LD2410S::get_frame_type(uint8_t *buffer, size_t end_pos) {
+  if (end_pos < 4) {
+    return PackageType::UNKNOWN;
+  } else if (buffer[end_pos] == SHORT_DATA_FRAME_FOOTER) {
+    return PackageType::SHORT_DATA_FRAME;
+  } else if (end_pos < 10) {
+    return PackageType::UNKNOWN;
+  } else if (memcmp(&buffer[end_pos - 3], &STD_DATA_FRAME_FOOTER, sizeof(STD_DATA_FRAME_FOOTER)) == 0) {
+    return PackageType::STD_DATA_FRAME;
+  } else if (memcmp(&buffer[end_pos - 3], &CMD_FRAME_FOOTER, sizeof(CMD_FRAME_FOOTER)) == 0) {
+    return PackageType::CMD_FRAME;
+  }
+  return PackageType::UNKNOWN;
+}
+size_t LD2410S::get_frame_start(uint8_t *buffer, size_t end_pos, PackageType type) {
+  size_t min_length = 0;
+  uint32_t header_frame = 0;
+  int header_frame_len = 0;
+
+  switch (type) {
+    case PackageType::SHORT_DATA_FRAME:
+      min_length = 4;
+      header_frame = SHORT_DATA_FRAME_HEADER;
+      header_frame_len = sizeof(SHORT_DATA_FRAME_HEADER);
+      break;
+
+    case PackageType::STD_DATA_FRAME:
+      min_length = 12;
+      header_frame = STD_DATA_FRAME_HEADER;
+      header_frame_len = sizeof(STD_DATA_FRAME_HEADER);
+      break;
+
+    case PackageType::CMD_FRAME:
+      min_length = 12;
+      header_frame = CMD_FRAME_HEADER;
+      header_frame_len = sizeof(CMD_FRAME_HEADER);
+      break;
+
+    default:
+      return end_pos;
+      break;
+  }
+
+  if (end_pos + 1 < min_length) {
+    return end_pos;
+  }
+
+  for (int i = end_pos - min_length; i >= 0; i--) {
+    if (header_frame == read_int(buffer, i, header_frame_len)) {
+      return i;
+    }
+  }
+
+  return end_pos;
+}
+size_t LD2410S::get_data_size(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos) {
+  size_t data_size = 0;
+  size_t expected_full_frame_size = 0;
+
+  switch (type) {
+    case PackageType::SHORT_DATA_FRAME:
+      data_size = 3;
+      expected_full_frame_size = 1 + data_size + 1;
+      break;
+
+    case PackageType::STD_DATA_FRAME:
+      data_size = read_int(buffer, start_pos + 4, 2);
+      expected_full_frame_size = 4 + 2 + data_size + 4;
+      break;
+
+    case PackageType::CMD_FRAME:
+      data_size = read_int(buffer, start_pos + 4, 2);
+      expected_full_frame_size = 4 + 2 + data_size + 4;
+      break;
+
+    default:
+      return 0;
+      break;
+  }
+
+  // ESP_LOGD(TAG, "< start_pos:%d,  end_pos:%d, data_size:%d, expected_full_frame_size:%d, actual_frame_size:%d",
+  //     start_pos, end_pos, data_size,expected_full_frame_size, end_pos - start_pos + 1);
+
+  if (expected_full_frame_size != end_pos - start_pos + 1) {
+    return 0;
+  }
+
+  return data_size;
+}
+
+void LD2410S::process_short_data_frame(uint8_t *data) {
+  //            ESP_LOGD(TAG, "process_short_data_package");
+
+  const bool presenceState = data[0] > 1;
+  int distance = this->two_byte_to_int(data[1], data[2]);
+  if (!presenceState)
+    distance = 0;
+  // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
+  for (auto &listener : this->listeners) {
+    listener->on_presence(presenceState);
+    listener->on_distance(distance);
+  }
+}
+void LD2410S::process_data_frame(uint8_t *data) {
+  switch (data[0]) {
+    case 0x01:  // standard data
+    {
+      const bool presenceState = data[1] > 1;
+      int distance = this->two_byte_to_int(data[2], data[3]);
+      if (!presenceState)
+        distance = 0;
+      // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
+      for (auto &listener : this->listeners) {
+        listener->on_presence(presenceState);
+        listener->on_distance(distance);
+      }
+      // this->hex_diag("energy < ", &data[6], 64);
+      this->process_data_energy_values_read(&data[6]);
+      break;
+    }
+
+    case 0x03:  // calibration progress
+    {
+      int progress = this->two_byte_to_int(data[1], data[2]);
+      for (auto &listener : this->listeners) {
+        if (progress == 100) {
+          listener->on_threshold_progress(0);
+          listener->on_threshold_update(false);
+        } else {
+          listener->on_threshold_progress(progress);
+          listener->on_threshold_update(true);
         }
+      }
+      break;
+    }
 
-        void LD2410S::process_config_read_ack(uint8_t* data) {            
-            this->max_dist = this->read_int(data, 0, 4);
-            this->min_dist = this->read_int(data, 4, 4);
-            this->delay = this->read_int(data, 8, 4);
-            this->status_freq = this->read_int(data, 12, 4);
-            this->dist_freq = this->read_int(data, 16, 4);
-            this->resp_speed = this->read_int(data, 20, 4);
-            
+    default:
+      break;
+  }
+}
+bool LD2410S::process_cmd_frame(uint8_t *buffer, size_t len) {
+  CmdAckT ack = this->parse_ack(buffer, len);
+  int command_word = ack.command;
+  bool result = ack.result;
+  if (!result) {
+    ESP_LOGW(TAG, "Command %x failed", command_word);
+    return false;
+  }
+
+  uint8_t *data = ack.data;
+
+  switch (command_word) {
+    case PARAMS_READ_REPLY:
+      this->process_config_read_ack(data);
+      break;
+
+    case FW_READ_REPLY:
+      this->process_ack_fw_read(data);
+      break;
+
+    case THRASHOLDS_TRIGGER_READ_REPLY:
+      this->process_ack_trigger_threshold_read(data);
+      break;
+
+    case THRASHOLDS_HOLD_READ_REPLY:
+      this->process_ack_trigger_hold_read(data);
+      break;
+
+    case THRASHOLDS_SNR_READ_REPLY:
+      this->process_ack_trigger_snr_read(data);
+      break;
+
+    case CONFIG_MODE_START_REPLY:
+      ESP_LOGI(TAG, "Config mode enabled");
+      break;
+
+    case CONFIG_MODE_END_REPLY:
+      ESP_LOGI(TAG, "Config mode disabled");
+      break;
+
+    case PARAMS_WRITE_REPLY:
+      ESP_LOGI(TAG, "Config written");
+      break;
+
+    case THRASHOLDS_TRIGGER_WRITE_REPLY:
+      ESP_LOGI(TAG, "Trigger Thrashold written");
+      break;
+
+    case THRASHOLDS_HOLD_WRITE_REPLY:
+      ESP_LOGI(TAG, "Trigger Hold written");
+      break;
+
+    case THRASHOLDS_SNR_WRITE_REPLY:
+      ESP_LOGI(TAG, "Trigger SNR written");
+      break;
+
+    case OUTPUT_MODE_SWITCH_REPLY:
+      ESP_LOGI(TAG, "Minimal Output Mode switched");
+      break;
+
+    default:
+      ESP_LOGW(TAG, "< Unknown: %4x", command_word);
+      break;
+  }
+
+  return true;
+}
+
+CmdAckT LD2410S::parse_ack(uint8_t *buffer, size_t length) {
+  CmdAckT result;
+  size_t start = -1;
+  for (size_t i = 0; i < length; i++) {
+    if (memcmp(&buffer[i], &CMD_FRAME_HEADER, sizeof(CMD_FRAME_HEADER)) == 0) {
+      start = i;
+      break;
+    }
+  }
+  if (start == -1) {
+    ESP_LOGE(TAG, "Can't find cmd header");
+    result.result = false;
+    return result;
+  }
+  int data_length = this->two_byte_to_int(buffer[start + 4], buffer[start + 5]);
+  result.length = data_length;
+  int command_word = this->two_byte_to_int(buffer[start + 6], buffer[start + 7]);
+  result.command = command_word;
+  bool ack = buffer[start + 8] == 0x00 && buffer[start + 9] == 0x00;
+  result.result = ack;
+  for (size_t idx = 0; idx < result.length; idx++) {
+    memcpy(&result.data[idx], &buffer[idx + 10], sizeof(buffer[idx + 10]));
+  }
+  return result;
+}
+
+void LD2410S::process_config_read_ack(uint8_t *data) {
+  this->max_dist = this->read_int(data, 0, 4);
+  this->min_dist = this->read_int(data, 4, 4);
+  this->delay = this->read_int(data, 8, 4);
+  this->status_freq = this->read_int(data, 12, 4);
+  this->dist_freq = this->read_int(data, 16, 4);
+  this->resp_speed = this->read_int(data, 20, 4);
+
 #ifdef USE_NUMBER
-            this->max_distance_number->publish_state(this->max_dist);
-            this->min_distance_number->publish_state(this->min_dist);
-            this->no_delay_number->publish_state(this->delay);
-            this->status_reporting_freq_number->publish_state(this->status_freq / 10);
-            this->distance_reporting_freq_number->publish_state(this->dist_freq / 10);
+  this->max_distance_number->publish_state(this->max_dist);
+  this->min_distance_number->publish_state(this->min_dist);
+  this->no_delay_number->publish_state(this->delay);
+  this->status_reporting_freq_number->publish_state(this->status_freq / 10);
+  this->distance_reporting_freq_number->publish_state(this->dist_freq / 10);
 #endif
 
 #ifdef USE_SELECT
-            this->response_speed_select->publish_state(this->resp_speed == 5 ? RESPONSE_SPEED_NORMAL : RESPONSE_SPEED_FAST);
+  this->response_speed_select->publish_state(this->resp_speed == 5 ? RESPONSE_SPEED_NORMAL : RESPONSE_SPEED_FAST);
 #endif
 
-            ESP_LOGI(TAG, "Config: max_dist=%d, min_dist=%d, delay=%d, status_resp_freq=%d, dist_resp_freq=%d, resp_speed=%d", 
-                this->max_dist, 
-                this->min_dist, 
-                this->delay, 
-                this->status_freq, 
-                this->dist_freq, 
-                this->resp_speed);
-        }
-
-        void LD2410S::process_ack_fw_read(uint8_t* data) {
-
-            int major_v = static_cast<int>(data[0]);
-            int minor_v = static_cast<int>(data[1]);
-            int patch_v = static_cast<int>(data[2]);
-            std::string version = "v" + std::to_string(major_v) + "." + std::to_string(minor_v) + "." + std::to_string(patch_v);
-
-            for (auto& listener : this->listeners) {
-                listener->on_fw_version(version);
-            }
-
-            ESP_LOGD(TAG, "Firmware version: %s", version.c_str());
-        }
-
-        void LD2410S::process_ack_trigger_threshold_read(uint8_t* data) {
-            this->four_byte_to_int_array(data, this->triggers.threshold, 16);
-#ifdef USE_NUMBER
-            this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
-#endif
-
-            std::string vals = this->format_int(this->triggers.threshold, 16, 2);
-
-            for (auto& listener : this->listeners) {
-                listener->on_trigger_threshold_ts(vals);
-            }
-
-            ESP_LOGD(TAG, "Gate Trigger Thresholds: %s", vals.c_str());
-        }
-
-        void LD2410S::process_ack_trigger_hold_read(uint8_t* data) {
-            this->four_byte_to_int_array(data, this->triggers.hold, 16);
-#ifdef USE_NUMBER
-            this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
-#endif
-          
-            std::string vals = this->format_int(this->triggers.hold, 16, 2);
-
-            for (auto& listener : this->listeners) {
-                listener->on_trigger_hold_ts(vals);
-            }
-
-            ESP_LOGD(TAG, "Gate Trigger Holds: %s", vals.c_str());
-        }
-
-        void LD2410S::process_ack_trigger_snr_read(uint8_t* data) {
-            this->four_byte_to_int_array(data, this->triggers.snr, 16);
-#ifdef USE_NUMBER
-            this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
-#endif
-          
-            std::string vals = this->format_int(this->triggers.snr, 16, 2);
-
-            for (auto& listener : this->listeners) {
-                listener->on_trigger_snr_ts(vals); 
-            }
-
-            ESP_LOGD(TAG, "Gate Trigger SNR: %s", vals.c_str());
-        }
-
-        void LD2410S::process_data_energy_values_read(uint8_t* data) {
-            
-            for (int i=0; i<16; i++) {
-                uint32_t val = this->four_byte_to_int(data[i*4],data[i*4+1],data[i*4+2],data[i*4+3]);
-                this->energy_values[i] = (this->energy_values[i] * 16 * this->energy_values_count + val) / (this->energy_values_count + 1) / 16;
-                this->energy_values_count++;
-            }
-
-            std::string vals = this->format_int(this->energy_values, 16, 3);
-
-            if (energy_values_str != vals) {
-                for (auto& listener : this->listeners) {
-                    listener->on_energy_values_ts(vals);
-                }
-    
-                energy_values_str = vals;
-            }
-
-            ESP_LOGD(TAG, "Energy Values: %s", vals.c_str());
-        }        
-        
-        std::string LD2410S::format_int(uint32_t* in, uint8_t len, uint8_t min_w) {
-            if (len == 0) return "";
-
-            std::ostringstream oss;
-            for (uint8_t i = 0; i < len; ++i) {
-                if (i > 0) oss << ",";
-                oss << std::setw(min_w) << std::setfill('0') << in[i];
-            }
-            
-            return oss.str();            
-        }
-
-        void LD2410S::four_byte_to_int_array(uint8_t* in, uint32_t* out, uint8_t out_len){
-            for (int i=0; i<out_len; i++) {
-                out[i] = this->four_byte_to_int(in[i*4],in[i*4+1],in[i*4+2],in[i*4+3]);
-            }            
-        }
-
-        void LD2410S::hex_diag(const char* msg, const uint8_t* data, size_t length) {
-            char output[length * 3 + 1];
-
-            for (size_t i = 0; i < length; i++) {
-                if (i > 0) {  // Add a space before each byte except the first one
-                    sprintf(output + (i * 3 - 1), " ");
-                }
-                sprintf(output + (i * 3), "%02X", data[i]);
-            }
-
-            output[length * 3 - 1] = '\0';    // Null-terminate the string
-
-            ESP_LOGD(TAG, "%s %s", msg, output);
-        }
-
-        int LD2410S::read_int(uint8_t* buffer, size_t pos, size_t len) {
-            unsigned int ret = 0;
-            int shift = 0;
-            for (size_t i = 0; i < len; i++) {
-                ret |= static_cast<unsigned int>(buffer[pos + i]) << shift;
-                shift += 8;
-            }
-            return ret;
-        };
-        int LD2410S::two_byte_to_int(uint8_t byte1, uint8_t byte2) { 
-            return  byte1 | (byte2 << 8); 
-        };
-        uint32_t LD2410S::four_byte_to_int(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) { 
-            return  byte1 | (byte2 << 8) | (byte3 << 16) | (byte4 << 24); 
-        };        
-        uint16_t LD2410S::swapEndian(uint16_t value) {
-            return  (value >> 8) | 
-                    (value << 8);
-        }
-        uint32_t LD2410S::swapEndian(uint32_t value) {
-            return  ((value >> 24) & 0x000000FF) |
-                    ((value >> 8)  & 0x0000FF00) |
-                    ((value << 8)  & 0x00FF0000) |
-                    ((value << 24) & 0xFF000000);
-       }
-    }
+  ESP_LOGI(TAG, "Config: max_dist=%d, min_dist=%d, delay=%d, status_resp_freq=%d, dist_resp_freq=%d, resp_speed=%d",
+           this->max_dist, this->min_dist, this->delay, this->status_freq, this->dist_freq, this->resp_speed);
 }
+
+void LD2410S::process_ack_fw_read(uint8_t *data) {
+  int major_v = static_cast<int>(data[0]);
+  int minor_v = static_cast<int>(data[1]);
+  int patch_v = static_cast<int>(data[2]);
+  std::string version = "v" + std::to_string(major_v) + "." + std::to_string(minor_v) + "." + std::to_string(patch_v);
+
+  for (auto &listener : this->listeners) {
+    listener->on_fw_version(version);
+  }
+
+  ESP_LOGD(TAG, "Firmware version: %s", version.c_str());
+}
+
+void LD2410S::process_ack_trigger_threshold_read(uint8_t *data) {
+  this->four_byte_to_int_array(data, this->triggers.threshold, 16);
+#ifdef USE_NUMBER
+  this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
+#endif
+
+  std::string vals = this->format_int(this->triggers.threshold, 16, 2);
+
+  for (auto &listener : this->listeners) {
+    listener->on_trigger_threshold_ts(vals);
+  }
+
+  ESP_LOGD(TAG, "Gate Trigger Thresholds: %s", vals.c_str());
+}
+
+void LD2410S::process_ack_trigger_hold_read(uint8_t *data) {
+  this->four_byte_to_int_array(data, this->triggers.hold, 16);
+#ifdef USE_NUMBER
+  this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
+#endif
+
+  std::string vals = this->format_int(this->triggers.hold, 16, 2);
+
+  for (auto &listener : this->listeners) {
+    listener->on_trigger_hold_ts(vals);
+  }
+
+  ESP_LOGD(TAG, "Gate Trigger Holds: %s", vals.c_str());
+}
+
+void LD2410S::process_ack_trigger_snr_read(uint8_t *data) {
+  this->four_byte_to_int_array(data, this->triggers.snr, 16);
+#ifdef USE_NUMBER
+  this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+#endif
+
+  std::string vals = this->format_int(this->triggers.snr, 16, 2);
+
+  for (auto &listener : this->listeners) {
+    listener->on_trigger_snr_ts(vals);
+  }
+
+  ESP_LOGD(TAG, "Gate Trigger SNR: %s", vals.c_str());
+}
+
+void LD2410S::process_data_energy_values_read(uint8_t *data) {
+  for (int i = 0; i < 16; i++) {
+    uint32_t val = this->four_byte_to_int(data[i * 4], data[i * 4 + 1], data[i * 4 + 2], data[i * 4 + 3]);
+    this->energy_values[i] =
+        (this->energy_values[i] * 16 * this->energy_values_count + val) / (this->energy_values_count + 1) / 16;
+    this->energy_values_count++;
+  }
+
+  std::string vals = this->format_int(this->energy_values, 16, 3);
+
+  if (energy_values_str != vals) {
+    for (auto &listener : this->listeners) {
+      listener->on_energy_values_ts(vals);
+    }
+
+    energy_values_str = vals;
+  }
+
+  ESP_LOGD(TAG, "Energy Values: %s", vals.c_str());
+}
+
+std::string LD2410S::format_int(uint32_t *in, uint8_t len, uint8_t min_w) {
+  if (len == 0)
+    return "";
+
+  std::ostringstream oss;
+  for (uint8_t i = 0; i < len; ++i) {
+    if (i > 0)
+      oss << ",";
+    oss << std::setw(min_w) << std::setfill('0') << in[i];
+  }
+
+  return oss.str();
+}
+
+void LD2410S::four_byte_to_int_array(uint8_t *in, uint32_t *out, uint8_t out_len) {
+  for (int i = 0; i < out_len; i++) {
+    out[i] = this->four_byte_to_int(in[i * 4], in[i * 4 + 1], in[i * 4 + 2], in[i * 4 + 3]);
+  }
+}
+
+void LD2410S::hex_diag(const char *msg, const uint8_t *data, size_t length) {
+  char output[length * 3 + 1];
+
+  for (size_t i = 0; i < length; i++) {
+    if (i > 0) {  // Add a space before each byte except the first one
+      sprintf(output + (i * 3 - 1), " ");
+    }
+    sprintf(output + (i * 3), "%02X", data[i]);
+  }
+
+  output[length * 3 - 1] = '\0';  // Null-terminate the string
+
+  ESP_LOGD(TAG, "%s %s", msg, output);
+}
+
+int LD2410S::read_int(uint8_t *buffer, size_t pos, size_t len) {
+  unsigned int ret = 0;
+  int shift = 0;
+  for (size_t i = 0; i < len; i++) {
+    ret |= static_cast<unsigned int>(buffer[pos + i]) << shift;
+    shift += 8;
+  }
+  return ret;
+};
+int LD2410S::two_byte_to_int(uint8_t byte1, uint8_t byte2) { return byte1 | (byte2 << 8); };
+uint32_t LD2410S::four_byte_to_int(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
+  return byte1 | (byte2 << 8) | (byte3 << 16) | (byte4 << 24);
+};
+uint16_t LD2410S::swapEndian(uint16_t value) { return (value >> 8) | (value << 8); }
+uint32_t LD2410S::swapEndian(uint32_t value) {
+  return ((value >> 24) & 0x000000FF) | ((value >> 8) & 0x0000FF00) | ((value << 8) & 0x00FF0000) |
+         ((value << 24) & 0xFF000000);
+}
+}  // namespace ld2410s
+}  // namespace esphome
