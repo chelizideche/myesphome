@@ -917,8 +917,8 @@ int LD2410S::two_byte_to_int_(uint8_t byte1, uint8_t byte2) { return byte1 | (by
 uint32_t LD2410S::four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
   return byte1 | (byte2 << 8) | (byte3 << 16) | (byte4 << 24);
 };
-uint16_t LD2410S::swapEndian_(uint16_t value) { return (value >> 8) | (value << 8); }
-uint32_t LD2410S::swapEndian_(uint32_t value) {
+uint16_t LD2410S::swap_endian_(uint16_t value) { return (value >> 8) | (value << 8); }
+uint32_t LD2410S::swap_endian_(uint32_t value) {
   return ((value >> 24) & 0x000000FF) | ((value >> 8) & 0x0000FF00) | ((value << 8) & 0x00FF0000) |
          ((value << 24) & 0xFF000000);
 }

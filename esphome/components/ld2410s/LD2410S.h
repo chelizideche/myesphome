@@ -25,7 +25,7 @@
 namespace esphome {
 namespace ld2410s {
 
-static const char[] TAG = "ld2410s";
+static const char *const TAG = "ld2410s";
 
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
 static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
@@ -347,8 +347,8 @@ class LD2410S : public uart::UARTDevice, public Component {
   int read_int_(uint8_t *buffer, size_t pos, size_t len);
   int two_byte_to_int_(uint8_t byte1, uint8_t byte2);
   uint32_t four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
-  uint16_t swapEndian_(uint16_t value);
-  uint32_t swapEndian_(uint32_t value);
+  uint16_t swap_endian_(uint16_t value);
+  uint32_t swap_endian_(uint32_t value);
 };
 
 }  // namespace ld2410s
