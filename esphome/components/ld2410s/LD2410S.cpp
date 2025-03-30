@@ -225,8 +225,8 @@ void LD2410S::set_trigger_hold(float trigger_hold) {
   this->triggers_.hold[this->triggers_.selected_gate] = trigger_hold;
 }
 void LD2410S::set_trigger_snr(float trigger_snr) { this->triggers_.snr[this->triggers_.selected_gate] = trigger_snr; }
-void LD2410S::set_response_speed_select_(const std::string &response_speed_select_) {
-  this->resp_speed_ = response_speed_select_ == RESPONSE_SPEED_NORMAL ? 5 : 10;
+void LD2410S::set_response_speed_select(const std::string &response_speed_select) {
+  this->resp_speed_ = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
   this->send_cmd_("set_response_speed_select\0", PARAMS_WRITE_CMD, CFG_RESPONSE_SPEED_VALUE);
 }
 
@@ -321,7 +321,7 @@ void LD2410S::send_cmd_frame_(uint16_t command, uint16_t sub_command) {
 
           case CFG_NO_DELAY_VALUE:
             this->cmd_frame_append_data_(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-            this->cmd_frame_append_data_(&cmd_frame, &this->delay, 1);
+            this->cmd_frame_append_data_(&cmd_frame, &this->delay_, 1);
             break;
 
           case CFG_STATUS_FREQ_VALUE:
@@ -625,13 +625,13 @@ size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type
 void LD2410S::process_short_data_frame_(uint8_t *data) {
   //            ESP_LOGD(TAG, "process_short_data_package");
 
-  const bool presenceState = data[0] > 1;
+  const bool presence_state = data[0] > 1;
   int distance = this->two_byte_to_int_(data[1], data[2]);
-  if (!presenceState)
+  if (!presence_state)
     distance = 0;
-  // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
+  // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presence_state, distance);
   for (auto &listener : this->listeners_) {
-    listener->on_presence(presenceState);
+    listener->on_presence(presence_state);
     listener->on_distance(distance);
   }
 }
@@ -639,13 +639,13 @@ void LD2410S::process_data_frame_(uint8_t *data) {
   switch (data[0]) {
     case 0x01:  // standard data
     {
-      const bool presenceState = data[1] > 1;
+      const bool presence_state = data[1] > 1;
       int distance = this->two_byte_to_int_(data[2], data[3]);
-      if (!presenceState)
+      if (!presence_state)
         distance = 0;
-      // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
+      // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presence_state, distance);
       for (auto &listener : this->listeners_) {
-        listener->on_presence(presenceState);
+        listener->on_presence(presence_state);
         listener->on_distance(distance);
       }
       // this->hex_diag_("energy < ", &data[6], 64);
@@ -776,7 +776,7 @@ void LD2410S::process_config_read_ack_(uint8_t *data) {
 
 #ifdef USE_NUMBER
   this->max_distance_number_->publish_state(this->max_dist_);
-  this->min_distance_number->publish_state(this->min_dist_);
+  this->min_distance_number_->publish_state(this->min_dist_);
   this->no_delay_number_->publish_state(this->delay_);
   this->status_reporting_freq_number_->publish_state(this->status_freq_ / 10);
   this->distance_reporting_freq_number_->publish_state(this->dist_freq_ / 10);

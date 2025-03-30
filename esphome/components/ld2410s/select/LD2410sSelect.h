@@ -10,7 +10,7 @@ class LD2410sResponseSpeedSelect : public Component, public select::Select, publ
   LD2410sResponseSpeedSelect() = default;
 
  protected:
-  void control(const std::string &value) override;
+  void control(const std::string &response_speed_select) override;
 };
 
 }  // namespace ld2410s

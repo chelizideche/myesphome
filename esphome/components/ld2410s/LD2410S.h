@@ -309,7 +309,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   select::Select *response_speed_select_{nullptr};
 #endif
 
-  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &replay);
+  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &reply);
   PackageType get_frame_type_(uint8_t *buffer, size_t pos);
   size_t get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type);
   size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
@@ -318,7 +318,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   // bool process_frame_(PackageType type, uint8_t *buffer, size_t data_size);
   void process_short_data_frame_(uint8_t *data);
   void process_data_frame_(uint8_t *data);
-  bool process_cmd_frame_(uint8_t *buffer, size_t data_size);
+  bool process_cmd_frame_(uint8_t *buffer, size_t len);
 
   CmdAckT parse_ack_(uint8_t *buffer, size_t length);
 
@@ -341,7 +341,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void process_ack_trigger_snr_read_(uint8_t *data);
   void process_data_energy_values_read_(uint8_t *data);
 
-  std::string format_int_(uint32_t *val, uint8_t len, uint8_t min_w);
+  std::string format_int_(uint32_t *in, uint8_t len, uint8_t min_w);
   void four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len);
   void hex_diag_(const char *msg, const uint8_t *data, size_t length);
   int read_int_(uint8_t *buffer, size_t pos, size_t len);
