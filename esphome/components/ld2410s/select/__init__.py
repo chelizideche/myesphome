@@ -7,7 +7,7 @@ from .. import CONF_LD2410S_ID, LD2410S, ld2410s_ns
 
 CODEOWNERS = ["@NovakIrs"]
 
-CONF_RESPONSE_SPEED = "conf_response_speed"
+CONF_RESPONSE_SPEED = "response_speed"
 CONF_SELECTS = ["Normal", "Fast"]
 
 

@@ -2,6 +2,8 @@ import esphome.codegen as cg
 from esphome.components import button
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_CALIBRATION,
+    CONF_FACTORY_RESET,
     # DEVICE_CLASS_IDENTIFY,
     DEVICE_CLASS_RESTART,
     DEVICE_CLASS_UPDATE,
@@ -24,11 +26,11 @@ LD2410SMinimalOutput = ld2410s_ns.class_("LD2410SMinimalOutput", button.Button)
 # LD2410SEnableConfigButton = ld2410s_ns.class_("LD2410SEnableConfigButton", button.Button)
 # LD2410SDisableConfigButton = ld2410s_ns.class_("LD2410SDisableConfigButton", button.Button)
 
-CONF_READ_ALL = "conf_read_all"
-CONF_APPLY_CONFIG = "conf_apply_config"
-CONF_CALIBRATION = "conf_calibration"
-CONF_FACTORY_RESET = "conf_factory_reset"
-CONF_MINIMAL_OUTPUT = "conf_minimal_output"
+CONF_READ_ALL = "read_all"
+CONF_APPLY_CONFIG = "apply_config"
+# CONF_CALIBRATION = "calibration"
+# CONF_FACTORY_RESET = "factory_reset"
+CONF_MINIMAL_OUTPUT = "minimal_output"
 # CONF_ENABLE_CONFIG = "enable_config"
 # CONF_DISABLE_CONFIG = "disable_config"
 

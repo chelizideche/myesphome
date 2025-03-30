@@ -36,16 +36,16 @@ LD2410STriggerSelectedGateNumber = ld2410s_ns.class_(
     "LD2410STriggerSelectedGateNumber", number.Number
 )
 
-CONF_MAX_DISTANCE = "conf_max_distance"
-CONF_MIN_DISTANCE = "conf_min_distance"
-CONF_NO_DELAY = "conf_no_delay"
+CONF_MAX_DISTANCE = "max_distance"
+CONF_MIN_DISTANCE = "min_distance"
+CONF_NO_DELAY = "no_delay"
 DISTANCE_GROUP = "distance_group"
-CONF_STATUS_REPORT_FREQ = "conf_status_report_frequency"
-CONF_DISTANCE_REPORT_FREQ = "conf_distance_report_frequency"
-CONF_TRIGGER_THRESHOLD = "conf_trigger_threshold"
-CONF_TRIGGER_HOLD = "conf_trigger_hold"
-CONF_TRIGGER_SNR = "conf_trigger_snr"
-CONF_TRIGGER_SELECTED_GATE = "conf_trigger_selected_gate"
+CONF_STATUS_REPORT_FREQ = "status_report_frequency"
+CONF_DISTANCE_REPORT_FREQ = "distance_report_frequency"
+CONF_TRIGGER_THRESHOLD = "trigger_threshold"
+CONF_TRIGGER_HOLD = "trigger_hold"
+CONF_TRIGGER_SNR = "trigger_snr"
+CONF_TRIGGER_SELECTED_GATE = "trigger_selected_gate"
 
 
 CONFIG_SCHEMA = cv.Schema(
