@@ -249,7 +249,7 @@ class ESPNowComponent : public Component {
   uint8_t get_wifi_channel() { return this->wifi_channel_; }
 
   void set_auto_add_peer(bool value) { this->auto_add_peer_ = value; }
-  void set_use_sent_check(bool value) { this->use_sent_check_ = value; }
+  void set_wait_for_ack(bool value) { this->wait_for_ack_ = value; }
   void set_auto_channel_scan(bool value) { this->auto_channel_scan_ = value; }
 
   void set_confirmation_timeout(uint32_t timeout) { this->confirmation_timeout_ = timeout; }
@@ -324,7 +324,7 @@ class ESPNowComponent : public Component {
   uint64_t last_packet_send_{0ull};
 
   bool auto_add_peer_{false};
-  bool use_sent_check_{true};
+  bool wait_for_ack_{true};
   bool auto_channel_scan_{false};
 
   EPSNowTriggerCallback get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> wPacket);

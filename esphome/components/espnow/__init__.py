@@ -1,6 +1,5 @@
 from esphome import automation, core
 import esphome.codegen as cg
-from esphome.components.globals import GlobalsComponent
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COMMAND,
@@ -24,8 +23,6 @@ ESPNowApp = espnow_ns.class_("ESPNowApp")
 ESPNowListener = espnow_ns.class_("ESPNowListener")
 
 ESPNowPacket = espnow_ns.class_("ESPNowPacket")
-ESPNowPeer = GlobalsComponent
-
 
 ESPNowInterface = espnow_ns.class_(
     "ESPNowInterface", cg.Component, cg.Parented.template(ESPNowComponent)
@@ -56,7 +53,7 @@ CONF_DEFAULT = "default"
 CONF_PEER = "peer"
 CONF_PEER_ID = "peer_id"
 CONF_PREDEFINED_PEERS = "predefined_peers"
-CONF_USE_SENT_CHECK = "use_sent_check"
+CONF_WAIT_FOR_ACK = "wait_for_ack"
 CONF_WIFI_CHANNEL = "wifi_channel"
 CONF_CUSTOM_APPS = "custom_apps"
 CONF_DEFAULT_APP_ID = "default_app_id"
@@ -139,7 +136,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(ESPNowComponent),
         cv.Optional(CONF_WIFI_CHANNEL): validate_channel,
         cv.Optional(CONF_AUTO_ADD_PEER, default=False): cv.boolean,
-        cv.Optional(CONF_USE_SENT_CHECK, default=True): cv.boolean,
+        cv.Optional(CONF_WAIT_FOR_ACK, default=True): cv.boolean,
         cv.Optional(
             CONF_CONFORMATION_TIMEOUT, default="5s"
         ): cv.positive_time_period_milliseconds,
@@ -151,7 +148,7 @@ CONFIG_SCHEMA = cv.Schema(
             cv.ensure_list(
                 cv.Schema(
                     {
-                        cv.Optional(CONF_APP_ID, default="default"): validate_app,
+                        cv.Optional(CONF_APP_ID, default=CONF_DEFAULT): validate_app,
                         cv.Optional(CONF_DEFAULT): cv.boolean,
                         cv.Optional(CONF_ON_RECEIVE): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
                         cv.Optional(
@@ -183,7 +180,7 @@ async def to_code(config):
         cg.add(var.set_wifi_channel(config[CONF_WIFI_CHANNEL]))
 
     cg.add(var.set_auto_add_peer(config[CONF_AUTO_ADD_PEER]))
-    cg.add(var.set_use_sent_check(config[CONF_USE_SENT_CHECK]))
+    cg.add(var.set_wait_for_ack(config[CONF_WAIT_FOR_ACK]))
     cg.add(var.set_conformation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
     cg.add(var.set_attempts(config[CONF_ATTEMPTS]))
     def_peer = 0

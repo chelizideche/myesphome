@@ -253,7 +253,7 @@ void ESPNowComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Default Peer address: %s.", peer_string(this->own_peer_address_).c_str());
 
   ESP_LOGCONFIG(TAG, "  Auto add new peers  : %s.", this->auto_add_peer_ ? "Yes" : "No");
-  ESP_LOGCONFIG(TAG, "  Use sent status     : %s.", this->use_sent_check_ ? "Yes" : "No");
+  ESP_LOGCONFIG(TAG, "  Wait for ACK        : %s.", this->wait_for_ack_ ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Convermation timeout: %" PRIx32 "ms.", this->confirmation_timeout_);
   ESP_LOGCONFIG(TAG, "  Max Send attempts   : %d.", this->attempts_);
 }
@@ -341,11 +341,10 @@ bool ESPNowComponent::validate_channel_(uint8_t channel) {
 }
 
 void ESPNowComponent::loop() {
-  //  if (!this->task_running_) {
-  //    xTaskCreate(espnow_task, "espnow_task", 4096, this, tskIDLE_PRIORITY + 1, nullptr);
-  //    this->task_running_ = true;
-  //  }
-  this->espnow_task((void *) this);
+  if (!this->task_running_) {
+    xTaskCreate(espnow_task, "espnow", 4096, this, tskIDLE_PRIORITY + 1, nullptr);
+    this->task_running_ = true;
+  }
 #ifdef USE_WIFI
   int32_t new_channel = wifi::global_wifi_component->get_wifi_channel();
   if (new_channel != this->wifi_channel_) {
@@ -520,59 +519,62 @@ bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> wPacket, u
 void ESPNowComponent::espnow_task(void *param) {
   ESPNowComponent *that = (ESPNowComponent *) param;
   uint64_t key{0}, key2{0};
-  // for (;;) {
-  if (xQueuePeek(that->send_queue_, (void *) &key, (TickType_t) 1) == pdTRUE) {
-    auto packet = that->get_packet(key);
-    if (packet == nullptr) {
-      ESP_LOGE(TAG, "Packet %llx not found (task).", key);
-    } else if (!packet->options(OPTION_been_send)) {
-      if (packet->attempt() >= that->attempts_) {
-        ESP_LOGE(TAG, "%s| Packet Dropped. To many attempts. ", packet->info().c_str());
-        that->call_trigger_for_(packet->status(), packet);
-      } else {
-        packet->retry();
-        packet->timestamp(millis());
-
-        esp_err_t err;
-        if (packet->peer() == ESPNOW_MULTICAST_ADDR) {
-          that->start_multi_cast_();
-          err = esp_now_send(nullptr, packet->content(), packet->content_size());
-        } else {
-          err = esp_now_send(packet->mac_address(), packet->content(), packet->content_size());
+  for (;;) {
+    if (xQueuePeek(that->send_queue_, (void *) &key, (TickType_t) 1) == pdTRUE) {
+      auto packet = that->get_packet(key);
+      if (packet == nullptr) {
+        ESP_LOGE(TAG, "Packet %llx not found (task).", key);
+      } else if (packet->options(OPTION_ack_done)) {
+        xQueueReceive(that->send_queue_, (void *) &key2, (TickType_t) 1);
+        if (key != key2) {
+          ESP_LOGE(TAG, "!!! Remove from buffer ERROR: %llx vs %llx.", key, key2);
         }
 
-        if (err == ESP_OK) {
-          packet->options(OPTION_been_send, true);
-          if (packet->options(OPTION_dont_wait)) {
-            packet->options(OPTION_ack_done, true);
-            show_packet("Packet has been send. Dont Wait.", packet.get());
-
-            that->call_trigger_for_(TRIGGER_ON_SUCCEED, packet);
-          } else {
-            show_packet("Packet has been send", packet.get());
-            return;  ///// continue;
+      } else if (!packet->options(OPTION_been_send)) {
+        if (packet->attempt() >= that->attempts_) {
+          ESP_LOGE(TAG, "%s| Packet Dropped. To many attempts. ", packet->info().c_str());
+          xQueueReceive(that->send_queue_, (void *) &key2, (TickType_t) 1);
+          if (key != key2) {
+            ESP_LOGE(TAG, "!!! Remove from buffer ERROR: %llx vs %llx.", key, key2);
           }
+          that->call_trigger_for_(packet->status(), packet);
         } else {
-          show_packet("FAILED to Send", packet.get());
-          packet->status(TRIGGER_ON_FAILED);
-          return;  ///// continue;
+          packet->retry();
+          packet->timestamp(millis());
+
+          esp_err_t err;
+          if (packet->peer() == ESPNOW_MULTICAST_ADDR) {
+            that->start_multi_cast_();
+            err = esp_now_send(nullptr, packet->content(), packet->content_size());
+          } else {
+            err = esp_now_send(packet->mac_address(), packet->content(), packet->content_size());
+          }
+
+          if (err == ESP_OK) {
+            packet->options(OPTION_been_send, true);
+            if (packet->options(OPTION_dont_wait)) {
+              packet->options(OPTION_ack_done, true);
+              show_packet("Packet has been send. Dont Wait.", packet.get());
+
+              that->call_trigger_for_(TRIGGER_ON_SUCCEED, packet);
+            } else {
+              show_packet("Packet has been send", packet.get());
+            }
+          } else {
+            show_packet("FAILED to Send", packet.get());
+            packet->status(TRIGGER_ON_FAILED);
+          }
         }
+      } else if (packet->timestamp() + that->confirmation_timeout_ < millis()) {
+        show_packet("Timed Out", packet.get());
+        packet->status(TRIGGER_ON_TIMEOUT);
+        packet->options(OPTION_been_send, false);
+
+      } else {
+        vTaskDelay(10);
       }
-    } else if (packet->timestamp() + that->confirmation_timeout_ < millis()) {
-      show_packet("Timed Out", packet.get());
-      packet->status(TRIGGER_ON_TIMEOUT);
-      packet->options(OPTION_been_send, false);
-      return;  ///// continue;
-    } else if (!packet->options(OPTION_dont_wait) && !packet->options(OPTION_ack_done)) {
-      // vTaskDelay(20);
-      return;  ///// continue;
-    }
-    xQueueReceive(that->send_queue_, (void *) &key2, (TickType_t) 1);
-    if (key != key2) {
-      ESP_LOGE(TAG, "Remove from buffer ERROR: %llx vs %llx.", key, key2);
     }
   }
-  //  }
 }
 
 void ESPNowComponent::remove_packet(uint64_t key) {
