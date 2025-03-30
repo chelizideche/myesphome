@@ -16,7 +16,7 @@ LD2410SBinarySensor = ld2410s_ns.class_(
     "LD2410SBinarySensor", binary_sensor.BinarySensor, cg.Component
 )
 
-CONF_THRESHOLD_UPDATE = "has_threshold_update"
+HAS_THRESHOLD_UPDATE = "has_threshold_update"
 
 CONFIG_SCHEMA = cv.All(
     cv.COMPONENT_SCHEMA.extend(
@@ -26,7 +26,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_HAS_TARGET): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_OCCUPANCY
             ),
-            cv.Optional(CONF_THRESHOLD_UPDATE): binary_sensor.binary_sensor_schema(
+            cv.Optional(HAS_THRESHOLD_UPDATE): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_EMPTY
             ),
         }
@@ -40,8 +40,8 @@ async def to_code(config):
     if CONF_HAS_TARGET in config:
         sens = await binary_sensor.new_binary_sensor(config[CONF_HAS_TARGET])
         cg.add(var.set_presence_sensor(sens))
-    if CONF_THRESHOLD_UPDATE in config:
-        sens = await binary_sensor.new_binary_sensor(config[CONF_THRESHOLD_UPDATE])
+    if HAS_THRESHOLD_UPDATE in config:
+        sens = await binary_sensor.new_binary_sensor(config[HAS_THRESHOLD_UPDATE])
         cg.add(var.set_threshold_update_sensor(sens))
     ld2410s = await cg.get_variable(config[CONF_LD2410S_ID])
     cg.add(ld2410s.register_listener(var))
