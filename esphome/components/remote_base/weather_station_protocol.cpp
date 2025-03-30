@@ -573,6 +573,31 @@ void WeatherStationZ32171Protocol::setup() {
 }
 
 bool WeatherStationZ32171Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
+  uint8_t msg[4], crc, bits;
+  for (int i = 0; i < 4; i++) {
+    msg[i] = (uint8_t) get_bits(code, 32 - 8 * i, 8);
+  }
+  // for CRC computation, channel bits are at the CRC position
+  msg[1] = (msg[1] & 0x0F) | (uint8_t) get_bits(code, 0, 4) << 4;
+
+  crc = 0;
+  for (int i = 0; i < 4; i++) {
+    crc ^= msg[i];
+    for (int bit = 0; bit < 8; bit++) {
+      if (crc & 0x80) {
+        crc = (crc << 1) ^ 0x30;
+      } else {
+        crc = (crc << 1);
+      }
+    }
+  }
+  crc = (crc >> 4) & 0x0F;
+  crc ^= (uint8_t) get_bits(code, 4, 4);
+  if (crc != (uint8_t) get_bits(code, 28, 4)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) get_bits(code, 28, 4), crc);
+    return false;
+  }
+
   data.id = (uint16_t) get_bits(code, 32, 8);
   data.battery_level = (uint8_t) get_bits(code, 26, 1) == 0 ? 100.0f : 0;
   data.channel = (uint8_t) get_bits(code, 0, 2);
