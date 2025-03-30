@@ -234,6 +234,13 @@ esphome/components/key_provider/* @ssieb
 esphome/components/kuntze/* @ssieb
 esphome/components/lcd_menu/* @numo68
 esphome/components/ld2410/* @regevbr @sebcaps
+esphome/components/ld2410s/* @NovakIrs
+esphome/components/ld2410s/binary_sensor/* @NovakIrs
+esphome/components/ld2410s/button/* @NovakIrs
+esphome/components/ld2410s/number/* @NovakIrs
+esphome/components/ld2410s/select/* @NovakIrs
+esphome/components/ld2410s/sensor/* @NovakIrs
+esphome/components/ld2410s/text_sensor/* @NovakIrs
 esphome/components/ld2420/* @descipher
 esphome/components/ld2450/* @hareeshmu
 esphome/components/ledc/* @OttoWinter
