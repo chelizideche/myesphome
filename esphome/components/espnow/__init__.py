@@ -69,7 +69,7 @@ CONF_ON_FAILED = "on_failed"
 CONF_ON_TIMEOUT = "on_timeout"
 
 ESPNowTriggers = espnow_ns.enum("ESPNowTriggers")
-EVENT_LIST = {
+ALLOWED_TRIGGER_LIST = {
     CONF_ON_RECEIVE: ESPNowTriggers.TRIGGER_ON_RECEIVE,
     CONF_ON_BROADCAST: ESPNowTriggers.TRIGGER_ON_BROADCAST,
     CONF_ON_SUCCEED: ESPNowTriggers.TRIGGER_ON_SUCCEED,
@@ -211,9 +211,8 @@ async def to_code(config):
             config[CONF_ON_RAW_DATA],
         )
 
-    for key, code in EVENT_LIST.items():
+    for key, code in ALLOWED_TRIGGER_LIST.items():
         for conf in config.get(key, []):
-            print(key, conf)
             cmd = conf.get(CONF_COMMAND, 0)
             event = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var, 0, 0, code)
             await automation.build_automation(
@@ -233,7 +232,7 @@ async def to_code(config):
             if first_app_id == 0:
                 first_app_id = app_id
 
-            for key, code in EVENT_LIST.items():
+            for key, code in ALLOWED_TRIGGER_LIST.items():
                 for conf in app.get(key, []):
                     cmd = conf.get(CONF_COMMAND, 0)
                     event = cg.new_Pvariable(
@@ -402,7 +401,7 @@ async def send_action(config, action_id, template_arg, args):
     if config.get(CONF_DONT_WAIT, False):
         cg.add(var.set_dont_wait_flag())
 
-    for trigger_name, event_code in EVENT_LIST.items():
+    for trigger_name, event_code in ALLOWED_TRIGGER_LIST.items():
         for conf in config.get(trigger_name, []):
             trigger = cg.new_Pvariable(
                 conf[CONF_TRIGGER_ID], var, app_id, command, event_code
