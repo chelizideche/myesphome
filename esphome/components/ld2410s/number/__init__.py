@@ -40,8 +40,8 @@ CONF_MAX_DISTANCE = "max_distance"
 CONF_MIN_DISTANCE = "min_distance"
 CONF_NO_DELAY = "no_delay"
 DISTANCE_GROUP = "distance_group"
-CONF_STATUS_REPORT_FREQ = "status_report_frequency"
-CONF_DISTANCE_REPORT_FREQ = "distance_report_frequency"
+CONF_STATUS_REPORTING_FREQUENCY = "status_reporting_frequency"
+CONF_DISTANCE_REPORTING_FREQUENCY = "distance_reporting_frequency"
 CONF_TRIGGER_THRESHOLD = "trigger_threshold"
 CONF_TRIGGER_HOLD = "trigger_hold"
 CONF_TRIGGER_SNR = "trigger_snr"
@@ -70,14 +70,14 @@ CONFIG_SCHEMA = cv.Schema(
             entity_category=ENTITY_CATEGORY_CONFIG,
             icon=ICON_TIMELAPSE,
         ),
-        cv.Optional(CONF_STATUS_REPORT_FREQ): number.number_schema(
+        cv.Optional(CONF_STATUS_REPORTING_FREQUENCY): number.number_schema(
             LD2410SStatusReportingFreqNumber,
             device_class=DEVICE_CLASS_FREQUENCY,
             unit_of_measurement=UNIT_HERTZ,
             entity_category=ENTITY_CATEGORY_CONFIG,
             icon=ICON_PULSE,
         ),
-        cv.Optional(CONF_DISTANCE_REPORT_FREQ): number.number_schema(
+        cv.Optional(CONF_DISTANCE_REPORTING_FREQUENCY): number.number_schema(
             LD2410SDistReportingFreqNumber,
             device_class=DEVICE_CLASS_FREQUENCY,
             unit_of_measurement=UNIT_HERTZ,
@@ -132,13 +132,13 @@ async def to_code(config):
         )
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_no_delay_number(n))
-    if status_reporting_freq_config := config.get(CONF_STATUS_REPORT_FREQ):
+    if status_reporting_freq_config := config.get(CONF_STATUS_REPORTING_FREQUENCY):
         n = await number.new_number(
             status_reporting_freq_config, min_value=0.5, max_value=8, step=0.5
         )
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_status_reporting_freq_number(n))
-    if distance_reporting_freq_config := config.get(CONF_DISTANCE_REPORT_FREQ):
+    if distance_reporting_freq_config := config.get(CONF_DISTANCE_REPORTING_FREQUENCY):
         n = await number.new_number(
             distance_reporting_freq_config, min_value=0.5, max_value=8, step=0.5
         )

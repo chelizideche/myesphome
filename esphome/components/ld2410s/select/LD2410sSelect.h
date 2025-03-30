@@ -13,13 +13,5 @@ class LD2410sResponseSpeedSelect : public Component, public select::Select, publ
   void control(const std::string &value) override;
 };
 
-// class LD2410sExecCommandSelect : public Component, public select::Select, public Parented<LD2410S>
-// {
-// public:
-//     LD2410sExecCommandSelect() = default;
-
-// protected:
-//     void control(const std::string &value) override;
-// };
 }  // namespace ld2410s
 }  // namespace esphome
