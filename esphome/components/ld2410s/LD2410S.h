@@ -335,7 +335,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void send_command_(CmdFrameT *cmd_frame);
 
   void process_config_read_ack_(uint8_t *data);
-  void process_ack_fw_read_(uint8_t *data);
+  void process_ack_fw_read_(const uint8_t *data);
   void process_ack_trigger_threshold_read_(uint8_t *data);
   void process_ack_trigger_hold_read_(uint8_t *data);
   void process_ack_trigger_snr_read_(uint8_t *data);
@@ -344,7 +344,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   std::string format_int_(uint32_t *in, uint8_t len, uint8_t min_w);
   void four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len);
   void hex_diag_(const char *msg, const uint8_t *data, size_t length);
-  int read_int_(uint8_t *buffer, size_t pos, size_t len);
+  int read_int_(const uint8_t *buffer, size_t pos, size_t len);
   int two_byte_to_int_(uint8_t byte1, uint8_t byte2);
   uint32_t four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
   uint16_t swap_endian_(uint16_t value);

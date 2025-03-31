@@ -440,7 +440,7 @@ void LD2410S::cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint16_t *appen
 
   cmd_frame->data_length = cmd_frame->data_length + append_data_size * sizeof(*append_data);
 }
-void LD2410S::cmd_frame_append_data__(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size) {
+void LD2410S::cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size) {
   memcpy(&cmd_frame->data[0] + cmd_frame->data_length * sizeof(cmd_frame->data[0]), append_data,
          append_data_size * sizeof(*append_data));
 
@@ -535,13 +535,17 @@ void LD2410S::receive_(uint8_t *buffer, size_t buffer_size, size_t &end_pos, boo
 PackageType LD2410S::get_frame_type_(uint8_t *buffer, size_t end_pos) {
   if (end_pos < 4) {
     return PackageType::UNKNOWN;
-  } else if (buffer[end_pos] == SHORT_DATA_FRAME_FOOTER) {
+  }
+  if (buffer[end_pos] == SHORT_DATA_FRAME_FOOTER) {
     return PackageType::SHORT_DATA_FRAME;
-  } else if (end_pos < 10) {
+  }
+  if (end_pos < 10) {
     return PackageType::UNKNOWN;
-  } else if (memcmp(&buffer[end_pos - 3], &STD_DATA_FRAME_FOOTER, sizeof(STD_DATA_FRAME_FOOTER)) == 0) {
+  }
+  if (memcmp(&buffer[end_pos - 3], &STD_DATA_FRAME_FOOTER, sizeof(STD_DATA_FRAME_FOOTER)) == 0) {
     return PackageType::STD_DATA_FRAME;
-  } else if (memcmp(&buffer[end_pos - 3], &CMD_FRAME_FOOTER, sizeof(CMD_FRAME_FOOTER)) == 0) {
+  }
+  if (memcmp(&buffer[end_pos - 3], &CMD_FRAME_FOOTER, sizeof(CMD_FRAME_FOOTER)) == 0) {
     return PackageType::CMD_FRAME;
   }
   return PackageType::UNKNOWN;
@@ -608,8 +612,11 @@ size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type
       break;
 
     default:
-      return 0;
       break;
+  }
+
+  if (data_size == 0) {
+    return 0;
   }
 
   // ESP_LOGD(TAG, "< start_pos:%d,  end_pos:%d, data_size:%d, expected_full_frame_size:%d, actual_frame_size:%d",
@@ -778,8 +785,8 @@ void LD2410S::process_config_read_ack_(uint8_t *data) {
   this->max_distance_number_->publish_state(this->max_dist_);
   this->min_distance_number_->publish_state(this->min_dist_);
   this->no_delay_number_->publish_state(this->delay_);
-  this->status_reporting_freq_number_->publish_state(this->status_freq_ / 10);
-  this->distance_reporting_freq_number_->publish_state(this->dist_freq_ / 10);
+  this->status_reporting_freq_number_->publish_state(static_cast<float>(this->status_freq_) / 10);
+  this->distance_reporting_freq_number_->publish_state(static_cast<float>(this->dist_freq_) / 10);
 #endif
 
 #ifdef USE_SELECT
@@ -790,7 +797,7 @@ void LD2410S::process_config_read_ack_(uint8_t *data) {
            this->max_dist_, this->min_dist_, this->delay_, this->status_freq_, this->dist_freq_, this->resp_speed_);
 }
 
-void LD2410S::process_ack_fw_read_(uint8_t *data) {
+void LD2410S::process_ack_fw_read_(const uint8_t *data) {
   int major_v = static_cast<int>(data[0]);
   int minor_v = static_cast<int>(data[1]);
   int patch_v = static_cast<int>(data[2]);
@@ -904,7 +911,7 @@ void LD2410S::hex_diag_(const char *msg, const uint8_t *data, size_t length) {
   ESP_LOGD(TAG, "%s %s", msg, output);
 }
 
-int LD2410S::read_int_(uint8_t *buffer, size_t pos, size_t len) {
+int LD2410S::read_int_(const uint8_t *buffer, size_t pos, size_t len) {
   unsigned int ret = 0;
   int shift = 0;
   for (size_t i = 0; i < len; i++) {

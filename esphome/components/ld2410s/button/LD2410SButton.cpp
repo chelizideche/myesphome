@@ -3,7 +3,7 @@
 namespace esphome {
 namespace ld2410s {
 
-void LD2410SReadAll::press_action() { this->parent_->read_all_(); }
+void LD2410SReadAll::press_action() { this->parent_->read_all(); }
 
 void LD2410SApplyConfigButton::press_action() { this->parent_->apply_config(); }
 
