@@ -66,8 +66,8 @@ binary_sensor:
       - logger.log:
           format: "------------"
       - espnow.send:
-          #ac_address: e8:6b:ea:24:22:04
-          #app_id: ${my_espnow_app}
+          # ac_address: e8:6b:ea:24:22:04
+          # app_id: ${my_espnow_app}
           command: 222
           payload: "Test  1."
 
