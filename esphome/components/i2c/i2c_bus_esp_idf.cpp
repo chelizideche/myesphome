@@ -29,6 +29,13 @@ void IDFI2CBus::setup() {
     return;
   }
 
+  if (this->timeout_ > 0) {
+    if (this->timeout_ > 13000) {
+      ESP_LOGW(TAG, "i2c timeout of %" PRIu32 "us greater than max of 13ms on esp-idf, setting to max", this->timeout_);
+      this->timeout_ = 13000;
+    }
+  }
+
   this->recover_();
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
@@ -62,7 +69,7 @@ void IDFI2CBus::setup() {
   dev_conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
   dev_conf.device_address = I2C_DEVICE_ADDRESS_NOT_USED;
   dev_conf.scl_speed_hz = this->frequency_;
-  dev_conf.scl_wait_us = 0;
+  dev_conf.scl_wait_us = this->timeout_;
   err = i2c_master_bus_add_device(this->bus_, &dev_conf, &this->dev_);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_master_bus_add_device failed: %s", esp_err_to_name(err));
@@ -101,11 +108,7 @@ void IDFI2CBus::setup() {
     this->mark_failed();
     return;
   }
-  if (timeout_ > 0) {  // if timeout specified in yaml:
-    if (timeout_ > 13000) {
-      ESP_LOGW(TAG, "i2c timeout of %" PRIu32 "us greater than max of 13ms on esp-idf, setting to max", timeout_);
-      timeout_ = 13000;
-    }
+  if (timeout_ > 0) {
     err = i2c_set_timeout(port_, timeout_ * 80);  // unit: APB 80MHz clock cycle
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "i2c_set_timeout failed: %s", esp_err_to_name(err));
@@ -121,6 +124,7 @@ void IDFI2CBus::setup() {
     this->mark_failed();
     return;
   }
+
   initialized_ = true;
   if (this->scan_) {
     ESP_LOGV(TAG, "Scanning i2c bus for active devices...");

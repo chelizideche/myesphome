@@ -1,4 +1,5 @@
 #pragma once
+#include "esphome/core/application.h"
 #include <cstdint>
 #include <cstddef>
 #include <utility>
@@ -99,8 +100,10 @@ class I2CBus {
       auto err = writev(address, nullptr, 0);
       if (err == ERROR_OK) {
         scan_results_.emplace_back(address, true);
+#if !(defined(USE_ESP32_FRAMEWORK_ESP_IDF) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1))
       } else if (err == ERROR_UNKNOWN) {
         scan_results_.emplace_back(address, false);
+#endif
       }
     }
   }
