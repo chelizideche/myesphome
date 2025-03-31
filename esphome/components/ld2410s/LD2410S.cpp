@@ -602,10 +602,6 @@ size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type
       break;
 
     case PackageType::STD_DATA_FRAME:
-      data_size = read_int_(buffer, start_pos + 4, 2);
-      expected_full_frame_size = 4 + 2 + data_size + 4;
-      break;
-
     case PackageType::CMD_FRAME:
       data_size = read_int_(buffer, start_pos + 4, 2);
       expected_full_frame_size = 4 + 2 + data_size + 4;
