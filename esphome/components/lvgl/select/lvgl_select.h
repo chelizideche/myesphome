@@ -53,8 +53,8 @@ class LVGLSelect : public select::Select, public Component {
   void set_options_() { this->traits.set_options(this->widget_->get_options()); }
 
   LvSelectable *widget_;
-  bool restore_;
   lv_anim_enable_t anim_;
+  bool restore_;
   ESPPreferenceObject pref_{};
 };
 
