@@ -76,8 +76,6 @@ enum ESPNowOptions : uint8_t {
 
 enum ESPNowAppMode { PM_UNIVERSAL, PM_COLLECTOR, PM_PROVIDER };
 
-struct ESPNowPacket;
-
 using EPSNowTriggerCallback = std::function<void(std::shared_ptr<ESPNowPacket>)>;
 
 class ESPNowPacket {
@@ -155,8 +153,8 @@ class ESPNowPacket {
   void status(ESPNowTriggers value) { this->status_ = value; }
   ESPNowTriggers status() const { return this->status_; }
 
-  void triggerGroup(uint32_t value) { this->trigger_group_ = value; }
-  uint32_t triggerGroup() { return this->trigger_group_; }
+  void trigger_group(uint32_t value) { this->trigger_group_ = value; }
+  uint32_t trigger_group() { return this->trigger_group_; }
 
   void options(ESPNowOptions option, bool value) {
     this->options_ = (this->options_ & ~((uint16_t) 1 << option)) | ((uint16_t) value << option);
@@ -282,8 +280,8 @@ class ESPNowComponent : public Component {
   }
   std::shared_ptr<ESPNowPacket> get_packet(uint64_t key) { return this->packet_send_map_[key]; }
 
-  bool send(std::weak_ptr<ESPNowPacket> wPacket);
-  bool send_system_command(std::weak_ptr<ESPNowPacket> wPacket, uint8_t command);
+  bool send(std::weak_ptr<ESPNowPacket> weak_packet);
+  bool send_system_command(std::weak_ptr<ESPNowPacket> weak_packet, uint8_t command);
 
   void remove_packet(uint64_t key);
 
@@ -307,8 +305,8 @@ class ESPNowComponent : public Component {
  protected:
   void on_data_received_(const esp_now_recv_info_t *recv_info, const uint8_t *data, int size);
   bool validate_channel_(uint8_t channel);
-  void handle_system_command_(std::weak_ptr<ESPNowPacket> wPacket, uint8_t command);
-  void handle_ack_command_(std::weak_ptr<ESPNowPacket> wPacket);
+  void handle_system_command_(std::weak_ptr<ESPNowPacket> weak_packet, uint8_t command);
+  void handle_ack_command_(std::weak_ptr<ESPNowPacket> weak_packet);
 
   //  ESPNowApp *get_app_(uint16_t app);
   ESPNowApp *pairing_app_{nullptr};
@@ -327,8 +325,8 @@ class ESPNowComponent : public Component {
   bool wait_for_ack_{true};
   bool auto_channel_scan_{false};
 
-  EPSNowTriggerCallback get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> wPacket);
-  void call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> wPacket);
+  EPSNowTriggerCallback get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet);
+  void call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet);
 
   void call_on_add_peer_(uint64_t peer);
   void call_on_del_peer_(uint64_t peer);
@@ -363,7 +361,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
   void set_dont_wait_flag() { this->dont_wait_flag_ = true; }
   void set_raw_data() { this->raw_data_flag_ = true; }
 
-  void set_triggerGroup(uint32_t value) { this->triggerGroup_ = value; }
+  void set_trigger_group(uint32_t value) { this->trigger_group_ = value; }
   void play(Ts... x) override {
     std::vector<uint8_t> payload = this->payload_.value(x...);
     uint64_t mac = this->mac_address_.value(x...);
@@ -375,7 +373,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
     } else {
       packet = this->parent_->make_packet(mac, payload.data(), payload.size(), app, command);
     }
-    packet->triggerGroup(this->triggerGroup_);
+    packet->trigger_group(this->triggerGroup_);
     packet->options(OPTION_DONT_WAIT, this->dont_wait_flag_);
     this->parent_->send(packet);
   }
@@ -383,7 +381,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
  protected:
   bool dont_wait_flag_{false};
   bool raw_data_flag_{false};
-  uint32_t triggerGroup_{0};
+  uint32_t trigger_group_{0};
 };
 
 template<typename... Ts> class NewPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
@@ -421,7 +419,7 @@ class ESPNowDefaultTrigger : public Trigger<std::shared_ptr<ESPNowPacket>> {
     auto cb_trigger = std::bind(&ESPNowDefaultTrigger::call_trigger, this, std::placeholders::_1);
     parent->set_trigger_for(app, command, event, cb_trigger);
   }
-  void call_trigger(std::weak_ptr<ESPNowPacket> wPacket) { this->trigger(wPacket.lock()); }
+  void call_trigger(const std::weak_ptr<ESPNowPacket> weak_packet) { this->trigger(weak_packet.lock()); }
 };
 
 }  // namespace espnow

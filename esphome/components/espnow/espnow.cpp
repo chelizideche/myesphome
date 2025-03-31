@@ -393,11 +393,11 @@ void ESPNowComponent::on_data_received_(const esp_now_recv_info_t *recv_info, co
   }
 }
 
-void ESPNowComponent::handle_system_command_(std::weak_ptr<ESPNowPacket> wPacket, uint8_t command) {
+void ESPNowComponent::handle_system_command_(std::weak_ptr<ESPNowPacket> weak_packet, uint8_t command) {
   switch (command) {
     case ESPNOW_COMMAND_ACK:
     case ESPNOW_COMMAND_NACK:
-      this->handle_ack_command_(wPacket);
+      this->handle_ack_command_(weak_packet);
       break;
     case ESPNOW_COMMAND_RESEND:
       break;
@@ -450,8 +450,8 @@ void ESPNowComponent::handle_ack_command_(std::weak_ptr<ESPNowPacket> wAck) {
   }
 }
 
-bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> wPacket) {
-  auto packet = wPacket.lock();
+bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> weak_packet) {
+  auto packet = weak_packet.lock();
   if (packet == nullptr) {
     ESP_LOGE(TAG, "NO PACKET TO SEND !!!");
   } else if (!this->can_proceed()) {
@@ -488,8 +488,8 @@ bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> wPacket) {
   return false;
 }
 
-bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> wPacket, uint8_t command) {
-  auto packet = wPacket.lock();
+bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> weak_packet, uint8_t command) {
+  auto packet = weak_packet.lock();
   if (packet == nullptr || packet->options(OPTION_FINISHED)) {
     show_packet("Send System Command ALREADY SEND", packet.get());
     return false;
@@ -612,8 +612,8 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
   return result;
 }
 
-EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> wPacket) {
-  auto packet = wPacket.lock();
+EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+  auto packet = weak_packet.lock();
   EPSNowTriggerCallback cb;
   if (packet->triggerGroup() != 0) {
     cb = this->triggers_[packet->triggerGroup()][packet->command()][event];
@@ -631,23 +631,23 @@ EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, st
 
   if (!cb) {
     if (event == TRIGGER_ON_BROADCAST) {
-      cb = this->get_trigger_for_(TRIGGER_ON_RECEIVE, wPacket);
+      cb = this->get_trigger_for_(TRIGGER_ON_RECEIVE, weak_packet);
     }
     if (event == TRIGGER_ON_TIMEOUT) {
-      cb = this->get_trigger_for_(TRIGGER_ON_FAILED, wPacket);
+      cb = this->get_trigger_for_(TRIGGER_ON_FAILED, weak_packet);
     }
   }
   return cb;
 }
 
-void ESPNowComponent::call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> wPacket) {
-  EPSNowTriggerCallback cb = this->get_trigger_for_(event, wPacket);
+void ESPNowComponent::call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+  EPSNowTriggerCallback cb = this->get_trigger_for_(event, weak_packet);
 
   ESP_LOGI(TAG, "triggger event {%d}", (int) event);
-  wPacket.lock()->status(event);
+  weak_packet.lock()->status(event);
 
-  this->set_timeout(10, [this, cb, wPacket]() {  //"ESPNowTrigger"
-    auto packet = wPacket.lock();
+  this->set_timeout(10, [this, cb, weak_packet]() {  //"ESPNowTrigger"
+    auto packet = weak_packet.lock();
     show_packet("Running trigger ", packet.get());
 
     if (cb) {
