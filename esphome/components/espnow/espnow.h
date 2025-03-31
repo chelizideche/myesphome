@@ -183,7 +183,7 @@ class ESPNowPacket {
     this->content_[pos] = value;
   }
   uint16_t read16h(size_t pos) const {
-    return ((uint16_t) (this->content_[pos++]) << 8) + (uint16_t) this->content_[pos];
+    return ((uint16_t) (this->content_[pos]) << 8) + (uint16_t) this->content_[pos + 1];
   }
 
  protected:
@@ -419,7 +419,7 @@ class ESPNowDefaultTrigger : public Trigger<std::shared_ptr<ESPNowPacket>> {
     auto cb_trigger = std::bind(&ESPNowDefaultTrigger::call_trigger, this, std::placeholders::_1);
     parent->set_trigger_for(app, command, event, cb_trigger);
   }
-  void call_trigger(const std::weak_ptr<ESPNowPacket> weak_packet) { this->trigger(weak_packet.lock()); }
+  void call_trigger(const std::weak_ptr<ESPNowPacket> &weak_packet) { this->trigger(weak_packet.lock()); }
 };
 
 }  // namespace espnow
