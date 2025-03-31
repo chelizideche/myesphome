@@ -615,10 +615,10 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
 EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
   auto packet = weak_packet.lock();
   EPSNowTriggerCallback cb;
-  if (packet->triggerGroup() != 0) {
-    cb = this->triggers_[packet->triggerGroup()][packet->command()][event];
+  if (packet->trigger_group() != 0) {
+    cb = this->triggers_[packet->trigger_group()][packet->command()][event];
     if (!cb) {
-      cb = this->triggers_[packet->triggerGroup()][0][event];
+      cb = this->triggers_[packet->trigger_group()][0][event];
     }
   }
 

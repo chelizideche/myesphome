@@ -373,7 +373,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
     } else {
       packet = this->parent_->make_packet(mac, payload.data(), payload.size(), app, command);
     }
-    packet->trigger_group(this->triggerGroup_);
+    packet->trigger_group(this->trigger_group_);
     packet->options(OPTION_DONT_WAIT, this->dont_wait_flag_);
     this->parent_->send(packet);
   }
