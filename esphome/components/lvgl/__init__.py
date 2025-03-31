@@ -3,6 +3,7 @@ import logging
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
 from esphome.components.display import Display
+from esphome.components.lvgl.widgets.canvas import canvas_spec
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
@@ -125,6 +126,7 @@ for w_type in (
     keyboard_spec,
     tileview_spec,
     qr_code_spec,
+    canvas_spec,
 ):
     WIDGET_TYPES[w_type.name] = w_type
 
