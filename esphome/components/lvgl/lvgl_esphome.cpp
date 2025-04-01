@@ -468,6 +468,7 @@ void LvglComponent::setup() {
     disp->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
   this->show_page(0, LV_SCR_LOAD_ANIM_NONE, 0);
   lv_disp_trig_activity(this->disp_);
+  this->boot_callbacks_.call();
   ESP_LOGCONFIG(TAG, "LVGL Setup complete");
 }
 

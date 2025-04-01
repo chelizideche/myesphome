@@ -164,6 +164,7 @@ class LvglComponent : public PollingComponent {
     this->idle_callbacks_.add(std::move(callback));
   }
   void add_on_pause_callback(std::function<void(bool)> &&callback) { this->pause_callbacks_.add(std::move(callback)); }
+  void add_on_boot_callback(std::function<void(void)> &&callback) { this->boot_callbacks_.add(std::move(callback)); }
   void dump_config() override;
   bool is_idle(uint32_t idle_ms) { return lv_disp_get_inactive_time(this->disp_) > idle_ms; }
   lv_disp_t *get_disp() { return this->disp_; }
@@ -228,7 +229,15 @@ class LvglComponent : public PollingComponent {
 
   CallbackManager<void(uint32_t)> idle_callbacks_{};
   CallbackManager<void(bool)> pause_callbacks_{};
+  CallbackManager<void(void)> boot_callbacks_{};
   lv_color_t *rotate_buf_{};
+};
+
+class BootTrigger : public Trigger<> {
+ public:
+  explicit BootTrigger(LvglComponent *parent) {
+    parent->add_on_boot_callback([this]() { this->trigger(); });
+  }
 };
 
 class IdleTrigger : public Trigger<> {
