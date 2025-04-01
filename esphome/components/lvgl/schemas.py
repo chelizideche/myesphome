@@ -6,6 +6,7 @@ from esphome.const import (
     CONF_FORMAT,
     CONF_GROUP,
     CONF_ID,
+    CONF_ON_BOOT,
     CONF_ON_VALUE,
     CONF_STATE,
     CONF_TEXT,
@@ -22,6 +23,7 @@ from .helpers import add_lv_use, requires_component, validate_printf
 from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
 from .lvcode import LvglComponent, lv_event_t_ptr
 from .types import (
+    BootTrigger,
     LVEncoderListener,
     LvType,
     WidgetType,
@@ -103,6 +105,7 @@ STYLE_PROPS = {
     "bg_image_recolor": lvalid.lv_color,
     "bg_image_recolor_opa": lvalid.opacity,
     "bg_image_src": lvalid.lv_image,
+    "bg_image_tiled": lvalid.lv_bool,
     "bg_main_stop": lvalid.stop_value,
     "bg_opa": lvalid.opacity,
     "border_color": lvalid.lv_color,
@@ -172,6 +175,7 @@ STYLE_REMAP = {
     "bg_image_recolor": "bg_img_recolor",
     "bg_image_recolor_opa": "bg_img_recolor_opa",
     "bg_image_src": "bg_img_src",
+    "bg_image_tiled": "bg_img_tiled",
     "image_recolor": "img_recolor",
     "image_recolor_opa": "img_recolor_opa",
 }
@@ -216,14 +220,24 @@ def automation_schema(typ: LvType):
         events = events + (CONF_ON_VALUE,)
     args = typ.get_arg_type() if isinstance(typ, LvType) else []
     args.append(lv_event_t_ptr)
-    return {
-        cv.Optional(event): validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(Trigger.template(*args)),
-            }
-        )
-        for event in events
-    }
+    return cv.Schema(
+        {
+            cv.Optional(event): validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        Trigger.template(*args)
+                    ),
+                }
+            )
+            for event in events
+        }
+    ).extend(
+        {
+            cv.Optional(CONF_ON_BOOT): validate_automation(
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BootTrigger)}
+            )
+        }
+    )
 
 
 def base_update_schema(widget_type, parts):

@@ -1,7 +1,8 @@
 from esphome import automation
 import esphome.codegen as cg
-from esphome.const import CONF_ID, CONF_ON_VALUE, CONF_TRIGGER_ID
+from esphome.const import CONF_ID, CONF_ON_BOOT, CONF_ON_VALUE, CONF_TRIGGER_ID
 
+from ...automation import build_automation
 from .defines import (
     CONF_ALIGN,
     CONF_ALIGN_TO,
@@ -28,7 +29,7 @@ from .types import LV_EVENT
 from .widgets import LvScrActType, get_scr_act, widget_map
 
 
-async def generate_triggers():
+async def generate_triggers(lv_component):
     """
     Generate LVGL triggers for all defined widgets
     Must be done after all widgets completed
@@ -74,6 +75,10 @@ async def generate_triggers():
                     API_EVENT,
                     UPDATE_EVENT,
                 )
+
+            for conf in w.config.get(CONF_ON_BOOT, ()):
+                boot_trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], lv_component)
+                await build_automation(boot_trigger, [], conf)
 
             # Generate align to directives while we're here
             if align_to := w.config.get(CONF_ALIGN_TO):

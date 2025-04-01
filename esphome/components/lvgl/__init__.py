@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_GROUP,
     CONF_ID,
     CONF_LAMBDA,
+    CONF_ON_BOOT,
     CONF_ON_IDLE,
     CONF_PAGES,
     CONF_TIMEOUT,
@@ -344,7 +345,7 @@ async def to_code(configs):
     # Set this directly since we are limited in how many methods can be added to the Widget class.
     Widget.widgets_completed = True
     async with LvContext():
-        await generate_triggers()
+        await generate_triggers(lv_component)
         for config in configs:
             lv_component = await cg.get_variable(config[CONF_ID])
             await generate_page_triggers(config)
@@ -365,6 +366,9 @@ async def to_code(configs):
                     conf[CONF_TRIGGER_ID], lv_component, False
                 )
                 await build_automation(resume_trigger, [], conf)
+            for conf in config.get(CONF_ON_BOOT, ()):
+                boot_trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], lv_component)
+                await build_automation(boot_trigger, [], conf)
 
     # This must be done after all widgets are created
     for comp in helpers.lvgl_components_required:
