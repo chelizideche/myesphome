@@ -106,7 +106,7 @@ def point_schema(value):
             x, y = map(int, value.split(","))
             return {CONF_X: x, CONF_Y: y}
         except ValueError:
-            raise cv.Invalid("Invalid point format, should be <x_value>, <y_value>")
+            raise cv.Invalid("Invalid point format, should be <x_int>, <y_int>")
     return POINT_SCHEMA(value)
 
 
