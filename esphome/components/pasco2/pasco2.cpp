@@ -125,6 +125,21 @@ void PASCO2Component::setup() {
   }
 
   this->initialize_sensor();
+  
+  if(this->measurement_mode_ == PERIODIC)
+  {
+    polling_interval = this->get_update_interval()/1000;  //convert to seconds
+    
+    if(polling_interval < 5)
+    {
+      ESP_LOGW(TAG, "Polling interval less than min of 5s, setting to 5s");
+    }
+    if(polling_interval <= 10)
+    {
+      ESP_LOGW(TAG, "Datasheet recommends >10s between measurements to allow time for cooling, but interval set to %d",
+        polling_interval);
+    }
+  }
 }
 
 void PASCO2Component::initialize_sensor() {
@@ -326,7 +341,7 @@ void PASCO2Component::dump_config() {
   }
   switch (this->measurement_mode_) {
     case PERIODIC:
-      ESP_LOGCONFIG(TAG, "  Measurement mode: periodic (5s)");
+      ESP_LOGCONFIG(TAG, "  Measurement mode: periodic (%d)", polling_interval);
       break;
     case SINGLE_SHOT:
       ESP_LOGCONFIG(TAG, "  Measurement mode: single shot");
@@ -485,9 +500,11 @@ bool PASCO2Component::start_measurement_() {
     this->status_set_warning();
   }
 
-  if (!this->write_byte_16(XENSIV_PASCO2_REG_MEAS_RATE_H, 5)) {
+  //set the measurement rate if in periodic mode
+  if (this->measurement_mode_ == PERIODIC && !this->write_byte_16(XENSIV_PASCO2_REG_MEAS_RATE_H, polling_interval)) {
     ESP_LOGE(TAG, "Setting Measurement Rate Failed!");
     return false;
+  }    
   }
 
   static uint8_t remaining_retries = 3;

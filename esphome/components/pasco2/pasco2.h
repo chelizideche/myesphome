@@ -54,6 +54,7 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
  protected:
   bool update_ambient_pressure_compensation_(uint16_t pressure_in_hpa);
   bool start_measurement_();
+  bool read_sensor_(int16_t *co2result);
   ERRORCODE error_code_;
 
   InitializationState initialization_state_ = InitializationState::IDLE;
@@ -64,6 +65,7 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
 
   bool ambient_pressure_compensation_;
   uint16_t ambient_pressure_;
+  uint32_t polling_interval;
   bool enable_asc_;
   MeasurementMode measurement_mode_{PERIODIC};
   sensor::Sensor *co2_sensor_{nullptr};
