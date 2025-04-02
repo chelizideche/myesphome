@@ -101,13 +101,15 @@ def point_schema(value):
     :param value: The value to check
     :return: The value as a tuple of x,y
     """
-    if isinstance(value, str):
-        try:
-            x, y = map(int, value.split(","))
-            return {CONF_X: x, CONF_Y: y}
-        except ValueError:
-            raise cv.Invalid("Invalid point format, should be <x_int>, <y_int>")
-    return POINT_SCHEMA(value)
+    if isinstance(value, dict):
+        return POINT_SCHEMA(value)
+    try:
+        x, y = map(int, value.split(","))
+        return {CONF_X: x, CONF_Y: y}
+    except ValueError:
+        pass
+    # not raising this in the catch block because pylint doesn't like it
+    raise cv.Invalid("Invalid point format, should be <x_int>, <y_int>")
 
 
 # All LVGL styles and their validators
