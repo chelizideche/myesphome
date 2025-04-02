@@ -302,12 +302,6 @@ def size_validator(value):
 size = LValidator(size_validator, uint32, retmapper=literal)
 
 
-def pixels_validator(value):
-    if isinstance(value, str) and value.lower().endswith("px"):
-        return cv.int_(value[:-2])
-    return cv.int_(value)
-
-
 radius_consts = LvConstant("LV_RADIUS_", "CIRCLE")
 
 
