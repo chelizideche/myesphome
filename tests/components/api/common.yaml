@@ -14,6 +14,7 @@ esphome:
 api:
   port: 8000
   password: pwd
+  mac_address: "62:23:45:AF:B3:DD"
   reboot_timeout: 0min
   encryption:
     key: bOFFzzvfpg5DB94DuBGLXD/hMnhpDKgP9UQyBulwWVU=
