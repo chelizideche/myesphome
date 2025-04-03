@@ -25,8 +25,6 @@ CM1106CalibrateZeroAction = cm1106_ns.class_(
     "CM1106CalibrateZeroAction",
     automation.Action,
 )
-CM1106ABCEnableAction = cm1106_ns.class_("CM1106ABCEnableAction", automation.Action)
-CM1106ABCDisableAction = cm1106_ns.class_("CM1106ABCDisableAction", automation.Action)
 
 CONFIG_SCHEMA = (
     cv.Schema(
