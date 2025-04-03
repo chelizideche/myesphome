@@ -1,0 +1,93 @@
+uart:
+  id: uart_bus
+  tx_pin: ${uart_tx}
+  rx_pin: ${uart_rx}
+  baud_rate: 115200
+  parity: NONE
+  stop_bits: 1
+
+external_components:
+  - source: github://NovakIrs/esphome@ld2410s
+    components:
+      - ld2410s
+
+deep_sleep:
+  wakeup_pin: GPIO15
+  wakeup_pin_mode: KEEP_AWAKE
+
+ld2410s:
+  uart_id: uart_bus
+
+sensor:
+  - platform: ld2410s
+    target_distance:
+      name: Target Distance
+    threshold_update:
+      name: Threshold update progress
+
+binary_sensor:
+  - platform: ld2410s
+    has_target:
+      name: Presence
+    has_threshold_update:
+      name: Threshold update running
+
+text_sensor:
+  - platform: ld2410s
+    fw_version:
+      name: Firmware version
+    trigger_threshold_ts:
+      name: Triggers Threshold
+    trigger_hold_ts:
+      name: Triggers Hold
+    trigger_snr_ts:
+      name: Triggers SNR
+    energy_values_ts:
+      name: Energy Values
+
+number:
+  - platform: ld2410s
+    max_distance:
+      name: Max detect distance
+    min_distance:
+      name: Min detect distance
+    no_delay:
+      name: No detect report delay
+    status_reporting_frequency:
+      name: Status reporting frequency
+    distance_reporting_frequency:
+      name: Distance reporting frequency
+
+    trigger_threshold:
+      name: Trigger Gate Threshold
+    trigger_hold:
+      name: Trigger Gate Hold
+    trigger_snr:
+      name: Trigger Gate SNR
+    trigger_selected_gate:
+      name: Trigger Selected Gate
+
+button:
+  - platform: ld2410s
+    apply_config:
+      name: Apply config changes
+
+    calibration:
+      name: Start auto calibration
+    read_all:
+      name: Read configuration
+    factory_reset:
+      name: Factory reset
+    toggle_minimal_output:
+      name: Toggle minimal output
+
+  - platform: template
+    name: Enter sleep mode
+    entity_category: CONFIG
+    on_press:
+      - deep_sleep.enter: {}
+
+select:
+  - platform: ld2410s
+    response_speed:
+    name: Response speed
