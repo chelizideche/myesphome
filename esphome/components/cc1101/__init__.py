@@ -77,7 +77,7 @@ CONF_MODULATION = "modulation"
 CONF_AGC = "agc"
 CONF_MAGN_TARGET = "magn_target"
 CONF_MAX_LNA_GAIN = "max_lna_gain"
-CONF_MAX_DVA_GAIN = "max_dva_gain"
+CONF_MAX_DVGA_GAIN = "max_dvga_gain"
 CONF_CARRIER_SENSE_ABS_THR = "carrier_sense_abs_thr"
 CONF_CARRIER_SENSE_REL_THR = "carrier_sense_rel_thr"
 CONF_LNA_PRIORITY = "lna_priority"
@@ -137,7 +137,7 @@ MAX_LNA_GAIN = {
 }
 
 MaxDvgaGain = ns.enum("MaxDvgaGain", True)
-MAX_DVA_GAIN = {
+MAX_DVGA_GAIN = {
     "Default": MaxDvgaGain.MAX_DVGA_GAIN_DEFAULT,
     "-1": MaxDvgaGain.MAX_DVGA_GAIN_MINUS_1,
     "-2": MaxDvgaGain.MAX_DVGA_GAIN_MINUS_2,
@@ -210,7 +210,7 @@ AGC_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_MAGN_TARGET): cv.enum(MAGN_TARGET),
         cv.Optional(CONF_MAX_LNA_GAIN): cv.enum(MAX_LNA_GAIN),
-        cv.Optional(CONF_MAX_DVA_GAIN): cv.enum(MAX_DVA_GAIN),
+        cv.Optional(CONF_MAX_DVGA_GAIN): cv.enum(MAX_DVGA_GAIN),
         cv.Optional(CONF_CARRIER_SENSE_ABS_THR): cv.int_range(-8, 7),
         cv.Optional(CONF_CARRIER_SENSE_REL_THR): cv.enum(CARRIER_SENSE_REL_THR),
         cv.Optional(CONF_LNA_PRIORITY): cv.boolean,
@@ -297,7 +297,7 @@ VARIABLES = {
     CONF_AGC: [
         [CONF_MAGN_TARGET],
         [CONF_MAX_LNA_GAIN],
-        [CONF_MAX_DVA_GAIN],
+        [CONF_MAX_DVGA_GAIN],
         [CONF_CARRIER_SENSE_ABS_THR],
         [CONF_CARRIER_SENSE_REL_THR],
         [CONF_LNA_PRIORITY],

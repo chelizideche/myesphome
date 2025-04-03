@@ -13,7 +13,7 @@ from .. import (
     CONF_FREEZE,
     CONF_HYST_LEVEL,
     CONF_MAGN_TARGET,
-    CONF_MAX_DVA_GAIN,
+    CONF_MAX_DVGA_GAIN,
     CONF_MAX_LNA_GAIN,
     CONF_MODULATION,
     CONF_RX_ATTENUATION,
@@ -23,7 +23,7 @@ from .. import (
     FREEZE,
     HYST_LEVEL,
     MAGN_TARGET,
-    MAX_DVA_GAIN,
+    MAX_DVGA_GAIN,
     MAX_LNA_GAIN,
     MODULATION,
     RX_ATTENUATION,
@@ -37,7 +37,7 @@ RxAttenuationSelect = ns.class_("RxAttenuationSelect", select.Select)
 TunerModulationSelect = ns.class_("TunerModulationSelect", select.Select)
 AgcMagnTargetSelect = ns.class_("AgcMagnTargetSelect", select.Select)
 AgcMaxLnaGainSelect = ns.class_("AgcMaxLnaGainSelect", select.Select)
-AgcMaxDvaGainSelect = ns.class_("AgcMaxDvaGainSelect", select.Select)
+AgcMaxDvgaGainSelect = ns.class_("AgcMaxDvgaGainSelect", select.Select)
 AgcCarrierSenseRelThrSelect = ns.class_("AgcCarrierSenseRelThrSelect", select.Select)
 AgcFilterLengthFskMskSelect = ns.class_("AgcFilterLengthFskMskSelect", select.Select)
 AgcFilterLengthAskOokSelect = ns.class_("AgcFilterLengthAskOokSelect", select.Select)
@@ -67,8 +67,8 @@ AGC_SCHEMA = cv.Schema(
             entity_category=ENTITY_CATEGORY_CONFIG,
             # icon=ICON_,
         ),
-        cv.Optional(CONF_MAX_DVA_GAIN): select.select_schema(
-            AgcMaxDvaGainSelect,
+        cv.Optional(CONF_MAX_DVGA_GAIN): select.select_schema(
+            AgcMaxDvgaGainSelect,
             entity_category=ENTITY_CATEGORY_CONFIG,
             # icon=ICON_,
         ),
@@ -126,7 +126,7 @@ VARIABLES = {
     CONF_AGC: [
         [CONF_MAGN_TARGET, MAGN_TARGET],
         [CONF_MAX_LNA_GAIN, MAX_LNA_GAIN],
-        [CONF_MAX_DVA_GAIN, MAX_DVA_GAIN],
+        [CONF_MAX_DVGA_GAIN, MAX_DVGA_GAIN],
         [CONF_CARRIER_SENSE_REL_THR, CARRIER_SENSE_REL_THR],
         [CONF_FILTER_LENGTH_FSK_MSK, FILTER_LENGTH_FSK_MSK],
         [CONF_FILTER_LENGTH_ASK_OOK, FILTER_LENGTH_ASK_OOK],

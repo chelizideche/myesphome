@@ -144,9 +144,9 @@ CC1101Component::CC1101Component() {
   // this->set_tuner_msk_deviation(0);
   this->set_agc_magn_target(MagnTarget::MAGN_TARGET_42DB);  // ?
   this->set_agc_max_lna_gain(MaxLnaGain::MAX_LNA_GAIN_DEFAULT);
-  this->set_agc_max_dva_gain(MaxDvgaGain::MAX_DVGA_GAIN_MINUS_3);  // ?
-  this->set_agc_lna_priority(false);                               // ?
-  this->set_agc_wait_time(WaitTime::WAIT_TIME_32_SAMPLES);         // ?
+  this->set_agc_max_dvga_gain(MaxDvgaGain::MAX_DVGA_GAIN_MINUS_3);  // ?
+  this->set_agc_lna_priority(false);                                // ?
+  this->set_agc_wait_time(WaitTime::WAIT_TIME_32_SAMPLES);          // ?
 }
 
 // overrides
@@ -226,7 +226,7 @@ void CC1101Component::setup() {
   this->publish_tuner_msk_deviation();
   this->publish_agc_magn_target();
   this->publish_agc_max_lna_gain();
-  this->publish_agc_max_dva_gain();
+  this->publish_agc_max_dvga_gain();
   this->publish_agc_carrier_sense_abs_thr();
   this->publish_agc_carrier_sense_rel_thr();
   this->publish_agc_lna_priority();
@@ -942,14 +942,14 @@ void CC1101Component::set_agc_max_lna_gain(MaxLnaGain value) {
 
 MaxLnaGain CC1101Component::get_agc_max_lna_gain() { return (MaxLnaGain) this->state_.MAX_LNA_GAIN; }
 
-void CC1101Component::set_agc_max_dva_gain(MaxDvgaGain value) {
+void CC1101Component::set_agc_max_dvga_gain(MaxDvgaGain value) {
   CHECK_ENUM(value)
 
   this->state_.MAX_DVGA_GAIN = (uint8_t) value;
 
-  ESP_LOGD(TAG, "set_agc_max_dva_gain(%d)", (int) value);
+  ESP_LOGD(TAG, "set_agc_max_dvga_gain(%d)", (int) value);
 
-  this->publish_agc_max_dva_gain();
+  this->publish_agc_max_dvga_gain();
 
   if (!this->reset_) {
     return;
@@ -958,7 +958,7 @@ void CC1101Component::set_agc_max_dva_gain(MaxDvgaGain value) {
   this->write_(Register::AGCCTRL2);
 }
 
-MaxDvgaGain CC1101Component::get_agc_max_dva_gain() { return (MaxDvgaGain) this->state_.MAX_DVGA_GAIN; }
+MaxDvgaGain CC1101Component::get_agc_max_dvga_gain() { return (MaxDvgaGain) this->state_.MAX_DVGA_GAIN; }
 
 void CC1101Component::set_agc_carrier_sense_abs_thr(int8_t value) {
   CHECK_INT_RANGE(value, CARRIER_SENSE_ABS_THR_MIN, CARRIER_SENSE_ABS_THR_MAX)

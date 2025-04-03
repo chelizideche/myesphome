@@ -7,85 +7,45 @@
 namespace esphome {
 namespace cc1101 {
 
-class OutputPowerNumber : public number::Number, public Parented<CC1101Component> {
+// maybe there is a way to specialize type dependent member pointers
+
+template<void (CC1101Component::*F)(float)>
+class NumberFloat : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {
     this->publish_state(value);
-    this->parent_->set_output_power(value);
+    (this->parent_->*F)(value);
   }
 };
 
-class TunerFrequencyNumber : public number::Number, public Parented<CC1101Component> {
+template<void (CC1101Component::*F)(uint8_t)>
+class NumberUInt8 : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {
     this->publish_state(value);
-    this->parent_->set_tuner_frequency(value);
+    (this->parent_->*F)((uint8_t) lround(value));
   }
 };
 
-class TunerIfFrequencyNumber : public number::Number, public Parented<CC1101Component> {
+template<void (CC1101Component::*F)(int8_t)>
+class NumberInt8 : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {
     this->publish_state(value);
-    this->parent_->set_tuner_if_frequency(value);
+    (this->parent_->*F)((int8_t) lround(value));
   }
 };
 
-class TunerBandwidthNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_bandwidth(value);
-  }
-};
-
-class TunerChannelNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_channel((uint8_t) lround(value));
-  }
-};
-
-class TunerChannelSpacingNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_channel_spacing(value);
-  }
-};
-
-class TunerFskDeviationNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_fsk_deviation(value);
-  }
-};
-
-class TunerMskDeviationNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_msk_deviation((uint8_t) lround(value));
-  }
-};
-
-class TunerSymbolRateNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_tuner_symbol_rate(value);
-  }
-};
-
-class AgcCarrierSenseAbsThrNumber : public number::Number, public Parented<CC1101Component> {
- protected:
-  void control(float value) override {
-    this->publish_state(value);
-    this->parent_->set_agc_carrier_sense_abs_thr((int8_t) lround(value));
-  }
-};
+using OutputPowerNumber = NumberFloat<&CC1101Component::set_output_power>;
+using TunerFrequencyNumber = NumberFloat<&CC1101Component::set_tuner_frequency>;
+using TunerIfFrequencyNumber = NumberFloat<&CC1101Component::set_tuner_if_frequency>;
+using TunerBandwidthNumber = NumberFloat<&CC1101Component::set_tuner_bandwidth>;
+using TunerChannelNumber = NumberUInt8<&CC1101Component::set_tuner_channel>;
+using TunerChannelSpacingNumber = NumberFloat<&CC1101Component::set_tuner_channel_spacing>;
+using TunerFskDeviationNumber = NumberFloat<&CC1101Component::set_tuner_fsk_deviation>;
+using TunerMskDeviationNumber = NumberUInt8<&CC1101Component::set_tuner_msk_deviation>;
+using TunerSymbolRateNumber = NumberFloat<&CC1101Component::set_tuner_symbol_rate>;
+using AgcCarrierSenseAbsThrNumber = NumberInt8<&CC1101Component::set_agc_carrier_sense_abs_thr>;
 
 }  // namespace cc1101
 }  // namespace esphome

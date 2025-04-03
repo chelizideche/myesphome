@@ -57,8 +57,8 @@ select:
         name: AGC magn_target
       max_lna_gain:
         name: AGC max_lna_gain
-      max_dva_gain:
-        name: AGC max_dva_gain
+      max_dgva_gain:
+        name: AGC max_dvga_gain
       carrier_sense_rel_thr:
         name: AGC carrier_sense_rel_thr
       filter_length_fsk_msk:
