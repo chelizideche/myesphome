@@ -78,7 +78,7 @@ button:
       name: Read configuration
     factory_reset:
       name: Factory reset
-    toggle_minimal_output:
+    minimal_output:
       name: Toggle minimal output
 
   - platform: template
