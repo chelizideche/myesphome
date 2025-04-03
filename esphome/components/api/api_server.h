@@ -24,6 +24,8 @@ class APIServer : public Component, public Controller {
   APIServer();
   void setup() override;
   uint16_t get_port() const;
+  std::string get_mac_address() const;
+  void set_mac_address(std::string mac_address);
   float get_setup_priority() const override;
   void loop() override;
   void dump_config() override;
@@ -131,6 +133,7 @@ class APIServer : public Component, public Controller {
  protected:
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   uint16_t port_{6053};
+  std::string mac_address{};
   uint32_t reboot_timeout_{300000};
   uint32_t last_connected_{0};
   std::vector<std::unique_ptr<APIConnection>> clients_;
