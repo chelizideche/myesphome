@@ -6,7 +6,7 @@ namespace esphome {
 namespace st7701s {
 
 void ST7701S::setup() {
-  esph_log_config(TAG, "Setting up ST7701S");
+  ESP_LOGCONFIG(TAG, "Setting up ST7701S");
   if (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) < 1024 * 1024) {
     this->status_set_error("PSRAM not available");
     this->mark_failed();
@@ -18,7 +18,7 @@ void ST7701S::setup() {
   esp_lcd_rgb_panel_config_t config{};
   config.flags.fb_in_psram = 1;
 #if ESP_IDF_VERSION_MAJOR >= 5
-  config.bounce_buffer_size_px = this->width_ * 10;
+  config.bounce_buffer_size_px = this->width_ * 32;
   config.num_fbs = 1;
 #endif  // ESP_IDF_VERSION_MAJOR
   config.timings.h_res = this->width_;
@@ -44,12 +44,15 @@ void ST7701S::setup() {
   config.de_gpio_num = this->de_pin_->get_pin();
   config.pclk_gpio_num = this->pclk_pin_->get_pin();
   esp_err_t err = esp_lcd_new_rgb_panel(&config, &this->handle_);
-  ESP_ERROR_CHECK(esp_lcd_panel_reset(this->handle_));
-  ESP_ERROR_CHECK(esp_lcd_panel_init(this->handle_));
+  if (err == ESP_OK)
+    err = esp_lcd_panel_reset(this->handle_);
+  if (err == ESP_OK)
+    err = esp_lcd_panel_init(this->handle_);
   if (err != ESP_OK) {
-    esph_log_e(TAG, "lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
+    this->status_set_error(esp_err_to_name(err));
+    this->mark_failed();
   }
-  esph_log_config(TAG, "ST7701S setup complete");
+  ESP_LOGCONFIG(TAG, "ST7701S setup complete");
 }
 
 void ST7701S::loop() {
@@ -61,7 +64,7 @@ void ST7701S::loop() {
 
 void ST7701S::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                              display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
-  if (w <= 0 || h <= 0)
+  if (w <= 0 || h <= 0 || this->is_failed())
     return;
   // if color mapping is required, pass the buck.
   // note that endianness is not considered here - it is assumed to match!
@@ -71,7 +74,7 @@ void ST7701S::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
   }
   x_start += this->offset_x_;
   y_start += this->offset_y_;
-  esp_err_t err;
+  esp_err_t err = ESP_OK;
   // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
   if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
     // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
@@ -87,7 +90,7 @@ void ST7701S::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
     }
   }
   if (err != ESP_OK)
-    esph_log_e(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
 }
 
 void ST7701S::draw_pixel_at(int x, int y, Color color) {
