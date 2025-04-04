@@ -137,7 +137,7 @@ void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
     }
 
     case display::COLOR_BITNESS_565: {
-      auto ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+      auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
       uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
       uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
       uint16_t new_color = hi_byte | (lo_byte << 8);  // big endian
