@@ -62,6 +62,10 @@ extern const uint32_t STATUS_LED_MASK;
 extern const uint32_t STATUS_LED_OK;
 extern const uint32_t STATUS_LED_WARNING;
 extern const uint32_t STATUS_LED_ERROR;
+extern const uint32_t ACTIVITY_LED_MASK;
+extern const uint32_t ACTIVITY_LED_IDLE;
+extern const uint32_t ACTIVITY_LED_ACTIVE;
+extern const uint32_t ACTIVITY_LED_BUSSY;
 
 enum class RetryResult { DONE, RETRY };
 
@@ -139,6 +143,18 @@ class Component {
   void status_momentary_warning(const std::string &name, uint32_t length = 5000);
 
   void status_momentary_error(const std::string &name, uint32_t length = 5000);
+
+  bool activity_is_active() const;
+
+  bool activity_is_bussy() const;
+
+  void activity_set_active(const char *message = "unspecified");
+
+  void activity_set_bussy(const char *message = "unspecified");
+
+  void activity_clear_active();
+
+  void activity_clear_bussy();
 
   bool has_overridden_loop() const;
 
