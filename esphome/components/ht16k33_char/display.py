@@ -7,13 +7,13 @@ from esphome.const import (
     CONF_BUFFER_SIZE,
     CONF_BRIGHTNESS,
     CONF_DEVICE,
+    CONF_CONTINUOUS,
 )
 
 DEPENDENCIES = ["i2c"]
 
 ht16k33_char_ns = cg.esphome_ns.namespace("ht16k33_char")
 
-CONF_CONTINUOUS = "continuous"
 CONF_SCROLL = "scroll"
 CONF_SCROLL_SPEED = "scroll_speed"
 CONF_SCROLL_DWELL = "scroll_dwell"
