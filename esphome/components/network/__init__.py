@@ -10,6 +10,8 @@ AUTO_LOAD = ["mdns"]
 network_ns = cg.esphome_ns.namespace("network")
 IPAddress = network_ns.class_("IPAddress")
 
+CORE.is_nrf52 = True
+
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.SplitDefault(

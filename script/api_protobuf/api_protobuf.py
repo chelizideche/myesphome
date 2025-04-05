@@ -17,12 +17,12 @@ then run this script with python3 and the files
 will be generated, they still need to be formatted
 """
 
-import os
-import re
-import sys
 from abc import ABC, abstractmethod
+import os
 from pathlib import Path
+import re
 from subprocess import call
+import sys
 from textwrap import dedent
 
 # Generate with
