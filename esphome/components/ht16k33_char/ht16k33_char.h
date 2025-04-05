@@ -72,7 +72,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   uint8_t print(bool clear_buffer, const char *str);
 
   // Evaluate the strftime-format and print the result at the given position.
-  uint8_t strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time) 
+  uint8_t strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time)
       __attribute__((format(strftime, 4, 0)));
 
   uint8_t clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool UseAMPM, ESPTime time);

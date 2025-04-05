@@ -37,7 +37,7 @@ HT16K33_DEVICE_TYPES = {
         "CLASS_NAME": "Adafruit_7seg_large",
     },
     "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED": {
-        "CLASS_NAME":"Adafruit_7seg_large_flip",
+        "CLASS_NAME": "Adafruit_7seg_large_flip",
     },
     "ADAFRUIT_7SEGMENT_.56IN": {
         "CLASS_NAME": "Adafruit_7seg",
