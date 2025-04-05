@@ -34,22 +34,22 @@ HT16k33Char_BaseClassType = ht16k33_char_ns.class_(
 #     `CLASS_NAME`: The name of the class that implements the device.
 HT16K33_DEVICE_TYPES = {
     "ADAFRUIT_7SEGMENT_1.2IN": {
-        "CLASS_NAME":"Adafruit_7seg_large",
+        "CLASS_NAME": "Adafruit_7seg_large",
     },
     "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED": {
         "CLASS_NAME":"Adafruit_7seg_large_flip",
     },
     "ADAFRUIT_7SEGMENT_.56IN": {
-        "CLASS_NAME":"Adafruit_7seg",
+        "CLASS_NAME": "Adafruit_7seg",
     },
     "ADAFRUIT_7SEGMENT_.56IN_FLIPPED": {
-        "CLASS_NAME":"Adafruit_7seg_flip",
+        "CLASS_NAME": "Adafruit_7seg_flip",
     },
     "ADAFRUIT_14_SEG": {
-        "CLASS_NAME":"Adafruit_14seg",
+        "CLASS_NAME": "Adafruit_14seg",
     },
     "ADAFRUIT_14_SEG_FLIPPED": {
-        "CLASS_NAME":"Adafruit_14seg_flip",
+        "CLASS_NAME": "Adafruit_14seg_flip",
     },
 }
 

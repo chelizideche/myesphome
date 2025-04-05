@@ -110,7 +110,7 @@ void HT16k33CharComponent::loop() {
         this->last_scroll_ = now;
         this->fist_char_location_++;
         current_buffer_location = this->update_display();
-        if(current_buffer_location >= this->char_buffer_.length()) {
+        if (current_buffer_location >= this->char_buffer_.length()) {
           // We reached the end of the char buffer before we reached the end of the display.
           // Scrolling is not required.
           this->scroll_state_ = HT16K33_SCROLL_STATE_STATIC;

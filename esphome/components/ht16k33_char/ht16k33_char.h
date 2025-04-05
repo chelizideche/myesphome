@@ -73,7 +73,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
 
   // Evaluate the strftime-format and print the result at the given position.
   uint8_t strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time) 
-    __attribute__((format(strftime, 4, 0)));
+      __attribute__((format(strftime, 4, 0)));
 
   uint8_t clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool UseAMPM, ESPTime time);
 
@@ -101,7 +101,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   std::string char_buffer_;   // This buffer holds the entire character message to display.
   uint8_t buffer_[20];        // This buffer is used to send the raw bytes to the HT16k33 device. TODO: Make this 17?
   uint8_t char_buffer_size_;  // This is the length of the character buffer. I need to track this separately instead of
-                              // just calling buffer.length(), since when I clear the buffer, it resets the size to 0. 
+                              // just calling buffer.length(), since when I clear the buffer, it resets the size to 0.
                               // TODO: Maybe a different data type would be better here?
 
   optional<ht16k33_char_writer_t> writer_{};

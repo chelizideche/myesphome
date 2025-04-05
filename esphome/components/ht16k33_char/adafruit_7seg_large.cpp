@@ -39,7 +39,7 @@ static const char *const TAG = "ht16k33_char";
 uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t position) {
   uint8_t i;
   char char_to_find;
-  
+
   // Note: we use this to detect when there are multiple special characters in a rown in the
   // string. Say something like '..1234'. A period before the first character is valid, so
   // the first character turns on the period LED. Without this flag, because the character
@@ -159,11 +159,11 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
   char char_to_find;
   bool special_character_found;
   const std::unordered_map<char, uint8_t> char_map = {
-      {'0', 0x3F}, {'1', 0x30}, {'2', 0x5B}, {'3', 0x79}, {'4', 0x74}, {'5', 0x6D}, {'6', 0x6F}, {'7', 0x38},
-      {'8', 0x7F}, {'9', 0x7D}, {' ', 0x00}, {'A', 0x7E}, {'b', 0x67}, {'C', 0x0F}, {'c', 0x43}, {'d', 0x73},
-      {'E', 0x4F}, {'F', 0x4E}, {'G', 0x2F}, {'H', 0x76}, {'h', 0x66}, {'I', 0x06}, {'J', 0x31}, {'L', 0x07},
-      {'N', 0x3E}, {'O', 0x3F}, {'o', 0x63}, {'P', 0x5E}, {'r', 0x42}, {'S', 0x6D}, {'t', 0x47}, {'U', 0x37},
-      {'u', 0x23}, {'Y', 0x75},
+      {'0', 0x3F}, {'1', 0x30}, {'2', 0x5B}, {'3', 0x79}, {'4', 0x74}, {'5', 0x6D}, {'6', 0x6F},
+      {'7', 0x38}, {'8', 0x7F}, {'9', 0x7D}, {' ', 0x00}, {'A', 0x7E}, {'b', 0x67}, {'C', 0x0F},
+      {'c', 0x43}, {'d', 0x73}, {'E', 0x4F}, {'F', 0x4E}, {'G', 0x2F}, {'H', 0x76}, {'h', 0x66},
+      {'I', 0x06}, {'J', 0x31}, {'L', 0x07}, {'N', 0x3E}, {'O', 0x3F}, {'o', 0x63}, {'P', 0x5E},
+      {'r', 0x42}, {'S', 0x6D}, {'t', 0x47}, {'U', 0x37}, {'u', 0x23}, {'Y', 0x75},
   };
 
   const uint8_t digit_map[4] = {9, 7, 3, 1};
