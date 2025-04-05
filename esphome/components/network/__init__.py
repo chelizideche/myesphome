@@ -10,8 +10,6 @@ AUTO_LOAD = ["mdns"]
 network_ns = cg.esphome_ns.namespace("network")
 IPAddress = network_ns.class_("IPAddress")
 
-CORE.is_nrf52 = True
-
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.SplitDefault(
@@ -25,7 +23,7 @@ CONFIG_SCHEMA = cv.Schema(
             cv.boolean,
             cv.Any(
                 ## TODO: remove this when nrf52_zephyr is added
-                lambda value: value if (CORE.is_nrf52) else (
+                lambda value: value if (CORE.target_platform == "nrf52") else (
                     cv.require_framework_version(
                         esp_idf=cv.Version(0, 0, 0),
                         esp32_arduino=cv.Version(0, 0, 0),

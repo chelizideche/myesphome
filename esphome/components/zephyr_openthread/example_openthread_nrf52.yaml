@@ -1,16 +1,24 @@
-esphome:
-  name: openthread-nrf52-example
-  friendly_name: OpenThread NRF52 Example
-
-# Use nrf52 platform with zephyr framework
 nrf52:
-  board: adafruit_itsybitsy_nrf52840
-  bootloader: mcuboot
+  board: xiao_ble
 
-# Enable logging
+esphome:
+  name: nrf52-ot
+
+api:
+
 logger:
   level: DEBUG
-  baud_rate: 115200
+  logs:
+    switch: NONE
+
+switch:
+  - platform: gpio
+    name: "Led Light"
+    icon: "mdi:restart"
+    pin:
+      number: P0.06
+      inverted: true
+    id: gpio_15
 
 # Enable IPv6 networking
 network:
@@ -18,45 +26,23 @@ network:
 
 # Enable OpenThread
 zephyr_openthread:
-  channel: 15
-  panid: 43981
-  network_name: "ESPHome-Thread"
-  xpanid: "FEDCBA9876543210"
+  channel: 25
+  panid: 0xe064
+  network_name: "MyHome5"
+  xpanid: "1db74a0a3797454b"
   network_key: "00112233445566778899AABBCCDDEEFF"
   pskc: "00112233445566778899AABBCCDDEEFF"
-  radio_tx_power: 0
-  force_dataset: false
+  force_dataset: true
+  shell: false
 
-# Enable mDNS for service discovery
-mdns:
-  # mDNS services will be automatically bridged to Thread SRP
-
-# Enable API for Home Assistant integration
-api:
-  encryption:
-    key: "YourEncryptionKeyHere"
-
-# Example sensor
-sensor:
-  - platform: uptime
-    name: Uptime
+# Add a text sensor to display the IPv6 address
+text_sensor:
+  - platform: template
+    name: "Thread IPv6 Address"
+    id: thread_ipv6
     update_interval: 60s
-
-# Example binary sensor
-binary_sensor:
-  - platform: gpio
-    pin: 7
-    name: "Button"
-    internal: true
-
-# Example output
-output:
-  - platform: gpio
-    pin: 13
-    id: led_pin
-
-# Example light
-light:
-  - platform: binary
-    name: "LED"
-    output: led_pin
+    lambda: |-
+      if (zephyr_openthread::global_openthread_component->has_ipv6_address()) {
+        return zephyr_openthread::global_openthread_component->get_ipv6_address();
+      }
+      return {"No IPv6 Address"};

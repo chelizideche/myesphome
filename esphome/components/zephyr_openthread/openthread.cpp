@@ -19,7 +19,6 @@
 #include <openthread/srp_client_buffers.h>
 #include <openthread/dataset_ftd.h>
 #include <openthread/netdata.h>
-#include "esphome/components/socket/socket.h"
 
 namespace esphome {
 namespace zephyr_openthread {
