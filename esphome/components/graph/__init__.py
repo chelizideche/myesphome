@@ -27,8 +27,6 @@ from esphome.const import (
     CONF_WIDTH,
     CONF_X_GRID,
     CONF_Y_GRID,
-    CONF_BORDER,
-    CONF_TRACES,
     CONF_CONTINUOUS,
 )
 
