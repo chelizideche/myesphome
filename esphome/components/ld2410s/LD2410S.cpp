@@ -663,6 +663,7 @@ void LD2410S::process_data_frame_(uint8_t *data) {
         if (progress == 100) {
           listener->on_threshold_progress(0);
           listener->on_threshold_update(false);
+          this->read_all();
         } else {
           listener->on_threshold_progress(progress);
           listener->on_threshold_update(true);
