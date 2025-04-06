@@ -12,7 +12,6 @@
 
 namespace esphome {
 namespace psram {
-
 static const char *const TAG = "psram";
 
 void PsramComponent::dump_config() {
@@ -44,6 +43,7 @@ void PsramComponent::dump_config() {
   }
 #endif  // USE_ESP_IDF
   }
+}
 
 }  // namespace psram
 }  // namespace esphome
