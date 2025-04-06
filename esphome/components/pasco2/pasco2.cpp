@@ -219,7 +219,17 @@ void PASCO2Component::loop() {
           handle_status_errors(read_back[0]);
           if (this->initialization_state_ != InitializationState::COMPLETE) {
             this->initialized_ = true;    // Mark as initialized
-            this->start_measurement_();   // Start measurements
+            if(!this->start_measurement_()){   // Start measurements
+              //measurements did not start, which may not be an error if the sensor was busy, try again
+              if(--this->remaining_retries_ == 0)
+              {
+                ESP_LOGD(TAG, "Could not start measurements, resetting sensor");
+                this->initialization_state_ = InitializationState::SOFT_RESET;  // Move to soft reset state
+                break;
+              }
+              ESP_LOGD(TAG, "Start Measurement failed, retrying");
+              break;
+            }
             ESP_LOGD(TAG, "Sensor initialized");
             this->initialization_state_ = InitializationState::COMPLETE;  // End state
           }
@@ -367,30 +377,36 @@ void PASCO2Component::update() {
     return; //handle this case in loop()
   }
 
-  //the sensor will not respond to I2C commands for approximately 1 second during measurement cycles. To avoid missing
-  //  data, reread if it doesn't respond
-  uint32_t wait_time = 1500;  
-  if (this->measurement_mode_ == SINGLE_SHOT) {
-    start_measurement_();
-    wait_time = 1500;  // Single shot measurement takes ~1 sec
-  }
-  
-  set_retry(wait_time, 3, [this](const uint8_t remaining_attempts) {   
-    
-    int16_t co2result;
-    if(read_sensor_(&co2result))
+  //the sensor will not respond to I2C commands for approximately 1 second during measurement cycles,
+  //so the call to start could hypothetically fail although I have never seen it happen
+  set_retry(350, 4, [this](const uint8_t remaining_attempts) {   
+    uint32_t wait_time = 1500;  
+
+    if(!start_measurement_())
     {
-      if (this->co2_sensor_ != nullptr)
-        this->co2_sensor_->publish_state(co2result);
-      
-      ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
-    } else {
       return  RetryResult::RETRY;
-    }
+    }        
     
-    this->status_clear_warning();
+    //wait until the sensor is ready, retrying if it takes longer than expected
+    set_retry(wait_time, 3, [this](const uint8_t remaining_attempts) {   
+      
+      int16_t co2result;
+      if(read_sensor_(&co2result))
+      {
+        if (this->co2_sensor_ != nullptr)
+          this->co2_sensor_->publish_state(co2result);
+        
+        ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
+      } else {
+        return  RetryResult::RETRY;
+      }
+      
+      this->status_clear_warning();
+      return RetryResult::DONE;
+    }, 1.0f);  
+    
     return RetryResult::DONE;
-  }, 1.0f);  // set_retry
+  }, 1.0f);
 }
 
 bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentration) {
@@ -487,17 +503,12 @@ bool PASCO2Component::update_ambient_pressure_compensation_(uint16_t pressure_in
 }
 
 bool PASCO2Component::start_measurement_() {
-  uint8_t measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS |
-                                XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE | XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
-  if (this->measurement_mode_ == SINGLE_SHOT) {
-    measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_SINGLESHOT | XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE |
-                          XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
-  }
-
+  //stop any existing measurements
   if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG,
                         XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE | XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE, true)) {
     ESP_LOGE(TAG, "Failed to stop measurements");
     this->status_set_warning();
+    return false;
   }
 
   //set the measurement rate if in periodic mode
@@ -505,22 +516,21 @@ bool PASCO2Component::start_measurement_() {
     ESP_LOGE(TAG, "Setting Measurement Rate Failed!");
     return false;
   }    
+  
+  uint8_t measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS |
+                                XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE | XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
+  if (this->measurement_mode_ == SINGLE_SHOT) {
+    measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_SINGLESHOT | XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE |
+                          XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
+  }    
+  
+  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, measurement_command, true)) {
+    //this is not necessarily an error, the sensor may be temporarily busy and not responding
+    return false;
   }
-
-  static uint8_t remaining_retries = 3;
-  while (remaining_retries) {
-    if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, measurement_command, true)) {
-      ESP_LOGE(TAG, "Error starting measurements.");
-      this->error_code_ = MEASUREMENT_INIT_FAILED;
-      this->status_set_warning();
-      if (--remaining_retries == 0)
-        return false;
-      delay(50);  // NOLINT wait 50 ms and try again
-    }
-    this->status_clear_warning();
-    return true;
-  }
-  return false;
+    
+  this->status_clear_warning();
+  return true;
 }
 
 }  // namespace pasco2
