@@ -383,7 +383,7 @@ uint8_t HT16k33CharComponent::printf(uint8_t start_pos, bool clear_buffer, const
   va_list arg;
   va_start(arg, format);
   char buffer[this->char_buffer_size_ + 1];  // Add one for the string terminating character.
-  int ret = vsnprintf(buffer, sizeof(buffer), format, arg);
+  vsnprintf(buffer, sizeof(buffer), format, arg);
   va_end(arg);
 
   return this->print(start_pos, clear_buffer, buffer);
@@ -435,9 +435,9 @@ uint8_t HT16k33CharComponent::clock_display(uint8_t start_pos, bool clear_buffer
   // strftime and save a bunch of flash
 
   if (use_ampm) {
-    size_t ret = time.strftime(buffer, sizeof(buffer), "%I:%M");
+    time.strftime(buffer, sizeof(buffer), "%I:%M");
   } else {
-    size_t ret = time.strftime(buffer, sizeof(buffer), "%H:%M");
+    time.strftime(buffer, sizeof(buffer), "%H:%M");
   }
 
   if ((!show_leading_zero) && (buffer[0] == '0')) {
