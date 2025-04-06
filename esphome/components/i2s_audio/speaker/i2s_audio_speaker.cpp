@@ -596,10 +596,9 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
       .dma_frame_num = dma_buffer_length,
       .auto_clear = true,
   };
-  /* Allocate a new RX channel and get the handle of this channel */
+  /* Allocate a new TX channel and get the handle of this channel */
   esp_err_t err = i2s_new_channel(&chan_cfg, &this->tx_handle_, NULL);
   if (err != ESP_OK) {
-    // ESP_LOGW(TAG, "Error creating new I2S channel: %s", esp_err_to_name(err));
     this->parent_->unlock();
     return err;
   }
@@ -652,7 +651,6 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
   err = i2s_channel_init_std_mode(this->tx_handle_, &std_cfg);
 
   if (err != ESP_OK) {
-    // ESP_LOGW(TAG, "Error initializing I2S channel: %s", esp_err_to_name(err));
     i2s_del_channel(this->tx_handle_);
     this->parent_->unlock();
     return err;
@@ -666,10 +664,9 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
 
   i2s_channel_register_event_callback(this->tx_handle_, &callbacks, this);
 
-  /* Before reading data, start the RX channel first */
+  /* Before reading data, start the TX channel first */
   i2s_channel_enable(this->tx_handle_);
   if (err != ESP_OK) {
-    // ESP_LOGW(TAG, "Error enabling I2S Speaker: %s", esp_err_to_name(err));
     i2s_del_channel(this->tx_handle_);
     this->parent_->unlock();
   }
