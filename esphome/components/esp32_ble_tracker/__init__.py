@@ -19,6 +19,7 @@ from esphome.const import (
     CONF_ON_BLE_ADVERTISE,
     CONF_ON_BLE_MANUFACTURER_DATA_ADVERTISE,
     CONF_ON_BLE_SERVICE_DATA_ADVERTISE,
+    CONF_REBOOT_TIMEOUT,
     CONF_SERVICE_UUID,
     CONF_TRIGGER_ID,
     KEY_CORE,
@@ -163,6 +164,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(
             {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BLEEndOfScanTrigger)}
         ),
+        cv.Optional(
+            CONF_REBOOT_TIMEOUT, default="15min"
+        ): cv.positive_time_period_milliseconds,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -247,6 +251,7 @@ async def to_code(config):
 
     cg.add_define("USE_OTA_STATE_CALLBACK")  # To be notified when an OTA update starts
     cg.add_define("USE_ESP32_BLE_CLIENT")
+    cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))
 
 
 ESP32_BLE_START_SCAN_ACTION_SCHEMA = cv.Schema(
