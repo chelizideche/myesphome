@@ -34,14 +34,14 @@ float HT16k33CharComponent::get_setup_priority() const { return setup_priority::
 
 void HT16k33CharComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HT16K33...");
-  uint8_t SetupBuffer;
+  uint8_t setup_buffer;
 
   for (auto *display : this->displays_) {
-    SetupBuffer = HT16K33_SYSTEM_SETUP | HT16K33_MODE_NORMAL;
-    display->write(&SetupBuffer, 1, true);
+    setup_buffer = HT16K33_SYSTEM_SETUP | HT16K33_MODE_NORMAL;
+    display->write(&setup_buffer, 1, true);
 
-    SetupBuffer = HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON;
-    display->write(&SetupBuffer, 1, true);
+    setup_buffer = HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON;
+    display->write(&setup_buffer, 1, true);
   }
 
   this->brightness(this->brightness_);
