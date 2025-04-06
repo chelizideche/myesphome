@@ -422,19 +422,19 @@ uint8_t HT16k33CharComponent::strftime(uint8_t start_pos, bool clear_buffer, con
  *
  *  show_leading_zero:  Boolean. Set to true to display the leading zero on hours (ex: 01:30)
  *
- *  UseAMPM: Boolean. Set to true to convert the time to 12 hour time for display.
+ *  use_ampm: Boolean. Set to true to convert the time to 12 hour time for display.
  *
  *  time: the time object to write.
  *
  *  Returns the number of bytes written to the buffer.
  ************************************/
-uint8_t HT16k33CharComponent::clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool UseAMPM,
+uint8_t HT16k33CharComponent::clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool use_ampm,
                                             ESPTime time) {
   char buffer[6];
   // TODO: strftime is very memory intensive if all I need is hours and minutes. I could rewrite this to not use
   // strftime and save a bunch of flash
 
-  if (UseAMPM) {
+  if (use_ampm) {
     size_t ret = time.strftime(buffer, sizeof(buffer), "%I:%M");
   } else {
     size_t ret = time.strftime(buffer, sizeof(buffer), "%H:%M");

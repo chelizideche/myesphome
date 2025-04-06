@@ -5,14 +5,14 @@
 namespace esphome {
 namespace ht16k33_char {
 
-class Adafruit_7seg : public HT16k33CharComponent {
+class Adafruit7Seg : public HT16k33CharComponent {
  public:
-  uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position);
+  uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) override;
 };
 
-class Adafruit_7seg_flip : public HT16k33CharComponent {
+class Adafruit7SegFlip : public HT16k33CharComponent {
  public:
-  uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position);
+  uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) override;
 };
 
 }  // namespace ht16k33_char

@@ -36,7 +36,7 @@ static const char *const TAG = "ht16k33_char";
 // Position is the position in the character buffer. position 0 is the begining of the buffer
 // Returns the index of the first character to display in the buffer (what we would give as `position` to the next call
 // to this function).
-uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t position) {
+uint8_t Adafruit7SegLarge::send_to_display(i2c::I2CDevice *display, uint8_t position) {
   uint8_t i;
   char char_to_find;
 
@@ -154,7 +154,7 @@ uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t po
 // Position is the position in the character buffer. position 0 is the begining of the buffer
 // Returns the index of the next character to display in the buffer (what we would give as `position` to the next call
 // to this function).
-uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8_t position) {
+uint8_t Adafruit7SegLargeFlip::send_to_display(i2c::I2CDevice *display, uint8_t position) {
   uint8_t i;
   char char_to_find;
   bool special_character_found;
