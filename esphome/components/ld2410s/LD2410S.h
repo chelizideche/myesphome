@@ -108,8 +108,8 @@ static const uint16_t THRASHOLDS_HOLD_WRITE_REPLY = 0x0172;
 static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[] = {
     // 10~95 dB
 
-    57, 51, 45, 43, 39, 37, 35, 34, 34,
-    33, 33, 33, 32, 32, 32, 32
+    56, 48, 43, 40, 37, 35, 34, 33, 33,
+    32, 32, 32, 31, 31, 31, 31
 
     // Factory defaults:
     //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
@@ -130,8 +130,8 @@ static const uint16_t THRASHOLDS_SNR_WRITE_REPLY = 0x0174;
 static const uint32_t THRASHOLDS_SNR_WRITE_DATA[] = {
     // 5~63 dB
 
-    45, 42, 39, 36, 36, 36, 36, 35, 35,
-    35, 35, 35, 35, 35, 35, 35
+    57, 49, 44, 41, 38, 36, 35, 34, 34,
+    33, 33, 33, 32, 32, 32, 32
 
     // My:
     // 45,42,39,36,36,36,36,35,35,35,35,34,34,34,34,34
