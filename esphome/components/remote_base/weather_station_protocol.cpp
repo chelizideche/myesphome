@@ -573,25 +573,27 @@ void WeatherStationZ32171Protocol::setup() {
 }
 
 bool WeatherStationZ32171Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  uint8_t msg[5];
+  uint8_t msg[4];
   for (int i = 0; i < 4; i++) {
     msg[i] = (uint8_t) get_bits(code, 32 - 8 * i, 8);
   }
-  msg[4] = 0;
+  // for CRC computation, channel bits are at the CRC position
+  msg[1] = (msg[1] & 0x0F) | (uint8_t) get_bits(code, 0, 4) << 4;
 
   uint8_t crc = 0;
   for (uint8_t b : msg) {
     crc ^= b;
     for (int bit = 0; bit < 8; bit++) {
       if (crc & 0x80) {
-        crc = (crc << 1) ^ 0x31;
+        crc = (crc << 1) ^ 0x30;
       } else {
         crc = (crc << 1);
       }
     }
   }
-  if (crc != (uint8_t) get_bits(code, 0, 8)) {
-    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) get_bits(code, 0, 8), crc);
+  crc = (crc >> 4) ^ (uint8_t) get_bits(code, 4, 4);
+  if (crc != (uint8_t) get_bits(code, 28, 4)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) get_bits(code, 28, 4), crc);
     return false;
   }
 
@@ -664,17 +666,25 @@ void WeatherStationZ31743Protocol::setup() {
 }
 
 bool WeatherStationZ31743Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  if (get_bits(code, 20, 3) != 0) {
-    ESP_LOGV(TAG, "[20:22] should be 0b000");
-    return false;
+  uint8_t msg[5];
+  for (int i = 0; i < 4; i++) {
+    msg[i] = (uint8_t) get_bits(code, 32 - 8 * i, 8);
   }
+  msg[4] = 0;
 
-  uint8_t parity = 0;
-  for (int i = 0; i < 32; i++) {
-    parity ^= (uint8_t) get_bits(code, i, 1);
+  uint8_t crc = 0;
+  for (uint8_t b : msg) {
+    crc ^= b;
+    for (int bit = 0; bit < 8; bit++) {
+      if (crc & 0x80) {
+        crc = (crc << 1) ^ 0x31;
+      } else {
+        crc = (crc << 1);
+      }
+    }
   }
-  if (parity != 0) {
-    ESP_LOGV(TAG, "parity error");
+  if (crc != (uint8_t) get_bits(code, 0, 8)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) get_bits(code, 0, 8), crc);
     return false;
   }
 
