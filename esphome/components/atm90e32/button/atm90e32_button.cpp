@@ -1,14 +1,14 @@
 #include "esphome/core/component.h"
-#include "esphome/core/log.h"
-#include "esphome/components/number/number.h"
 #include "atm90e32_button.h"
+#include "esphome/components/number/number.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace atm90e32 {
 
 static const char *const TAG = "CALIBRATION Button";
 
-void ATM90E32GainCalibrationButton::press_action() {
+void ATM90E32GainCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Gain Calibration button [%s]", this->get_name().c_str());
     return;
@@ -24,7 +24,7 @@ void ATM90E32GainCalibrationButton::press_action() {
   this->parent_->run_gain_calibrations();
 }
 
-void ATM90E32ClearGainCalibrationButton::press_action() {
+void ATM90E32ClearGainCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Clear Gain button [%s]", this->get_name().c_str());
     return;
@@ -34,7 +34,7 @@ void ATM90E32ClearGainCalibrationButton::press_action() {
   this->parent_->clear_gain_calibrations();
 }
 
-void ATM90E32OffsetCalibrationButton::press_action() {
+void ATM90E32OffsetCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Offset Calibration button [%s]", this->get_name().c_str());
     return;
@@ -46,7 +46,7 @@ void ATM90E32OffsetCalibrationButton::press_action() {
   this->parent_->run_offset_calibrations();
 }
 
-void ATM90E32ClearOffsetCalibrationButton::press_action() {
+void ATM90E32ClearOffsetCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Clear Offset button [%s]", this->get_name().c_str());
     return;
@@ -56,7 +56,7 @@ void ATM90E32ClearOffsetCalibrationButton::press_action() {
   this->parent_->clear_offset_calibrations();
 }
 
-void ATM90E32PowerOffsetCalibrationButton::press_action() {
+void ATM90E32PowerOffsetCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Power Calibration button [%s]", this->get_name().c_str());
     return;
@@ -70,7 +70,7 @@ void ATM90E32PowerOffsetCalibrationButton::press_action() {
   this->parent_->run_power_offset_calibrations();
 }
 
-void ATM90E32ClearPowerOffsetCalibrationButton::press_action() {
+void ATM90E32ClearPowerOffsetCalibrationButton::press_action_() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Clear Power button [%s]", this->get_name().c_str());
     return;

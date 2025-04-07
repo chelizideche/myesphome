@@ -1,8 +1,8 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/components/button/button.h"
 #include "esphome/components/atm90e32/atm90e32.h"
+#include "esphome/components/button/button.h"
 
 namespace esphome {
 namespace atm90e32 {

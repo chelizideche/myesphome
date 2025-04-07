@@ -88,8 +88,8 @@ class ATM90E32Component : public PollingComponent,
   void clear_power_offset_calibrations();
   void clear_gain_calibrations();
   void set_enable_offset_calibration(bool flag) { enable_offset_calibration_ = flag; }
-  int16_t calibrate_offset_(uint8_t phase, bool voltage);
-  int16_t calibrate_power_offset_(uint8_t phase, bool reactive);
+  int16_t calibrate_offset(uint8_t phase, bool voltage);
+  int16_t calibrate_power_offset(uint8_t phase, bool reactive);
   void set_enable_gain_calibration(bool flag) { enable_gain_calibration_ = flag; }
   bool get_enable_gain_calibration() const { return enable_gain_calibration_; }
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
@@ -108,7 +108,7 @@ class ATM90E32Component : public PollingComponent,
     this->phase_status_text_sensor_[phase] = sensor;
   }
   void set_freq_status_text_sensor(text_sensor::TextSensor *sensor) { this->freq_status_text_sensor_ = sensor; }
-  uint16_t calculate_voltage_threshold_(int line_freq, uint16_t ugain, float multiplier);
+  uint16_t calculate_voltage_threshold(int line_freq, uint16_t ugain, float multiplier);
   int32_t last_periodic_millis = millis();
 
  private:
@@ -147,14 +147,14 @@ class ATM90E32Component : public PollingComponent,
   float get_chip_temperature_();
   bool get_publish_interval_flag_() { return publish_interval_flag_; };
   void set_publish_interval_flag_(bool flag) { publish_interval_flag_ = flag; };
-  void restore_offset_calibrations();
-  void restore_power_offset_calibrations();
-  void restore_gain_calibrations();
-  void save_gain_calibration_to_memory();
-  void write_offsets_to_registers(uint8_t phase, int16_t voltage_offset, int16_t current_offset);
-  void write_power_offsets_to_registers(uint8_t phase, int16_t p_offset, int16_t q_offset);
-  void write_gains_to_registers();
-  bool verify_gain_writes();
+  void restore_offset_calibrations_();
+  void restore_power_offset_calibrations_();
+  void restore_gain_calibrations_();
+  void save_gain_calibration_to_memory_();
+  void write_offsets_to_registers_(uint8_t phase, int16_t voltage_offset, int16_t current_offset);
+  void write_power_offsets_to_registers_(uint8_t phase, int16_t p_offset, int16_t q_offset);
+  void write_gains_to_registers_();
+  bool verify_gain_writes_();
 
   struct ATM90E32Phase {
     uint16_t voltage_gain_{0};
