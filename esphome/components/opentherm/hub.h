@@ -38,6 +38,11 @@
 namespace esphome {
 namespace opentherm {
 
+enum DeviceMode {
+  DEVICE_MODE_CONTROLLER = 0,
+  DEVICE_MODE_DEVICE = 1,
+};
+
 static const uint8_t REPEATING_MESSAGE_ORDER = 255;
 static const uint8_t INITIAL_UNORDERED_MESSAGE_ORDER = 254;
 
@@ -46,6 +51,8 @@ class OpenthermHub : public Component {
  protected:
   // Communication pins for the OpenTherm interface
   InternalGPIOPin *in_pin_, *out_pin_;
+  // Device mode
+  DeviceMode device_mode_;
   // The OpenTherm interface
   std::unique_ptr<OpenTherm> opentherm_;
 
@@ -83,6 +90,7 @@ class OpenthermHub : public Component {
 
   // Create OpenTherm messages based on the message id
   OpenthermData build_request_(MessageId request_id) const;
+  OpenthermData build_response_(const OpenthermData &request);
   bool handle_error_(OperationMode mode);
   void handle_protocol_error_();
   void handle_timeout_error_();
@@ -113,12 +121,17 @@ class OpenthermHub : public Component {
   // Constructor with references to the global interrupt handlers
   OpenthermHub();
 
-  // Handle responses from the OpenTherm interface
+  // Handle responses from the OpenTherm interface in controller mode
   void process_response(OpenthermData &data);
+
+  // Handle requests from the OpenTherm interface in device mode
+  void process_request(OpenthermData &data);
 
   // Setters for the input and output OpenTherm interface pins
   void set_in_pin(InternalGPIOPin *in_pin) { this->in_pin_ = in_pin; }
   void set_out_pin(InternalGPIOPin *out_pin) { this->out_pin_ = out_pin; }
+
+  void set_device_mode(DeviceMode device_mode) { this->device_mode_ = device_mode; }
 
   OPENTHERM_SENSOR_LIST(OPENTHERM_SET_SENSOR, )
 
@@ -173,6 +186,17 @@ class OpenthermHub : public Component {
   void on_shutdown() override;
   void loop() override;
   void dump_config() override;
+
+  static const char *device_mode_to_str(DeviceMode device_mode) {
+    switch (device_mode) {
+      case DEVICE_MODE_CONTROLLER:
+        return "CONTROLLER";
+      case DEVICE_MODE_DEVICE:
+        return "DEVICE";
+      default:
+        return "UNKNOWN";
+    }
+  }
 };
 
 }  // namespace opentherm

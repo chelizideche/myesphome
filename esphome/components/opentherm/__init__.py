@@ -26,6 +26,13 @@ CONF_OPENTHERM_VERSION = "opentherm_version"  # Deprecated, will be removed
 CONF_BEFORE_SEND = "before_send"
 CONF_BEFORE_PROCESS_RESPONSE = "before_process_response"
 
+# Enums
+DeviceMode = generate.opentherm_ns.enum("DeviceMode")
+DEVICE_MODE_OPTIONS = {
+    "CONTROLLER": DeviceMode.DEVICE_MODE_CONTROLLER,
+    "DEVICE": DeviceMode.DEVICE_MODE_DEVICE,
+}
+
 # Triggers
 BeforeSendTrigger = generate.opentherm_ns.class_(
     "BeforeSendTrigger",
@@ -44,6 +51,9 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(generate.OpenthermHub),
             cv.Required(CONF_IN_PIN): pins.internal_gpio_input_pin_schema,
             cv.Required(CONF_OUT_PIN): pins.internal_gpio_output_pin_schema,
+            cv.Optional(const.CONF_DEVICE_MODE, "CONTROLLER"): cv.enum(
+                DEVICE_MODE_OPTIONS, upper=True
+            ),
             cv.Optional(CONF_CH_ENABLE, True): cv.boolean,
             cv.Optional(CONF_DHW_ENABLE, True): cv.boolean,
             cv.Optional(CONF_COOLING_ENABLE, False): cv.boolean,
@@ -93,10 +103,13 @@ async def to_code(config: dict[str, Any]) -> None:
     out_pin = await cg.gpio_pin_expression(config[CONF_OUT_PIN])
     cg.add(var.set_out_pin(out_pin))
 
+    cg.add(var.set_device_mode(config[const.CONF_DEVICE_MODE]))
+
     non_sensors = {
         CONF_ID,
         CONF_IN_PIN,
         CONF_OUT_PIN,
+        const.CONF_DEVICE_MODE,
         CONF_BEFORE_SEND,
         CONF_BEFORE_PROCESS_RESPONSE,
     }
