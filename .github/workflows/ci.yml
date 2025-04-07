@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, beta, release]
 
   pull_request:
     paths:
