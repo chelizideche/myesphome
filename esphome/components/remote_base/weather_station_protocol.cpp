@@ -651,30 +651,27 @@ void WeatherStationZ31743Protocol::setup() {
 }
 
 bool WeatherStationZ31743Protocol::to_data(WeatherStationData &data) const {
-  /*
-    // TODO: reverse bit positions after fixing the line below
-    uint8_t msg[5];
-    for (int i = 0; i < 4; i++) {
-      msg[i] = (uint8_t) this->get_bits_(32 - 8 * i, 8); // <-- this line is wrong
-    }
-    msg[4] = 0;
-
-    uint8_t crc = 0;
-    for (uint8_t b : msg) {
-      crc ^= b;
-      for (int bit = 0; bit < 8; bit++) {
-        if (crc & 0x80) {
-          crc = (crc << 1) ^ 0x31;
-        } else {
-          crc = (crc << 1);
-        }
+  uint8_t msg[4];
+  for (int i = 0; i < 3; i++) {
+    msg[i] = (uint8_t) this->get_bits_(i * 8, 8);
+  }
+  msg[3] = 0;
+  uint8_t crc = 0;
+  for (uint8_t b : msg) {
+    crc ^= b;
+    for (int bit = 0; bit < 8; bit++) {
+      if (crc & 0x80) {
+        crc = (crc << 1) ^ 0x31;
+      } else {
+        crc = (crc << 1);
       }
     }
-    if (crc != (uint8_t) this->get_bits_(0, 8)) {
-      ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(0, 8), crc);
-      return false;
-    }
-  */
+  }
+  if (crc != (uint8_t) this->get_bits_(24, 8)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(24, 8), crc);
+    return false;
+  }
+  
   data.id = (uint16_t) this->get_bits_(0, 8);
   data.battery_level = (uint8_t) this->get_bits_(8, 1) == 1 ? 100.0f : 0;
   data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
