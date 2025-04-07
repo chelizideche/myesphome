@@ -198,11 +198,11 @@ void LD2410S::set_distance_reporting_freq(float distance_reporting_freq) {
   this->send_cmd_("set_distance_reporting_freq\0", PARAMS_WRITE_CMD, CFG_DISTANCE_FREQ_VALUE);
 }
 void LD2410S::set_max_distance(float max_distance) {
-  this->max_dist_ = max_distance * 2;
+  this->max_dist_ = static_cast<float>(max_distance) / 0.7;
   this->send_cmd_("set_max_distance\0", PARAMS_WRITE_CMD, CFG_MAX_DETECTION_VALUE);
 }
 void LD2410S::set_min_distance(float min_distance) {
-  this->min_dist_ = min_distance * 2;
+  this->min_dist_ = static_cast<float>(min_distance) / 0.7;
   this->send_cmd_("set_min_distance\0", PARAMS_WRITE_CMD, CFG_MIN_DETECTION_VALUE);
 }
 void LD2410S::set_status_reporting_freq(float status_reporting_freq) {
@@ -779,8 +779,8 @@ void LD2410S::process_config_read_ack_(uint8_t *data) {
   this->resp_speed_ = this->read_int_(data, 20, 4);
 
 #ifdef USE_NUMBER
-  this->max_distance_number_->publish_state(static_cast<float>(this->max_dist_) / 2);
-  this->min_distance_number_->publish_state(static_cast<float>(this->min_dist_) / 2);
+  this->max_distance_number_->publish_state(static_cast<float>(this->max_dist_) * 0.7);
+  this->min_distance_number_->publish_state(static_cast<float>(this->min_dist_) * 0.7);
   this->no_delay_number_->publish_state(this->delay_);
   this->status_reporting_freq_number_->publish_state(static_cast<float>(this->status_freq_) / 10);
   this->distance_reporting_freq_number_->publish_state(static_cast<float>(this->dist_freq_) / 10);
