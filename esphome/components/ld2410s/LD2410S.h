@@ -74,61 +74,52 @@ static const uint16_t CALIBRATION_TRIGGER_VALUE = 0x0002;
 static const uint16_t CALIBRATION_RETENTION_VALUE = 0x0001;
 static const uint16_t CALIBRATION_TIME_VALUE = 0x001E;  // 0x0078
 
-static const uint16_t THRASHOLDS_TRIGGER_READ_CMD = 0x0077;
-static const uint16_t THRASHOLDS_TRIGGER_READ_REPLY = 0x0177;
-static const uint16_t THRASHOLDS_TRIGGER_WRITE_CMD = 0x0076;
-static const uint16_t THRASHOLDS_TRIGGER_WRITE_REPLY = 0x0176;
-static const uint32_t THRASHOLDS_TRIGGER_WRITE_DATA[] = {
+static const uint16_t GATE_TRIGGER_THRESHOLD_READ_CMD = 0x0073;
+static const uint16_t GATE_TRIGGER_THRESHOLD_READ_REPLY = 0x0173;
+static const uint16_t GATE_TRIGGER_THRESHOLD_WRITE_CMD = 0x0072;
+static const uint16_t GATE_TRIGGER_THRESHOLD_WRITE_REPLY = 0x0172;
+static const uint32_t GATE_TRIGGER_THRESHOLD_WRITE_DATA[] = {
+
+    48, 42, 36, 34, 32, 31, 31, 31, 31,
+    31, 31, 31, 31, 31, 31, 31
     // 10~95 dB
 
-    61, 54, 48, 46, 42, 40, 39, 38, 37,
-    37, 36, 36, 36, 35, 35, 35
-
     // Factory defaults:
-    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-    // 48,42,36,34,32,31,31,31,31,31,31,31,31,31,31,31
-
-    // AutoCalibration:
-    // 80,70,65,60,55,50,45,43,41,40,39,38,37,36,35,34
-    // 45,47,50,49,51,50,51,51,51,50,51,50,50,50,50,50
-
-    // Doc, questionable:
-    //   https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
-    // 50,46,34,32,32,32,32,32,25,25,25,25,25,25,25,25
+    // tool - reset
+    //  https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    //   48,42,36,34,32,31,31,31,31,31,31,31,31,31,31,31
+    // tool default
+    //  https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
+    //   50,46,34,32,32,32,32,32,25,25,25,25,25,25,25,25
 };
 
-static const uint16_t THRASHOLDS_HOLD_READ_CMD = 0x0073;
-static const uint16_t THRASHOLDS_HOLD_READ_REPLY = 0x0173;
-static const uint16_t THRASHOLDS_HOLD_WRITE_CMD = 0x0072;
-static const uint16_t THRASHOLDS_HOLD_WRITE_REPLY = 0x0172;
-static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[] = {
+static const uint16_t GATE_HOLD_THRESHOLD_READ_CMD = 0x0077;
+static const uint16_t GATE_HOLD_THRESHOLD_READ_REPLY = 0x0177;
+static const uint16_t GATE_HOLD_THRESHOLD_WRITE_CMD = 0x0076;
+static const uint16_t GATE_HOLD_THRESHOLD_WRITE_REPLY = 0x0176;
+static const uint32_t GATE_HOLD_THRESHOLD_WRITE_DATA[] = {
+
+    45, 42, 33, 32, 28, 28, 28, 28, 28,
+    28, 28, 28, 28, 28, 28, 28
     // 10~95 dB
 
-    56, 48, 43, 41, 38, 37, 37, 36, 35,
-    35, 34, 34, 34, 33, 33, 33
-
     // Factory defaults:
-    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-    // 45,42,33,32,28,28,28,28,28,28,28,28,28,28,28,28
-
-    // AutoCalibration:
-    // 78,68,63,58,53,48,43,41,39,38,37,36,35,34,33,32
-    // 47,53,53,52,52,51,52,52,52,51,52,51,51,51,51,51
+    // tool - reset
+    //  https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    //   45,42,33,32,28,28,28,28,28,28,28,28,28,28,28,28
+    // tool default
+    //   52,49,26,25,25,21,22,24,23,22,21,21,20,21,21,20
 };
 
-static const uint16_t THRASHOLDS_SNR_READ_CMD = 0x0075;
-static const uint16_t THRASHOLDS_SNR_READ_REPLY = 0x0175;
-static const uint16_t THRASHOLDS_SNR_WRITE_CMD = 0x0074;
-static const uint16_t THRASHOLDS_SNR_WRITE_REPLY = 0x0174;
-static const uint32_t THRASHOLDS_SNR_WRITE_DATA[] = {
+static const uint16_t GATE_SNR_READ_CMD = 0x0075;
+static const uint16_t GATE_SNR_READ_REPLY = 0x0175;
+static const uint16_t GATE_SNR_WRITE_CMD = 0x0074;
+static const uint16_t GATE_SNR_WRITE_REPLY = 0x0174;
+static const uint32_t GATE_SNR_WRITE_DATA[] = {
+
+    15, 15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15
     // 5~63 dB
-
-    57, 49, 44, 42, 39, 38, 38, 37, 36,
-    36, 35, 35, 35, 34, 34, 34
-
-    // AutoCalibration:
-    // 48,49,46,47,43,46,46,46,43,44,42,44,44,40,43,38
-    // 45,42,39,36,36,36,36,35,35,35,35,34,34,34,34,34
 };
 
 static const uint32_t CMD_EXEC_TIMEOUT = 1000;
@@ -137,7 +128,7 @@ static const uint8_t CMD_EXEC_BUFFER_SIZE = 32;
 
 struct TriggersT {
   uint8_t selected_gate{0};
-  uint32_t threshold[16];
+  uint32_t trigger[16];
   uint32_t hold[16];
   uint32_t snr[16];
 };
@@ -231,7 +222,7 @@ class LD2410S : public uart::UARTDevice, public Component {
     this->trigger_selected_gate_number_ = trigger_selected_gate_number;
 #ifdef USE_NUMBER
     this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
-    this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+    this->trigger_threshold_number_->publish_state(this->triggers_.trigger[this->triggers_.selected_gate]);
     this->trigger_hold_number_->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
     this->trigger_snr_number_->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
@@ -281,7 +272,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void cmd_buffer_inc_(uint8_t &index);
 
   void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 0);
-  // void publish_thresholds_();
+  // void publish_triggers_();
 
 #ifdef USE_NUMBER
   number::Number *max_distance_number_{nullptr};

@@ -10,9 +10,9 @@ void LD2410S::setup() {
   this->send_cmd_frame_(OUTPUT_MODE_SWITCH_CMD);
   this->send_cmd_frame_(FW_READ_CMD);
   this->send_cmd_frame_(PARAMS_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_SNR_READ_CMD);
   this->send_cmd_frame_(CONFIG_MODE_END_CMD);
 }
 void LD2410S::loop() {
@@ -120,9 +120,9 @@ void LD2410S::read_all() {
   this->send_cmd_frame_(CONFIG_MODE_START_CMD);
   this->send_cmd_frame_(FW_READ_CMD);
   this->send_cmd_frame_(PARAMS_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_SNR_READ_CMD);
   this->send_cmd_frame_(CONFIG_MODE_END_CMD);
 
   this->status_clear_warning();
@@ -134,14 +134,14 @@ void LD2410S::apply_config() {
 
   this->send_cmd_frame_(OUTPUT_MODE_SWITCH_CMD);
   this->send_cmd_frame_(PARAMS_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_WRITE_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_WRITE_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_WRITE_CMD);
+  this->send_cmd_frame_(GATE_SNR_WRITE_CMD);
 
   this->send_cmd_frame_(PARAMS_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_SNR_READ_CMD);
 
   this->send_cmd_frame_(CONFIG_MODE_END_CMD);
   this->status_clear_warning();
@@ -160,9 +160,9 @@ void LD2410S::factory_reset() {
   this->resp_speed_ = 5;
 
   for (int i = 0; i < 16; i++) {
-    this->triggers_.threshold[i] = THRASHOLDS_TRIGGER_WRITE_DATA[i];
-    this->triggers_.hold[i] = THRASHOLDS_HOLD_WRITE_DATA[i];
-    this->triggers_.snr[i] = THRASHOLDS_SNR_WRITE_DATA[i];
+    this->triggers_.trigger[i] = GATE_TRIGGER_THRESHOLD_WRITE_DATA[i];
+    this->triggers_.hold[i] = GATE_HOLD_THRESHOLD_WRITE_DATA[i];
+    this->triggers_.snr[i] = GATE_SNR_WRITE_DATA[i];
   }
 
   this->status_set_warning("factory_reset");
@@ -171,14 +171,14 @@ void LD2410S::factory_reset() {
   this->send_cmd_frame_(OUTPUT_MODE_SWITCH_CMD);
 
   this->send_cmd_frame_(PARAMS_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_WRITE_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_WRITE_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_WRITE_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_WRITE_CMD);
+  this->send_cmd_frame_(GATE_SNR_WRITE_CMD);
 
   this->send_cmd_frame_(PARAMS_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_TRIGGER_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_HOLD_READ_CMD);
-  this->send_cmd_frame_(THRASHOLDS_SNR_READ_CMD);
+  this->send_cmd_frame_(GATE_TRIGGER_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_HOLD_THRESHOLD_READ_CMD);
+  this->send_cmd_frame_(GATE_SNR_READ_CMD);
 
   this->send_cmd_frame_(CONFIG_MODE_END_CMD);
   this->status_clear_warning();
@@ -213,13 +213,13 @@ void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
   this->triggers_.selected_gate = trigger_selected_gate;
 #ifdef USE_NUMBER
   this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
-  this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+  this->trigger_threshold_number_->publish_state(this->triggers_.trigger[this->triggers_.selected_gate]);
   this->trigger_hold_number_->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
   this->trigger_snr_number_->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
 }
 void LD2410S::set_trigger_threshold(float trigger_threshold) {
-  this->triggers_.threshold[this->triggers_.selected_gate] = trigger_threshold;
+  this->triggers_.trigger[this->triggers_.selected_gate] = trigger_threshold;
 }
 void LD2410S::set_trigger_hold(float trigger_hold) {
   this->triggers_.hold[this->triggers_.selected_gate] = trigger_hold;
@@ -368,9 +368,9 @@ void LD2410S::send_cmd_frame_(uint16_t command, uint16_t sub_command) {
       this->cmd_frame_append_data_(&cmd_frame, &CALIBRATION_TIME_VALUE, 1);
       break;
 
-    case THRASHOLDS_TRIGGER_READ_CMD:
-    case THRASHOLDS_HOLD_READ_CMD:
-    case THRASHOLDS_SNR_READ_CMD:
+    case GATE_TRIGGER_THRESHOLD_READ_CMD:
+    case GATE_HOLD_THRESHOLD_READ_CMD:
+    case GATE_SNR_READ_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data_(&cmd_frame, &sub_command, 1);
       } else {
@@ -380,19 +380,19 @@ void LD2410S::send_cmd_frame_(uint16_t command, uint16_t sub_command) {
       }
       break;
 
-    case THRASHOLDS_TRIGGER_WRITE_CMD:
+    case GATE_TRIGGER_THRESHOLD_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data_(&cmd_frame, &sub_command, 1);
-        this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.threshold[sub_command], 1);
+        this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.trigger[sub_command], 1);
       } else {
         for (uint16_t i = 0; i < 16; i++) {
           this->cmd_frame_append_data_(&cmd_frame, &i, 1);
-          this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.threshold[i], 1);
+          this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.trigger[i], 1);
         }
       }
       break;
 
-    case THRASHOLDS_HOLD_WRITE_CMD:
+    case GATE_HOLD_THRESHOLD_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data_(&cmd_frame, &sub_command, 1);
         this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.hold[sub_command], 1);
@@ -404,7 +404,7 @@ void LD2410S::send_cmd_frame_(uint16_t command, uint16_t sub_command) {
       }
       break;
 
-    case THRASHOLDS_SNR_WRITE_CMD:
+    case GATE_SNR_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data_(&cmd_frame, &sub_command, 1);
         this->cmd_frame_append_data_(&cmd_frame, &this->triggers_.snr[sub_command], 1);
@@ -696,15 +696,15 @@ bool LD2410S::process_cmd_frame_(uint8_t *buffer, size_t len) {
       this->process_ack_fw_read_(data);
       break;
 
-    case THRASHOLDS_TRIGGER_READ_REPLY:
+    case GATE_TRIGGER_THRESHOLD_READ_REPLY:
       this->process_ack_trigger_threshold_read_(data);
       break;
 
-    case THRASHOLDS_HOLD_READ_REPLY:
+    case GATE_HOLD_THRESHOLD_READ_REPLY:
       this->process_ack_trigger_hold_read_(data);
       break;
 
-    case THRASHOLDS_SNR_READ_REPLY:
+    case GATE_SNR_READ_REPLY:
       this->process_ack_trigger_snr_read_(data);
       break;
 
@@ -720,15 +720,15 @@ bool LD2410S::process_cmd_frame_(uint8_t *buffer, size_t len) {
       ESP_LOGI(TAG, "Config written");
       break;
 
-    case THRASHOLDS_TRIGGER_WRITE_REPLY:
+    case GATE_TRIGGER_THRESHOLD_WRITE_REPLY:
       ESP_LOGI(TAG, "Trigger Thrashold written");
       break;
 
-    case THRASHOLDS_HOLD_WRITE_REPLY:
+    case GATE_HOLD_THRESHOLD_WRITE_REPLY:
       ESP_LOGI(TAG, "Trigger Hold written");
       break;
 
-    case THRASHOLDS_SNR_WRITE_REPLY:
+    case GATE_SNR_WRITE_REPLY:
       ESP_LOGI(TAG, "Trigger SNR written");
       break;
 
@@ -808,12 +808,12 @@ void LD2410S::process_ack_fw_read_(const uint8_t *data) {
 }
 
 void LD2410S::process_ack_trigger_threshold_read_(uint8_t *data) {
-  this->four_byte_to_int_array_(data, this->triggers_.threshold, 16);
+  this->four_byte_to_int_array_(data, this->triggers_.trigger, 16);
 #ifdef USE_NUMBER
-  this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+  this->trigger_threshold_number_->publish_state(this->triggers_.trigger[this->triggers_.selected_gate]);
 #endif
 
-  std::string vals = this->format_int_(this->triggers_.threshold, 16, 2);
+  std::string vals = this->format_int_(this->triggers_.trigger, 16, 2);
 
   for (auto &listener : this->listeners_) {
     listener->on_trigger_threshold_ts(vals);
