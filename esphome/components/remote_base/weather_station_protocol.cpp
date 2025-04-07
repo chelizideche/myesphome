@@ -97,9 +97,12 @@ bool WeatherStationProtocol::receive_code_(RemoteReceiveData &src) {
       dst &= ~bit;
     } else if (this->receive_item_(src, this->one_high_, this->one_low_)) {
       dst |= bit;
+    } else if (0 < this->nbits_min_ && this->nbits_min_ <= nbits) {
+      return true;
     } else {
       break;
     }
+
     if (++nbits == this->nbits_) {
       ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &this->code_[0], nbits);
       if (src.get_index() < src.size() - 1) {
@@ -608,7 +611,8 @@ void WeatherStationNexusProtocol::setup() {
   this->zero_low_ = 1000;
   this->one_high_ = 500;
   this->one_low_ = 2000;
-  this->nbits_ = 36;
+  this->nbits_ = 38;
+  this->nbits_min_ = 36;
   this->repeat_ = 8;
   this->flags_ = TYPE_PPM | REVERSED;
 }

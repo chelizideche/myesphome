@@ -32,6 +32,7 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
   uint16_t one_high_;
   uint16_t one_low_;
   uint8_t nbits_;
+  uint8_t nbits_min_{};
   uint8_t repeat_;
   uint8_t flags_;
 
