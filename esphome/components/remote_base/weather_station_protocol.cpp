@@ -671,7 +671,7 @@ bool WeatherStationZ31743Protocol::to_data(WeatherStationData &data) const {
     ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(24, 8), crc);
     return false;
   }
-  
+
   data.id = (uint16_t) this->get_bits_(0, 8);
   data.battery_level = (uint8_t) this->get_bits_(8, 1) == 1 ? 100.0f : 0;
   data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
