@@ -36,7 +36,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(m3200),
-            cv.Required(CONF_FULL_SCALE_PRESSURE): cv.int_range(min=100, max=5000),
+            cv.Required(CONF_FULL_SCALE_PRESSURE): cv.int_range(min=10, max=6000),
             cv.Required(CONF_PRESSURE_TYPE): cv.enum(PRESSURE_GAGE_TYPE, upper=True),
             
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
