@@ -63,20 +63,23 @@ void ATM90E32Component::loop() {
       if (this->phase_[phase].apparent_power_sensor_ != nullptr)
         this->phase_[phase].apparent_power_sensor_->publish_state(this->get_local_phase_apparent_power_(phase));
 
-      if (this->phase_[phase].forward_active_energy_sensor_ != nullptr)
+      if (this->phase_[phase].forward_active_energy_sensor_ != nullptr) {
         this->phase_[phase].forward_active_energy_sensor_->publish_state(
             this->get_local_phase_forward_active_energy_(phase));
+      }
 
-      if (this->phase_[phase].reverse_active_energy_sensor_ != nullptr)
+      if (this->phase_[phase].reverse_active_energy_sensor_ != nullptr) {
         this->phase_[phase].reverse_active_energy_sensor_->publish_state(
             this->get_local_phase_reverse_active_energy_(phase));
+      }
 
       if (this->phase_[phase].phase_angle_sensor_ != nullptr)
         this->phase_[phase].phase_angle_sensor_->publish_state(this->get_local_phase_angle_(phase));
 
-      if (this->phase_[phase].harmonic_active_power_sensor_ != nullptr)
+      if (this->phase_[phase].harmonic_active_power_sensor_ != nullptr) {
         this->phase_[phase].harmonic_active_power_sensor_->publish_state(
             this->get_local_phase_harmonic_active_power_(phase));
+      }
 
       if (this->phase_[phase].peak_current_sensor_ != nullptr)
         this->phase_[phase].peak_current_sensor_->publish_state(this->get_local_phase_peak_current_(phase));
@@ -610,7 +613,7 @@ void ATM90E32Component::restore_gain_calibrations_() {
   if (this->gain_calibration_pref_.load(&this->gain_phase_)) {
     this->write_gains_to_registers_();
 
-    if (this->verify_gain_writes()) {
+    if (this->verify_gain_writes_()) {
       this->using_saved_calibrations_ = true;
       ESP_LOGI("CALIBRATION", "Gain calibration loaded and verified successfully.");
     } else {
@@ -777,13 +780,13 @@ void ATM90E32Component::check_freq_status() {
 
   std::string freq_status;
 
-  if (state1 & ATM90E32_STATUS_S1_FREQHIST)
+  if (state1 & ATM90E32_STATUS_S1_FREQHIST) {
     freq_status = "HIGH";
-  else if (state1 & ATM90E32_STATUS_S1_FREQLOST)
+  } else if (state1 & ATM90E32_STATUS_S1_FREQLOST) {
     freq_status = "LOW";
-  else
+  } else {
     freq_status = "Normal";
-
+  }
   ESP_LOGW(TAG, "Frequency status: %s", freq_status.c_str());
 
   if (this->freq_status_text_sensor_ != nullptr) {
@@ -798,7 +801,7 @@ void ATM90E32Component::check_over_current() {
     float current_val =
         this->phase_[phase].current_sensor_ != nullptr ? this->phase_[phase].current_sensor_->state : 0.0f;
 
-    if (current_val > MAX_CURRENT_THRESHOLD) {
+    if (current_val > max_current_threshold) {
       ESP_LOGW(TAG, "Over current detected on Phase %c: %.2f A", 'A' + phase, current_val);
       ESP_LOGW(TAG, "You may need to half your gain_ct: value & multiply the current and power values by 2");
       if (this->phase_status_text_sensor_[phase] != nullptr) {
