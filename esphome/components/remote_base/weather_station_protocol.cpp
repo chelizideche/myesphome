@@ -149,6 +149,10 @@ uint32_t WeatherStationProtocol::get_bits_(uint8_t pos, uint8_t nbits) const {
     return 0;
   }
 
+  // if (zero_pos_at_msb) {
+  pos = this->nbits_ - (pos + nbits);
+  // }
+
   uint32_t c = 0;
 
   if ((pos & 7) == 0) {
@@ -190,27 +194,27 @@ void WeatherStation2032Protocol::setup() {
 
 bool WeatherStation2032Protocol::to_data(WeatherStationData &data) const {
   uint8_t chksum = 0;
-  for (uint8_t i = 0, pos = 103; i < 12; i++, pos -= 8) {
+  for (uint8_t i = 0, pos = 0; i < 12; i++, pos += 8) {
     chksum += this->get_bits_(pos, 8);
   }
-  if (this->get_bits_(7, 8) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %02X != %02X", (uint8_t) this->get_bits_(7, 8), chksum);
+  if (this->get_bits_(96, 8) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %02X != %02X", (uint8_t) this->get_bits_(96, 8), chksum);
     return false;
   }
 
   // TODO: crc8
 
-  // PRE = this->get_bits_(103, 8)
-  data.id = this->get_bits_(87, 16);
-  data.battery_level = (this->get_bits_(79, 8) & 1) ? 100.0f : 0;
-  // FLAG = this->get_bits_(79, 8)
-  data.wind_direction_degrees = 22.5f * this->get_bits_(75, 4);
-  data.temperature = (this->get_bits_(74, 1) ? -0.1f : 0.1f) * this->get_bits_(63, 11);
-  data.humidity = this->get_bits_(55, 8);
-  data.wind_speed = 0.43f * this->get_bits_(47, 8);
-  data.wind_gust = 0.43f * this->get_bits_(39, 8);
-  data.rain = (float) this->get_bits_(15, 24);  // conversion to mm?
-  // ? = this->get_bits_(0, 7)
+  // PRE = this->get_bits_(0, 8)
+  data.id = this->get_bits_(8, 16);
+  data.battery_level = (this->get_bits_(24, 8) & 1) ? 100.0f : 0;  // TODO: other flags?
+  // FLAG = this->get_bits_(24, 8)
+  data.wind_direction_degrees = 22.5f * this->get_bits_(32, 4);
+  data.temperature = (this->get_bits_(36, 1) ? -0.1f : 0.1f) * this->get_bits_(37, 11);
+  data.humidity = this->get_bits_(48, 8);
+  data.wind_speed = 0.43f * this->get_bits_(56, 8);
+  data.wind_gust = 0.43f * this->get_bits_(64, 8);
+  data.rain = (float) this->get_bits_(72, 24);  // conversion to mm?
+  // ? = this->get_bits_(104, 7)
 
   return true;
 }
@@ -228,6 +232,11 @@ bool WeatherStation2032Protocol::to_code(const WeatherStationData &data) {
 // 4-LD6654
 // ... there are many models
 // some don't have a humidity sensor, that field will be zero
+
+// receive @105 67a0d0f2e0000 (52)
+// id=103 b=100 ch=2 t=20.8 h=46 r=0.00 wd=0.0 ws=0.00 wg=0.00
+// 0110 0111 1010 0000 1101 0000 1111 0010 1110 0000 0000 0000 0000
+// ididididi b?ch temptemptempte 1111 humihumih rainrainrainrainrai
 
 void WeatherStation4LDProtocol::setup() {
   this->sync_high_ = 4000;
@@ -247,25 +256,67 @@ bool WeatherStation4LDProtocol::to_data(WeatherStationData &data) const {
     return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(44, 8);
-  data.battery_level = (uint8_t) this->get_bits_(43, 1) == 1 ? 100.0f : 0;
-  // 0 = (uint8_t) this->get_bits_(42, 1); // ?
-  data.channel = (uint8_t) this->get_bits_(40, 2);
-  data.temperature = (float) ((int16_t) (this->get_bits_(28, 12) << 4)) / 160;
-  data.humidity = (uint8_t) this->get_bits_(16, 8);
-  data.rain = (float) this->get_bits_(0, 16) * 0.242f;
+  data.id = (uint8_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 1 ? 100.0f : 0;
+  // 0 = (uint8_t) this->get_bits_(9, 1); // ?
+  data.channel = (uint8_t) this->get_bits_(10, 2);
+  data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
+  data.humidity = (uint8_t) this->get_bits_(28, 8);
+  data.rain = (float) this->get_bits_(36, 16) * 0.242f;
   return true;
 }
 
 bool WeatherStation4LDProtocol::to_code(const WeatherStationData &data) {
-  this->set_bits_(44, 8, data.id);
-  this->set_bits_(43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
-  // this->set_bits_(42, 1, 0);
-  this->set_bits_(40, 2, data.channel);
-  this->set_bits_(28, 12, (uint64_t) ((int16_t) (data.temperature * 160) >> 4));
+  this->set_bits_(0, 8, data.id);
+  this->set_bits_(8, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
+  this->set_bits_(9, 1, 0);
+  this->set_bits_(10, 2, data.channel);
+  this->set_bits_(12, 12, (uint64_t) ((int16_t) (data.temperature * 160) >> 4));
   this->set_bits_(24, 4, 0b1111);
-  this->set_bits_(16, 8, data.humidity);
-  this->set_bits_(0, 16, (uint64_t) (data.rain / 0.242f));
+  this->set_bits_(28, 8, data.humidity);
+  this->set_bits_(36, 16, (uint64_t) (data.rain / 0.242f));
+  return true;
+}
+
+// AHFL
+
+void WeatherStationAHFLProtocol::setup() {
+  this->sync_high_ = 600;
+  this->sync_low_ = 9000;
+  this->zero_high_ = 600;
+  this->zero_low_ = 2100;
+  this->one_high_ = 600;
+  this->one_low_ = 4200;
+  this->nbits_ = 42;
+  this->repeat_ = 8;
+  this->flags_ = TYPE_PPM | REVERSED;
+}
+
+bool WeatherStationAHFLProtocol::to_data(WeatherStationData &data) const {
+  uint8_t chksum = this->get_bits_(32, 4);
+  if (chksum != 0b0100) {
+    ESP_LOGV(TAG, "[6:9] should be 0b0100");
+    return false;
+  }
+  for (int i = 0; i < 32; i += 4) {
+    chksum += (uint8_t) this->get_bits_(i, 4);
+  }
+  chksum &= 0x3f;
+  if (chksum != this->get_bits_(36, 6)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(36, 6), chksum);
+    return false;
+  }
+
+  data.id = (uint16_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 0 ? 100.0f : 0;
+  data.channel = (uint8_t) this->get_bits_(10, 2) + 1;
+  data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
+  data.humidity = (uint8_t) this->get_bits_(24, 7);
+  return true;
+}
+
+bool WeatherStationAHFLProtocol::to_code(const WeatherStationData &data) {
+  ESP_LOGD(TAG, "TODO: encode ahfl");
   return true;
 }
 
@@ -285,22 +336,22 @@ void WeatherStationBresser3CHProtocol::setup() {
 
 bool WeatherStationBresser3CHProtocol::to_data(WeatherStationData &data) const {
   uint8_t chksum = 0;
-  for (int i = 1; i < 5; i++) {
+  for (int i = 0; i < 4; i++) {
     chksum = (chksum + (uint8_t) this->get_bits_(i * 8, 8));
   }
   chksum &= 0xff;
-  if ((uint8_t) this->get_bits_(0, 8) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(0, 8), chksum);
+  if ((uint8_t) this->get_bits_(32, 8) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(32, 8), chksum);
     return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(32, 8);
-  data.battery_level = (uint8_t) this->get_bits_(31, 1) == 0 ? 100.0f : 0;
-  // user initiated transimission = this->get_bits_(30, 1);
-  data.channel = (uint8_t) this->get_bits_(28, 2);  // is ch0 a valid option?
-  data.temperature = (float) this->get_bits_(16, 12) * 0.1f - 90;
+  data.id = (uint8_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = this->get_bits_(9, 1);
+  data.channel = (uint8_t) this->get_bits_(10, 2);  // is ch0 a valid option?
+  data.temperature = (float) this->get_bits_(12, 12) * 0.1f - 90;
   data.temperature = (data.temperature - 32.0f) * 5.0f / 9.0f;  // F to C
-  data.humidity = (uint8_t) this->get_bits_(8, 8);
+  data.humidity = (uint8_t) this->get_bits_(24, 8);
   return true;
 }
 
@@ -326,17 +377,17 @@ void WeatherStationEurochronProtocol::setup() {
 bool WeatherStationEurochronProtocol::to_data(WeatherStationData &data) const {
   // this may catch Nexus packets, if the 3rd nibblet is 1111, temperature is simply negative
 
-  uint8_t flags = this->get_bits_(20, 8);
+  uint8_t flags = this->get_bits_(8, 8);
   if ((flags & 0b01101111) != 0) {
-    ESP_LOGV(TAG, "[20:23] and [25:26] should be 0");
+    ESP_LOGV(TAG, "[9:10] and [12:15] should be 0");
     return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(28, 8);
-  data.battery_level = (uint8_t) this->get_bits_(27, 1) == 0 ? 100.0f : 0;
-  // user initiated transimission = this->get_bits_(24, 1);
-  data.temperature = (float) ((int16_t) (this->get_bits_(0, 12) << 4)) / 160;
-  data.humidity = (uint8_t) this->get_bits_(12, 8);
+  data.id = (uint8_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = this->get_bits_(11, 1);
+  data.humidity = (uint8_t) this->get_bits_(16, 8);
+  data.temperature = (float) ((int16_t) (this->get_bits_(24, 12) << 4)) / 160;
   return true;
 }
 
@@ -348,6 +399,12 @@ bool WeatherStationEurochronProtocol::to_code(const WeatherStationData &data) {
 // H10515
 
 // Lidl H10515/DCF
+
+// receive @74 d990a3469 (36)
+// 1101 1001 1001 0000 1010 0011 0100 0110 1001
+// chks humihumih Stemptemptempt 00?0 ??ch idid
+// id=9 b=0 ch=1 t=16.3 h=99 r=0.00 wd=0.0 ws=0.00 wg=0.00
+// ch bits are reversed
 
 void WeatherStationH10515Protocol::setup() {
   this->sync_high_ = 500;
@@ -363,28 +420,33 @@ void WeatherStationH10515Protocol::setup() {
 
 bool WeatherStationH10515Protocol::to_data(WeatherStationData &data) const {
   uint8_t chksum = 0;
-  for (int i = 0; i < 8; i++) {
+  for (int i = 1; i < 9; i++) {
     chksum = (chksum + (uint8_t) this->get_bits_(i * 4, 4)) & 0b1111;
   }
   chksum = ~chksum & 0b1111;
-  if ((uint8_t) this->get_bits_(32, 4) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(32, 4), chksum);
+  if ((uint8_t) this->get_bits_(0, 4) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(0, 4), chksum);
     return false;
   }
-  if (this->get_bits_(8, 4) != 0) {  // unknown, always zero(?), sometimes 0b0010
-    ESP_LOGV(TAG, "[8:11] should be 0");
+
+  if (this->get_bits_(12, 12) == 0xdff) {  // sometimes initially it displays LL and sends this
+    return false;
+  }
+
+  if (this->get_bits_(24, 4) != 0) {  // unknown, always zero(?), sometimes 0b0010 or 0b0100
+    ESP_LOGV(TAG, "[24:27] should be 0");
     // return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(0, 4);  // keeps changing between resets
-  data.channel = (uint8_t) ((this->get_bits_(4, 1) << 1) | this->get_bits_(5, 1));
+  data.humidity = 10.0f * this->get_bits_(4, 4) + this->get_bits_(8, 4);
+  data.temperature = (this->get_bits_(12, 1) ? -0.1f : 0.1f) * this->get_bits_(13, 11);
+  // ? == this->get_bits_(28, 2) // unknown, battery(?)
+  data.channel = (uint8_t) ((this->get_bits_(31, 1) << 1) | this->get_bits_(30, 1));
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
     return false;
   }
-  // ? == this->get_bits_(6, 2) // unknown, battery(?)
-  data.temperature = (this->get_bits_(22, 1) ? -0.1f : 0.1f) * this->get_bits_(12, 11);
-  data.humidity = 10.0f * this->get_bits_(28, 4) + this->get_bits_(24, 4);
+  data.id = (uint8_t) this->get_bits_(32, 4);  // keeps changing between resets
   return true;
 }
 
@@ -402,6 +464,17 @@ bool WeatherStationH10515Protocol::to_code(const WeatherStationData &data) {
 // https://github.com/gabest11/datasheet/blob/main/auriol_protocol_v20.pdf
 // Unitec W186-F
 // https://github.com/merbanan/rtl_433/blob/master/src/devices/alecto.c
+
+// Rain (TT=11 ttt=011)
+// receive @76 400023602 (36)
+// id=2 b=100 ch=0 t=0.0 h=0 r=0.50 wd=0.0 ws=0.00 wg=0.00
+// 0100 0000 0000 0000 0010 0011 0110 0000 0010
+// chks rainrainrainrainrai ?ttt uTTb ididididi
+
+// BAD temp&humi (H10515 data, chksum okay, TODO: reject)
+// E99DFF06E
+// 1110 1001 1001 1101 1111 1111 0000 0110 1110
+// chks humihumih temptemptempte uTTb ididididi
 
 void WeatherStationH13726Protocol::setup() {
   this->sync_high_ = 500;
@@ -421,25 +494,25 @@ bool WeatherStationH13726Protocol::to_data(WeatherStationData &data) const {
   uint8_t chksum1 = 0b1111;
   uint8_t chksum2 = 0b0111;
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 1; i < 9; i++) {
     uint8_t b = (uint8_t) this->get_bits_(i * 4, 4);
     chksum1 = (chksum1 - b) & 0b1111;
     chksum2 = (chksum2 + b) & 0b1111;
   }
 
-  uint8_t chksum = (uint8_t) this->get_bits_(32, 4);
+  uint8_t chksum = (uint8_t) this->get_bits_(0, 4);
 
-  if (this->get_bits_(9, 2) != 0b11) {  // temperature and humidity
+  if (this->get_bits_(25, 2) != 0b11) {  // temperature and humidity
     if (chksum != chksum1) {
       ESP_LOGV(TAG, "chksum1 mismatch %x != %x", chksum, chksum1);
       return false;
     }
+    data.humidity = 10.0f * this->get_bits_(4, 4) + this->get_bits_(8, 4);
     data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
-    data.humidity = 10.0f * this->get_bits_(28, 4) + this->get_bits_(24, 4);
     // TODO: wind packets may also be in this transmission burst, not sure
     // return false;
   } else {
-    uint8_t type = this->get_bits_(12, 3);
+    uint8_t type = this->get_bits_(21, 3);
     if (type == 0b011) {  // rain
       // D000B3602 2.75mm
       // 1101 0000 0000 0000 1011 0011 0110 0000 0010
@@ -447,31 +520,31 @@ bool WeatherStationH13726Protocol::to_data(WeatherStationData &data) const {
         ESP_LOGV(TAG, "chksum2 mismatch %x != %x", chksum, chksum2);
         return false;
       }
-      if (this->get_bits_(15, 1) != 0) {  // always 0?
+      if (this->get_bits_(20, 1) != 0) {  // always 0?
         return false;
       }
-      data.rain = (float) this->get_bits_(16, 16) * 0.25f;
+      data.rain = (float) this->get_bits_(4, 16) * 0.25f;
     } else {
       if (chksum != chksum1) {
         ESP_LOGV(TAG, "chksum1 mismatch %x != %x", chksum, chksum1);
         return false;
       }
       if (type == 0b001) {  // wind part 1
-        data.wind_speed = (float) this->get_bits_(24, 8) * 0.2f;
+        data.wind_speed = (float) this->get_bits_(4, 8) * 0.2f;
         // we still need to see the "wind part 2"
         return false;
       } else if (type == 0b111) {  // wind part 2
-        data.wind_direction_degrees = this->get_bits_(15, 9);
-        data.wind_gust = (float) this->get_bits_(24, 8) * 0.2f;
+        data.wind_gust = (float) this->get_bits_(4, 8) * 0.2f;
+        data.wind_direction_degrees = this->get_bits_(12, 9);
       } else {
         return false;
       }
     }
   }
 
-  data.id = this->get_bits_(0, 8);  // keeps changing between resets
-  data.battery_level = this->get_bits_(8, 1) == 0 ? 100.0f : 0;
-  // user initiated transimission = this->get_bits_(11, 1) == 1;
+  data.id = this->get_bits_(28, 8);  // keeps changing between resets
+  data.battery_level = this->get_bits_(27, 1) == 0 ? 100.0f : 0;
+  // user initiated transimission = this->get_bits_(24, 1) == 1;
   return true;
 }
 
@@ -483,6 +556,11 @@ bool WeatherStationH13726Protocol::to_code(const WeatherStationData &data) {
 // L08037A
 
 // Lidl 40782 L08037A
+
+// receive @58 a0d0dd4 (28)
+// id=13 b=0 ch=1 t=22.1 h=0 r=0.00 wd=0.0 ws=0.00 wg=0.00
+// 1010 0000 1101 0000 1101 1101 0100
+// chkc ididididi temptemptempte ch??
 
 void WeatherStationL08037AProtocol::setup() {
   this->sync_high_ = 500;
@@ -498,21 +576,21 @@ void WeatherStationL08037AProtocol::setup() {
 
 bool WeatherStationL08037AProtocol::to_data(WeatherStationData &data) const {
   uint8_t chksum = 0b1111;
-  for (int i = 0; i < 6; i++) {
+  for (int i = 1; i < 7; i++) {
     chksum = (chksum + (uint8_t) this->get_bits_(i * 4, 4)) & 0b1111;
   }
-  if ((uint8_t) this->get_bits_(24, 4) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(24, 4), chksum);
+  if ((uint8_t) this->get_bits_(0, 4) != chksum) {
+    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) this->get_bits_(0, 4), chksum);
     return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(16, 8);
-  data.channel = (uint8_t) this->get_bits_(2, 2);
+  data.id = (uint8_t) this->get_bits_(4, 8);
+  data.channel = (uint8_t) this->get_bits_(24, 2);
   if (data.channel == 0) {
     ESP_LOGV(TAG, "channel invalid %d", data.channel);
     return false;
   }
-  data.temperature = (float) ((int16_t) (this->get_bits_(4, 12) << 4)) / 160;
+  data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
   return true;
 }
 
@@ -539,22 +617,72 @@ bool WeatherStationNexusProtocol::to_data(WeatherStationData &data) const {
   // the beginning of Lidl Auriol 4LD can be accepted here without chksum, it is only filtered out by checking the
   // presence of additional valid bits before the next sync
 
-  uint8_t chk = this->get_bits_(8, 4);
+  uint8_t chk = this->get_bits_(24, 4);
   if (chk != 0b1111 && chk != 0b1010) {
-    ESP_LOGV(TAG, "[8:11] should be 0b1111 or 0b1010");
+    ESP_LOGV(TAG, "[24:27] should be 0b1111 or 0b1010");
     return false;
   }
 
-  data.id = (uint8_t) this->get_bits_(28, 8);
-  data.battery_level = (uint8_t) this->get_bits_(27, 1) == 1 ? 100.0f : 0;
-  data.channel = (uint8_t) this->get_bits_(24, 2) + 1;
+  data.id = (uint8_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 1 ? 100.0f : 0;
+  data.channel = (uint8_t) this->get_bits_(10, 2) + 1;
   data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
-  data.humidity = (uint8_t) this->get_bits_(0, 8);
+  data.humidity = (uint8_t) this->get_bits_(28, 8);
   return true;
 }
 
 bool WeatherStationNexusProtocol::to_code(const WeatherStationData &data) {
   ESP_LOGD(TAG, "TODO: encode nexus");
+  return true;
+}
+
+// Z31743
+
+void WeatherStationZ31743Protocol::setup() {
+  this->sync_high_ = 400;
+  this->sync_low_ = 9500;
+  this->zero_high_ = 400;
+  this->zero_low_ = 2000;
+  this->one_high_ = 400;
+  this->one_low_ = 4000;
+  this->nbits_ = 32;
+  this->repeat_ = 8;
+  this->flags_ = TYPE_PPM | REVERSED;
+}
+
+bool WeatherStationZ31743Protocol::to_data(WeatherStationData &data) const {
+  /*
+    // TODO: reverse bit positions after fixing the line below
+    uint8_t msg[5];
+    for (int i = 0; i < 4; i++) {
+      msg[i] = (uint8_t) this->get_bits_(32 - 8 * i, 8); // <-- this line is wrong
+    }
+    msg[4] = 0;
+
+    uint8_t crc = 0;
+    for (uint8_t b : msg) {
+      crc ^= b;
+      for (int bit = 0; bit < 8; bit++) {
+        if (crc & 0x80) {
+          crc = (crc << 1) ^ 0x31;
+        } else {
+          crc = (crc << 1);
+        }
+      }
+    }
+    if (crc != (uint8_t) this->get_bits_(0, 8)) {
+      ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(0, 8), crc);
+      return false;
+    }
+  */
+  data.id = (uint16_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(8, 1) == 1 ? 100.0f : 0;
+  data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) << 4)) / 160;
+  return true;
+}
+
+bool WeatherStationZ31743Protocol::to_code(const WeatherStationData &data) {
+  ESP_LOGD(TAG, "TODO: encode z31743");
   return true;
 }
 
@@ -575,10 +703,10 @@ void WeatherStationZ32171Protocol::setup() {
 bool WeatherStationZ32171Protocol::to_data(WeatherStationData &data) const {
   uint8_t msg[4];
   for (int i = 0; i < 4; i++) {
-    msg[i] = (uint8_t) this->get_bits_(32 - 8 * i, 8);
+    msg[i] = (uint8_t) this->get_bits_(8 * i, 8);
   }
   // for CRC computation, channel bits are at the CRC position
-  msg[1] = (msg[1] & 0x0F) | (uint8_t) this->get_bits_(0, 4) << 4;
+  msg[1] = (msg[1] & 0x0F) | (uint8_t) this->get_bits_(36, 4) << 4;
 
   uint8_t crc = 0;
   for (uint8_t b : msg) {
@@ -591,111 +719,22 @@ bool WeatherStationZ32171Protocol::to_data(WeatherStationData &data) const {
       }
     }
   }
-  crc = (crc >> 4) ^ (uint8_t) this->get_bits_(4, 4);
-  if (crc != (uint8_t) this->get_bits_(28, 4)) {
-    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(28, 4), crc);
+  crc = (crc >> 4) ^ (uint8_t) this->get_bits_(32, 4);
+  if (crc != (uint8_t) this->get_bits_(8, 4)) {
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(8, 4), crc);
     return false;
   }
 
-  data.id = (uint16_t) this->get_bits_(32, 8);
-  data.battery_level = (uint8_t) this->get_bits_(26, 1) == 0 ? 100.0f : 0;
-  data.channel = (uint8_t) this->get_bits_(0, 2);
-  data.temperature = (float) ((int16_t) (this->get_bits_(12, 12) - 1220) * 5 / 90.0);
-  data.humidity = (uint8_t) this->get_bits_(8, 4) * 10 + (uint8_t) this->get_bits_(4, 4);
+  data.id = (uint16_t) this->get_bits_(0, 8);
+  data.battery_level = (uint8_t) this->get_bits_(13, 1) == 0 ? 100.0f : 0;
+  data.temperature = (float) ((int16_t) (this->get_bits_(16, 12) - 1220) * 5 / 90.0);
+  data.humidity = (uint8_t) this->get_bits_(28, 4) * 10 + (uint8_t) this->get_bits_(32, 4);
+  data.channel = (uint8_t) this->get_bits_(38, 2);
   return true;
 }
 
 bool WeatherStationZ32171Protocol::to_code(const WeatherStationData &data) {
   ESP_LOGD(TAG, "TODO: encode z32171");
-  return true;
-}
-
-// AHFL
-
-void WeatherStationAHFLProtocol::setup() {
-  this->sync_high_ = 600;
-  this->sync_low_ = 9000;
-  this->zero_high_ = 600;
-  this->zero_low_ = 2100;
-  this->one_high_ = 600;
-  this->one_low_ = 4200;
-  this->nbits_ = 42;
-  this->repeat_ = 8;
-  this->flags_ = TYPE_PPM | REVERSED;
-}
-
-bool WeatherStationAHFLProtocol::to_data(WeatherStationData &data) const {
-  uint8_t chksum = this->get_bits_(6, 4);
-  if (chksum != 0b0100) {
-    ESP_LOGV(TAG, "[6:9] should be 0b0100");
-    return false;
-  }
-  for (int i = 10; i <= 38; i += 4) {
-    chksum += (uint8_t) this->get_bits_(i, 4);
-  }
-  if ((chksum & 0x3F) != this->get_bits_(0, 6)) {
-    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(0, 6), chksum & 0x3F);
-    return false;
-  }
-
-  data.id = (uint16_t) this->get_bits_(34, 8);
-  data.battery_level = (uint8_t) this->get_bits_(33, 1) == 0 ? 100.0f : 0;
-  data.channel = (uint8_t) this->get_bits_(30, 2) + 1;
-  data.temperature = (float) ((int16_t) (this->get_bits_(18, 12) << 4)) / 160;
-  data.humidity = (uint8_t) this->get_bits_(11, 7);
-  return true;
-}
-
-bool WeatherStationAHFLProtocol::to_code(const WeatherStationData &data) {
-  ESP_LOGD(TAG, "TODO: encode ahfl");
-  return true;
-}
-
-// Z31743
-
-void WeatherStationZ31743Protocol::setup() {
-  this->sync_high_ = 400;
-  this->sync_low_ = 9500;
-  this->zero_high_ = 400;
-  this->zero_low_ = 2000;
-  this->one_high_ = 400;
-  this->one_low_ = 4000;
-  this->nbits_ = 32;
-  this->repeat_ = 8;
-  this->flags_ = TYPE_PPM | REVERSED;
-}
-
-bool WeatherStationZ31743Protocol::to_data(WeatherStationData &data) const {
-  uint8_t msg[5];
-  for (int i = 0; i < 4; i++) {
-    msg[i] = (uint8_t) this->get_bits_(32 - 8 * i, 8);
-  }
-  msg[4] = 0;
-
-  uint8_t crc = 0;
-  for (uint8_t b : msg) {
-    crc ^= b;
-    for (int bit = 0; bit < 8; bit++) {
-      if (crc & 0x80) {
-        crc = (crc << 1) ^ 0x31;
-      } else {
-        crc = (crc << 1);
-      }
-    }
-  }
-  if (crc != (uint8_t) this->get_bits_(0, 8)) {
-    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) this->get_bits_(0, 8), crc);
-    return false;
-  }
-
-  data.id = (uint16_t) this->get_bits_(24, 8);
-  data.battery_level = (uint8_t) this->get_bits_(23, 1) == 1 ? 100.0f : 0;
-  data.temperature = (float) ((int16_t) (this->get_bits_(8, 12) << 4)) / 160;
-  return true;
-}
-
-bool WeatherStationZ31743Protocol::to_code(const WeatherStationData &data) {
-  ESP_LOGD(TAG, "TODO: encode z31743");
   return true;
 }
 

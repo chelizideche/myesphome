@@ -2036,7 +2036,7 @@ async def Toto_action(var, config, args):
 
 WEATHER_STATION_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_ID): cv.uint8_t,
+        cv.Optional(CONF_ID): cv.uint16_t,
         cv.Optional(CONF_BATTERY_LEVEL): cv.float_,
         cv.Optional(CONF_CHANNEL): cv.uint8_t,
         cv.Optional(CONF_TEMPERATURE): cv.float_,
@@ -2059,7 +2059,7 @@ def weather_station_trigger(var, config):
 
 def weather_station_action(var, config, args):
     if CONF_ID in config:
-        cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
+        cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint16))))
     if CONF_BATTERY_LEVEL in config:
         cg.add(
             var.set_battery_level(
@@ -2139,12 +2139,12 @@ def registere_weather_station_protocol(name):
 
 registere_weather_station_protocol("2032")
 registere_weather_station_protocol("4LD")
+registere_weather_station_protocol("AHFL")
 registere_weather_station_protocol("Bresser3CH")
 registere_weather_station_protocol("Eurochron")
 registere_weather_station_protocol("H10515")
 registere_weather_station_protocol("H13726")
 registere_weather_station_protocol("L08037A")
 registere_weather_station_protocol("Nexus")
-registere_weather_station_protocol("Z32171")
-registere_weather_station_protocol("AHFL")
 registere_weather_station_protocol("Z31743")
+registere_weather_station_protocol("Z32171")
