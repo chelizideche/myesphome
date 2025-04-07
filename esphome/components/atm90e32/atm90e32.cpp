@@ -259,7 +259,7 @@ float ATM90E32Component::get_setup_priority() const { return setup_priority::IO;
 // R/C registers can conly be cleared after the LastSPIData register is updated (register 78H)
 // Peakdetect period: 05H. Bit 15:8 are PeakDet_period in ms. 7:0 are Sag_period
 // Default is 143FH (20ms, 63ms)
-uint16_t ATM90E32Component::read16_(uint16_t /*a_register*/) {
+uint16_t ATM90E32Component::read16_(uint16_t a_register) {
   uint8_t addrh = (1 << 7) | ((a_register >> 8) & 0x03);
   uint8_t addrl = (a_register & 0xFF);
   uint8_t data[2];
@@ -276,7 +276,7 @@ uint16_t ATM90E32Component::read16_(uint16_t /*a_register*/) {
   return output;
 }
 
-int ATM90E32Component::read32_(uint16_t /*addr_h*/, uint16_t /*addr_l*/) {
+int ATM90E32Component::read32_(uint16_t addr_h, uint16_t addr_l) {
   const uint16_t val_h = this->read16_(addr_h);
   const uint16_t val_l = this->read16_(addr_l);
   const int32_t val = (val_h << 16) | val_l;
@@ -289,7 +289,7 @@ int ATM90E32Component::read32_(uint16_t /*addr_h*/, uint16_t /*addr_l*/) {
   return val;
 }
 
-void ATM90E32Component::write16_(uint16_t /*a_register*/, uint16_t /*val*/) {
+void ATM90E32Component::write16_(uint16_t a_register, uint16_t val) {
   ESP_LOGVV(TAG, "write16_ 0x%04" PRIX16 " val 0x%04" PRIX16, a_register, val);
   this->enable();
   this->write_byte16(a_register);
@@ -299,46 +299,42 @@ void ATM90E32Component::write16_(uint16_t /*a_register*/, uint16_t /*val*/) {
     ESP_LOGW(TAG, "SPI write error 0x%04X val 0x%04X", a_register, val);
 }
 
-float ATM90E32Component::get_local_phase_voltage_(uint8_t /*phase*/) { return this->phase_[phase].voltage_; }
+float ATM90E32Component::get_local_phase_voltage_(uint8_t phase) { return this->phase_[phase].voltage_; }
 
-float ATM90E32Component::get_local_phase_current_(uint8_t /*phase*/) { return this->phase_[phase].current_; }
+float ATM90E32Component::get_local_phase_current_(uint8_t phase) { return this->phase_[phase].current_; }
 
-float ATM90E32Component::get_local_phase_active_power_(uint8_t /*phase*/) { return this->phase_[phase].active_power_; }
+float ATM90E32Component::get_local_phase_active_power_(uint8_t phase) { return this->phase_[phase].active_power_; }
 
-float ATM90E32Component::get_local_phase_reactive_power_(uint8_t /*phase*/) {
-  return this->phase_[phase].reactive_power_;
-}
+float ATM90E32Component::get_local_phase_reactive_power_(uint8_t phase) { return this->phase_[phase].reactive_power_; }
 
-float ATM90E32Component::get_local_phase_apparent_power_(uint8_t /*phase*/) {
-  return this->phase_[phase].apparent_power_;
-}
+float ATM90E32Component::get_local_phase_apparent_power_(uint8_t phase) { return this->phase_[phase].apparent_power_; }
 
-float ATM90E32Component::get_local_phase_power_factor_(uint8_t /*phase*/) { return this->phase_[phase].power_factor_; }
+float ATM90E32Component::get_local_phase_power_factor_(uint8_t phase) { return this->phase_[phase].power_factor_; }
 
-float ATM90E32Component::get_local_phase_forward_active_energy_(uint8_t /*phase*/) {
+float ATM90E32Component::get_local_phase_forward_active_energy_(uint8_t phase) {
   return this->phase_[phase].forward_active_energy_;
 }
 
-float ATM90E32Component::get_local_phase_reverse_active_energy_(uint8_t /*phase*/) {
+float ATM90E32Component::get_local_phase_reverse_active_energy_(uint8_t phase) {
   return this->phase_[phase].reverse_active_energy_;
 }
 
-float ATM90E32Component::get_local_phase_angle_(uint8_t /*phase*/) { return this->phase_[phase].phase_angle_; }
+float ATM90E32Component::get_local_phase_angle_(uint8_t phase) { return this->phase_[phase].phase_angle_; }
 
-float ATM90E32Component::get_local_phase_harmonic_active_power_(uint8_t /*phase*/) {
+float ATM90E32Component::get_local_phase_harmonic_active_power_(uint8_t phase) {
   return this->phase_[phase].harmonic_active_power_;
 }
 
-float ATM90E32Component::get_local_phase_peak_current_(uint8_t /*phase*/) { return this->phase_[phase].peak_current_; }
+float ATM90E32Component::get_local_phase_peak_current_(uint8_t phase) { return this->phase_[phase].peak_current_; }
 
-float ATM90E32Component::get_phase_voltage_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_voltage_(uint8_t phase) {
   const uint16_t voltage = this->read16_(ATM90E32_REGISTER_URMS + phase);
   if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != voltage)
     ESP_LOGW(TAG, "SPI URMS voltage register read error.");
   return (float) voltage / 100;
 }
 
-float ATM90E32Component::get_phase_voltage_avg_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_voltage_avg_(uint8_t phase) {
   const uint8_t reads = 10;
   uint32_t accumulation = 0;
   uint16_t voltage = 0;
@@ -353,7 +349,7 @@ float ATM90E32Component::get_phase_voltage_avg_(uint8_t /*phase*/) {
   return this->phase_[phase].voltage_;
 }
 
-float ATM90E32Component::get_phase_current_avg_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_current_avg_(uint8_t phase) {
   const uint8_t reads = 10;
   uint32_t accumulation = 0;
   uint16_t current = 0;
@@ -368,36 +364,36 @@ float ATM90E32Component::get_phase_current_avg_(uint8_t /*phase*/) {
   return this->phase_[phase].current_;
 }
 
-float ATM90E32Component::get_phase_current_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_current_(uint8_t phase) {
   const uint16_t current = this->read16_(ATM90E32_REGISTER_IRMS + phase);
   if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != current)
     ESP_LOGW(TAG, "SPI IRMS current register read error.");
   return (float) current / 1000;
 }
 
-float ATM90E32Component::get_phase_active_power_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_active_power_(uint8_t phase) {
   const int val = this->read32_(ATM90E32_REGISTER_PMEAN + phase, ATM90E32_REGISTER_PMEANLSB + phase);
   return val * 0.00032f;
 }
 
-float ATM90E32Component::get_phase_reactive_power_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_reactive_power_(uint8_t phase) {
   const int val = this->read32_(ATM90E32_REGISTER_QMEAN + phase, ATM90E32_REGISTER_QMEANLSB + phase);
   return val * 0.00032f;
 }
 
-float ATM90E32Component::get_phase_apparent_power_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_apparent_power_(uint8_t phase) {
   const int val = this->read32_(ATM90E32_REGISTER_SMEAN + phase, ATM90E32_REGISTER_SMEANLSB + phase);
   return val * 0.00032f;
 }
 
-float ATM90E32Component::get_phase_power_factor_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_power_factor_(uint8_t phase) {
   uint16_t powerfactor = this->read16_(ATM90E32_REGISTER_PFMEAN + phase);  // unsigned to compare to lastspidata
   if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != powerfactor)
     ESP_LOGW(TAG, "SPI power factor read error.");
   return (float) ((int16_t) powerfactor) / 1000;  // make it signed again
 }
 
-float ATM90E32Component::get_phase_forward_active_energy_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_forward_active_energy_(uint8_t phase) {
   const uint16_t val = this->read16_(ATM90E32_REGISTER_APENERGY + phase);
   if ((UINT32_MAX - this->phase_[phase].cumulative_forward_active_energy_) > val) {
     this->phase_[phase].cumulative_forward_active_energy_ += val;
@@ -408,7 +404,7 @@ float ATM90E32Component::get_phase_forward_active_energy_(uint8_t /*phase*/) {
   return ((float) this->phase_[phase].cumulative_forward_active_energy_ * (10.0f / 3200.0f));
 }
 
-float ATM90E32Component::get_phase_reverse_active_energy_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_reverse_active_energy_(uint8_t phase) {
   const uint16_t val = this->read16_(ATM90E32_REGISTER_ANENERGY + phase);
   if (UINT32_MAX - this->phase_[phase].cumulative_reverse_active_energy_ > val) {
     this->phase_[phase].cumulative_reverse_active_energy_ += val;
@@ -419,17 +415,17 @@ float ATM90E32Component::get_phase_reverse_active_energy_(uint8_t /*phase*/) {
   return ((float) this->phase_[phase].cumulative_reverse_active_energy_ * (10.0f / 3200.0f));
 }
 
-float ATM90E32Component::get_phase_harmonic_active_power_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_harmonic_active_power_(uint8_t phase) {
   int val = this->read32_(ATM90E32_REGISTER_PMEANH + phase, ATM90E32_REGISTER_PMEANHLSB + phase);
   return val * 0.00032f;
 }
 
-float ATM90E32Component::get_phase_angle_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_angle_(uint8_t phase) {
   uint16_t val = this->read16_(ATM90E32_REGISTER_PANGLE + phase) / 10.0;
   return (float) (val > 180) ? val - 360.0 : val;
 }
 
-float ATM90E32Component::get_phase_peak_current_(uint8_t /*phase*/) {
+float ATM90E32Component::get_phase_peak_current_(uint8_t phase) {
   int16_t val = (float) this->read16_(ATM90E32_REGISTER_IPEAK + phase);
   if (!this->peak_current_signed_)
     val = abs(val);
@@ -578,8 +574,7 @@ void ATM90E32Component::write_gains_to_registers_() {
   this->write16_(ATM90E32_REGISTER_CFGREGACCEN, 0x0000);
 }
 
-void ATM90E32Component::write_offsets_to_registers_(uint8_t /*phase*/, int16_t /*voltage_offset*/,
-                                                    int16_t /*current_offset*/) {
+void ATM90E32Component::write_offsets_to_registers_(uint8_t phase, int16_t voltage_offset, int16_t current_offset) {
   // Save to runtime
   this->offset_phase_[phase].voltage_offset_ = voltage_offset;
   this->phase_[phase].voltage_offset_ = voltage_offset;
@@ -595,8 +590,7 @@ void ATM90E32Component::write_offsets_to_registers_(uint8_t /*phase*/, int16_t /
   this->write16_(ATM90E32_REGISTER_CFGREGACCEN, 0x0000);
 }
 
-void ATM90E32Component::write_power_offsets_to_registers_(uint8_t /*phase*/, int16_t /*p_offset*/,
-                                                          int16_t /*q_offset*/) {
+void ATM90E32Component::write_power_offsets_to_registers_(uint8_t phase, int16_t p_offset, int16_t q_offset) {
   // Save to runtime
   this->phase_[phase].active_power_offset_ = p_offset;
   this->phase_[phase].reactive_power_offset_ = q_offset;
@@ -703,7 +697,7 @@ void ATM90E32Component::clear_power_offset_calibrations() {
   ESP_LOGI("CALIBRATION", "Power offsets cleared.");
 }
 
-int16_t ATM90E32Component::calibrate_offset(uint8_t /*phase*/, bool voltage) {
+int16_t ATM90E32Component::calibrate_offset(uint8_t phase, bool voltage) {
   const uint8_t num_reads = 5;
   uint64_t total_value = 0;
 
@@ -719,7 +713,7 @@ int16_t ATM90E32Component::calibrate_offset(uint8_t /*phase*/, bool voltage) {
   return static_cast<int16_t>(offset);  // Takes lower 16 bits
 }
 
-int16_t ATM90E32Component::calibrate_power_offset(uint8_t /*phase*/, bool reactive) {
+int16_t ATM90E32Component::calibrate_power_offset(uint8_t phase, bool reactive) {
   const uint8_t num_reads = 5;
   uint64_t total_value = 0;
 
@@ -798,7 +792,7 @@ void ATM90E32Component::check_freq_status() {
 }
 
 void ATM90E32Component::check_over_current() {
-  constexpr float MAX_CURRENT_THRESHOLD = 65.53f;
+  constexpr float max_current_threshold = 65.53f;
 
   for (uint8_t phase = 0; phase < 3; phase++) {
     float current_val =
@@ -814,7 +808,7 @@ void ATM90E32Component::check_over_current() {
   }
 }
 
-uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t /*ugain*/, float multiplier) {
+uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t ugain, float multiplier) {
   // this assumes that 60Hz electrical systems use 120V mains,
   // which is usually, but not always the case
   float nominal_voltage = (line_freq == 60) ? 120.0f : 220.0f;
