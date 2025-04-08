@@ -17,7 +17,7 @@ from esphome.const import (
 )
 
 DEPENDENCIES = ["i2c"]
-CODEOWNERS = ["@daniel_barradas"]
+CODEOWNERS = ["@DanBar1971"]
 
 dfrobot_ns = cg.esphome_ns.namespace("dfrobot_air_quality_sensor")
 DFRobotAirQualitySensor = dfrobot_ns.class_("DFRobotAirQualitySensor", cg.PollingComponent, i2c.I2CDevice)
