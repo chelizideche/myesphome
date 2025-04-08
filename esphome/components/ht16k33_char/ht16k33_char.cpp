@@ -230,7 +230,7 @@ uint8_t HT16k33CharComponent::update_display() {
  *Sets the brightness of the display
  *
  *  brightness_to_set: The brightness value to set. Valid values are 0-16. Setting brightness to 0
- *  turns off the display. Setting it to 16 is full brightness. Setting an invalid brightness value 
+ *  turns off the display. Setting it to 16 is full brightness. Setting an invalid brightness value
  *  will result in the device being set to full brightness.
  ************************************/
 void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
@@ -243,7 +243,7 @@ void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
     if (brightness_to_set >= 16) {
       buffer = HT16K33_DIMMING_SET | 0x0F;
     } else {
-      buffer = HT16K33_DIMMING_SET | (brightness_to_set-1);
+      buffer = HT16K33_DIMMING_SET | (brightness_to_set - 1);
     }
 
     for (auto *display : this->displays_) {
