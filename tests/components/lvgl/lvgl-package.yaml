@@ -128,6 +128,10 @@ lvgl:
           on_click:
             then:
               - lvgl.widget.hide: message_box
+              - lvgl.style.update:
+                  id: style_test
+                  bg_color: blue
+                  bg_opa: !lambda return 0.5;
     - id: simple_msgbox
       title: Simple
 

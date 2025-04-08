@@ -176,6 +176,10 @@ STYLE_REMAP = {
     "image_recolor_opa": "img_recolor_opa",
 }
 
+cell_alignments = df.LV_CELL_ALIGNMENTS.one_of
+grid_alignments = df.LV_GRID_ALIGNMENTS.one_of
+flex_alignments = df.LV_FLEX_ALIGNMENTS.one_of
+
 # Complete object style schema
 STYLE_SCHEMA = cv.Schema({cv.Optional(k): v for k, v in STYLE_PROPS.items()}).extend(
     {
@@ -183,6 +187,16 @@ STYLE_SCHEMA = cv.Schema({cv.Optional(k): v for k, v in STYLE_PROPS.items()}).ex
         cv.Optional(df.CONF_SCROLLBAR_MODE): df.LvConstant(
             "LV_SCROLLBAR_MODE_", "OFF", "ON", "ACTIVE", "AUTO"
         ).one_of,
+    }
+)
+
+# Also allow widget specific properties for use in style definitions
+FULL_STYLE_SCHEMA = STYLE_SCHEMA.extend(
+    {
+        cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
+        cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
+        cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
+        cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
     }
 )
 
@@ -306,10 +320,6 @@ def grid_free_space(value):
 grid_spec = cv.Any(
     lvalid.size, df.LvConstant("LV_GRID_", "CONTENT").one_of, grid_free_space
 )
-
-cell_alignments = df.LV_CELL_ALIGNMENTS.one_of
-grid_alignments = df.LV_GRID_ALIGNMENTS.one_of
-flex_alignments = df.LV_FLEX_ALIGNMENTS.one_of
 
 LAYOUT_SCHEMA = {
     cv.Optional(df.CONF_LAYOUT): cv.typed_schema(

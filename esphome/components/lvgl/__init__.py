@@ -38,14 +38,13 @@ from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
     DISP_BG_SCHEMA,
     FLEX_OBJ_SCHEMA,
+    FULL_STYLE_SCHEMA,
     GRID_CELL_SCHEMA,
     LAYOUT_SCHEMAS,
-    STYLE_SCHEMA,
     WIDGET_TYPES,
     any_widget_schema,
     container_schema,
     create_modify_schema,
-    grid_alignments,
     obj_schema,
 )
 from .styles import add_top_layer, styles_to_code, theme_to_code
@@ -418,15 +417,8 @@ LVGL_SCHEMA = cv.All(
                     "big_endian", "little_endian"
                 ),
                 cv.Optional(df.CONF_STYLE_DEFINITIONS): cv.ensure_list(
-                    cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)})
-                    .extend(STYLE_SCHEMA)
-                    .extend(
-                        {
-                            cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
-                            cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
-                            cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-                            cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
-                        }
+                    cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)}).extend(
+                        FULL_STYLE_SCHEMA
                     )
                 ),
                 cv.Optional(CONF_ON_IDLE): validate_automation(
