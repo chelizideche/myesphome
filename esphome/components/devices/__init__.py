@@ -1,9 +1,8 @@
-from esphome import config_validation as cv
-from esphome import codegen as cg
+from esphome import codegen as cg, config_validation as cv
 from esphome.const import CONF_ID, CONF_NAME
 
-# ns = cg.esphome_ns.namespace("device")
-# DeviceClass = ns.Class("Device")
+# ns = cg.esphome_ns.namespace("devices")
+# DeviceClass = ns.Class("SubDevice")
 StringRef = cg.esphome_ns.struct("StringRef")
 
 MULTI_CONF = True
@@ -24,4 +23,4 @@ async def to_code(config):
         config[CONF_ID],
         config[CONF_NAME],
     )
-    # cg.add_define("USE_DEVICE_ID")
+    cg.add_define("USE_SUB_DEVICE")

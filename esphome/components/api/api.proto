@@ -185,6 +185,12 @@ message DeviceInfoRequest {
   // Empty
 }
 
+message SubDeviceInfo {
+  string id = 1;
+  string name = 2;
+  string suggested_area = 3;
+}
+
 message DeviceInfoResponse {
   option (id) = 10;
   option (source) = SOURCE_SERVER;
@@ -230,6 +236,8 @@ message DeviceInfoResponse {
 
   // The Bluetooth mac address of the device. For example "AC:BC:32:89:0E:AA"
   string bluetooth_mac_address = 18;
+
+  repeated SubDeviceInfo sub_devices = 19;
 }
 
 message ListEntitiesRequest {
@@ -273,7 +281,7 @@ message ListEntitiesBinarySensorResponse {
   bool disabled_by_default = 7;
   string icon = 8;
   EntityCategory entity_category = 9;
-  string device_name = 10;
+  string device_id = 10;
 }
 message BinarySensorStateResponse {
   option (id) = 21;
@@ -307,7 +315,7 @@ message ListEntitiesCoverResponse {
   string icon = 10;
   EntityCategory entity_category = 11;
   bool supports_stop = 12;
-  string device_name = 13;
+  string device_id = 13;
 }
 
 enum LegacyCoverState {

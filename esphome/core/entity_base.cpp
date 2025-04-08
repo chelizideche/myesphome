@@ -36,13 +36,13 @@ std::string EntityBase::get_icon() const {
 void EntityBase::set_icon(const char *icon) { this->icon_c_str_ = icon; }
 
 // Entity Device Name
-StringRef EntityBase::get_device_name() const {
-  if (this->device_name_.empty()) {
+StringRef EntityBase::get_device_id() const {
+  if (this->device_id_.empty()) {
     return StringRef("");
   }
-  return this->device_name_;
+  return this->device_id_;
 }
-void EntityBase::set_device_name(const StringRef *device_name) { this->device_name_ = *device_name; }
+void EntityBase::set_device_id(const StringRef *device_id) { this->device_id_ = *device_id; }
 
 // Entity Category
 EntityCategory EntityBase::get_entity_category() const { return this->entity_category_; }

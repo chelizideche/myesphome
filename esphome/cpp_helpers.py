@@ -89,6 +89,10 @@ async def register_component(var, config):
     return var
 
 
+# async def register_sub_device(var, value):
+#     pass
+
+
 async def register_parented(var, value):
     if isinstance(value, ID):
         paren = await get_variable(value)
@@ -113,7 +117,7 @@ async def setup_entity(var, config):
         add(var.set_entity_category(config[CONF_ENTITY_CATEGORY]))
     if CONF_DEVICE_ID in config:
         parent = await get_variable(config[CONF_DEVICE_ID])
-        add(var.set_device_name(parent))
+        add(var.set_device_id(parent))
 
 
 def extract_registry_entry_config(

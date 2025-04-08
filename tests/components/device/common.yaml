@@ -1,4 +1,4 @@
-device:
+devices:
   - id: other_device
     name: Another device
 

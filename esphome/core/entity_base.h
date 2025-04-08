@@ -48,8 +48,8 @@ class EntityBase {
   void set_icon(const char *icon);
 
   // Get/set this entity's device name
-  StringRef get_device_name() const;
-  void set_device_name(const StringRef *device_name);
+  StringRef get_device_id() const;
+  void set_device_id(const StringRef *device_id);
 
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
@@ -65,7 +65,7 @@ class EntityBase {
   bool internal_{false};
   bool disabled_by_default_{false};
   EntityCategory entity_category_{ENTITY_CATEGORY_NONE};
-  StringRef device_name_;
+  StringRef device_id_;
 };
 
 class EntityBase_DeviceClass {  // NOLINT(readability-identifier-naming)

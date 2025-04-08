@@ -280,7 +280,7 @@ bool APIConnection::try_send_binary_sensor_info(APIConnection *api, void *v_bina
   msg.disabled_by_default = binary_sensor->is_disabled_by_default();
   msg.icon = binary_sensor->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(binary_sensor->get_entity_category());
-  msg.device_name = binary_sensor->get_device_name();
+  msg.device_id = binary_sensor->get_device_id();
   return api->send_list_entities_binary_sensor_response(msg);
 }
 #endif
@@ -331,7 +331,7 @@ bool APIConnection::try_send_cover_info(APIConnection *api, void *v_cover) {
   msg.disabled_by_default = cover->is_disabled_by_default();
   msg.icon = cover->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(cover->get_entity_category());
-  msg.device_name = cover->get_device_name();
+  msg.device_id = cover->get_device_id();
   return api->send_list_entities_cover_response(msg);
 }
 void APIConnection::cover_command(const CoverCommandRequest &msg) {

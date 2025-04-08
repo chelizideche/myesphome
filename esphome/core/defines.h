@@ -99,6 +99,7 @@
 #define USE_SELECT
 #define USE_SENSOR
 #define USE_STATUS_LED
+#define USE_SUB_DEVICE
 #define USE_SWITCH
 #define USE_TEXT
 #define USE_TEXT_SENSOR

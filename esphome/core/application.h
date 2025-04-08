@@ -9,6 +9,9 @@
 #include "esphome/core/preferences.h"
 #include "esphome/core/scheduler.h"
 
+#ifdef USE_SUB_DEVICE
+#include "esphome/components/devices/devices.h"
+#endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -96,6 +99,10 @@ class Application {
     this->comment_ = comment;
     this->compilation_time_ = compilation_time;
   }
+
+#ifdef USE_SUB_DEVICE
+  void register_sub_device(devices::SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
+#endif
 
 #ifdef USE_BINARY_SENSOR
   void register_binary_sensor(binary_sensor::BinarySensor *binary_sensor) {
@@ -243,6 +250,16 @@ class Application {
 
   uint32_t get_app_state() const { return this->app_state_; }
 
+#ifdef USE_SUB_DEVICE
+  const std::vector<devices::SubDevice *> &get_sub_devices() { return this->sub_devices_; }
+  // devices::SubDevice *get_sub_device_by_key(uint32_t key, bool include_internal = false) {
+  //   for (auto *obj : this->sub_devices_) {
+  //     if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))
+  //       return obj;
+  //   }
+  //   return nullptr;
+  // }
+#endif
 #ifdef USE_BINARY_SENSOR
   const std::vector<binary_sensor::BinarySensor *> &get_binary_sensors() { return this->binary_sensors_; }
   binary_sensor::BinarySensor *get_binary_sensor_by_key(uint32_t key, bool include_internal = false) {
@@ -473,6 +490,9 @@ class Application {
   std::vector<Component *> components_{};
   std::vector<Component *> looping_components_{};
 
+#ifdef USE_SUB_DEVICE
+  std::vector<devices::SubDevice *> sub_devices_{};
+#endif
 #ifdef USE_BINARY_SENSOR
   std::vector<binary_sensor::BinarySensor *> binary_sensors_{};
 #endif
