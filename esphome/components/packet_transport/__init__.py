@@ -190,13 +190,18 @@ async def register_packet_transport(var, config):
     }.union(x[CONF_NAME] for x in config[CONF_PROVIDERS])
     for provider in providers:
         cg.add(var.add_provider(provider))
+
+    define_binary_sensor = False
     for provider in config[CONF_PROVIDERS]:
         name = provider[CONF_NAME]
         if encryption := provider.get(CONF_ENCRYPTION):
             cg.add(var.set_provider_encryption(name, hash_encryption_key(encryption)))
         if status_sensor := provider.get(CONF_STATUS_SENSOR):
+            define_binary_sensor = True
             sens = await new_binary_sensor(status_sensor)
             cg.add(var.set_provider_status_sensor(name, sens))
+    if define_binary_sensor:
+        cg.add_define("USE_BINARY_SENSOR")
 
     for sens_conf in config.get(CONF_SENSORS, ()):
         sens_id = sens_conf[CONF_ID]
