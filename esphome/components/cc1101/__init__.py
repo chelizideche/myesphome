@@ -261,7 +261,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(CC1101Component),
-            cv.Optional(CONF_GDO0_PIN): pins.gpio_output_pin_schema,
+            cv.Optional(CONF_GDO0_PIN): cv.All(pins.internal_gpio_output_pin_schema),
             cv.Optional(CONF_GDO0_ADC_ID): cv.use_id(voltage_sampler.VoltageSampler),
             cv.Optional(CONF_OUTPUT_POWER): cv.float_range(-70, 11),
             cv.Optional(CONF_RX_ATTENUATION): cv.enum(RX_ATTENUATION),
@@ -277,8 +277,6 @@ CONFIG_SCHEMA = (
 
 VARIABLES = {
     None: [
-        [CONF_GDO0_PIN],
-        [CONF_GDO0_ADC_ID],
         [CONF_OUTPUT_POWER],
         [CONF_RX_ATTENUATION],
         [CONF_DC_BLOCKING_FILTER],
