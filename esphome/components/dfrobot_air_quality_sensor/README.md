@@ -55,7 +55,7 @@ sensor:
       id: pm2_5_sensor
       unit_of_measurement: "µg/m³"
       icon: mdi:chemical-weapon
-	pm_10:
+    pm_10:
       name: "PM10"
       id: pm10_sensor
       unit_of_measurement: "µg/m³"
