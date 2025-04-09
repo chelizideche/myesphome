@@ -14,13 +14,8 @@ void ATM90E32GainCalibrationButton::press_action() {
     return;
   }
 
-  if (!this->parent_->get_enable_gain_calibration()) {
-    ESP_LOGW(TAG, "Gain calibration is disabled. Enable it before pressing [%s]", this->get_name().c_str());
-  }
-
   ESP_LOGI(TAG, "%s", this->get_name().c_str());
   ESP_LOGI(TAG, "Use gain_ct: & gain_voltage: under each phase_x: in your config file to save these values");
-  this->parent_->using_saved_calibrations_ = true;
   this->parent_->run_gain_calibrations();
 }
 

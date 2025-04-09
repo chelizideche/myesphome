@@ -88,10 +88,9 @@ class ATM90E32Component : public PollingComponent,
   void clear_power_offset_calibrations();
   void clear_gain_calibrations();
   void set_enable_offset_calibration(bool flag) { enable_offset_calibration_ = flag; }
+  void set_enable_gain_calibration(bool flag) { enable_gain_calibration_ = flag; }
   int16_t calibrate_offset(uint8_t phase, bool voltage);
   int16_t calibrate_power_offset(uint8_t phase, bool reactive);
-  void set_enable_gain_calibration(bool flag) { enable_gain_calibration_ = flag; }
-  bool get_enable_gain_calibration() const { return enable_gain_calibration_; }
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
   void set_reference_current(uint8_t phase, number::Number *ref_current) { ref_currents_[phase] = ref_current; }
   float get_reference_voltage(uint8_t phase) {

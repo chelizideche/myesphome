@@ -447,7 +447,7 @@ float ATM90E32Component::get_chip_temperature_() {
 }
 
 void ATM90E32Component::run_gain_calibrations() {
-  if (!this->get_enable_gain_calibration()) {
+  if (!this->enable_gain_calibration_) {
     ESP_LOGW("CALIBRATION", "Gain calibration is disabled! Enable it first with enable_gain_calibration: true");
     return;
   }
@@ -539,6 +539,11 @@ void ATM90E32Component::save_gain_calibration_to_memory_() {
 }
 
 void ATM90E32Component::run_offset_calibrations() {
+  if (!this->enable_offset_calibration_) {
+    ESP_LOGW("CALIBRATION", "Offset calibration is disabled! Enable it first with enable_offset_calibration: true");
+    return;
+  }
+
   for (uint8_t phase = 0; phase < 3; phase++) {
     int16_t voltage_offset = calibrate_offset(phase, true);
     int16_t current_offset = calibrate_offset(phase, false);
@@ -553,6 +558,11 @@ void ATM90E32Component::run_offset_calibrations() {
 }
 
 void ATM90E32Component::run_power_offset_calibrations() {
+  if (!this->enable_offset_calibration_) {
+    ESP_LOGW("CALIBRATION", "Offset power calibration is disabled! Enable it first with enable_offset_calibration: true");
+    return;
+  }
+
   for (uint8_t phase = 0; phase < 3; ++phase) {
     int16_t active_offset = calibrate_power_offset(phase, false);
     int16_t reactive_offset = calibrate_power_offset(phase, true);
