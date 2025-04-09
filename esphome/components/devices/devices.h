@@ -5,10 +5,10 @@ namespace devices {
 
 class SubDevice {
  public:
-  void set_name(std::string name) { name_ = name; }
-  std::string get_name(void) { return name_; }
-  void set_area(std::string area) { area_ = area; }
-  std::string get_area(void) { return area_; }
+  void set_name(std::string name) { name_ = std::move(name); }
+  std::string get_name() { return name_; }
+  void set_area(std::string area) { area_ = std::move(area); }
+  std::string get_area() { return area_; }
 
  protected:
   // std::string id_ = "";
