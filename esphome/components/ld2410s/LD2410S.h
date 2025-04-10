@@ -271,10 +271,6 @@ class LD2410S : public uart::UARTDevice, public Component {
   void cmd_buffer_finished_();
   void cmd_buffer_inc_(uint8_t &index);
 
-  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 16, uint16_t command2 = 0xffff,
-                 uint16_t sub_command2 = 16);
-  // void publish_triggers_();
-
 #ifdef USE_NUMBER
   number::Number *max_distance_number_{nullptr};
   number::Number *min_distance_number_{nullptr};
@@ -319,7 +315,10 @@ class LD2410S : public uart::UARTDevice, public Component {
   // void process_data_progress_(uint8_t *data);
   // void process_data_energy_levels_(uint8_t *data);
 
+  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 16, uint16_t command2 = 0xffff,
+                 uint16_t sub_command2 = 16);
   void send_cmd_frame_(uint16_t command, uint16_t sub_command = 0xffff);
+  // void publish_triggers_();
 
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);

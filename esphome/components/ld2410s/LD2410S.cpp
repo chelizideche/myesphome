@@ -221,17 +221,16 @@ void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
 void LD2410S::set_trigger_threshold(float trigger_threshold) {
   this->triggers_.trigger[this->triggers_.selected_gate] = trigger_threshold;
   this->send_cmd_("set_trigger_threshold\0", GATE_TRIGGER_THRESHOLD_WRITE_CMD, this->triggers_.selected_gate,
-                  GATE_TRIGGER_THRESHOLD_READ_CMD, this->triggers_.selected_gate);
+                  GATE_TRIGGER_THRESHOLD_READ_CMD);
 }
 void LD2410S::set_trigger_hold(float trigger_hold) {
   this->triggers_.hold[this->triggers_.selected_gate] = trigger_hold;
   this->send_cmd_("set_trigger_hold\0", GATE_HOLD_THRESHOLD_WRITE_CMD, this->triggers_.selected_gate,
-                  GATE_HOLD_THRESHOLD_READ_CMD, this->triggers_.selected_gate);
+                  GATE_HOLD_THRESHOLD_READ_CMD);
 }
 void LD2410S::set_trigger_snr(float trigger_snr) {
   this->triggers_.snr[this->triggers_.selected_gate] = trigger_snr;
-  this->send_cmd_("set_trigger_snr\0", GATE_SNR_WRITE_CMD, this->triggers_.selected_gate, GATE_SNR_READ_CMD,
-                  this->triggers_.selected_gate);
+  this->send_cmd_("set_trigger_snr\0", GATE_SNR_WRITE_CMD, this->triggers_.selected_gate, GATE_SNR_READ_CMD);
 }
 void LD2410S::set_response_speed_select(const std::string &response_speed_select) {
   this->resp_speed_ = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
