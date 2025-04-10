@@ -679,9 +679,6 @@ async def to_code(config):
 
         # Set default CPU frequency
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
-        add_idf_sdkconfig_option(
-            f"CONFIG_{config[CONF_VARIANT]}_DEFAULT_CPU_FREQ_{freq}", True
-        )
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
