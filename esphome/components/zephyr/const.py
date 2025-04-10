@@ -12,5 +12,7 @@ KEY_MCUBOOT_CONF: Final = "mcuboot_conf"
 KEY_PM_STATIC: Final = "pm_static"
 KEY_PRJ_CONF: Final = "prj_conf"
 KEY_ZEPHYR = "zephyr"
+KEY_PATH = "path"
+KEY_USER = "user"
 
 zephyr_ns = cg.esphome_ns.namespace("zephyr")

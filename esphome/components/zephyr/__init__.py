@@ -2,7 +2,7 @@ import os
 from typing import Final, TypedDict, Union
 
 import esphome.codegen as cg
-from esphome.const import CONF_BOARD
+from esphome.const import CONF_BOARD, KEY_NAME
 from esphome.core import CORE
 from esphome.helpers import copy_file_if_changed, write_file_if_changed
 
@@ -16,15 +16,16 @@ from .const import (
     KEY_MCUBOOT_CONF,
     KEY_PRJ_CONF,
     KEY_ZEPHYR,
+    KEY_USER,
+    KEY_PATH,
     zephyr_ns,
 )
 
-CODEOWNERS = ["@tomaszduda23"]
+CODEOWNERS = ["@tomaszduda23", "@felipejfc"]
 AUTO_LOAD = ["preferences"]
 KEY_BOARD: Final = "board"
 
 PrjConfValueType = Union[bool, str, int]
-
 
 class Section:
     def __init__(self, name, address, size, region):
@@ -95,6 +96,11 @@ def zephyr_add_overlay(content):
 def zephyr_add_mcuboot_overlay(content):
     zephyr_data()[KEY_MCUBOOT_OVERLAY] += content
 
+def zephyr_add_user(key, value):
+    if key not in CORE.data[KEY_ZEPHYR][KEY_USER]:
+        CORE.data[KEY_ZEPHYR][KEY_USER][key] = []
+    CORE.data[KEY_ZEPHYR][KEY_USER][key] += [value]
+
 def zephyr_add_mcuboot_conf(
     name: str, value: PrjConfValueType, required: bool = True
 ) -> None:
@@ -110,7 +116,10 @@ def add_extra_build_file(filename: str, path: str) -> bool:
     """Add an extra build file to the project."""
     extra_build_files = zephyr_data()[KEY_EXTRA_BUILD_FILES]
     if filename not in extra_build_files:
-        extra_build_files[filename] = path
+        extra_build_files[filename] = {
+            KEY_NAME: filename,
+            KEY_PATH: path,
+        }
         return True
     return False
 
@@ -215,6 +224,16 @@ def copy_files():
             + "\n"
         )
         write_file_if_changed(CORE.relative_build_path("zephyr/child_image/mcuboot/prj.conf"), mcuboot_conf)
+    
+        if CORE.data[KEY_ZEPHYR][KEY_USER]:
+            zephyr_add_overlay(
+                f"""
+/ {{
+    zephyr,user {{
+        {[f"{key} = {', '.join(value)};" for key, value in CORE.data[KEY_ZEPHYR][KEY_USER].items()][0]}
+}};
+}};"""
+        )
 
     write_file_if_changed(
         CORE.relative_build_path("zephyr/app.overlay"),
