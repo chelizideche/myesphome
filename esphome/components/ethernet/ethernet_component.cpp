@@ -17,7 +17,7 @@
 namespace esphome {
 namespace ethernet {
 
-#if ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(5, 5, 0)
 // work around IDF compile issue on P4 https://github.com/espressif/esp-idf/pull/15637
 #ifdef USE_ESP32_VARIANT_ESP32P4
 #undef ETH_ESP32_EMAC_DEFAULT_CONFIG
