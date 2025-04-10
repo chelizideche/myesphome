@@ -271,7 +271,9 @@ class LD2410S : public uart::UARTDevice, public Component {
   void cmd_buffer_finished_();
   void cmd_buffer_inc_(uint8_t &index);
 
-  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 0);
+  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 16);
+  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 16, uint16_t command2,
+                 uint16_t sub_command2 = 16);
   // void publish_triggers_();
 
 #ifdef USE_NUMBER
