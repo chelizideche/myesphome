@@ -1,1 +1,15 @@
 <<: !include common.yaml
+
+esp32:
+  cpu_frequency: 240MHz
+
+sensor:
+  - platform: debug
+    free:
+      name: "Heap Free"
+    psram:
+      name: "Free PSRAM"
+    cpu_frequency:
+      name: "CPU Frequency"
+
+psram:
