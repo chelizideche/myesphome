@@ -117,8 +117,8 @@ static const uint16_t GATE_SNR_WRITE_CMD = 0x0074;
 static const uint16_t GATE_SNR_WRITE_REPLY = 0x0174;
 static const uint32_t GATE_SNR_WRITE_DATA[] = {
 
-    15, 15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15
+    40, 40, 41, 41, 42, 42, 43, 42, 41,
+    41, 41, 41, 41, 41, 41, 41
     // 5~63 dB
 };
 

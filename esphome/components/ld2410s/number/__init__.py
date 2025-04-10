@@ -127,9 +127,7 @@ async def to_code(config):
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_min_distance_number(n))
     if no_delay_config := config.get(CONF_NO_DELAY):
-        n = await number.new_number(
-            no_delay_config, min_value=10, max_value=120, step=1
-        )
+        n = await number.new_number(no_delay_config, min_value=1, max_value=120, step=1)
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_no_delay_number(n))
     if status_reporting_freq_config := config.get(CONF_STATUS_REPORTING_FREQUENCY):
