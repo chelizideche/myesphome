@@ -67,8 +67,7 @@ struct MeterData {
  * Provider constants
  */
 
-static const uint8_t PROVIDER_GENERIC = 0;
-static const uint8_t PROVIDER_NETZNOE = 1;
+enum Providers : uint32_t { PROVIDER_GENERIC = 0x00, PROVIDER_NETZNOE = 0x01 };
 
 class DlmsMeterComponent : public Component, public uart::UARTDevice {
  public:
@@ -79,7 +78,7 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   void loop() override;
 
   void set_decryption_key(const uint8_t *decryption_key, size_t decryption_key_length);
-  void set_provider(uint8_t provider);
+  void set_provider(uint32_t provider);
 
   void publish_sensors(MeterData &data) {
 #define DLMS_METER_PUBLISH_SENSOR(s) \
@@ -102,9 +101,9 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   uint32_t last_read_ = 0;               // Timestamp when data was last read
   uint32_t read_timeout_ = 1000;         // Time to wait after last byte before considering data complete
 
-  uint8_t provider_ = PROVIDER_GENERIC;  // Provider of the meter / your grid operator
-  uint8_t decryption_key_[16];           // Stores the decryption key
-  size_t decryption_key_length_;         // Stores the decryption key length (usually 16 bytes)
+  uint32_t provider_ = PROVIDER_GENERIC;  // Provider of the meter / your grid operator
+  uint8_t decryption_key_[16];            // Stores the decryption key
+  size_t decryption_key_length_;          // Stores the decryption key length (usually 16 bytes)
 
   uint16_t swap_uint16_(uint16_t val);
   uint32_t swap_uint32_(uint32_t val);

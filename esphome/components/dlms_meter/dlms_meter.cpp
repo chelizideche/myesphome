@@ -523,7 +523,7 @@ void DlmsMeterComponent::set_decryption_key(const uint8_t decryption_key[], size
   this->decryption_key_length_ = decryption_key_length;
 }
 
-void DlmsMeterComponent::set_provider(uint8_t provider) { this->provider_ = provider; }
+void DlmsMeterComponent::set_provider(uint32_t provider) { this->provider_ = provider; }
 
 void DlmsMeterComponent::log_packet_(const std::vector<uint8_t> &data) {
   ESP_LOGV(TAG, "%s", format_hex_pretty(data).c_str());
