@@ -243,7 +243,7 @@ void LD2410S::send_cmd_(const char *msg, uint16_t command, uint16_t sub_command,
 
   this->send_cmd_frame_(CONFIG_MODE_START_CMD);
   this->send_cmd_frame_(command, sub_command);
-  if (command2 != 0xffff && sub_command2 != 16) {
+  if (command2 != 0xffff) {
     this->send_cmd_frame_(command2, sub_command2);
   }
   this->send_cmd_frame_(CONFIG_MODE_END_CMD);
