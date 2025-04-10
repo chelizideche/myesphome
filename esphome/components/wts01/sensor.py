@@ -1,20 +1,20 @@
 """Temperature sensor implementation for WTS01."""
 
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import sensor
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ID,
+    CONF_TEMPERATURE,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
 )
+
 from . import WTS01Sensor, wts01_ns
 
 DEPENDENCIES = ["wts01"]
 
 CONF_WTS01_ID = "wts01_id"
-CONF_TEMPERATURE = "temperature"
 
 WTS01TemperatureSensor = wts01_ns.class_("WTS01TemperatureSensor", sensor.Sensor)
 
@@ -30,9 +30,10 @@ CONFIG_SCHEMA = cv.Schema(
     }
 )
 
+
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_WTS01_ID])
-    
+
     if CONF_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_TEMPERATURE])
         cg.add(parent.set_temperature_sensor(sens))
