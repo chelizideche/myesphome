@@ -81,7 +81,7 @@ ENCODER_SCHEMA = cv.Schema(
             cv.declare_id(LVEncoderListener), requires_component("binary_sensor")
         ),
         cv.Optional(CONF_GROUP): cv.declare_id(lv_group_t),
-        cv.Optional(df.CONF_INITIAL_FOCUS): cv.use_id(lv_obj_t),
+        cv.Optional(df.CONF_INITIAL_FOCUS): LIST_ACTION_SCHEMA,
         cv.Optional(df.CONF_LONG_PRESS_TIME, default="400ms"): PRESS_TIME,
         cv.Optional(df.CONF_LONG_PRESS_REPEAT_TIME, default="100ms"): PRESS_TIME,
     }
