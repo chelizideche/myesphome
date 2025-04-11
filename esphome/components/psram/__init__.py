@@ -73,23 +73,28 @@ def validate_psram_mode(config):
     return config
 
 
-def get_config_schema():
+def get_config_schema(config):
     variant = get_esp32_variant()
     speeds = [f"{s}MHZ" for s in SPIRAM_SPEEDS.get(variant, [])]
     if not speeds:
         return cv.Invalid("PSRAM is not supported on this chip")
     modes = SPIRAM_MODES[variant]
-    return cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(PsramComponent),
-            cv.Optional(CONF_MODE, default=modes[0]): cv.one_of(*modes, lower=True),
-            cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
-            cv.Optional(CONF_SPEED, default=speeds[0]): cv.one_of(*speeds, upper=True),
-        }
-    )
+    return cv.All(
+        cv.Schema(
+            {
+                cv.GenerateID(): cv.declare_id(PsramComponent),
+                cv.Optional(CONF_MODE, default=modes[0]): cv.one_of(*modes, lower=True),
+                cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
+                cv.Optional(CONF_SPEED, default=speeds[0]): cv.one_of(
+                    *speeds, upper=True
+                ),
+            }
+        ),
+        validate_psram_mode,
+    )(config)
 
 
-CONFIG_SCHEMA = cv.All(get_config_schema(), validate_psram_mode)
+CONFIG_SCHEMA = get_config_schema
 
 FINAL_VALIDATE_SCHEMA = validate_psram_mode
 
