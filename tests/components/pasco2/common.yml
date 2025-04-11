@@ -1,0 +1,12 @@
+i2c:
+  - id: i2c_bme280
+    scl: ${scl_pin}
+    sda: ${sda_pin}
+      scan: true
+      
+sensor:
+  - platform: pasco2
+    co2:
+      name: tester_co2_name
+    update_interval: 60s
+      
