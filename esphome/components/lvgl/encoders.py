@@ -77,6 +77,5 @@ async def encoders_to_code(var, config, default_group):
 async def initial_focus_to_code(config):
     for enc_conf in config[CONF_ENCODERS]:
         if default_focus := enc_conf.get(CONF_INITIAL_FOCUS):
-            widgets = await get_widgets(default_focus)
-            if widgets:
-                lv.group_focus_obj(widgets[0].obj)
+            widget = await get_widgets(default_focus)
+            lv.group_focus_obj(widget[0].obj)
