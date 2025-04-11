@@ -157,6 +157,11 @@ def zephyr_to_code(config):
     # use NFC pins as GPIO
     zephyr_add_prj_conf("NFCT_PINS_AS_GPIOS", True)
 
+    add_extra_script(
+        "pre",
+        os.path.join(os.path.dirname(__file__), "pre_build.py.script"),
+        "pre_build.py",
+    )
 
 def _format_prj_conf_val(value: PrjConfValueType) -> str:
     if isinstance(value, bool):
