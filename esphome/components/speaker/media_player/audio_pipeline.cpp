@@ -443,9 +443,8 @@ void AudioPipeline::decode_task(void *params) {
 
     xEventGroupClearBits(this_pipeline->event_group_,
                          EventGroupBits::DECODER_MESSAGE_FINISHED | EventGroupBits::READER_MESSAGE_LOADED_MEDIA_TYPE);
-    
+
     if (!(event_bits & EventGroupBits::PIPELINE_COMMAND_STOP)) {
-      
       InfoErrorEvent event;
       event.source = InfoErrorSource::DECODER;
 
