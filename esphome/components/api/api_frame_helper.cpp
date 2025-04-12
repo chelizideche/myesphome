@@ -311,6 +311,11 @@ APIError APINoiseFrameHelper::state_action_() {
     const std::string &name = App.get_name();
     const uint8_t *name_ptr = reinterpret_cast<const uint8_t *>(name.c_str());
     msg.insert(msg.end(), name_ptr, name_ptr + name.size() + 1);
+    // node mac, terminated by null byte
+    uint8_t mac[6];
+    get_mac_address_raw(mac);
+    const uint8_t *mac_ptr = reinterpret_cast<const uint8_t *>(mac);
+    msg.insert(msg.end(), mac_ptr, mac_ptr + 6 + 1);
 
     aerr = write_frame_(msg.data(), msg.size());
     if (aerr != APIError::OK)
