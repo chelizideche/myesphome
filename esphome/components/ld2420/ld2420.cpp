@@ -140,14 +140,16 @@ void LD2420Component::setup() {
   if (get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     this->set_operating_mode(OP_SIMPLE_MODE_STRING);
 #ifdef USE_SELECT
-    this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
 #endif
     this->set_mode_(CMD_SYSTEM_MODE_SIMPLE);
     ESP_LOGW(TAG, "LD2420 Frimware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   } else {
     this->set_mode_(CMD_SYSTEM_MODE_ENERGY);
 #ifdef USE_SELECT    
-    this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
 #endif
   }
 #ifdef USE_NUMBER
@@ -300,7 +302,8 @@ void LD2420Component::set_operating_mode(const std::string &state) {
     this->current_operating_mode = OP_MODE_TO_UINT.at(state);
     // Entering Auto Calibrate we need to clear the privoiuos data collection
 #ifdef USE_SELECT
-    this->operating_selector_->publish_state(state);
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(state);
 #endif
     if (current_operating_mode == OP_CALIBRATE_MODE) {
       this->set_calibration_(true);
@@ -321,7 +324,8 @@ void LD2420Component::set_operating_mode(const std::string &state) {
   } else {
     this->current_operating_mode = OP_SIMPLE_MODE;
 #ifdef USE_SELECT
-    this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
 #endif
   }
 }
