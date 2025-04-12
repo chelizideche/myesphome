@@ -147,7 +147,7 @@ void LD2420Component::setup() {
     ESP_LOGW(TAG, "LD2420 Frimware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   } else {
     this->set_mode_(CMD_SYSTEM_MODE_ENERGY);
-#ifdef USE_SELECT    
+#ifdef USE_SELECT
     if (this->operating_selector_ != nullptr)
       this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
 #endif
