@@ -155,7 +155,7 @@ MODELS = {
     "4.20in-bv2-bwr": ("b", WaveshareEPaper4P2InBV2BWR),
     "5.83in": ("b", WaveshareEPaper5P8In),
     "5.83inv2": ("b", WaveshareEPaper5P8InV2),
-    "5.70in-f": ("b", WaveshareEPaper5P7InF)
+    "5.70in-f": ("b", WaveshareEPaper5P7InF),
     "7.30in-f": ("b", WaveshareEPaper7P3InF),
     "7.50in": ("b", WaveshareEPaper7P5In),
     "7.50in-bv2": ("b", WaveshareEPaper7P5InBV2),
