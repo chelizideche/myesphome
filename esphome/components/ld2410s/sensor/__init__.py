@@ -24,10 +24,14 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(LD2410SSensor),
             cv.GenerateID(CONF_LD2410S_ID): cv.use_id(LD2410S),
             cv.Optional(TARGET_DISTANCE): sensor.sensor_schema(
-                device_class=DEVICE_CLASS_DISTANCE, unit_of_measurement=UNIT_CENTIMETER
+                device_class=DEVICE_CLASS_DISTANCE,
+                unit_of_measurement=UNIT_CENTIMETER,
+                icon="mdi:arrow-left-right",
             ),
             cv.Optional(THRESHOLD_UPDATE): sensor.sensor_schema(
-                device_class=DEVICE_CLASS_EMPTY, unit_of_measurement=UNIT_PERCENT
+                device_class=DEVICE_CLASS_EMPTY,
+                unit_of_measurement=UNIT_PERCENT,
+                icon="mdi:percent",
             ),
         },
     ),

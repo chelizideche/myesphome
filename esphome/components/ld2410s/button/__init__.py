@@ -11,7 +11,6 @@ from esphome.const import (
     # ENTITY_CATEGORY_DIAGNOSTIC,
     # ICON_BUG,
     # ICON_MEMORY,
-    ICON_RESTART_ALERT,
 )
 
 from .. import CONF_LD2410S_ID, LD2410S, ld2410s_ns
@@ -23,62 +22,45 @@ LD2410SApplyConfigButton = ld2410s_ns.class_("LD2410SApplyConfigButton", button.
 LD2410SCalibration = ld2410s_ns.class_("LD2410SCalibration", button.Button)
 LD2410SFactoryReset = ld2410s_ns.class_("LD2410SFactoryReset", button.Button)
 LD2410SMinimalOutput = ld2410s_ns.class_("LD2410SMinimalOutput", button.Button)
-# LD2410SEnableConfigButton = ld2410s_ns.class_("LD2410SEnableConfigButton", button.Button)
-# LD2410SDisableConfigButton = ld2410s_ns.class_("LD2410SDisableConfigButton", button.Button)
 
 CONF_READ_ALL = "read_all"
 CONF_WRITE_ALL = "write_all"
 # CONF_CALIBRATION = "calibration"
 # CONF_FACTORY_RESET = "factory_reset"
 CONF_MINIMAL_OUTPUT = "minimal_output"
-# CONF_ENABLE_CONFIG = "enable_config"
-# CONF_DISABLE_CONFIG = "disable_config"
 
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_LD2410S_ID): cv.use_id(LD2410S),
+    cv.Required(CONF_READ_ALL): button.button_schema(
+        LD2410SReadAll,
+        device_class=DEVICE_CLASS_UPDATE,
+        entity_category=ENTITY_CATEGORY_CONFIG,
+        icon="mdi:reload",
+    ),
     cv.Required(CONF_WRITE_ALL): button.button_schema(
         LD2410SApplyConfigButton,
         device_class=DEVICE_CLASS_RESTART,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon=ICON_RESTART_ALERT,
+        icon="mdi:content-save",
     ),
     cv.Required(CONF_CALIBRATION): button.button_schema(
         LD2410SCalibration,
         device_class=DEVICE_CLASS_UPDATE,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:icon-refresh",
-    ),
-    cv.Required(CONF_READ_ALL): button.button_schema(
-        LD2410SReadAll,
-        device_class=DEVICE_CLASS_UPDATE,
-        entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:icon-refresh",
+        icon="mdi:refresh-auto",
     ),
     cv.Required(CONF_FACTORY_RESET): button.button_schema(
         LD2410SFactoryReset,
         device_class=DEVICE_CLASS_UPDATE,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:icon-refresh",
+        icon="mdi:factory",
     ),
     cv.Required(CONF_MINIMAL_OUTPUT): button.button_schema(
         LD2410SMinimalOutput,
         device_class=DEVICE_CLASS_UPDATE,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:icon-refresh",
+        icon="mdi:arrow-collapse-horizontal",
     ),
-    # ,
-    # cv.Optional(CONF_ENABLE_CONFIG): button.button_schema(
-    #     LD2410SEnableConfigButton,
-    #     device_class=DEVICE_CLASS_IDENTIFY,
-    #     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-    #     icon=ICON_BUG
-    # ),
-    # cv.Optional(CONF_DISABLE_CONFIG): button.button_schema(
-    #     LD2410SDisableConfigButton,
-    #     device_class=DEVICE_CLASS_IDENTIFY,
-    #     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-    #     icon=ICON_BUG
-    # )
 }
 
 
