@@ -1,8 +1,8 @@
 #pragma once
 
+#include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
-#include "esphome/components/uart/uart.h"
 #ifdef USE_NUMBER
 #include "esphome/components/number/number.h"
 #endif
@@ -17,10 +17,10 @@
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
-#include <map>
 #include <functional>
-#include <sstream>
 #include <iomanip>
+#include <map>
+#include <sstream>
 
 namespace esphome {
 namespace ld2410s {
@@ -72,72 +72,75 @@ static const std::string RESPONSE_SPEED_FAST = "Fast";
 static const uint16_t CALIBRATION_CMD = 0x0009;
 static const uint16_t CALIBRATION_TRIGGER_VALUE = 0x0002;
 static const uint16_t CALIBRATION_RETENTION_VALUE = 0x0001;
-static const uint16_t CALIBRATION_TIME_VALUE = 0x001E;  // 0x0078
+static const uint16_t CALIBRATION_TIME_VALUE = 0x0078;  // 0x0078 // 0x001E
 
-static const uint16_t THRASHOLDS_TRIGGER_READ_CMD = 0x0077;
-static const uint16_t THRASHOLDS_TRIGGER_READ_REPLY = 0x0177;
-static const uint16_t THRASHOLDS_TRIGGER_WRITE_CMD = 0x0076;
-static const uint16_t THRASHOLDS_TRIGGER_WRITE_REPLY = 0x0176;
-static const uint32_t THRASHOLDS_TRIGGER_WRITE_DATA[] = {
+static const uint16_t GATE_TRIGGER_THRESHOLD_READ_CMD = 0x0073;
+static const uint16_t GATE_TRIGGER_THRESHOLD_READ_REPLY = 0x0173;
+static const uint16_t GATE_TRIGGER_THRESHOLD_WRITE_CMD = 0x0072;
+static const uint16_t GATE_TRIGGER_THRESHOLD_WRITE_REPLY = 0x0172;
+static const uint32_t GATE_TRIGGER_THRESHOLD_WRITE_DATA[] = {
+
+    48, 42, 36, 34, 32, 31, 31, 31, 31,
+    31, 31, 31, 31, 31, 31, 31
     // 10~95 dB
 
-    61, 54, 48, 46, 42, 40, 39, 38, 37,
-    37, 36, 36, 36, 35, 35, 35
-
     // Factory defaults:
-    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-    // 48,42,36,34,32,31,31,31,31,31,31,31,31,31,31,31
-
-    // AutoCalibration:
-    // 80,70,65,60,55,50,45,43,41,40,39,38,37,36,35,34
-    // 45,47,50,49,51,50,51,51,51,50,51,50,50,50,50,50
-
-    // Doc, questionable:
-    //   https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
-    // 50,46,34,32,32,32,32,32,25,25,25,25,25,25,25,25
+    // tool - reset
+    //  https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    //   48,42,36,34,32,31,31,31,31,31,31,31,31,31,31,31
+    // tool default
+    //  https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
+    //   50,46,34,32,32,32,32,32,25,25,25,25,25,25,25,25
+    //
+    // semi good
+    //   95,63,38,35,35,34,33,33,33,33,33,32,32,31,31,31
 };
 
-static const uint16_t THRASHOLDS_HOLD_READ_CMD = 0x0073;
-static const uint16_t THRASHOLDS_HOLD_READ_REPLY = 0x0173;
-static const uint16_t THRASHOLDS_HOLD_WRITE_CMD = 0x0072;
-static const uint16_t THRASHOLDS_HOLD_WRITE_REPLY = 0x0172;
-static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[] = {
+static const uint16_t GATE_HOLD_THRESHOLD_READ_CMD = 0x0077;
+static const uint16_t GATE_HOLD_THRESHOLD_READ_REPLY = 0x0177;
+static const uint16_t GATE_HOLD_THRESHOLD_WRITE_CMD = 0x0076;
+static const uint16_t GATE_HOLD_THRESHOLD_WRITE_REPLY = 0x0176;
+static const uint32_t GATE_HOLD_THRESHOLD_WRITE_DATA[] = {
+
+    45, 42, 33, 32, 28, 28, 28, 28, 28,
+    28, 28, 28, 28, 28, 28, 28
     // 10~95 dB
 
-    56, 48, 43, 41, 38, 37, 37, 36, 35,
-    35, 34, 34, 34, 33, 33, 33
-
     // Factory defaults:
-    //   https://github.com/MrUndead1996/ld2410s-esphome/issues/4
-    // 45,42,33,32,28,28,28,28,28,28,28,28,28,28,28,28
-
-    // AutoCalibration:
-    // 78,68,63,58,53,48,43,41,39,38,37,36,35,34,33,32
-    // 47,53,53,52,52,51,52,52,52,51,52,51,51,51,51,51
+    // tool - reset
+    //  https://github.com/MrUndead1996/ld2410s-esphome/issues/4
+    //   45,42,33,32,28,28,28,28,28,28,28,28,28,28,28,28
+    // tool default
+    //   52,49,26,25,25,21,22,24,23,22,21,21,20,21,21,20
+    //
+    // semi good
+    //   90,60,36,33,33,33,32,32,32,32,32,31,31,30,30,30
 };
 
-static const uint16_t THRASHOLDS_SNR_READ_CMD = 0x0075;
-static const uint16_t THRASHOLDS_SNR_READ_REPLY = 0x0175;
-static const uint16_t THRASHOLDS_SNR_WRITE_CMD = 0x0074;
-static const uint16_t THRASHOLDS_SNR_WRITE_REPLY = 0x0174;
-static const uint32_t THRASHOLDS_SNR_WRITE_DATA[] = {
+static const uint16_t GATE_SNR_READ_CMD = 0x0075;
+static const uint16_t GATE_SNR_READ_REPLY = 0x0175;
+static const uint16_t GATE_SNR_WRITE_CMD = 0x0074;
+static const uint16_t GATE_SNR_WRITE_REPLY = 0x0174;
+static const uint32_t GATE_SNR_WRITE_DATA[] = {
+
+    34, 34, 34, 34, 34, 34, 34, 34, 34,
+    34, 34, 34, 34, 34, 34, 34
     // 5~63 dB
 
-    57, 49, 44, 42, 39, 38, 38, 37, 36,
-    36, 35, 35, 35, 34, 34, 34
-
-    // AutoCalibration:
-    // 48,49,46,47,43,46,46,46,43,44,42,44,44,40,43,38
-    // 45,42,39,36,36,36,36,35,35,35,35,34,34,34,34,34
+    //
+    // semi good
+    //   35,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33
 };
 
 static const uint32_t CMD_EXEC_TIMEOUT = 1000;
 static const uint8_t CMD_EXEC_REPEAT = 3;
 static const uint8_t CMD_EXEC_BUFFER_SIZE = 32;
 
+static const uint16_t NO_SUB_CMD = 0xffff;
+
 struct TriggersT {
   uint8_t selected_gate{0};
-  uint32_t threshold[16];
+  uint32_t trigger[16];
   uint32_t hold[16];
   uint32_t snr[16];
 };
@@ -189,7 +192,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void register_listener(LD2410SListener *listener) { this->listeners_.push_back(listener); };
 
   void read_all();
-  void apply_config();
+  void write_all();
   void calibration();
   void factory_reset();
   void toggle_minimal();
@@ -231,7 +234,7 @@ class LD2410S : public uart::UARTDevice, public Component {
     this->trigger_selected_gate_number_ = trigger_selected_gate_number;
 #ifdef USE_NUMBER
     this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
-    this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+    this->trigger_threshold_number_->publish_state(this->triggers_.trigger[this->triggers_.selected_gate]);
     this->trigger_hold_number_->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
     this->trigger_snr_number_->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
@@ -241,12 +244,14 @@ class LD2410S : public uart::UARTDevice, public Component {
 
 #ifdef USE_BUTTON
   void set_read_all_button(button::Button *button) { this->read_all_button_ = button; };
-  void set_apply_config_button(button::Button *button) { this->apply_config_button_ = button; };
+  void set_write_all_button(button::Button *button) { this->write_all_button_ = button; };
   void set_calibration_button(button::Button *button) { this->calibration_button_ = button; };
   void set_factory_reset_button(button::Button *button) { this->factory_reset_button_ = button; };
   void set_toggle_minimal_output_button(button::Button *button) { this->toggle_minimal_output_button_ = button; };
-    // void set_enable_config_button(button::Button* button) { this->enable_config_button_ = button; };
-    // void set_disable_config_button(button::Button* button) { this->disable_config_button_ = button; };
+    // void set_enable_config_button(button::Button* button) {
+    // this->enable_config_button_ = button; }; void
+    // set_disable_config_button(button::Button* button) {
+    // this->disable_config_button_ = button; };
 #endif
 
 #ifdef USE_SELECT
@@ -274,14 +279,10 @@ class LD2410S : public uart::UARTDevice, public Component {
   uint8_t last_ = 0;
   CmdT commands_[CMD_EXEC_BUFFER_SIZE];
 
-  void loop_exec_();
-  void cmd_add_(CmdFrameT *cmd_frame);
-  void cmd_buffer_insert_(CmdT *cmd);
+  void loop_send_command_();
+  void cmd_buffer_insert_(CmdFrameT *cmd_frame);
   void cmd_buffer_finished_();
   void cmd_buffer_inc_(uint8_t &index);
-
-  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 0);
-  // void publish_thresholds_();
 
 #ifdef USE_NUMBER
   number::Number *max_distance_number_{nullptr};
@@ -298,7 +299,7 @@ class LD2410S : public uart::UARTDevice, public Component {
 
 #ifdef USE_BUTTON
   button::Button *read_all_button_{nullptr};
-  button::Button *apply_config_button_{nullptr};
+  button::Button *write_all_button_{nullptr};
   button::Button *calibration_button_{nullptr};
   button::Button *factory_reset_button_{nullptr};
   button::Button *toggle_minimal_output_button_{nullptr};
@@ -310,7 +311,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   select::Select *response_speed_select_{nullptr};
 #endif
 
-  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &reply);
+  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos);
   PackageType get_frame_type_(uint8_t *buffer, size_t pos);
   size_t get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type);
   size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
@@ -319,28 +320,33 @@ class LD2410S : public uart::UARTDevice, public Component {
   // bool process_frame_(PackageType type, uint8_t *buffer, size_t data_size);
   void process_short_data_frame_(uint8_t *data);
   void process_data_frame_(uint8_t *data);
-  bool process_cmd_frame_(uint8_t *buffer, size_t len);
+  void process_cmd_frame_(uint8_t *buffer, size_t len);
 
-  CmdAckT parse_ack_(uint8_t *buffer, size_t length);
+  CmdAckT parse_cms_frame_(uint8_t *buffer, size_t length);
 
   // void process_data_distance_(uint8_t *data);
   // void process_data_progress_(uint8_t *data);
   // void process_data_energy_levels_(uint8_t *data);
 
-  void send_cmd_frame_(uint16_t command, uint16_t sub_command = 0);
-
+  void schedule_cmd_(const char *msg, uint16_t command, uint16_t sub_command = NO_SUB_CMD);
+  void schedule_cmd_frame_(uint16_t command, uint16_t sub_command = NO_SUB_CMD);
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size);
 
   void send_command_(CmdFrameT *cmd_frame);
 
-  void process_config_read_ack_(uint8_t *data);
+  void process_ack_config_read_(uint8_t *data);
   void process_ack_fw_read_(const uint8_t *data);
   void process_ack_trigger_threshold_read_(uint8_t *data);
   void process_ack_trigger_hold_read_(uint8_t *data);
   void process_ack_trigger_snr_read_(uint8_t *data);
   void process_data_energy_values_read_(uint8_t *data);
+
+  void update_ts_thresholds_();
+  void update_ts_holds_();
+  void update_ts_snrs_();
+  void update_ts_energy_values_();
 
   std::string format_int_(uint32_t *in, uint8_t len, uint8_t min_w);
   void four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len);

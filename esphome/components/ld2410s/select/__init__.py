@@ -37,12 +37,8 @@ CONFIG_SCHEMA = {
     cv.Required(CONF_RESPONSE_SPEED): select.select_schema(
         LD2410sResponseSpeedSelect,
         entity_category=ENTITY_CATEGORY_CONFIG,
+        icon="mdi:speedometer",
     ),
-    # cv.GenerateID(CONF_LD2410S_ID): cv.use_id(LD2410S),
-    # cv.Required(CMD_EXEC): select.select_schema(
-    #     LD2410sExecCommandSelect,
-    #     entity_category=ENTITY_CATEGORY_CONFIG,
-    # ),
 }
 
 
@@ -55,10 +51,3 @@ async def to_code(config):
         )
         await cg.register_parented(sel, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_response_speed_select(sel))
-    # if exec_command := config.get(CMD_EXEC):
-    #     sel = await select.new_select(
-    #         exec_command,
-    #         options=CMD_EXEC_SELECTS,
-    #     )
-    #     await cg.register_parented(sel, config[CONF_LD2410S_ID])
-    #     cg.add(LD2410S_component.set_exec_command_select(sel))

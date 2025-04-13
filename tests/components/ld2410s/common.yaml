@@ -65,13 +65,12 @@ number:
 
 button:
   - platform: ld2410s
-    apply_config:
-      name: Apply config changes
-
-    calibration:
-      name: Start auto calibration
     read_all:
       name: Read configuration
+    write_all:
+      name: Write configuration
+    calibration:
+      name: Start auto calibration
     factory_reset:
       name: Factory reset
     minimal_output:

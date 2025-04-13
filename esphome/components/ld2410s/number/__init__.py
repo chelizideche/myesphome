@@ -5,8 +5,8 @@ from esphome.const import (
     DEVICE_CLASS_DISTANCE,
     DEVICE_CLASS_DURATION,
     DEVICE_CLASS_FREQUENCY,
+    DEVICE_CLASS_SIGNAL_STRENGTH,
     ENTITY_CATEGORY_CONFIG,
-    ICON_MOTION_SENSOR,
     ICON_PULSE,
     ICON_TIMELAPSE,
     UNIT_HERTZ,
@@ -55,58 +55,58 @@ CONFIG_SCHEMA = cv.Schema(
             LD2410SMaxDistanceNumber,
             device_class=DEVICE_CLASS_DISTANCE,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_MOTION_SENSOR,
+            icon="mdi:arrow-collapse-right",
         ),
         cv.Inclusive(CONF_MIN_DISTANCE, DISTANCE_GROUP): number.number_schema(
             LD2410SMinDistanceNumber,
             device_class=DEVICE_CLASS_DISTANCE,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_MOTION_SENSOR,
+            icon="mdi:arrow-collapse-left",
         ),
         cv.Optional(CONF_NO_DELAY): number.number_schema(
             LD2410SDelayNumber,
             device_class=DEVICE_CLASS_DURATION,
-            unit_of_measurement=UNIT_SECOND,
             entity_category=ENTITY_CATEGORY_CONFIG,
+            unit_of_measurement=UNIT_SECOND,
             icon=ICON_TIMELAPSE,
         ),
         cv.Optional(CONF_STATUS_REPORTING_FREQUENCY): number.number_schema(
             LD2410SStatusReportingFreqNumber,
             device_class=DEVICE_CLASS_FREQUENCY,
-            unit_of_measurement=UNIT_HERTZ,
             entity_category=ENTITY_CATEGORY_CONFIG,
+            unit_of_measurement=UNIT_HERTZ,
             icon=ICON_PULSE,
         ),
         cv.Optional(CONF_DISTANCE_REPORTING_FREQUENCY): number.number_schema(
             LD2410SDistReportingFreqNumber,
             device_class=DEVICE_CLASS_FREQUENCY,
-            unit_of_measurement=UNIT_HERTZ,
             entity_category=ENTITY_CATEGORY_CONFIG,
+            unit_of_measurement=UNIT_HERTZ,
             icon=ICON_PULSE,
         ),
         cv.Optional(CONF_TRIGGER_THRESHOLD): number.number_schema(
             LD2410STriggerThresholdNumber,
-            device_class=DEVICE_CLASS_FREQUENCY,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_PULSE,
+            icon="mdi:pencil",
         ),
         cv.Optional(CONF_TRIGGER_HOLD): number.number_schema(
             LD2410STriggerHoldNumber,
-            device_class=DEVICE_CLASS_FREQUENCY,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_PULSE,
+            icon="mdi:pencil",
         ),
         cv.Optional(CONF_TRIGGER_SNR): number.number_schema(
             LD2410STriggerSnrNumber,
-            device_class=DEVICE_CLASS_FREQUENCY,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_PULSE,
+            icon="mdi:pencil",
         ),
         cv.Optional(CONF_TRIGGER_SELECTED_GATE): number.number_schema(
             LD2410STriggerSelectedGateNumber,
-            device_class=DEVICE_CLASS_FREQUENCY,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
             entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_PULSE,
+            icon="mdi:tune-variant",
         ),
     }
 )
@@ -116,20 +116,18 @@ async def to_code(config):
     LD2410S_component = await cg.get_variable(config[CONF_LD2410S_ID])
     if max_distance_config := config.get(CONF_MAX_DISTANCE):
         n = await number.new_number(
-            max_distance_config, min_value=0.5, max_value=8.0, step=0.5
+            max_distance_config, min_value=0.7, max_value=11.2, step=0.7
         )
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_max_distance_number(n))
     if min_distance_config := config.get(CONF_MIN_DISTANCE):
         n = await number.new_number(
-            min_distance_config, min_value=0, max_value=8.0, step=0.5
+            min_distance_config, min_value=0, max_value=11.2, step=0.7
         )
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_min_distance_number(n))
     if no_delay_config := config.get(CONF_NO_DELAY):
-        n = await number.new_number(
-            no_delay_config, min_value=10, max_value=120, step=1
-        )
+        n = await number.new_number(no_delay_config, min_value=1, max_value=120, step=1)
         await cg.register_parented(n, config[CONF_LD2410S_ID])
         cg.add(LD2410S_component.set_no_delay_number(n))
     if status_reporting_freq_config := config.get(CONF_STATUS_REPORTING_FREQUENCY):

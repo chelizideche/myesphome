@@ -1,12 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import binary_sensor
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_HAS_TARGET,
-    CONF_ID,
-    DEVICE_CLASS_EMPTY,
-    DEVICE_CLASS_OCCUPANCY,
-)
+from esphome.const import CONF_HAS_TARGET, CONF_ID, DEVICE_CLASS_OCCUPANCY
 
 from .. import CONF_LD2410S_ID, LD2410S, ld2410s_ns
 
@@ -24,10 +19,10 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(LD2410SBinarySensor),
             cv.GenerateID(CONF_LD2410S_ID): cv.use_id(LD2410S),
             cv.Optional(CONF_HAS_TARGET): binary_sensor.binary_sensor_schema(
-                device_class=DEVICE_CLASS_OCCUPANCY
+                device_class=DEVICE_CLASS_OCCUPANCY, icon="mdi:motion-sensor"
             ),
             cv.Optional(HAS_THRESHOLD_UPDATE): binary_sensor.binary_sensor_schema(
-                device_class=DEVICE_CLASS_EMPTY
+                icon="mdi:exclamation"
             ),
         }
     ),

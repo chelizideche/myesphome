@@ -46,21 +46,5 @@ class LD2410SMinimalOutput : public button::Button, public Parented<LD2410S> {
   void press_action() override;
 };
 
-// class LD2410SEnableConfigButton : public button::Button, public Parented<LD2410S>
-// {
-// public:
-//     LD2410SEnableConfigButton() = default;
-// protected:
-//     void press_action() override;
-// };
-
-// class LD2410SDisableConfigButton : public button::Button, public Parented<LD2410S>
-// {
-// public:
-//     LD2410SDisableConfigButton() = default;
-// protected:
-//     void press_action() override;
-// };
-
 }  // namespace ld2410s
 }  // namespace esphome

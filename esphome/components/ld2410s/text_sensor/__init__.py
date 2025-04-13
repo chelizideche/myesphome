@@ -27,16 +27,16 @@ CONFIG_SCHEMA = cv.All(
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon=ICON_CHIP
             ),
             cv.Optional(TRIGGER_THRESHOLD_TS): text_sensor.text_sensor_schema(
-                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon=ICON_CHIP
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon="mdi:tune-variant"
             ),
             cv.Optional(TRIGGER_HOLD_TS): text_sensor.text_sensor_schema(
-                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon=ICON_CHIP
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon="mdi:tune-variant"
             ),
             cv.Optional(TRIGGER_SNR_TS): text_sensor.text_sensor_schema(
-                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon=ICON_CHIP
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon="mdi:tune-variant"
             ),
             cv.Optional(ENERGY_VALUES_TS): text_sensor.text_sensor_schema(
-                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon=ICON_CHIP
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC, icon="mdi:lightning-bolt"
             ),
         }
     ),
