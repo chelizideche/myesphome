@@ -3364,11 +3364,11 @@ void HOT WaveshareEPaper7P5InBWR::display() {
     for (uint8_t j = 0; j < 8; j++) {
       uint8_t temp2;
       if (temp1red & 0x80) {
-        temp2 = 0x04; // red
+        temp2 = 0x04;  // red
       } else if (temp1 & 0x80) {
-        temp2 = 0x03; // black
+        temp2 = 0x03;  // black
       } else {
-        temp2 = 0x00; // white
+        temp2 = 0x00;  // white
       }
       temp2 <<= 4;
       temp1 <<= 1;
@@ -3377,7 +3377,7 @@ void HOT WaveshareEPaper7P5InBWR::display() {
       if (temp1red & 0x80) {
         temp2 |= 0x04;  // red
       } else if (temp1 & 0x80) {
-        temp2 |= 0x03; // black
+        temp2 |= 0x03;  // black
       } else {
         temp2 |= 0x00;  // white
       }
