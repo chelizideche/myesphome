@@ -120,16 +120,6 @@ void LD2410S::set_status_reporting_freq(float status_reporting_freq) {
   this->schedule_cmd_("set_status_reporting_freq\0", PARAMS_WRITE_CMD, CFG_STATUS_FREQ_VALUE);
 }
 void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
-  // this->status_set_warning("set_trigger_selected_gate");
-
-  // this->schedule_cmd_frame_(CONFIG_MODE_START_CMD);
-  // this->schedule_cmd_frame_(GATE_TRIGGER_THRESHOLD_READ_CMD);
-  // this->schedule_cmd_frame_(GATE_HOLD_THRESHOLD_READ_CMD);
-  // this->schedule_cmd_frame_(GATE_SNR_READ_CMD);
-  // this->schedule_cmd_frame_(CONFIG_MODE_END_CMD);
-
-  // this->status_clear_warning();
-
   this->triggers_.selected_gate = trigger_selected_gate;
 #ifdef USE_NUMBER
   this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
@@ -140,19 +130,17 @@ void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
 }
 void LD2410S::set_trigger_threshold(float trigger_threshold) {
   this->triggers_.trigger[this->triggers_.selected_gate] = trigger_threshold;
-  this->schedule_cmd_("set_trigger_threshold\0", GATE_TRIGGER_THRESHOLD_WRITE_CMD);
-
+  this->schedule_cmd_("set_trigger_threshold\0", GATE_TRIGGER_THRESHOLD_WRITE_CMD, this->triggers_.selected_gate);
   this->update_ts_thresholds();
 }
 void LD2410S::set_trigger_hold(float trigger_hold) {
   this->triggers_.hold[this->triggers_.selected_gate] = trigger_hold;
-  this->schedule_cmd_("set_trigger_hold\0", GATE_HOLD_THRESHOLD_WRITE_CMD);
-
+  this->schedule_cmd_("set_trigger_hold\0", GATE_HOLD_THRESHOLD_WRITE_CMD, this->triggers_.selected_gate);
   this->update_ts_holds();
 }
 void LD2410S::set_trigger_snr(float trigger_snr) {
   this->triggers_.snr[this->triggers_.selected_gate] = trigger_snr;
-  this->schedule_cmd_("set_trigger_snr\0", GATE_SNR_WRITE_CMD);
+  this->schedule_cmd_("set_trigger_snr\0", GATE_SNR_WRITE_CMD, this->triggers_.selected_gate);
 
   this->update_ts_snrs();
 }
