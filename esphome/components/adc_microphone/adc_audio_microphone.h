@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_ESP32_FRAMEWORK_ESP_IDF
+
 #include "esphome/components/microphone/microphone.h"
 #include "esphome/core/component.h"
 
@@ -21,6 +23,7 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
 
   void set_adc_channel(int gpio_pin) { adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_); }
   void set_sample_rate(uint32_t sample_rate) { this->sample_rate_ = sample_rate; }
+  void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
 
  protected:
   void start_();
@@ -32,7 +35,10 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
 
   HighFrequencyLoopRequester high_freq_;
   uint32_t sample_rate_;
+  adc_atten_t attenuation_;
 };
 
 }  // namespace adc_microphone
 }  // namespace esphome
+
+#endif

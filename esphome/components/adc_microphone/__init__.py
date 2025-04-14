@@ -1,13 +1,18 @@
+import logging
+
 import esphome.codegen as cg
 from esphome.components import microphone
-from esphome.components.adc import validate_adc_pin
+from esphome.components.adc import ATTENUATION_MODES, validate_adc_pin
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NUMBER, CONF_SAMPLE_RATE
+from esphome.const import CONF_ATTENUATION, CONF_ID, CONF_NUMBER, CONF_SAMPLE_RATE
 
 CODEOWNERS = ["@calumapplepie"]
 
 DEPENDENCIES = ["esp32"]
 
+_LOGGER = logging.getLogger(__name__)
+
+_attenuation = cv.enum(ATTENUATION_MODES, lower=True)
 
 CONF_ADC_PIN = "adc_pin"
 CONF_ADC_TYPE = "adc_type"
@@ -22,12 +27,26 @@ BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
         cv.GenerateID(): cv.declare_id(ADCAudioMicrophone),
         cv.Optional(CONF_SAMPLE_RATE, default=20000): cv.int_range(min=1),
         cv.Required(CONF_ADC_PIN): validate_adc_pin,
+        cv.Optional(CONF_ATTENUATION, default=False): _attenuation,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
 
+def validate_config(config):
+    if config.get(CONF_ATTENUATION, None) == "auto":
+        raise cv.Invalid("Automatic attenuation not supported for microphone")
+    if config.get(CONF_ATTENUATION) == "11db":
+        _LOGGER.warning(
+            "`attenuation: 11db` is deprecated, use `attenuation: 12db` instead"
+        )
+        # Alter value here so `config` command prints the recommended change
+        config[CONF_ATTENUATION] = _attenuation("12db")
+
+
 CONFIG_SCHEMA = cv.All(
-    BASE_SCHEMA, cv.require_framework_version(esp_idf=cv.Version(5, 0, 0))
+    BASE_SCHEMA,
+    cv.require_framework_version(esp_idf=cv.Version(5, 0, 0)),
+    validate_config,
 )
 
 
@@ -39,3 +58,6 @@ async def to_code(config):
     pin_num = config[CONF_ADC_PIN][CONF_NUMBER]
     cg.add(var.set_adc_channel(pin_num))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
+
+    attenuation = config.get(CONF_ATTENUATION)
+    cg.add(var.set_attenuation(attenuation))
