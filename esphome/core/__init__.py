@@ -519,6 +519,8 @@ class EsphomeCore:
         self.verbose = False
         # Whether ESPHome was started in quiet mode
         self.quiet = False
+        # A set of available entities
+        self.entities: set[str] = set()
 
     def reset(self):
         from esphome.pins import PIN_SCHEMA_REGISTRY
@@ -543,6 +545,7 @@ class EsphomeCore:
         self.loaded_integrations = set()
         self.component_ids = set()
         PIN_SCHEMA_REGISTRY.reset()
+        self.entities = set()
 
     @property
     def address(self) -> Optional[str]:
@@ -771,6 +774,9 @@ class EsphomeCore:
         self.defines.add(define)
         _LOGGER.debug("Adding define: %s", define)
         return define
+
+    def define_entity(self, class_):
+        self.entities.add(class_)
 
     def add_platformio_option(self, key: str, value: Union[str, list[str]]) -> None:
         new_val = value
