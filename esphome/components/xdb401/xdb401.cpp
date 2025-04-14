@@ -8,15 +8,16 @@ namespace xdb401 {
 
 static const char *const TAG = "xdb401";
 
-static const uint8_t READ_COMMAND = 0xAC;
+static const uint8_t BASE_REGISTER = 0x30;
+static const uint8_t READ_COMMAND = 0x0A;
 
 void XDB401Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up XDB401...");
 
-  uint16_t raw_temperature(0);
-  uint16_t raw_pressure(0);
-  i2c::ErrorCode err = this->read_(raw_temperature, raw_pressure);
-  if (err != i2c::ERROR_OK) {
+  sint16_t raw_temperature(0);
+  sint32_t raw_pressure(0);
+  i2c::ErrorCode err_code = this->read_(raw_temperature, raw_pressure);
+  if (err_code != i2c::ERROR_OK) {
     ESP_LOGCONFIG(TAG, "    I2C Communication Failed...");
     this->mark_failed();
     return;
@@ -35,57 +36,131 @@ void XDB401Component::dump_config() {
 
 float XDB401Component::get_setup_priority() const { return setup_priority::DATA; }
 
-i2c::ErrorCode XDB401Component::read_(uint16_t &raw_temperature, uint16_t &raw_pressure) {
+i2c::ErrorCode XDB401Component::read_(sint16_t &raw_temperature, sint32_t &raw_pressure) {
+  const int CHECK_DELAY = 5u;
+  const int CHECK_ATTEMPTS = 6u;
+
+  i2c::ErrorCode err_code;
+
   // initiate data read from device
-  i2c::ErrorCode w_err = write(&READ_COMMAND, sizeof(READ_COMMAND), true);
-  if (w_err != i2c::ERROR_OK) {
-    return w_err;
+  err_code = write_register(BASE_REGISTER, &READ_COMMAND, sizeof(READ_COMMAND), true);
+  if (err_code != i2c::ERROR_OK) {
+    ESP_LOGE(TAG, "Error writing config to device, code: %u", err_code);
+    this->mark_failed();
+    return err_code;
+  }
+  uint8_t config_resonse[1] = {};
+  bool meas_mode = false;
+  for (int i = 1; i <= CHECK_ATTEMPTS; i++) {
+    delay(CHECK_DELAY);
+    err_code = read_register(BASE_REGISTER, config_resonse, sizeof(config_resonse), true);
+    if (err_code != i2c::ERROR_OK) {
+      ESP_LOGE(TAG, "Error reading config from device, code: %u", err_code);
+      this->mark_failed();
+      return err_code;
+    }
+    // Check bit 3 is 0
+    if ((config_resonse[0] & 0x08) == 0) {
+      meas_mode = true;
+      ESP_LOGD(TAG, "Meas mode entered after %u ms", i * CHECK_DELAY);
+      break;
+    }
   }
 
-  // read 4 bytes from senesor
-  uint8_t response[4] = {0x00, 0x00, 0x00, 0x00};
-  i2c::ErrorCode r_err = this->read(response, 4);
-
-  if (r_err != i2c::ERROR_OK) {
-    return r_err;
+  ESP_LOGD(TAG, "Config response %02X", *config_resonse);
+  if (!meas_mode) {
+    ESP_LOGE(TAG, "Device not in meas mode after timeout of %ums", CHECK_DELAY * CHECK_ATTEMPTS);
+    return i2c::ERROR_TIMEOUT;
   }
 
-  // extract top 6 bits of first byte and all bits of second byte for pressure
-  raw_pressure = ((response[0] & 0x3F) << 8) | response[1];
+  // read 3 bytes from senesor at address 0x06
+  uint8_t p_data[3] = {0x00, 0x00, 0x00};
+  err_code = this->read_register(0x06, p_data, 3, true);
+  if (err_code != i2c::ERROR_OK) {
+    ESP_LOGE(TAG, "Error reading pressure register");
+    return err_code;
+  }
+  ESP_LOGD(TAG, "Got pressure data: %s", format_hex_pretty(p_data, 3).c_str());
+  // Byte-order high to low, byte 0 bit 8 is sign bit.
+  raw_pressure = ((p_data[0] & 0x7F) << 16 | p_data[1] << 8 | p_data[2]);
+  if ((p_data[0] & 0x80) != 0) {
+    raw_pressure -= 0x01000000;
+  }
 
-  // extract all bytes of 3rd byte and top 3 bits of fourth byte for temperature
-  raw_temperature = (response[2] << 3) | ((response[3] & 0xE0) >> 5);
+  // read 2 bytes from senesor at address 0x09
+  uint8_t t_data[2] = {0x00, 0x00};
+  err_code = this->read_register(0x09, t_data, 2, true);
+  if (err_code != i2c::ERROR_OK) {
+    ESP_LOGE(TAG, "Error reading temperature register");
+    return err_code;
+  }
+  ESP_LOGD(TAG, "Got temperature data: %s", format_hex_pretty(t_data, 2).c_str());
+  // Byte-order high to low, byte 0 bit 8 is sign bit.
+  raw_temperature = ((t_data[0] & 0x7F) << 8 | t_data[1]);
+  if ((t_data[0] & 0x80) != 0) {
+    raw_temperature -= 0x010000;
+  }
 
   return i2c::ERROR_OK;
 }
 
-inline float convert_temperature(uint16_t raw_temperature) {
-  /*
-   * Correspondance with Amphenol confirmed the appropriate equation for computing temperature is:
-   * T (°C) =(((((Th*8)+Tl)/2048)*200)-50), where Th is the high (third) byte and Tl is the low (fourth) byte.
-   *
-   * Tl is actually the upper 3 bits of the fourth data byte; the first 5 (LSBs) must be masked out.
-   *
-   *
-   * The XDB-401 I2C has a temperature output, however the manufacturer does
-   * not specify its accuracy on the published datasheet. They indicate
-   * that the sensor should not be used as a calibrated temperature
-   * reading; it’s only intended for curve fitting data during
-   * compensation.
-   */
-  const float temperature_bits_span = 2048;
-  const float temperature_max = 150;
-  const float temperature_min = -50;
-  const float temperature_span = temperature_max - temperature_min;
+/* Got this code from manufacturer, but have some doubts
+   about details in it.*/
+// inline void fake_func()
+// {
+//   uint8_t Pressure[3];
+//   uint8_t Temp[2];
+//   char data[3];
+//   float Cal_PData1; // 24-bit AD value - pressure data
+//   float Cal_PData2; // Current pressure as a percentage of full-scale pressure
+//   float Pressure_data; // Current actual pressure output
+//   float Cal_TData1; // 24-bit AD value - temperature data
+//   float Cal_TData2; // Current temperature as a percentage of full-scale temperature
+//   float Temp_data; // Current actual temperature output
+//   float Fullscale_P; // Full-scale pressure value
+//   Fullscale_P = 1000; // Please define the full-scale pressure (e.g., 1000 kPa)
 
-  float temperature = (raw_temperature * temperature_span / temperature_bits_span) + temperature_min;
+//   while (1)
+//   {
 
-  return temperature;
-}
+//     I2C_WriteReg(0x30, 0x0A);
+//     delay_ms(100);
+//     I2C_ReadNByte(0x06, Pressure, 3); // Read registers 0x06, 0x07, and 0x08 sequentially. data[0] = Pressure[0];
+//     data[1] = Pressure[1];
+//     data[2] = Pressure[2];
+//     Cal_PData1 = data[0] * 65535 + data[1] * 256 + data[2];
+//     if (Cal_PData1 > 8388608)
+//     {
+//       Cal_PData2 = (Cal_PData1 - 16777216) / 8388608;
+//     }
+//     else
+//     {
+//       Cal_PData2 = Cal_PData1 / 8388608;
+//     }
+//     Pressure_data = Cal_PData2 * Fullscale_P;
+//     // Calculate pressure value
+
+//     I2C_ReadNByte(0x09, Temp, 2); // Read registers 0x09 and 0x0A sequentially. data[0] = Temp[0];
+//     data[1] = Temp[1];
+
+//     Cal_TData1 = data[0] * 256 + data[1];
+//     if (Cal_TData1 > 32768)
+//     {
+//       Cal_TData2 = (Cal_TData1 - 65536) / 256;
+//     }
+//     else
+//     {
+//       Cal_TData2 = Cal_TData1 / 256;
+//     }
+//     Temp_data = Cal_TData2; // Calculate temperature value
+
+//     // Use Pressure_data and Temp_data as needed in your application
+//   }
+// }
 
 void XDB401Component::update() {
-  uint16_t raw_temperature(0);
-  uint16_t raw_pressure(0);
+  sint16_t raw_temperature(0);
+  sint32_t raw_pressure(0);
 
   i2c::ErrorCode err = this->read_(raw_temperature, raw_pressure);
 
@@ -95,14 +170,15 @@ void XDB401Component::update() {
     return;
   }
 
-  float temperature = convert_temperature(raw_temperature);
+  float pressure = (float) raw_pressure / (float) 0x80000 * 1000.0;
+  float temperature = (float) raw_temperature / (float) 0x0100;
 
-  ESP_LOGD(TAG, "Got raw pressure=%d, temperature=%.1f°C", raw_pressure, temperature);
+  ESP_LOGD(TAG, "Got pressure=%.1f, temperature=%.1f°C", pressure, temperature);
 
   if (this->temperature_sensor_ != nullptr)
     this->temperature_sensor_->publish_state(temperature);
   if (this->raw_pressure_sensor_ != nullptr)
-    this->raw_pressure_sensor_->publish_state(raw_pressure);
+    this->raw_pressure_sensor_->publish_state(pressure);
 
   this->status_clear_warning();
 }

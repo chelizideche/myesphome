@@ -21,7 +21,7 @@ class XDB401Component : public PollingComponent, public i2c::I2CDevice {
   void update() override;
 
  protected:
-  i2c::ErrorCode read_(uint16_t &raw_temperature, uint16_t &raw_pressure);
+  i2c::ErrorCode read_(sint16_t &raw_temperature, sint32_t &raw_pressure);
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *raw_pressure_sensor_{nullptr};
 };
