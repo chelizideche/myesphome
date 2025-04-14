@@ -1,109 +1,241 @@
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include "constants.h"
 #include "sml_parser.h"
 
 namespace esphome {
 namespace sml {
 
-SmlFile::SmlFile(bytes buffer) : buffer_(std::move(buffer)) {
-  // extract messages
-  this->pos_ = 0;
-  while (this->pos_ < this->buffer_.size()) {
-    if (this->buffer_[this->pos_] == 0x00)
-      break;  // EndOfSmlMsg
+static const char *const TAG = "sml";
 
-    SmlNode message = SmlNode();
-    if (!this->setup_node(&message))
-      break;
-    this->messages.emplace_back(message);
+struct NodeTypeLength {
+  uint16_t type;
+  uint16_t length;
+};
+
+template<typename T> static T to_int(const uint8_t *ptr, const uint8_t *end) {
+  static_assert(std::is_integral<T>::value, "T must be an integer type.");
+  T val = 0;
+  if (ptr != end) {
+    val = static_cast<typename std::conditional<std::is_signed<T>::value, int8_t, uint8_t>::type>(*ptr++);
+    while (ptr != end) {
+      val = (val << 8) + *ptr++;
+    }
   }
+  return val;
 }
 
-bool SmlFile::setup_node(SmlNode *node) {
-  // If the TL field is 0x00, this is the end of the message
-  // (see 6.3.1 of SML protocol definition)
-  if (this->buffer_[this->pos_] == 0x00) {
-    // Increment past this byte and signal that the message is done
-    this->pos_ += 1;
+class Parser {
+ public:
+  Parser(const uint8_t *ptr, const uint8_t *end) : ptr_(ptr), end_(end), error_(false) {}
+
+  operator bool() const { return !this->error_ && this->ptr_ != this->end_; }
+
+  bool error() const { return this->error_; }
+
+  NodeTypeLength read_type_length() {
+    if (this->error_) {
+      return {SML_UNDEFINED, 0};
+    }
+
+    if (this->ptr_ == this->end_) {
+      ESP_LOGW(TAG, "unexpected end of buffer while waiting for a node");
+      this->error_ = true;
+      return {SML_UNDEFINED, 0};
+    }
+
+    const auto *begin = this->ptr_;
+    uint16_t length = *this->ptr_ & 0x0f;
+    uint16_t type = (*this->ptr_ >> 4) & 0x07;
+    bool has_extra_type_length_byte = (*this->ptr_ & 0x80) != 0;
+    if (has_extra_type_length_byte) {
+      if (++this->ptr_ == this->end_) {
+        ESP_LOGW(TAG, "unexpected end of buffer while waiting for extra type-length byte");
+        this->error_ = true;
+        return {SML_UNDEFINED, 0};
+      }
+      length = (length << 4) + (*this->ptr_ & 0x0f);
+
+      // Technically, this is not enough, the standard allows for more than two length fields.
+      // However I don't think it will ever happen.
+    }
+    ++this->ptr_;
+
+    if (type != SML_LIST) {
+      if (this->end_ - begin < length) {
+        ESP_LOGW(TAG, "unexpected end of buffer while waiting for node value");
+        this->error_ = true;
+        return {SML_UNDEFINED, 0};
+      }
+      length -= this->ptr_ - begin;
+    }
+
+    return {type, length};
+  }
+
+  uint16_t read_list_length(const char *name) {
+    auto tl = this->read_type_length();
+    if (this->error_) {
+      return 0;
+    }
+    if (tl.type != SML_LIST) {
+      ESP_LOGW(TAG, "unexpected node type %u when expecting list %s", tl.type, name);
+      this->error_ = true;
+      return 0;
+    }
+    return tl.length;
+  }
+
+  bool skip_nodes(unsigned n) {
+    while (n-- > 0) {
+      auto tl = this->read_type_length();
+      if (this->error_) {
+        return false;
+      }
+      if (tl.type == SML_LIST) {
+        n += tl.length;
+      } else {
+        this->ptr_ += tl.length;
+      }
+    };
+    return !this->error_;
+  }
+
+  bool skip_until_next_message() {
+    while (this->ptr_ != this->end_) {
+      if (*this->ptr_ == 0) {
+        ++this->ptr_;
+        break;
+      }
+      auto tl = this->read_type_length();
+      if (this->error_) {
+        return false;
+      } else if (tl.type != SML_LIST) {
+        this->ptr_ += tl.length;
+      }
+    }
+    // Some messages are padded with zeros
+    while (this->ptr_ != this->end_ && *this->ptr_ == 0) {
+      ++this->ptr_;
+    }
+    return !this->error_;
+  }
+
+  template<typename T> bool read_int(T &result, const char *name) {
+    auto tl = this->read_type_length();
+    if (this->error_) {
+      return false;
+    }
+    if (tl.type == SML_OCTET && tl.length == 0) {
+      // Missing optional field (use default value 0)
+      result = 0;
+      return true;
+    }
+    if (std::is_signed<T>::value) {
+      if (tl.type != SML_INT) {
+        ESP_LOGW(TAG, "unexpected node type %u when expecting a signed integer node %s", tl.type, name);
+        this->error_ = true;
+        return false;
+      }
+    } else {
+      if (tl.type != SML_UINT && tl.type != SML_BOOL) {
+        ESP_LOGW(TAG, "unexpected node type %u when expecting a unsigned integer node %s", tl.type, name);
+        this->error_ = true;
+        return false;
+      }
+    }
+    result = to_int<T>(this->ptr_, this->ptr_ + tl.length);
+    this->ptr_ += tl.length;
     return true;
   }
 
-  // Extract data from initial TL field
-  uint8_t type = (this->buffer_[this->pos_] >> 4) & 0x07;     // type without overlength info
-  bool overlength = (this->buffer_[this->pos_] >> 4) & 0x08;  // overlength information
-  uint8_t length = this->buffer_[this->pos_] & 0x0f;          // length (including TL bytes)
-
-  // Check if we need additional length bytes
-  if (overlength) {
-    // Shift the current length to the higher nibble
-    // and add the lower nibble of the next byte to the length
-    length = (length << 4) + (this->buffer_[this->pos_ + 1] & 0x0f);
-    // We are basically done with the first TL field now,
-    // so increment past that, we now point to the second TL field
-    this->pos_ += 1;
-    // Decrement the length for value fields (not lists),
-    // since the byte we just handled is counted as part of the field
-    // in case of values but not for lists
-    if (type != SML_LIST)
-      length -= 1;
-
-    // Technically, this is not enough, the standard allows for more than two length fields.
-    // However I don't think it is very common to have more than 255 entries in a list
-  }
-
-  // We are done with the last TL field(s), so advance the position
-  this->pos_ += 1;
-  // and decrement the length for non-list fields
-  if (type != SML_LIST)
-    length -= 1;
-
-  // Check if the buffer length is long enough
-  if (this->pos_ + length > this->buffer_.size())
-    return false;
-
-  node->type = type;
-  node->nodes.clear();
-  node->value_bytes.clear();
-
-  if (type == SML_LIST) {
-    node->nodes.reserve(length);
-    for (size_t i = 0; i != length; i++) {
-      SmlNode child_node = SmlNode();
-      if (!this->setup_node(&child_node))
-        return false;
-      node->nodes.emplace_back(child_node);
+  bool read_octet_string(byte_span &result, uint16_t &node_type) {
+    auto tl = this->read_type_length();
+    if (tl.type == SML_LIST) {
+      ESP_LOGW(TAG, "unexpected list node when expecting a primitive node");
+      this->error_ = true;
+      return false;
     }
-  } else {
-    // Value starts at the current position
-    // Value ends "length" bytes later,
-    // (since the TL field is counted but already subtracted from length)
-    node->value_bytes = bytes(this->buffer_.begin() + this->pos_, this->buffer_.begin() + this->pos_ + length);
-    // Increment the pointer past all consumed bytes
-    this->pos_ += length;
+    result = byte_span(this->ptr_, tl.length);
+    node_type = tl.type;
+    this->ptr_ += tl.length;
+    return true;
   }
-  return true;
+
+  bool read_octet_string(byte_span &result, const char *name) {
+    uint16_t node_type;
+    if (!this->read_octet_string(result, node_type)) {
+      return false;
+    }
+    if (node_type != SML_OCTET) {
+      ESP_LOGW(TAG, "unexpected node type %u when expecting an octet string node %s", node_type, name);
+      this->error_ = true;
+      return false;
+    }
+    return true;
+  }
+
+ private:
+  uint8_t const *ptr_;
+  uint8_t const *const end_;
+  bool error_;
+};
+
+static void process_get_list_response(Parser &parser, const std::function<void(const ObisInfo &)> &callback) {
+  byte_span server_id;
+  (void) parser.read_list_length("get_list_response");  // Ignore get_list_response length
+  parser.skip_nodes(1);                                 // Skip clientId field
+  parser.read_octet_string(server_id, "server id");
+  parser.skip_nodes(2);  // Skip listName & actSensorTime fields
+  auto val_list_length = parser.read_list_length("value list");
+  for (int i = 0; i < val_list_length; i++) {
+    auto val_entry_length = parser.read_list_length("value entry");
+    if (val_entry_length < 6) {
+      ESP_LOGW(TAG, "unexpected node length when expecting a value entry");
+      break;
+    }
+    ObisInfo info;
+    info.server_id = server_id;
+    parser.read_octet_string(info.code, "value code");
+    parser.skip_nodes(2);  // Skip status & valTime fields
+    parser.read_int(info.unit, "value unit");
+    parser.read_int(info.scaler, "value scaler");
+    parser.read_octet_string(info.value, info.value_type);
+    parser.skip_nodes(val_entry_length - 6);  // Skip remaining fields
+    if (parser.error()) {
+      break;
+    }
+    callback(info);
+  }
 }
 
-std::vector<ObisInfo> SmlFile::get_obis_info() {
-  std::vector<ObisInfo> obis_info;
-  for (auto const &message : messages) {
-    SmlNode message_body = message.nodes[3];
-    uint16_t message_type = bytes_to_uint(message_body.nodes[0].value_bytes);
-    if (message_type != SML_GET_LIST_RES)
-      continue;
-
-    SmlNode get_list_response = message_body.nodes[1];
-    bytes server_id = get_list_response.nodes[1].value_bytes;
-    SmlNode val_list = get_list_response.nodes[4];
-
-    for (auto const &val_list_entry : val_list.nodes) {
-      obis_info.emplace_back(server_id, val_list_entry);
+void for_each_obis_info(uint8_t const *begin, uint8_t const *end,
+                        const std::function<void(const ObisInfo &)> &callback) {
+  Parser parser(begin, end);
+  while (parser) {
+    auto message_length = parser.read_list_length("message");
+    if (message_length < 4) {
+      ESP_LOGW(TAG, "unexpected node length %d when expecting a message", message_length);
+      break;
     }
+    parser.skip_nodes(3);  // Skip transactionId, groupNo & abortOnError fields
+    auto message_body_length = parser.read_list_length("message body");
+    if (message_body_length < 2) {
+      ESP_LOGW(TAG, "unexpected node length %d when expecting a message body", message_body_length);
+      break;
+    }
+    uint16_t message_type;
+    if (parser.read_int(message_type, "message type")) {
+      ESP_LOGVV(TAG, "Processed SML message %d", message_type);
+      if (message_type == SML_GET_LIST_RES) {
+        process_get_list_response(parser, callback);
+      }
+    }
+    parser.skip_until_next_message();
   }
-  return obis_info;
 }
 
-std::string bytes_repr(const bytes &buffer) {
+std::string bytes_repr(const byte_span &buffer) {
   std::string repr;
   for (auto const value : buffer) {
     repr += str_sprintf("%02x", value & 0xff);
@@ -111,41 +243,11 @@ std::string bytes_repr(const bytes &buffer) {
   return repr;
 }
 
-uint64_t bytes_to_uint(const bytes &buffer) {
-  uint64_t val = 0;
-  for (auto const value : buffer) {
-    val = (val << 8) + value;
-  }
-  return val;
-}
+uint64_t bytes_to_uint(const byte_span &buffer) { return to_int<uint64_t>(buffer.begin(), buffer.end()); }
 
-int64_t bytes_to_int(const bytes &buffer) {
-  uint64_t tmp = bytes_to_uint(buffer);
-  int64_t val;
+int64_t bytes_to_int(const byte_span &buffer) { return to_int<int64_t>(buffer.begin(), buffer.end()); }
 
-  // sign extension for abbreviations of leading ones (e.g. 3 byte transmissions, see 6.2.2 of SML protocol definition)
-  // see https://stackoverflow.com/questions/42534749/signed-extension-from-24-bit-to-32-bit-in-c
-  if (buffer.size() < 8) {
-    const int bits = buffer.size() * 8;
-    const uint64_t m = 1ull << (bits - 1);
-    tmp = (tmp ^ m) - m;
-  }
-
-  val = (int64_t) tmp;
-  return val;
-}
-
-std::string bytes_to_string(const bytes &buffer) { return std::string(buffer.begin(), buffer.end()); }
-
-ObisInfo::ObisInfo(bytes server_id, SmlNode val_list_entry) : server_id(std::move(server_id)) {
-  this->code = val_list_entry.nodes[0].value_bytes;
-  this->status = val_list_entry.nodes[1].value_bytes;
-  this->unit = bytes_to_uint(val_list_entry.nodes[3].value_bytes);
-  this->scaler = bytes_to_int(val_list_entry.nodes[4].value_bytes);
-  SmlNode value_node = val_list_entry.nodes[5];
-  this->value = value_node.value_bytes;
-  this->value_type = value_node.type;
-}
+std::string bytes_to_string(const byte_span &buffer) { return std::string(buffer.begin(), buffer.end()); }
 
 std::string ObisInfo::code_repr() const {
   return str_sprintf("%d-%d:%d.%d.%d", this->code[0], this->code[1], this->code[2], this->code[3], this->code[4]);

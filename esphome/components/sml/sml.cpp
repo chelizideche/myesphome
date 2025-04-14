@@ -51,10 +51,11 @@ void Sml::loop() {
           if (!valid)
             break;
 
-          // remove start/end sequence
-          this->sml_data_.erase(this->sml_data_.begin(), this->sml_data_.begin() + START_SEQ.size());
-          this->sml_data_.resize(this->sml_data_.size() - 8);
-          this->process_sml_file_(this->sml_data_);
+          // discard start/end sequence
+          auto file_begin = this->sml_data_.begin() + START_SEQ.size();
+          auto file_length = this->sml_data_.size() - START_SEQ.size() - 8;
+          for_each_obis_info(&*file_begin, &*file_begin + file_length,
+                             [this](const ObisInfo &obis_info) { this->publish_value_(obis_info); });
         }
         break;
       };
@@ -66,32 +67,9 @@ void Sml::add_on_data_callback(std::function<void(std::vector<uint8_t>, bool)> &
   this->data_callbacks_.add(std::move(callback));
 }
 
-void Sml::process_sml_file_(const bytes &sml_data) {
-  SmlFile sml_file = SmlFile(sml_data);
-  std::vector<ObisInfo> obis_info = sml_file.get_obis_info();
-  this->publish_obis_info_(obis_info);
-
-  this->log_obis_info_(obis_info);
-}
-
-void Sml::log_obis_info_(const std::vector<ObisInfo> &obis_info_vec) {
-  ESP_LOGD(TAG, "OBIS info:");
-  for (auto const &obis_info : obis_info_vec) {
-    std::string info;
-    info += "  (" + bytes_repr(obis_info.server_id) + ") ";
-    info += obis_info.code_repr();
-    info += " [0x" + bytes_repr(obis_info.value) + "]";
-    ESP_LOGD(TAG, "%s", info.c_str());
-  }
-}
-
-void Sml::publish_obis_info_(const std::vector<ObisInfo> &obis_info_vec) {
-  for (auto const &obis_info : obis_info_vec) {
-    this->publish_value_(obis_info);
-  }
-}
-
 void Sml::publish_value_(const ObisInfo &obis_info) {
+  ESP_LOGD(TAG, "OBIS (%s) %s [0x%s]", bytes_repr(obis_info.server_id).c_str(), obis_info.code_repr().c_str(),
+           bytes_repr(obis_info.value).c_str());
   for (auto const &sml_listener : sml_listeners_) {
     if ((!sml_listener->server_id.empty()) && (bytes_repr(obis_info.server_id) != sml_listener->server_id))
       continue;
