@@ -190,6 +190,7 @@ async def to_code(config):
     zephyr_add_prj_conf("OPENTHREAD_SLAAC", True)
     zephyr_add_prj_conf("NET_IF_UNICAST_IPV6_ADDR_COUNT", 6)
     zephyr_add_prj_conf("NET_SOCKETS", True)
+    zephyr_add_prj_conf("NET_SOCKETS_POLL_MAX", 4)
     zephyr_add_prj_conf("NET_SOCKETS_POSIX_NAMES", True)
 
     # TCP configuration - disable RFC6528 ISN generation to avoid mbedtls_md5 dependency
@@ -206,16 +207,10 @@ async def to_code(config):
     zephyr_add_prj_conf("DNS_RESOLVER_ADDITIONAL_BUF_CTR", 2)
     zephyr_add_prj_conf("DNS_RESOLVER_ADDITIONAL_QUERIES", 2)
 
-    # IEEE 802.15.4 driver
-    zephyr_add_prj_conf("IEEE802154", True)
-    zephyr_add_prj_conf("IEEE802154_NRF5", True)
-    zephyr_add_prj_conf("IEEE802154_NRF5_RX_STACK_SIZE", 800)
-
     # Stack sizes
     zephyr_add_prj_conf("MAIN_STACK_SIZE", 10240)
     
     # OpenThread settings
-    zephyr_add_prj_conf("OPENTHREAD_THREAD_STACK_SIZE", 8192)
     zephyr_add_prj_conf("OPENTHREAD_CHANNEL", config[CONF_CHANNEL])
     panid_int = int(config[CONF_PANID])  # Already an integer from cv.hex_uint16_t
     zephyr_add_prj_conf("OPENTHREAD_PANID", panid_int)
@@ -224,9 +219,6 @@ async def to_code(config):
     zephyr_add_prj_conf("OPENTHREAD_NETWORKKEY", config[CONF_NETWORK_KEY])
     zephyr_add_prj_conf("OPENTHREAD_MANUAL_START", True)
     zephyr_add_prj_conf("OPENTHREAD_DEFAULT_TX_POWER", config[CONF_RADIO_TX_POWER])
-
-    # Radio settings
-    zephyr_add_prj_conf("OPENTHREAD_RADIO_WORKQUEUE_STACK_SIZE", 2048)
 
     # Add build flags - ensure proper spacing between flags
     cg.add_build_flag("-DUSE_OPENTHREAD")
