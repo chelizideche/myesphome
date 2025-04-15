@@ -40,7 +40,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA),
-    cv.has_at_least_one_key(CONF_ENUM_DATAPOINT, CONF_INT_DATAPOINT),
+    cv.has_exactly_one_key(CONF_ENUM_DATAPOINT, CONF_INT_DATAPOINT),
 )
 
 
