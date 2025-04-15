@@ -27,7 +27,7 @@ class TuyaSelect : public select::Select, public Component {
   bool optimistic_ = false;
   uint8_t select_id_;
   std::vector<uint8_t> mappings_;
-  bool is_int_;
+  bool is_int_ = false;
 };
 
 }  // namespace tuya
