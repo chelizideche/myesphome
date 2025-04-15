@@ -37,6 +37,7 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
   uint32_t sample_rate_;
   adc_atten_t attenuation_;
   adc_continuous_handle_t adc_handle;
+  uint8_t *dma_out_buffer;
 };
 
 }  // namespace adc_microphone

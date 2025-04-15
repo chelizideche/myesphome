@@ -12,23 +12,33 @@ static const size_t BUFFER_SIZE = 512;
 
 static const char *const TAG = "adc_microphone";
 
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
+#define DMA_FORMAT_TYPE_1 1
+#define DMA_FORMAT_TYPE ADC_DIGI_OUTPUT_FORMAT_TYPE1
+#else
+#define DMA_FORMAT_TYPE_2 1
+#define DMA_FORMAT_TYPE ADC_DIGI_OUTPUT_FORMAT_TYPE2
+#endif
+
+// 16 samples seems like a decent enough size for each frame
+#define DMA_SAMPLES_PER_FRAME 16
+
+// ensure buffer is large enough to work even when running at slower speed
+#define DMA_FRAME_SIZE SOC_ADC_DIGI_DATA_BYTES_PER_CONV *DMA_SAMPLES_PER_FRAME
+#define DMA_BUF_SIZE DMA_FRAME_SIZE * 100
+
 void ADCAudioMicrophone::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
   // it's arguable that some of this should be moved into start(), not setup()
 
   adc_continuous_handle_cfg_t adc_config = {
-      .max_store_buf_size = SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 8 *
-                            100,  // ensure buffer is large enough to work even when running at slower speed
-      .conv_frame_size = SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 8,
+      .max_store_buf_size = DMA_BUF_SIZE,
+      .conv_frame_size = DMA_FRAME_SIZE,
   };
 
   ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle));
 
-#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
-  adc_digi_output_format_t format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;
-#else
-  adc_digi_output_format_t format = ADC_DIGI_OUTPUT_FORMAT_TYPE2;
-#endif
+  adc_digi_output_format_t format = DMA_FORMAT_TYPE;
 
   adc_digi_convert_mode_t adc_conv_mode = (adc_unit_ == ADC_UNIT_1) ? ADC_CONV_SINGLE_UNIT_1 : ADC_CONV_SINGLE_UNIT_2;
 
@@ -46,7 +56,7 @@ void ADCAudioMicrophone::setup() {
       .bit_width = ADC_BITWIDTH_DEFAULT,
   };
   dig_cfg.adc_pattern = &adc_pattern;
-  ESP_ERROR_CHECK(adc_continuous_config(adc_handle, &dig_cfg))
+  ESP_ERROR_CHECK(adc_continuous_config(adc_handle, &dig_cfg));
 }
 
 void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
@@ -69,6 +79,9 @@ void ADCAudioMicrophone::start_() {
       this->status_set_error("Cound not start");
       return;
     }
+    // two calls are needed to empty the buffer anyways when it fills,
+    // so lets save some memory
+    dma_out_buffer = new uint8_t[DMA_BUF_SIZE / 2];
   }
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
@@ -94,16 +107,18 @@ void ADCAudioMicrophone::stop_() {
     this->status_set_error();
     return;
   }
+  delete[] dma_out_buffer;
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
   this->status_clear_error();
 }
 
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
-  size_t bytes_read = 0;
-  esp_err_t err = i2s_read(this->parent_->get_port(), buf, len, &bytes_read, (100 / portTICK_PERIOD_MS));
+  uint32_t bytes_read = 0;
+  size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
+  esp_err_t err = adc_continuous_read(adc_handle, dma_out_buffer, max_read, &bytes_read, 4);
   if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Error reading from I2S microphone: %s", esp_err_to_name(err));
+    ESP_LOGW(TAG, "Error reading from adc microphone: %s", esp_err_to_name(err));
     this->status_set_warning();
     return 0;
   }
@@ -112,25 +127,22 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
     return 0;
   }
   this->status_clear_warning();
-  // ESP-IDF I2S implementation right-extends 8-bit data to 16 bits,
-  // and 24-bit data to 32 bits.
-  switch (this->bits_per_sample_) {
-    case I2S_BITS_PER_SAMPLE_8BIT:
-    case I2S_BITS_PER_SAMPLE_16BIT:
-      return bytes_read;
-    case I2S_BITS_PER_SAMPLE_24BIT:
-    case I2S_BITS_PER_SAMPLE_32BIT: {
-      size_t samples_read = bytes_read / sizeof(int32_t);
-      for (size_t i = 0; i < samples_read; i++) {
-        int32_t temp = reinterpret_cast<int32_t *>(buf)[i] >> 14;
-        buf[i] = clamp<int16_t>(temp, INT16_MIN, INT16_MAX);
-      }
-      return samples_read * sizeof(int16_t);
-    }
-    default:
-      ESP_LOGE(TAG, "Unsupported bits per sample: %d", this->bits_per_sample_);
-      return 0;
+
+  // remove the extraneous data, only leaving what we care about
+  // skip calibration, since that looks performance-intensive
+  size_t samples_read = bytes_read / SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
+  adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer);
+
+  for (size_t i = 0; i < samples_read; i++) {
+#ifdef DMA_FORMAT_TYPE_1
+    buf[i] = temp[i].type1.data;
+#elif DMA_FORMAT_TYPE_2
+    buf[i] = temp[i].type2.data;
+#else
+#error "Unknown DMA_FORMAT_TYPE"
+#endif
   }
+  return samples_read * sizeof(int16_t);
 }
 
 void ADCAudioMicrophone::read_() {
