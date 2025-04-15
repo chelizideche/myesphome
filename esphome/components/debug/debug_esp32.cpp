@@ -69,15 +69,15 @@ const char *const WAKEUP_CAUSES[] = {
 };
 
 std::string DebugComponent::get_wakeup_cause_() {
-  std::string wake_reason;
+  const char *wake_reason;
   unsigned reason = esp_sleep_get_wakeup_cause();
   if (reason < sizeof(WAKEUP_CAUSES) / sizeof(WAKEUP_CAUSES[0])) {
     wake_reason = WAKEUP_CAUSES[reason];
   } else {
     wake_reason = "unknown source";
   }
-  ESP_LOGD(TAG, "Wake Reason: %s", wake_reason.c_str());
-  return "Wake by " + wake_reason;
+  ESP_LOGD(TAG, "Wakeup Reason: %s", wake_reason);
+  return wake_reason;
 }
 
 void DebugComponent::log_partition_info_() {
@@ -186,7 +186,6 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += get_reset_reason_();
 
   std::string wakeup_reason = this->get_wakeup_cause_();
-  ESP_LOGD(TAG, "Wakeup Reason: %s", wakeup_reason.c_str());
   device_info += "|Wakeup: ";
   device_info += wakeup_reason;
 }
