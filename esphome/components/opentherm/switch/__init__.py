@@ -40,3 +40,6 @@ async def to_code(config: dict[str, Any]) -> None:
         config,
     )
     generate.define_readers(COMPONENT_TYPE, keys)
+
+
+FINAL_VALIDATE_SCHEMA = validate.schema_validator(schema.SWITCHES)

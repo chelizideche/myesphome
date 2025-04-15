@@ -48,3 +48,6 @@ async def to_code(config: dict[str, Any]) -> None:
         generate.create_only_conf(sensor.new_sensor),
         config,
     )
+
+
+FINAL_VALIDATE_SCHEMA = validate.schema_validator(schema.SENSORS)

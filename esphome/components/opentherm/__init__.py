@@ -160,3 +160,6 @@ async def to_code(config: dict[str, Any]) -> None:
         await automation.build_automation(
             trigger, [(generate.OpenthermData.operator("ref"), "x")], conf
         )
+
+
+FINAL_VALIDATE_SCHEMA = validate.schema_validator(schema.SETTINGS, True)
