@@ -7,9 +7,6 @@
 #include <esp_system.h>
 #include <esp_chip_info.h>
 #include <esp_partition.h>
-#ifdef USE_ESP_IDF
-#include <esp_clk_tree.h>
-#endif
 
 #if defined(USE_ESP32_VARIANT_ESP32)
 #include <esp32/rom/rtc.h>
@@ -297,8 +294,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += features;
   device_info += " Cores:" + to_string(info.cores);
   device_info += " Revision:" + to_string(info.revision);
-  device_info += str_sprintf("|CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
-  ESP_LOGD(TAG, "CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
+  device_info += str_sprintf("|CPU Frequency: %" PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
+  ESP_LOGD(TAG, "CPU Frequency: %" PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
 
   // Framework detection
   device_info += "|Framework: ";
@@ -380,9 +377,6 @@ void DebugComponent::update_platform_() {
   }
   if (this->psram_sensor_ != nullptr) {
     this->psram_sensor_->publish_state(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
-  }
-  if (this->cpu_frequency_sensor_ != nullptr) {
-    this->cpu_frequency_sensor_->publish_state(arch_get_cpu_freq_hz());
   }
 #endif
 }

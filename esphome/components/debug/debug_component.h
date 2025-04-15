@@ -35,10 +35,10 @@ class DebugComponent : public PollingComponent {
   void set_loop_time_sensor(sensor::Sensor *loop_time_sensor) { loop_time_sensor_ = loop_time_sensor; }
 #ifdef USE_ESP32
   void set_psram_sensor(sensor::Sensor *psram_sensor) { this->psram_sensor_ = psram_sensor; }
+#endif  // USE_ESP32
   void set_cpu_frequency_sensor(sensor::Sensor *cpu_frequency_sensor) {
     this->cpu_frequency_sensor_ = cpu_frequency_sensor;
   }
-#endif  // USE_ESP32
 #endif  // USE_SENSOR
  protected:
   uint32_t free_heap_{};
@@ -55,8 +55,8 @@ class DebugComponent : public PollingComponent {
   sensor::Sensor *loop_time_sensor_{nullptr};
 #ifdef USE_ESP32
   sensor::Sensor *psram_sensor_{nullptr};
-  sensor::Sensor *cpu_frequency_sensor_{nullptr};
 #endif  // USE_ESP32
+  sensor::Sensor *cpu_frequency_sensor_{nullptr};
 #endif  // USE_SENSOR
 
 #ifdef USE_ESP32

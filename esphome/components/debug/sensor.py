@@ -63,7 +63,6 @@ CONFIG_SCHEMA = {
         ),
     ),
     cv.Optional(CONF_CPU_FREQUENCY): cv.All(
-        cv.only_on_esp32,
         sensor.sensor_schema(
             unit_of_measurement=UNIT_HERTZ,
             icon="mdi:speedometer",

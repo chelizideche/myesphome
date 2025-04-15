@@ -94,6 +94,9 @@ CPU_FREQUENCIES = {
     VARIANT_ESP32P4: get_cpu_frequencies(40, 360, 400),
 }
 
+# Make sure not missed here if a new variant added.
+assert all(v in CPU_FREQUENCIES for v in VARIANTS)
+
 FULL_CPU_FREQUENCIES = set(itertools.chain.from_iterable(CPU_FREQUENCIES.values()))
 
 

@@ -9,7 +9,5 @@ sensor:
       name: "Heap Free"
     psram:
       name: "Free PSRAM"
-    cpu_frequency:
-      name: "CPU Frequency"
 
 psram:
