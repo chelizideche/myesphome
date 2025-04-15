@@ -140,9 +140,14 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
           // Ignore modbus exception not related to a pending command
           ESP_LOGD(TAG, "Ignoring Modbus error - not expecting a response");
         }
-      } else if (this->role == ModbusRole::SERVER && (function_code == 0x3 || function_code == 0x4)) {
-        device->on_modbus_read_registers(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
-                                         uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+      } else if (this->role == ModbusRole::SERVER) {
+        if (function_code == 0x3 || function_code == 0x4) {
+          device->on_modbus_read_registers(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
+                                           uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+        } else if (function_code == 0x5) {
+          device->on_modbus_write_coil_register(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
+                                                uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+        }
       } else {
         device->on_modbus_data(data);
       }
@@ -193,10 +198,16 @@ void Modbus::send(uint8_t address, uint8_t function_code, uint16_t start_address
       data.push_back(number_of_entities >> 8);
       data.push_back(number_of_entities >> 0);
     }
+  } else if (this->role == ModbusRole::SERVER) {
+    if (function_code != 0x3 && function_code != 0x4) {
+      data.push_back(start_address >> 8);
+      data.push_back(start_address >> 0);
+    }
   }
 
   if (payload != nullptr) {
-    if (this->role == ModbusRole::SERVER || function_code == 0xF || function_code == 0x10) {  // Write multiple
+    if ((this->role == ModbusRole::SERVER && function_code != 0x5 && function_code != 0x6) || function_code == 0xF ||
+        function_code == 0x10) {    // Write multiple
       data.push_back(payload_len);  // Byte count is required for write
     } else {
       payload_len = 2;  // Write single register or coil

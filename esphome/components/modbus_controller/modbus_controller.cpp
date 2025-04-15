@@ -151,6 +151,41 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
   this->send(function_code, start_address, number_of_registers, response.size(), response.data());
 }
 
+void ModbusController::on_modbus_write_coil_register(uint8_t function_code, uint16_t address, uint16_t state) {
+  ESP_LOGD(TAG,
+           "Received write coil registers for device 0x%X. FC: 0x%X. Start address: 0x%X. State: "
+           "0x%X.",
+           this->address_, function_code, address, state);
+
+  bool found = false;
+  for (auto *server_coil_register : this->server_coil_registers_) {
+    if (server_coil_register->address == address) {
+      server_coil_register->state = state;
+      ESP_LOGD(TAG, "Matched register. Address: 0x%02X. State: 0x%X", server_coil_register->address,
+               server_coil_register->state);
+      server_coil_register->write_lambda(state == 0xFF00);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    ESP_LOGW(TAG, "Could not match any register to address %02X. Sending exception response.", address);
+    std::vector<uint8_t> error_response;
+    error_response.push_back(this->address_);
+    error_response.push_back(0x81);
+    error_response.push_back(0x02);
+    this->send_raw(error_response);
+    return;
+  }
+
+  std::vector<uint8_t> response;
+  response.push_back((state >> 8) & 0xFF);
+  response.push_back(state & 0xFF);
+
+  this->send(function_code, address, 0, response.size(), response.data());
+}
+
 SensorSet ModbusController::find_sensors_(ModbusRegisterType register_type, uint16_t start_address) const {
   auto reg_it = std::find_if(
       std::begin(this->register_ranges_), std::end(this->register_ranges_),
@@ -366,6 +401,10 @@ void ModbusController::dump_config() {
   for (auto &r : this->server_registers_) {
     ESP_LOGCONFIG(TAG, "  Address=0x%02X value_type=%zu register_count=%u", r->address,
                   static_cast<uint8_t>(r->value_type), r->register_count);
+  }
+  ESP_LOGCONFIG(TAG, "server coil registers");
+  for (auto &r : this->server_coil_registers_) {
+    ESP_LOGCONFIG(TAG, "  Address=0x%02X", r->address);
   }
 #endif
 }
