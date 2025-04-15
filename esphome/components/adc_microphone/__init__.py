@@ -1,10 +1,26 @@
 import logging
 
 import esphome.codegen as cg
-from esphome.components import microphone
-from esphome.components.adc import ATTENUATION_MODES, validate_adc_pin
+from esphome.components import esp32, microphone
+from esphome.components.adc import (
+    ATTENUATION_MODES,
+    ESP32_VARIANT_ADC2_PIN_TO_CHANNEL,
+    validate_adc_pin,
+)
+from esphome.components.esp32.const import (
+    VARIANT_ESP32,
+    VARIANT_ESP32C3,
+    VARIANT_ESP32S3,
+)
 import esphome.config_validation as cv
-from esphome.const import CONF_ATTENUATION, CONF_ID, CONF_NUMBER, CONF_SAMPLE_RATE
+from esphome.const import (
+    CONF_ATTENUATION,
+    CONF_ID,
+    CONF_NUMBER,
+    CONF_SAMPLE_RATE,
+    CONF_WIFI,
+)
+import esphome.final_validate as fv
 
 CODEOWNERS = ["@calumapplepie"]
 
@@ -41,6 +57,26 @@ def validate_config(config):
         )
         # Alter value here so `config` command prints the recommended change
         config[CONF_ATTENUATION] = _attenuation("12db")
+
+    variant = esp32.get_esp32_variant()
+    if variant in [VARIANT_ESP32, VARIANT_ESP32C3, VARIANT_ESP32S3]:
+        pin_num = config[CONF_ADC_PIN][CONF_NUMBER]
+        if pin_num in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]:
+            raise cv.Invalid("Only ADC1 supported for DMA with this variant")
+
+
+def final_validate_config(config):
+    variant = esp32.get_esp32_variant()
+    if (
+        CONF_WIFI in fv.full_config.get()
+        and config[CONF_ADC_PIN][CONF_NUMBER]
+        in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]
+    ):
+        raise cv.Invalid(
+            f"{variant} doesn't support ADC on this pin when Wi-Fi is configured"
+        )
+
+    return config
 
 
 CONFIG_SCHEMA = cv.All(

@@ -14,6 +14,7 @@ static const char *const TAG = "adc_microphone";
 
 void ADCAudioMicrophone::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
+  // it's arguable that some of this should be moved into start(), not setup()
 
   adc_continuous_handle_cfg_t adc_config = {
       .max_store_buf_size = SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 8 *
@@ -33,7 +34,7 @@ void ADCAudioMicrophone::setup() {
 
   adc_continuous_config_t dig_cfg = {
       .pattern_num = 1,
-      .sample_freq_hz = 20 * 1000,
+      .sample_freq_hz = sample_rate_,
       .conv_mode = adc_conv_mode,
       .format = format,
   };
@@ -60,70 +61,12 @@ void ADCAudioMicrophone::start() {
   this->state_ = microphone::STATE_STARTING;
 }
 void ADCAudioMicrophone::start_() {
-  if (!this->parent_->try_lock()) {
-    return;  // Waiting for another i2s to return lock
-  }
-  i2s_driver_config_t config = {
-      .mode = (i2s_mode_t) (this->i2s_mode_ | I2S_MODE_RX),
-      .sample_rate = this->sample_rate_,
-      .bits_per_sample = this->bits_per_sample_,
-      .channel_format = this->channel_,
-      .communication_format = I2S_COMM_FORMAT_STAND_I2S,
-      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-      .dma_buf_count = 4,
-      .dma_buf_len = 256,
-      .use_apll = this->use_apll_,
-      .tx_desc_auto_clear = false,
-      .fixed_mclk = 0,
-      .mclk_multiple = I2S_MCLK_MULTIPLE_256,
-      .bits_per_chan = this->bits_per_channel_,
-  };
-
   esp_err_t err;
-
-#if SOC_I2S_SUPPORTS_ADC
-  if (this->adc_) {
-    config.mode = (i2s_mode_t) (config.mode | I2S_MODE_ADC_BUILT_IN);
-    err = i2s_driver_install(this->parent_->get_port(), &config, 0, nullptr);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error installing I2S driver: %s", esp_err_to_name(err));
-      this->status_set_error();
-      return;
-    }
-
-    err = i2s_set_adc_mode(ADC_UNIT_1, this->adc_channel_);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error setting ADC mode: %s", esp_err_to_name(err));
-      this->status_set_error();
-      return;
-    }
-    err = i2s_adc_enable(this->parent_->get_port());
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error enabling ADC: %s", esp_err_to_name(err));
-      this->status_set_error();
-      return;
-    }
-
-  } else
-#endif
   {
-    if (this->pdm_)
-      config.mode = (i2s_mode_t) (config.mode | I2S_MODE_PDM);
-
-    err = i2s_driver_install(this->parent_->get_port(), &config, 0, nullptr);
+    err = adc_continuous_start(adc_handle);
     if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error installing I2S driver: %s", esp_err_to_name(err));
-      this->status_set_error();
-      return;
-    }
-
-    i2s_pin_config_t pin_config = this->parent_->get_pin_config();
-    pin_config.data_in_num = this->din_pin_;
-
-    err = i2s_set_pin(this->parent_->get_port(), &pin_config);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error setting I2S pin: %s", esp_err_to_name(err));
-      this->status_set_error();
+      ESP_LOGW(TAG, "Error starting ADC microphone: %s", esp_err_to_name(err));
+      this->status_set_error("Cound not start");
       return;
     }
   }
@@ -144,29 +87,13 @@ void ADCAudioMicrophone::stop() {
 
 void ADCAudioMicrophone::stop_() {
   esp_err_t err;
-#if SOC_I2S_SUPPORTS_ADC
-  if (this->adc_) {
-    err = i2s_adc_disable(this->parent_->get_port());
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error disabling ADC: %s", esp_err_to_name(err));
-      this->status_set_error();
-      return;
-    }
-  }
-#endif
-  err = i2s_stop(this->parent_->get_port());
+
+  err = adc_continuous_stop(adc_handle);
   if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Error stopping I2S microphone: %s", esp_err_to_name(err));
+    ESP_LOGW(TAG, "Error stopping ADC microphone: %s", esp_err_to_name(err));
     this->status_set_error();
     return;
   }
-  err = i2s_driver_uninstall(this->parent_->get_port());
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Error uninstalling I2S driver: %s", esp_err_to_name(err));
-    this->status_set_error();
-    return;
-  }
-  this->parent_->unlock();
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
   this->status_clear_error();
