@@ -2,6 +2,7 @@
 # inputs of the OpenTherm component.
 
 from dataclasses import dataclass
+from enum import Flag, auto
 from typing import Any, TypeVar
 
 import esphome.config_validation as cv
@@ -25,7 +26,12 @@ from esphome.const import (
 )
 
 
-@dataclass
+class DeviceMode(Flag):
+    CONTROLLER = auto()
+    DEVICE = auto()
+
+
+@dataclass(kw_only=True)
 class EntitySchema:
     description: str
     """Description of the item, based on the OpenTherm spec"""
@@ -53,11 +59,14 @@ class EntitySchema:
       - s16: data is a signed 16-bit integer
     """
 
+    device_mode: DeviceMode = DeviceMode.CONTROLLER
+    """Whether the entity can be used in controller mode or device mode"""
+
 
 TSchema = TypeVar("TSchema", bound=EntitySchema)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SensorSchema(EntitySchema):
     accuracy_decimals: int
     state_class: str
@@ -459,7 +468,7 @@ SENSORS: dict[str, SensorSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BinarySensorSchema(EntitySchema):
     icon: str | None = None
     device_class: str | None = None
@@ -652,7 +661,7 @@ BINARY_SENSORS: dict[str, BinarySensorSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SwitchSchema(EntitySchema):
     default_mode: str | None = None
 
@@ -710,13 +719,13 @@ SWITCHES: dict[str, SwitchSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AutoConfigure:
     message: str
     message_data: str
 
 
-@dataclass
+@dataclass(kw_only=True)
 class InputSchema(EntitySchema):
     unit_of_measurement: str
     step: float
@@ -829,7 +838,7 @@ INPUTS: dict[str, InputSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SettingSchema(EntitySchema):
     backing_type: str
     validation_schema: cv.Schema
