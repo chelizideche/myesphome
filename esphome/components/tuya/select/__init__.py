@@ -1,14 +1,17 @@
 import esphome.codegen as cg
 from esphome.components import select
 import esphome.config_validation as cv
-from esphome.const import CONF_ENUM_DATAPOINT, CONF_OPTIMISTIC, CONF_OPTIONS
+from esphome.const import (
+    CONF_ENUM_DATAPOINT,
+    CONF_INT_DATAPOINT,
+    CONF_OPTIMISTIC,
+    CONF_OPTIONS,
+)
 
 from .. import CONF_TUYA_ID, Tuya, tuya_ns
 
 DEPENDENCIES = ["tuya"]
 CODEOWNERS = ["@bearpawmaxim"]
-
-CONF_INT_DATAPOINT = "int_datapoint"
 
 TuyaSelect = tuya_ns.class_("TuyaSelect", select.Select, cg.Component)
 
