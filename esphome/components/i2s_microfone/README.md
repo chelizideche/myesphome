@@ -6,8 +6,8 @@ substitutions:
   I2S_MIC_SD_pin: GPIO21
 
 esphome:
-  name: test-dfrobot-air-quality-sensor
-  friendly_name: Test_dfrobot_air_quality_sensor
+  name: i2s_microfone_sample
+  friendly_name: i2s microfone sample
 
 esp32:
   board: esp32dev

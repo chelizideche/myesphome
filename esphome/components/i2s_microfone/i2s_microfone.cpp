@@ -54,8 +54,6 @@ void I2SMicrofoneSensor::update() {
   avg /= sample_count;
 
   float db = 20.0f * log10f(avg);
-  //float db = 20.0f * log10f(avg) + this->calibration_offset_;
-  //db = clamp(db, 0.0f, 120.0f);
   float offset = this->calibration_offset_;
   if (this->calibration_number_ != nullptr) {
     offset = this->calibration_number_->state;
@@ -69,5 +67,5 @@ void I2SMicrofoneSensor::update() {
   this->publish_state(db);
 }
 
-}  // namespace i2s_microfone
-}  // namespace esphome
+}
+}

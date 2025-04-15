@@ -16,15 +16,12 @@ class I2SMicrofoneSensor : public sensor::Sensor, public PollingComponent {
     this->data_in_pin_ = data_in;
   }
 
-  //void set_calibration_offset(float offset) { this->calibration_offset_ = offset; }
   void set_calibration_offset(float offset) { this->calibration_offset_ = offset; }
   void set_calibration_number(number::Number *number) { this->calibration_number_ = number; }
   
   void setup() override;
   void update() override;
   
-  
-
  protected:
   InternalGPIOPin *bck_pin_;
   InternalGPIOPin *ws_pin_;
@@ -33,5 +30,5 @@ class I2SMicrofoneSensor : public sensor::Sensor, public PollingComponent {
   number::Number *calibration_number_{nullptr};
 };
 
-}  // namespace i2s_microfone
-}  // namespace esphome
+}
+}
