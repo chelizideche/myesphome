@@ -17,6 +17,9 @@ static const float CONVERT_PRESSURE = (float) 0x800000;
 static const float SCALE_PRESSURE = 1.0e6;
 static const float SCALE_TEMPERATURE = 100.0;
 
+static const int CHECK_DELAY = 5u;
+static const int CHECK_ATTEMPTS = 6u;
+
 void XDB401Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up XDB401...");
 
@@ -43,10 +46,31 @@ void XDB401Component::dump_config() {
 float XDB401Component::get_setup_priority() const { return setup_priority::DATA; }
 
 i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
-  const int CHECK_DELAY = 5u;
-  const int CHECK_ATTEMPTS = 6u;
-
   i2c::ErrorCode err_code;
+
+  err_code = this->set_meas_mode_();
+  if (err_code != i2c::ERROR_OK) {
+    this->mark_failed();
+    return err_code;
+  }
+
+  err_code = this->read_pressure_(pressure);
+  if (err_code != i2c::ERROR_OK) {
+    this->mark_failed();
+    return err_code;
+  }
+
+  err_code = this->read_temperature_(temperature);
+  if (err_code != i2c::ERROR_OK) {
+    this->mark_failed();
+    return err_code;
+  }
+
+  return i2c::ERROR_OK;
+}
+
+i2c::ErrorCode XDB401Component::set_meas_mode_() {
+  i2c::ErrorCode err_code = i2c::ERROR_OK;
 
   // Initiate data read from device
   err_code = write_register(REG_MAKE_MEASURE, &CMD_MAKE_MEASURE, sizeof(CMD_MAKE_MEASURE), true);
@@ -55,6 +79,7 @@ i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
     this->mark_failed();
     return err_code;
   }
+
   // Wait for measurement ready
   uint8_t meas_resp[1] = {};
   bool meas_mode = false;
@@ -73,11 +98,18 @@ i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
       break;
     }
   }
+
   ESP_LOGV(TAG, "Config response %02X", *meas_resp);
   if (!meas_mode) {
     ESP_LOGE(TAG, "Device not in measurement mode after timeout of %ums", CHECK_DELAY * CHECK_ATTEMPTS);
     return i2c::ERROR_TIMEOUT;
   }
+
+  return err_code;
+}
+
+i2c::ErrorCode XDB401Component::read_pressure_(float &pressure) {
+  i2c::ErrorCode err_code = i2c::ERROR_OK;
 
   // Read 3 bytes from senesor at address 0x06
   uint8_t p_data[3]{};
@@ -87,11 +119,20 @@ i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
     return err_code;
   }
   ESP_LOGV(TAG, "Got pressure data: %s", format_hex_pretty(p_data, 3).c_str());
+
   // Byte-order high to low, byte 0 bit 8 is sign bit.
-  sint32_t raw_pressure = ((p_data[0] << 24) | (p_data[1] << 16) | (p_data[2] << 8)) >>
-                          8;  // Shift one byte to much and then back to get sign correct.
+  // Shift one byte to much and then back to get sign correct.
+  sint32_t raw_pressure = ((p_data[0] << 24) | (p_data[1] << 16) | (p_data[2] << 8)) >> 8;
   ESP_LOGD(TAG, "Pressure data raw %i", raw_pressure);
+
+  // Convert signed integer to floating point and scale to Pascal
   pressure = (float) raw_pressure / CONVERT_PRESSURE * SCALE_PRESSURE;
+
+  return err_code;
+}
+
+i2c::ErrorCode XDB401Component::read_temperature_(float &temperature) {
+  i2c::ErrorCode err_code = i2c::ERROR_OK;
 
   // Read 2 bytes from senesor at address 0x09
   uint8_t t_data[2]{};
@@ -101,13 +142,17 @@ i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
     return err_code;
   }
   ESP_LOGV(TAG, "Got temperature data: %s", format_hex_pretty(t_data, 2).c_str());
+
   // Byte-order high to low, byte 0 bit 8 is sign bit.
   sint16_t raw_temperature = ((t_data[0] << 8) | t_data[1]);
   ESP_LOGD(TAG, "Temperature data raw %i", raw_temperature);
-  // temperature = (float) raw_temperature / (float) 0x100;  // Likely temperature as percent
+
+  // Convert signed integer to floating point and scale to percent (of range)?
+  // temperature = (float) raw_temperature / (float) 0x100;
+  // Convert signed integer to floating point and scale to Celcius
   temperature = (float) raw_temperature / SCALE_TEMPERATURE;
 
-  return i2c::ERROR_OK;
+  return err_code;
 }
 
 void XDB401Component::update() {

@@ -20,6 +20,9 @@ class XDB401Component : public PollingComponent, public i2c::I2CDevice {
 
  protected:
   i2c::ErrorCode read_(float &temperature, float &pressure);
+  i2c::ErrorCode set_meas_mode_();
+  i2c::ErrorCode read_pressure_(float &pressure);
+  i2c::ErrorCode read_temperature_(float &temperature);
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *pressure_sensor_{nullptr};
 };
