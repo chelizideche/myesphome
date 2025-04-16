@@ -119,7 +119,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
   size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
   esp_err_t err = adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4);
-  ESP_LOGV(TAG, "read %u bytes from ADC", bytes_read);
+  ESP_LOGV(TAG, "read %" PRIu32 "bytes from ADC", bytes_read);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "Error reading from adc microphone: %s", esp_err_to_name(err));
     this->status_set_warning();
@@ -136,7 +136,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   size_t samples_read = bytes_read / SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
   adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer_);
   int16_t seen_nonzero = 0;
-  ESP_LOGV(TAG, "First sample is %x", temp[0].val);
+  ESP_LOGV(TAG, "First sample is %" PRIX32, temp[0].val);
   for (size_t i = 0; i < samples_read; i++) {
 #ifdef DMA_FORMAT_TYPE_1
     buf[i] = temp[i].type1.data;
@@ -158,7 +158,7 @@ void ADCAudioMicrophone::read_() {
   samples.resize(BUFFER_SIZE);
   size_t bytes_read = this->read(samples.data(), BUFFER_SIZE / sizeof(int16_t));
   samples.resize(bytes_read / sizeof(int16_t));
-  ESP_LOGD(TAG, "Processing %d ADC samples", samples.size());
+  ESP_LOGD(TAG, "Processing %zd ADC samples", samples.size());
   ESP_LOGV(TAG, "First four samples: %d %d %d %d", samples[0], samples[1], samples[2], samples[3]);
   this->data_callbacks_.call(samples);
 }
