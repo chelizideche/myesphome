@@ -53,7 +53,9 @@ void ADCAudioMicrophone::setup() {
       .atten = attenuation_,
       .channel = adc_channel_,
       .unit = adc_unit_,
-      .bit_width = ADC_BITWIDTH_DEFAULT,
+      // For some reason, the continuous mode driver doesn't support ADC_BITWIDTH_DEFAULT.
+      // Use 12 instead and hope for the best.
+      .bit_width = 12,
   };
   dig_cfg.adc_pattern = &adc_pattern;
   ESP_ERROR_CHECK(adc_continuous_config(adc_handle, &dig_cfg));
