@@ -21,14 +21,7 @@ enum ERRORCODE {
 };
 enum MeasurementMode { PERIODIC, SINGLE_SHOT };
 
-enum InitializationState {
-    IDLE,
-    WRITE_SCRATCH_PAD,
-    READ_SCRATCH_PAD,
-    SOFT_RESET,
-    READ_STATUS,
-    COMPLETE
-  };
+enum InitializationState { IDLE, WRITE_SCRATCH_PAD, READ_SCRATCH_PAD, SOFT_RESET, READ_STATUS, COMPLETE };
 
 class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
  public:
