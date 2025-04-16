@@ -66,7 +66,7 @@ def get_component_names():
     from esphome.loader import CORE_COMPONENTS_PATH
 
     component_names = ["esphome", "sensor", "esp32", "esp8266"]
-    skip_components = ["lvgl"]
+    skip_components = []
 
     for d in os.listdir(CORE_COMPONENTS_PATH):
         if not d.startswith("__") and os.path.isdir(
@@ -96,7 +96,7 @@ load_components()
 
 # Import esphome after loading components (so schema is tracked)
 # pylint: disable=wrong-import-position
-from esphome import automation, pins  # noqa: E402
+from esphome import automation, const, pins  # noqa: E402
 from esphome.components import remote_base  # noqa: E402
 import esphome.config_validation as cv  # noqa: E402
 import esphome.core as esphome_core  # noqa: E402
@@ -725,16 +725,17 @@ def convert(schema, config_var, path):
     # Extended schemas are tracked when the .extend() is used in a schema
     if repr_schema in ejs.extended_schemas:
         extended = ejs.extended_schemas.get(repr_schema)
-        # The midea actions are extending an empty schema (resulted in the templatize not templatizing anything)
-        # this causes a recursion in that this extended looks the same in extended schema as the extended[1]
-        if repr_schema == repr(extended[1]):
-            assert path.startswith("midea_ac/")
-            return
+        if len(extended) == 2:
+            # The midea actions are extending an empty schema (resulted in the templatize not templatizing anything)
+            # this causes a recursion in that this extended looks the same in extended schema as the extended[1]
+            if repr_schema == repr(extended[1]):
+                assert path.startswith("midea_ac/")
+                return
 
-        assert len(extended) == 2
-        convert(extended[0], config_var, path + "/extL")
-        convert(extended[1], config_var, path + "/extR")
-        return
+            assert len(extended) == 2
+            convert(extended[0], config_var, path + "/extL")
+            convert(extended[1], config_var, path + "/extR")
+            return
 
     if isinstance(schema, cv.All):
         i = 0
@@ -977,7 +978,11 @@ def convert_keys(converted, schema, path):
                 converted["key_type"] = str(k)
 
         esphome_core.CORE.data = {
-            esphome_core.KEY_CORE: {esphome_core.KEY_TARGET_PLATFORM: "esp8266"}
+            esphome_core.KEY_CORE: {
+                esphome_core.KEY_TARGET_PLATFORM: "esp8266",
+                esphome_core.KEY_TARGET_FRAMEWORK: "arduino",
+                const.KEY_FRAMEWORK_VERSION: "0",
+            }
         }
         if hasattr(k, "default") and str(k.default) != "...":
             default_value = k.default()
