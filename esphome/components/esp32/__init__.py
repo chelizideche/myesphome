@@ -281,6 +281,7 @@ SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
     cv.Version(5, 3, 2),
     cv.Version(5, 3, 1),
     cv.Version(5, 3, 0),
+    cv.Version(5, 1, 5),
     cv.Version(5, 1, 6),
 ]
 
