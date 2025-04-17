@@ -563,7 +563,7 @@ def shrink():
             # remove this dangling again
             pop_str_path_schema(x)
 
-    # remove dangling items (unreachable schemas)
+    # remove unreachable schemas
     for domain, domain_schemas in output.items():
         for schema_name in list(domain_schemas.get(S_SCHEMAS, {}).keys()):
             s = f"{domain}.{schema_name}"
@@ -572,7 +572,6 @@ def shrink():
                 and s not in referenced_schemas
                 and not is_platform_schema(s)
             ):
-                print(f"Removing {s}")
                 domain_schemas[S_SCHEMAS].pop(schema_name)
 
 
@@ -738,17 +737,9 @@ def convert(schema, config_var, path):
     # Extended schemas are tracked when the .extend() is used in a schema
     if repr_schema in ejs.extended_schemas:
         extended = ejs.extended_schemas.get(repr_schema)
-        if len(extended) == 2:
-            # The midea actions are extending an empty schema (resulted in the templatize not templatizing anything)
-            # this causes a recursion in that this extended looks the same in extended schema as the extended[1]
-            if repr_schema == repr(extended[1]):
-                assert path.startswith("midea_ac/")
-                return
-
-            assert len(extended) == 2
-            convert(extended[0], config_var, path + "/extL")
-            convert(extended[1], config_var, path + "/extR")
-            return
+        for idx, ext in enumerate(extended):
+            convert(ext, config_var, f"{path}/ext{idx}")
+        return
 
     if isinstance(schema, cv.All):
         i = 0
@@ -899,12 +890,12 @@ def convert(schema, config_var, path):
                 "class": "i2c::I2CBus",
                 "parents": ["Component"],
             }
-        elif path == "uart/CONFIG_SCHEMA/val 1/extL/all/id":
+        elif path == "uart/CONFIG_SCHEMA/val 1/ext0/all/id":
             config_var["id_type"] = {
                 "class": "uart::UARTComponent",
                 "parents": ["Component"],
             }
-        elif path == "http_request/CONFIG_SCHEMA/val 1/extL/all/id":
+        elif path == "http_request/CONFIG_SCHEMA/val 1/ext0/all/id":
             config_var["id_type"] = {
                 "class": "http_request::HttpRequestComponent",
                 "parents": ["Component"],
