@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_EVENT,
     CONF_ID,
     CONF_KEY,
+    CONF_MAC_ADDRESS,
     CONF_ON_CLIENT_CONNECTED,
     CONF_ON_CLIENT_DISCONNECTED,
     CONF_PASSWORD,
@@ -86,6 +87,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(APIServer),
+            cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Optional(CONF_PORT, default=6053): cv.port,
             cv.Optional(CONF_PASSWORD, default=""): cv.string_strict,
             cv.Optional(
@@ -117,6 +119,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
+    if mac_address := config.get(CONF_MAC_ADDRESS):
+        cg.add(var.set_mac_address(str(mac_address)))
     cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_password(config[CONF_PASSWORD]))
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))

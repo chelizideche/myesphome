@@ -1815,7 +1815,7 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   resp.name = App.get_name();
   resp.friendly_name = App.get_friendly_name();
   resp.suggested_area = App.get_area();
-  resp.mac_address = get_mac_address_pretty();
+  resp.mac_address = parent_->get_mac_address();
   resp.esphome_version = ESPHOME_VERSION;
   resp.compilation_time = App.get_compilation_time();
 #if defined(USE_ESP8266) || defined(USE_ESP32)

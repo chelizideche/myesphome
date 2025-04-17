@@ -25,6 +25,9 @@ static const char *const TAG = "api";
 void APIServer::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Home Assistant API server...");
   this->setup_controller();
+  if (this->mac_address_.empty()) {
+    this->mac_address_ = get_mac_address_pretty();
+  }
   socket_ = socket::socket_ip(SOCK_STREAM, 0);
   if (socket_ == nullptr) {
     ESP_LOGW(TAG, "Could not create socket.");
@@ -139,6 +142,7 @@ void APIServer::loop() {
 void APIServer::dump_config() {
   ESP_LOGCONFIG(TAG, "API Server:");
   ESP_LOGCONFIG(TAG, "  Address: %s:%u", network::get_use_address().c_str(), this->port_);
+  ESP_LOGCONFIG(TAG, "  MAC address: %s", this->mac_address_.c_str());
 #ifdef USE_API_NOISE
   ESP_LOGCONFIG(TAG, "  Using noise encryption: YES");
 #else
@@ -376,6 +380,8 @@ const std::vector<APIServer::HomeAssistantStateSubscription> &APIServer::get_sta
   return this->state_subs_;
 }
 uint16_t APIServer::get_port() const { return this->port_; }
+std::string APIServer::get_mac_address() const { return this->mac_address_; }
+void APIServer::set_mac_address(std::string mac_address) { this->mac_address_ = std::move(mac_address); }
 void APIServer::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 #ifdef USE_HOMEASSISTANT_TIME
 void APIServer::request_time() {
