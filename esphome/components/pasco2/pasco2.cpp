@@ -255,8 +255,8 @@ bool PASCO2Component::read_sensor_(int16_t *co2result) {
   // Check if data is ready
   uint8_t read_back;
 
-  int errorCode = this->read_register(XENSIV_PASCO2_REG_MEAS_STS, &read_back, 1, true);
-  switch (errorCode) {
+  int error_code = this->read_register(XENSIV_PASCO2_REG_MEAS_STS, &read_back, 1, true);
+  switch (error_code) {
     case i2c::ErrorCode::NO_ERROR:
       break;
     case i2c::ErrorCode::ERROR_NOT_ACKNOWLEDGED:
@@ -264,7 +264,7 @@ bool PASCO2Component::read_sensor_(int16_t *co2result) {
       return false;
     default:
       // should not happen
-      ESP_LOGW(TAG, "MEAS_STS Reading Failed: error %d", errorCode);
+      ESP_LOGW(TAG, "MEAS_STS Reading Failed: error %d", error_code);
       this->status_set_warning();  // this is an actual problem
       return false;
   }
