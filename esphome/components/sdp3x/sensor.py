@@ -5,6 +5,7 @@ from esphome.const import (
     DEVICE_CLASS_PRESSURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_HECTOPASCAL,
+    CONF_MEASUREMENT_MODE,
 )
 
 DEPENDENCIES = ["i2c"]
