@@ -36,6 +36,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--output-path", default=".", help="Output path", type=os.path.abspath
 )
+parser.add_argument("--check", action="store_true", help="Check only for CI")
 
 args = parser.parse_args()
 
@@ -671,6 +672,9 @@ def build_schema():
 
     # bundle core inside esphome
     data["esphome"]["core"] = data.pop("core")["core"]
+
+    if args.check:  # do not gen files
+        return
 
     for c, s in data.items():
         write_file(c, s)
