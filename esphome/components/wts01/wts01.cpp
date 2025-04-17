@@ -12,8 +12,6 @@ static const uint8_t HEADER_2 = 0x01;
 static const uint8_t HEADER_3 = 0x01;
 static const uint8_t HEADER_4 = 0x04;
 
-void WTS01Sensor::setup() { this->last_update_ = millis(); }
-
 void WTS01Sensor::loop() {
   // Process characters received from the sensor
   while (available()) {
@@ -22,30 +20,12 @@ void WTS01Sensor::loop() {
       this->handle_char_(c);
     }
   }
-
-  // Check if it's time to publish the state
-  if (this->update_interval_ > 0) {
-    const uint32_t now = millis();
-    if (now - this->last_update_ >= this->update_interval_) {
-      this->last_update_ = now;
-      this->publish_state_();
-    }
-  }
 }
 
 void WTS01Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "WTS01 Temperature Sensor:");
-  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
-  ESP_LOGCONFIG(TAG, "  Update Interval: %u ms", this->update_interval_);
+  LOG_SENSOR("  ", "Temperature", this);
   this->check_uart_settings(9600);
-}
-
-void WTS01Sensor::publish_state_() {
-  // Publish only if we have a valid temperature
-  if (!std::isnan(this->current_temperature_) && this->temperature_sensor_ != nullptr) {
-    this->temperature_sensor_->publish_state(this->current_temperature_);
-    ESP_LOGD(TAG, "Temperature published: %.2f°C", this->current_temperature_);
-  }
 }
 
 void WTS01Sensor::handle_char_(uint8_t c) {
@@ -104,7 +84,9 @@ void WTS01Sensor::process_packet_() {
 
     // Store temperature
     this->current_temperature_ = temperature;
-    ESP_LOGV(TAG, "Temperature received: %.2f°C", temperature);
+    ESP_LOGV(TAG, "Temperature: %.2f°C", temperature);
+
+    this->publish_state(temperature);
   }
 }
 

@@ -5,4 +5,3 @@ uart:
 sensor:
   - platform: wts01
     id: wts01_sensor
-    update_interval: 30s
