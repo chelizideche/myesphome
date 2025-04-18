@@ -4,6 +4,8 @@ uart:
     rx_pin: ${rx_pin}
     baud_rate: 9600
 
+number:
+
 sensor:
   - platform: bl0940
     voltage:

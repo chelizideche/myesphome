@@ -99,50 +99,140 @@ void BL0940::setup() {
     }
   }
 
+  // add calibration callbacks
+  if (this->voltage_calibration_ != nullptr) {
+    this->voltage_calibration_->add_on_state_callback(
+        [this](float state) { this->voltage_calibration_callback_(state); });
+    if (this->voltage_calibration_->has_state()) {
+      this->voltage_calibration_callback_(this->voltage_calibration_->state);
+    }
+  }
+
+  if (this->current_calibration_ != nullptr) {
+    this->current_calibration_->add_on_state_callback(
+        [this](float state) { this->current_calibration_callback_(state); });
+    if (this->current_calibration_->has_state()) {
+      this->current_calibration_callback_(this->current_calibration_->state);
+    }
+  }
+
+  if (this->power_calibration_ != nullptr) {
+    this->power_calibration_->add_on_state_callback([this](float state) { this->power_calibration_callback_(state); });
+    if (this->power_calibration_->has_state()) {
+      this->power_calibration_callback_(this->power_calibration_->state);
+    }
+  }
+
+  if (this->energy_calibration_ != nullptr) {
+    this->energy_calibration_->add_on_state_callback(
+        [this](float state) { this->energy_calibration_callback_(state); });
+    if (this->energy_calibration_->has_state()) {
+      this->energy_calibration_callback_(this->energy_calibration_->state);
+    }
+  }
+
   // calculate references based on schematic defaults if not set explicitly
   if (!this->voltage_reference_set_) {
     if (this->tuya_mode_enabled_) {
       this->voltage_reference_ = BL0940_TUYA_UREF;
     } else {
-      // formula: 79931 / Vref * (R1 * 1000) / (R1 + R2)
-      this->voltage_reference_ = 79931 / this->vref_ * (this->r_one_ * 1000) / (this->r_one_ + this->r_two_);
+      this->voltage_reference_ = this->calculate_voltage_reference_();
     }
   }
+  this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
+
   if (!this->current_reference_set_) {
     if (this->tuya_mode_enabled_) {
       this->current_reference_ = BL0940_TUYA_IREF;
     } else {
-      // formula: 324004 * RL / Vref
-      this->current_reference_ = 324004 * this->r_shunt_ / this->vref_;
+      this->current_reference_ = this->calculate_current_reference_();
     }
   }
-  if (this->voltage_reference_set_ && this->current_reference_set_) {
-    // calculate power reference based on custom voltage and current reference
-    this->power_reference_ = this->voltage_reference_ * this->current_reference_ * 4046 / 324004 / 79931;
-  } else if (!this->power_reference_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->power_reference_ = BL0940_TUYA_PREF;
-    } else {
-      // formula: 4046 * RL * R1 * 1000 / Vref² / (R1 + R2)
-      this->power_reference_ =
-          4046 * this->r_shunt_ * this->r_one_ * 1000 / this->vref_ / this->vref_ / (this->r_one_ + this->r_two_);
-    }
+  this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
+
+  if ((this->voltage_reference_set_ && this->current_reference_set_) ||
+      (!this->power_reference_set_ && !this->tuya_mode_enabled_)) {
+    this->power_reference_ = this->calculate_power_reference_();
+  } else if (!this->power_reference_set_ && this->tuya_mode_enabled_) {
+    this->power_reference_ = BL0940_TUYA_PREF;
   }
+  this->power_reference_cal_ = this->power_reference_ / this->power_cal_;
+
   if (!this->energy_reference_set_) {
     if (this->tuya_mode_enabled_) {
       this->energy_reference_ = BL0940_TUYA_EREF;
     } else {
-      // formula: 3600000 * 4046 * RL * R1 * 1000 / (1638.4 * 256) / Vref² / (R1 + R2)
-      // or:  power_reference_ * 3600000 / (1638.4 * 256)
-      this->energy_reference_ = this->power_reference_ * 3600000 / (1638.4 * 256);
+      this->energy_reference_ = this->calculate_energy_reference_();
     }
   }
+  this->energy_reference_cal_ = this->energy_reference_ / this->energy_cal_;
 
   for (auto *i : BL0940_INIT) {
     this->write_byte(this->write_command_), this->write_array(i, 5);
     delay(1);
   }
   this->flush();
+}
+
+float BL0940::calculate_voltage_reference_() {
+  // formula: 79931 / Vref * (R1 * 1000) / (R1 + R2)
+  return 79931 / this->vref_ * (this->r_one_ * 1000) / (this->r_one_ + this->r_two_);
+}
+
+float BL0940::calculate_current_reference_() {
+  // formula: 324004 * RL / Vref
+  return 324004 * this->r_shunt_ / this->vref_;
+}
+
+float BL0940::calculate_power_reference_() {
+  // calculate power reference based on voltage and current reference
+  return this->voltage_reference_cal_ * this->current_reference_cal_ * 4046 / 324004 / 79931;
+}
+
+float BL0940::calculate_energy_reference_() {
+  // formula: 3600000 * 4046 * RL * R1 * 1000 / (1638.4 * 256) / Vref² / (R1 + R2)
+  // or:  power_reference_ * 3600000 / (1638.4 * 256)
+  return this->power_reference_cal_ * 3600000 / (1638.4 * 256);
+}
+
+float BL0940::calculate_calibration_value_(float state) { return (100 + state) / 100; }
+
+void BL0940::current_calibration_callback_(float state) {
+  this->current_cal_ = this->calculate_calibration_value_(state);
+  ESP_LOGD(TAG, "update current calibration state: %f", this->current_cal_);
+  this->recalibrate_();
+}
+void BL0940::voltage_calibration_callback_(float state) {
+  this->voltage_cal_ = this->calculate_calibration_value_(state);
+  ESP_LOGD(TAG, "update voltage calibration state: %f", this->voltage_cal_);
+  this->recalibrate_();
+}
+void BL0940::power_calibration_callback_(float state) {
+  this->power_cal_ = this->calculate_calibration_value_(state);
+  ESP_LOGD(TAG, "update power calibration state: %f", this->power_cal_);
+  this->recalibrate_();
+}
+void BL0940::energy_calibration_callback_(float state) {
+  this->energy_cal_ = this->calculate_calibration_value_(state);
+  ESP_LOGD(TAG, "update energy calibration state: %f", this->energy_cal_);
+  this->recalibrate_();
+}
+
+void BL0940::recalibrate_() {
+  ESP_LOGD(TAG, "Recalibrating reference values");
+  this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
+  this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
+
+  if ((this->voltage_reference_set_ && this->current_reference_set_) ||
+      (!this->power_reference_set_ && !this->tuya_mode_enabled_)) {
+    this->power_reference_ = this->calculate_power_reference_();
+  }
+  this->power_reference_cal_ = this->power_reference_ / this->power_cal_;
+
+  if (!this->energy_reference_set_ && !this->tuya_mode_enabled_) {
+    this->energy_reference_ = this->calculate_energy_reference_();
+  }
+  this->energy_reference_cal_ = this->energy_reference_ / this->energy_cal_;
 }
 
 float BL0940::update_temp_(sensor::Sensor *sensor, uint16_le_t temperature) const {
@@ -174,10 +264,10 @@ void BL0940::received_package_(DataPacket *data) {
   }
   this->prev_cf_cnt_ = cf_cnt;
 
-  float v_rms = (uint24_t) data->v_rms / voltage_reference_;
-  float i_rms = (uint24_t) data->i_rms / current_reference_;
-  float watt = (int24_t) data->watt / power_reference_;
-  float total_energy_consumption = cf_cnt / energy_reference_;
+  float v_rms = (uint24_t) data->v_rms / voltage_reference_cal_;
+  float i_rms = (uint24_t) data->i_rms / current_reference_cal_;
+  float watt = (int24_t) data->watt / power_reference_cal_;
+  float total_energy_consumption = cf_cnt / energy_reference_cal_;
 
   float tps1 = update_temp_(internal_temperature_sensor_, data->tps1);
   float tps2 = update_temp_(external_temperature_sensor_, data->tps2);
@@ -213,6 +303,11 @@ void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexit
   ESP_LOGCONFIG(TAG, "  Energy reference: %f", this->energy_reference_);
   ESP_LOGCONFIG(TAG, "  Power reference: %f", this->power_reference_);
   ESP_LOGCONFIG(TAG, "  Voltage reference: %f", this->voltage_reference_);
+  ESP_LOGCONFIG(TAG, "  ------------------");
+  ESP_LOGCONFIG(TAG, "  Current calibration: %f", this->current_cal_);
+  ESP_LOGCONFIG(TAG, "  Energy calibration: %f", this->energy_cal_);
+  ESP_LOGCONFIG(TAG, "  Power calibration: %f", this->power_cal_);
+  ESP_LOGCONFIG(TAG, "  Voltage calibration: %f", this->voltage_cal_);
   LOG_SENSOR("", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("", "Current", this->current_sensor_);
   LOG_SENSOR("", "Power", this->power_sensor_);

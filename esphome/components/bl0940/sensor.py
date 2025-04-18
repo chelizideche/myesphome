@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import sensor, uart
+from esphome.components import number, sensor, uart
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CURRENT,
@@ -37,6 +37,12 @@ CONF_CURRENT_REFERENCE = "current_reference"
 CONF_ENERGY_REFERENCE = "energy_reference"
 CONF_POWER_REFERENCE = "power_reference"
 CONF_VOLTAGE_REFERENCE = "voltage_reference"
+
+# fine grained reference calibration
+CONF_CURRENT_CALIBRATION = "current_calibration"
+CONF_VOLTAGE_CALIBRATION = "voltage_calibration"
+CONF_POWER_CALIBRATION = "power_calibration"
+CONF_ENERGY_CALIBRATION = "energy_calibration"
 
 DEPENDENCIES = ["uart"]
 
@@ -94,6 +100,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ENERGY_REFERENCE): cv.float_,
             cv.Optional(CONF_POWER_REFERENCE): cv.float_,
             cv.Optional(CONF_VOLTAGE_REFERENCE): cv.float_,
+            cv.Optional(CONF_CURRENT_CALIBRATION): cv.use_id(number.Number),
+            cv.Optional(CONF_VOLTAGE_CALIBRATION): cv.use_id(number.Number),
+            cv.Optional(CONF_POWER_CALIBRATION): cv.use_id(number.Number),
+            cv.Optional(CONF_ENERGY_CALIBRATION): cv.use_id(number.Number),
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -153,3 +163,17 @@ async def to_code(config):
         cg.add(var.set_power_reference(power_reference))
     if (energy_reference := config.get(CONF_ENERGY_REFERENCE, None)) is not None:
         cg.add(var.set_energy_reference(energy_reference))
+
+    # fine grained runtime calibration
+    if (current_cal_id := config.get(CONF_CURRENT_CALIBRATION, None)) is not None:
+        current_calibration = await cg.get_variable(current_cal_id)
+        cg.add(var.set_current_calibration(current_calibration))
+    if (voltage_cal_id := config.get(CONF_VOLTAGE_CALIBRATION, None)) is not None:
+        voltage_calibration = await cg.get_variable(voltage_cal_id)
+        cg.add(var.set_voltage_calibration(voltage_calibration))
+    if (power_cal_id := config.get(CONF_POWER_CALIBRATION, None)) is not None:
+        power_calibration = await cg.get_variable(power_cal_id)
+        cg.add(var.set_power_calibration(power_calibration))
+    if (energy_cal_id := config.get(CONF_ENERGY_CALIBRATION, None)) is not None:
+        energy_calibration = await cg.get_variable(energy_cal_id)
+        cg.add(var.set_energy_calibration(energy_calibration))

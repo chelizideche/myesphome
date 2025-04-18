@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/datatypes.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
 
 namespace esphome {
@@ -81,6 +82,11 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
     this->voltage_reference_set_ = true;
   }
 
+  void set_current_calibration(number::Number *num) { this->current_calibration_ = num; }
+  void set_voltage_calibration(number::Number *num) { this->voltage_calibration_ = num; }
+  void set_power_calibration(number::Number *num) { this->power_calibration_ = num; }
+  void set_energy_calibration(number::Number *num) { this->energy_calibration_ = num; }
+
   void loop() override;
 
   void update() override;
@@ -96,6 +102,12 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   sensor::Sensor *energy_sensor_{nullptr};
   sensor::Sensor *internal_temperature_sensor_{nullptr};
   sensor::Sensor *external_temperature_sensor_{nullptr};
+
+  // calibration helpers
+  number::Number *voltage_calibration_{nullptr};
+  number::Number *current_calibration_{nullptr};
+  number::Number *power_calibration_{nullptr};
+  number::Number *energy_calibration_{nullptr};
 
   // Max difference between two measurements of the temperature. Used to avoid noise.
   float max_temperature_diff_{0};
@@ -114,15 +126,19 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 
   // Divide by this to turn into Watt
   float power_reference_;
+  float power_reference_cal_;
   bool power_reference_set_ = false;
   // Divide by this to turn into Volt
   float voltage_reference_;
+  float voltage_reference_cal_;
   bool voltage_reference_set_ = false;
   // Divide by this to turn into Ampere
   float current_reference_;
+  float current_reference_cal_;
   bool current_reference_set_ = false;
   // Divide by this to turn into kWh
   float energy_reference_;
+  float energy_reference_cal_;
   bool energy_reference_set_ = false;
 
   float update_temp_(sensor::Sensor *sensor, uint16_le_t packed_temperature) const;
@@ -131,6 +147,24 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 
   bool validate_checksum_(DataPacket *data);
   void received_package_(DataPacket *data);
+
+  // HA calibration options
+  float current_cal_{1};
+  float voltage_cal_{1};
+  float power_cal_{1};
+  float energy_cal_{1};
+
+  float calculate_current_reference_();
+  float calculate_energy_reference_();
+  float calculate_power_reference_();
+  float calculate_voltage_reference_();
+  float calculate_calibration_value_(float state);
+
+  void current_calibration_callback_(float state);
+  void voltage_calibration_callback_(float state);
+  void power_calibration_callback_(float state);
+  void energy_calibration_callback_(float state);
+  void recalibrate_();
 };
 
 }  // namespace bl0940
