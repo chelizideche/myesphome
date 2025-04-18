@@ -211,13 +211,15 @@ def add_extra_build_file(filename: str, path: str) -> bool:
     return False
 
 
-def _format_framework_arduino_version(ver: cv.Version) -> str:
+def _format_framework_arduino_version(ver: cv.Version, for_platformio: bool) -> str:
     # format the given arduino (https://github.com/espressif/arduino-esp32/releases) version to
     # a PIO platformio/framework-arduinoespressif32 value
     # List of package versions: https://api.registry.platformio.org/v3/packages/platformio/tool/framework-arduinoespressif32
-    if ver <= cv.Version(1, 0, 3):
-        return f"~2.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
-    return f"~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
+    if for_platformio:
+        if ver <= cv.Version(1, 0, 3):
+            return f"platformio/framework-arduinoespressif32@~2.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
+        return f"platformio/framework-arduinoespressif32@~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
+    return f"pioarduino/framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/{str(ver)}/esp32-{str(ver)}.zip"
 
 
 def _format_framework_espidf_version(
@@ -304,12 +306,18 @@ def _arduino_check_versions(value):
         version = cv.Version.parse(cv.version_number(value[CONF_VERSION]))
         source = value.get(CONF_SOURCE, None)
 
-    value[CONF_VERSION] = str(version)
-    value[CONF_SOURCE] = source or _format_framework_arduino_version(version)
-
     value[CONF_PLATFORM_VERSION] = value.get(
         CONF_PLATFORM_VERSION, _parse_platform_version(str(ARDUINO_PLATFORM_VERSION))
     )
+
+    value[CONF_VERSION] = str(version)
+    value[CONF_SOURCE] = source or _format_framework_arduino_version(
+        version, _platform_is_platformio(value[CONF_PLATFORM_VERSION])
+    )
+
+    if value[CONF_SOURCE].startswith("http"):
+        # prefix is necessary or platformio will complain with a cryptic error
+        value[CONF_SOURCE] = f"framework-arduinoespressif32@{value[CONF_SOURCE]}"
 
     if version != RECOMMENDED_ARDUINO_FRAMEWORK_VERSION:
         _LOGGER.warning(
@@ -581,8 +589,6 @@ async def to_code(config):
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
 
-    cg.add_platformio_option("lib_ldf_mode", "off")
-
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
 
     conf = config[CONF_FRAMEWORK]
@@ -598,6 +604,7 @@ async def to_code(config):
     )
 
     if conf[CONF_TYPE] == FRAMEWORK_ESP_IDF:
+        cg.add_platformio_option("lib_ldf_mode", "off")
         cg.add_platformio_option("framework", "espidf")
         cg.add_build_flag("-DUSE_ESP_IDF")
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ESP_IDF")
@@ -679,10 +686,7 @@ async def to_code(config):
         cg.add_platformio_option("framework", "arduino")
         cg.add_build_flag("-DUSE_ARDUINO")
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ARDUINO")
-        cg.add_platformio_option(
-            "platform_packages",
-            [f"platformio/framework-arduinoespressif32@{conf[CONF_SOURCE]}"],
-        )
+        cg.add_platformio_option("platform_packages", [conf[CONF_SOURCE]])
 
         if CONF_PARTITIONS in config:
             cg.add_platformio_option("board_build.partitions", config[CONF_PARTITIONS])
