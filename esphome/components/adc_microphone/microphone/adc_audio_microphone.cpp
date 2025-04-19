@@ -101,11 +101,6 @@ void ADCAudioMicrophone::start_() {
   // so lets save some memory with the buffer we copy things into
   dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
 
-  adc_continuous_callback_t on_pool_ovf =
-  {
-
-  }
-
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
   this->status_clear_error();
@@ -138,7 +133,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
                       "read data from buffer", 0);
-  ESP_LOGV(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read);
+  ESP_LOGV(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
 
   if (bytes_read == 0) {
     this->status_set_warning("Zero bytes read from ADC");
