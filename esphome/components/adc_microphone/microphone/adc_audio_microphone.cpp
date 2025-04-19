@@ -34,6 +34,12 @@ static const char *const TAG = "adc_microphone";
 #define DMA_FRAME_SIZE (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME)
 #define DMA_BUF_SIZE (DMA_FRAME_SIZE * 100)
 
+static bool IRAM_ATTR s_conv_overflow_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata,
+                                         void *user_data) {
+  ESP_LOGE(TAG, "ADC Conversion Buffer Overflow");
+  return true;
+}
+
 void ADCAudioMicrophone::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
   // it's arguable that some of this should be moved into start(), not setup()
@@ -82,6 +88,12 @@ void ADCAudioMicrophone::start_() {
   dig_cfg.adc_pattern = &adc_pattern;
 
   ADC_ESP_ERROR_CHECK(adc_continuous_config(adc_handle_, &dig_cfg), "configure continuous mode", );
+
+  adc_continuous_evt_cbs_t cbs = {
+      .on_pool_ovf = s_conv_overflow_cb,
+  };
+
+  ADC_ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(adc_handle_, &cbs, NULL), "setup error callbacks", );
 
   ADC_ESP_ERROR_CHECK(adc_continuous_start(adc_handle_), "start microphone data collection", );
 
