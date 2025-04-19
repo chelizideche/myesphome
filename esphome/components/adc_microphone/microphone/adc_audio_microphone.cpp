@@ -28,7 +28,8 @@ static const char *const TAG = "adc_microphone";
   }
 
 // 16 samples seems like a decent enough size for each frame
-#define DMA_SAMPLES_PER_FRAME 16
+// increased size to prevent overflows (maybe?)
+#define DMA_SAMPLES_PER_FRAME 64
 
 // ensure buffer is large enough to work even when running at slower speed
 #define DMA_FRAME_SIZE (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME)
@@ -130,8 +131,9 @@ void ADCAudioMicrophone::stop_() {
 
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
-  // len is passed in number of int16_t's, while the target buffer is only half the size of the full buffer
-  size_t max_read = std::min(len * 2, DMA_BUF_SIZE / 2U);
+  // len is passed in number of samples (not bytes), while the target buffer is only half the size of the full buffer
+  // NOTE: yes, I am casting the result of a sizeof() to size_t.  I get an error otherwise.  No this makes no sense.
+  size_t max_read = std::min(len * (size_t) sizeof(adc_digi_output_data_t), (size_t) DMA_BUF_SIZE / 2);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
                       "read data from buffer", 0);
   ESP_LOGV(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
