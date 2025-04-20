@@ -243,8 +243,7 @@ void PASCO2Component::loop() {
   if (this->initialized_ && this->measurement_mode_ == PERIODIC) {
     int16_t co2result;
     if (read_sensor_(&co2result)) {
-      if (this->co2_sensor_ != nullptr)
-        this->co2_sensor_->publish_state(co2result);
+      this->publish_state(co2result);
 
       ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
     }
@@ -350,7 +349,6 @@ void PASCO2Component::dump_config() {
       break;
   }
   LOG_UPDATE_INTERVAL(this);
-  LOG_SENSOR("  ", "CO2", this->co2_sensor_);
 }
 
 void PASCO2Component::update() {
@@ -386,9 +384,7 @@ void PASCO2Component::update() {
             [this](const uint8_t remaining_attempts) {
               int16_t co2result;
               if (read_sensor_(&co2result)) {
-                if (this->co2_sensor_ != nullptr)
-                  this->co2_sensor_->publish_state(co2result);
-
+                this->publish_state(co2result);
                 ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
               } else {
                 return RetryResult::RETRY;

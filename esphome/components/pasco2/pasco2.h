@@ -23,7 +23,7 @@ enum MeasurementMode { PERIODIC, SINGLE_SHOT };
 
 enum InitializationState { IDLE, WRITE_SCRATCH_PAD, READ_SCRATCH_PAD, SOFT_RESET, READ_STATUS, COMPLETE };
 
-class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
+class PASCO2Component : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
   float get_setup_priority() const override { return setup_priority::DATA; }
   void setup() override;
@@ -38,7 +38,6 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
   void set_ambient_pressure_compensation(float pressure_in_hpa);
   void set_ambient_pressure_source(sensor::Sensor *pressure) { ambient_pressure_source_ = pressure; }
 
-  void set_co2_sensor(sensor::Sensor *co2) { co2_sensor_ = co2; }
   void set_measurement_mode(MeasurementMode mode) { measurement_mode_ = mode; }
   bool perform_forced_calibration(uint16_t current_co2_concentration);
 
@@ -61,7 +60,6 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
   uint32_t polling_interval_;
   bool enable_asc_;
   MeasurementMode measurement_mode_{PERIODIC};
-  sensor::Sensor *co2_sensor_{nullptr};
   GPIOPin *enable_pin_{nullptr};
   // used for compensation
   sensor::Sensor *ambient_pressure_source_{nullptr};
