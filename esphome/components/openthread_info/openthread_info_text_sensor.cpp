@@ -10,7 +10,7 @@ static const char *const TAG = "openthread_info";
 
 void IPAddressOpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo IPAddress", this); }
 void RoleOpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo Role", this); }
-void ChannelOpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo Role", this); }
+void ChannelOpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo Channel", this); }
 void Rloc16OpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo Rloc16", this); }
 void ExtAddrOpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo ExtAddr", this); }
 void Eui64OpenThreadInfo::dump_config() { LOG_TEXT_SENSOR("", "OpenThreadInfo Eui64", this); }
