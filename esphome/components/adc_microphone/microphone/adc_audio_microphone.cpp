@@ -148,7 +148,7 @@ void ADCAudioMicrophone::stop_() {
 #else
   // Can't just call deinit, since that destroys the whole handle.
   //  ADC_ESP_ERROR_CHECK(adc_continuous_deinit(adc_handle_), "deinit ADC microphone pool", );
-  ESP_LOGI(TAG, "ESP_IDF version too low to flush ADC microphone buffer on stop")
+  ESP_LOGI(TAG, "ESP_IDF version too low to flush ADC microphone buffer on stop");
 #endif
 
   delete[] dma_out_buffer_;
