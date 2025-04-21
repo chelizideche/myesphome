@@ -163,8 +163,9 @@ void ADCAudioMicrophone::stop_() {
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
   // We have an intermediate buffer; we can't read more data than is available in it
-  size_t max_read = std::min(len * (size_t) sizeof(adc_digi_output_data_t), BUFFER_SIZE);
-  ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
+  // NOTE: extraneous cast is because vscode claims its a type error.
+  size_t max_read = std::min((size_t) (len / sizeof(int16_t)), BUFFER_SIZE) * sizeof(adc_digi_output_data_t);
+  ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 1),
                       "read data from buffer", 0);
   ESP_LOGD(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
 
@@ -174,7 +175,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   }
   this->status_clear_warning();
 
-  // remove the extraneous data, only leaving what we care about
+  // remove the extra data (channel, etc), only leaving what we care about
   // skip calibration, since that looks performance-intensive
   size_t samples_read = bytes_read / SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
   adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer_);

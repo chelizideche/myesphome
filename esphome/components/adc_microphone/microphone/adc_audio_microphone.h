@@ -19,6 +19,12 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
 
   void loop() override;
 
+  /** Reads audio data into a buffer
+   *
+   * @param buf A preallocated buffer to read data into
+   * @param len the length (in BYTES) of the buffer
+   * @return The number of BYTES actually read
+   */
   size_t read(int16_t *buf, size_t len) override;
 
   void set_adc_channel(int gpio_pin);
