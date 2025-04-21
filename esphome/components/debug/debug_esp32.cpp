@@ -22,7 +22,7 @@ static const char *const TAG = "debug";
 // index by values returned by esp_reset_reason
 
 static const char *const RESET_REASONS[] = {
-    "unkown source",
+    "unknown source",
     "power-on event",
     "external pin",
     "software via esp_restart",
