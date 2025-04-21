@@ -404,7 +404,6 @@ void ESP32BLETracker::gap_scan_start_complete_(const esp_ble_gap_cb_param_t::ble
 
 void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param &param) {
   ESP_LOGV(TAG, "gap_scan_stop_complete - status %d", param.status);
-  this->scanner_idle_ = true;  // Make sure to set this to true before releasing the lock
   xSemaphoreGive(this->scan_end_lock_);
 }
 
