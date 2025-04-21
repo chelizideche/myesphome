@@ -23,6 +23,13 @@ class Microphone {
   void add_data_callback(std::function<void(const std::vector<int16_t> &)> &&data_callback) {
     this->data_callbacks_.add(std::move(data_callback));
   }
+
+  /** Reads audio data into a buffer
+   *
+   * @param buf A preallocated buffer to read data into
+   * @param len the length (in BYTES) of the buffer
+   * @return The number of BYTES actually read
+   */
   virtual size_t read(int16_t *buf, size_t len) = 0;
 
   bool is_running() const { return this->state_ == STATE_RUNNING; }

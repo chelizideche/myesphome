@@ -21,6 +21,12 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
   void set_din_pin(int8_t pin) { this->din_pin_ = pin; }
   void set_pdm(bool pdm) { this->pdm_ = pdm; }
 
+  /** Reads audio data into a buffer
+   *
+   * @param buf A preallocated buffer to read data into
+   * @param len The length (in bytes) of the buffer
+   * @return The number of bytes actually read
+   */
   size_t read(int16_t *buf, size_t len) override;
 
 #if SOC_I2S_SUPPORTS_ADC
