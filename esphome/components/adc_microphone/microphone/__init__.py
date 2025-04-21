@@ -102,4 +102,7 @@ async def to_code(config):
 
     # determine the number of frames based on requested buffer duration
     frames_per_ms = config[CONF_SAMPLE_RATE] / 1000 / 64
-    cg.add_define("ADC_DMA_NUM_FRAMES", frames_per_ms * config[CONF_BUFFER_DURATION])
+    cg.add_define(
+        "ADC_DMA_NUM_FRAMES",
+        frames_per_ms * config[CONF_BUFFER_DURATION].total_milliseconds,
+    )

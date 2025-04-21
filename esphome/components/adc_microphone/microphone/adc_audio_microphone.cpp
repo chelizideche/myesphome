@@ -142,8 +142,12 @@ void ADCAudioMicrophone::stop_() {
   ESP_LOGI(TAG, "ADC Mic Stopped");
   ADC_ESP_ERROR_CHECK(adc_continuous_stop(adc_handle_), "stop ADC microphone", );
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
   // just flush the pool rather than fully deinitializing the driver
   ADC_ESP_ERROR_CHECK(adc_continuous_flush_pool(adc_handle_), "flush ADC microphone pool", );
+#else
+  ADC_ESP_ERROR_CHECK(adc_continuous_deinit(adc_handle_), "deinit ADC microphone pool", );
+#endif
 
   delete[] dma_out_buffer_;
   this->state_ = microphone::STATE_STOPPED;
