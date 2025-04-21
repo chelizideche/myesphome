@@ -1,8 +1,8 @@
-from esphome import core
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import switch
-from esphome.const import CONF_ADDRESS, CONF_ID, CONF_UPDATE_INTERVAL
+import esphome.config_validation as cv
+from esphome.const import CONF_ADDRESS, CONF_ID
+
 from .. import CONF_OPTOLINK_ID, SENSOR_BASE_SCHEMA, optolink_ns
 
 DEPENDENCIES = ["optolink"]
@@ -18,12 +18,6 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(OptolinkSwitch),
             cv.Required(CONF_ADDRESS): cv.hex_uint32_t,
-            cv.Optional(CONF_UPDATE_INTERVAL, default="10s"): cv.All(
-                cv.positive_time_period_milliseconds,
-                cv.Range(
-                    min=core.TimePeriod(seconds=1), max=core.TimePeriod(seconds=1800)
-                ),
-            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
