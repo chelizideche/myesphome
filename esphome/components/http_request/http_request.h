@@ -100,10 +100,10 @@ class HttpContainer : public Parented<HttpRequestComponent> {
   bool secure_{false};
 };
 
-class HttpRequestResponseTrigger : public Trigger<std::shared_ptr<HttpContainer>, std::string &> {
+class HttpRequestResponseTrigger : public Trigger<std::shared_ptr<HttpContainer>, std::shared_ptr<const std::string>> {
  public:
-  void process(std::shared_ptr<HttpContainer> container, std::string &response_body) {
-    this->trigger(std::move(container), response_body);
+  void process(std::shared_ptr<HttpContainer> container, std::shared_ptr<const std::string> response_body) {
+    this->trigger(std::move(container), std::move(response_body));
   }
 };
 
@@ -196,7 +196,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
     size_t content_length = container->content_length;
     size_t max_length = std::min(content_length, this->max_response_buffer_size_);
 
-    std::string response_body;
+    std::shared_ptr<const std::string> response_body;
     if (this->capture_response_.value(x...)) {
       ExternalRAMAllocator<uint8_t> allocator(ExternalRAMAllocator<uint8_t>::ALLOW_FAILURE);
       uint8_t *buf = allocator.allocate(max_length);
@@ -208,23 +208,13 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
           yield();
           read_index += read;
         }
-        response_body.reserve(read_index);
-        response_body.assign((char *) buf, read_index);
+        response_body = std::make_shared<const std::string>((char *) buf, read_index);
         allocator.deallocate(buf, max_length);
       }
     }
 
-    if (this->response_triggers_.size() == 1) {
-      // if there is only one trigger, no need to copy the response body
-      this->response_triggers_[0]->process(container, response_body);
-    } else {
-      for (auto *trigger : this->response_triggers_) {
-        // with multiple triggers, pass a copy of the response body to each
-        // one so that modifications made in one trigger are not visible to
-        // the others
-        auto response_body_copy = std::string(response_body);
-        trigger->process(container, response_body_copy);
-      }
+    for (auto *trigger : this->response_triggers_) {
+      trigger->process(container, response_body);
     }
     container->end();
   }

@@ -21,6 +21,24 @@ esphome:
                   args:
                     - response->status_code
                     - (long) response->duration_ms
+
+              # regression test for http://github.com/esphome/issues/issues/5987s
+              - wait_until:
+                  not:
+                    wifi.connected:
+
+              - repeat:
+                  count: 3
+                  then:
+                    - logger.log: "got response :-)"
+
+              - while:
+                  condition:
+                    not:
+                      wifi.connected:
+                  then:
+                    - logger.log: "still offline"
+
       - http_request.post:
           url: https://esphome.io
           headers:
