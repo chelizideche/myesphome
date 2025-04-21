@@ -48,7 +48,7 @@ BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
         cv.GenerateID(): cv.declare_id(ADCAudioMicrophone),
         cv.Optional(CONF_SAMPLE_RATE, default=32000): cv.int_range(min=1),
         cv.Optional(
-            CONF_BUFFER_DURATION, default="30ms"
+            CONF_BUFFER_DURATION, default="100ms"
         ): cv.positive_time_period_milliseconds,
         cv.Required(CONF_ADC_PIN): validate_adc_pin,
         cv.Optional(CONF_ATTENUATION, default="12db"): _attenuation,

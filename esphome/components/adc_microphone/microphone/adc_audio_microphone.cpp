@@ -119,9 +119,7 @@ void ADCAudioMicrophone::start_() {
 
   ADC_ESP_ERROR_CHECK(adc_continuous_start(adc_handle_), "start microphone data collection", );
 
-  // two calls are needed to empty the buffer anyways when it fills,
-  // so lets save some memory with the buffer we copy things into
-  dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
+  dma_out_buffer_ = new uint8_t[BUFFER_SIZE * sizeof(adc_digi_output_data_t)];
 
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
@@ -155,9 +153,8 @@ void ADCAudioMicrophone::stop_() {
 
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
-  // len is passed in number of samples (not bytes), while the target buffer is only half the size of the full buffer
-  // NOTE: yes, I am casting the result of a sizeof() to size_t.  I get an error otherwise.  No this makes no sense.
-  size_t max_read = std::min(len * (size_t) sizeof(adc_digi_output_data_t), (size_t) DMA_BUF_SIZE / 2);
+  // We have an intermediate buffer; we can't read more data than is available in it
+  size_t max_read = std::min(len * (size_t) sizeof(adc_digi_output_data_t), BUFFER_SIZE);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
                       "read data from buffer", 0);
   ESP_LOGD(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
@@ -193,7 +190,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
 void ADCAudioMicrophone::read_() {
   std::vector<int16_t> samples;
   samples.resize(BUFFER_SIZE);
-  size_t bytes_read = this->read(samples.data(), BUFFER_SIZE / sizeof(int16_t));
+  size_t bytes_read = this->read(samples.data(), BUFFER_SIZE * sizeof(int16_t));
   samples.resize(bytes_read / sizeof(int16_t));
   ESP_LOGV(TAG, "Processing %zu ADC samples", samples.size());
   ESP_LOGVV(TAG, "First four samples: %d %d %d %d", samples[0], samples[1], samples[2], samples[3]);
