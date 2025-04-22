@@ -221,10 +221,7 @@ void ESP32BLETracker::loop() {
   }
 }
 
-void ESP32BLETracker::start_scan() {
-  ESP_LOGD(TAG, "Starting scan.");
-  this->start_scan_(true);
-}
+void ESP32BLETracker::start_scan() { this->start_scan_(true); }
 
 void ESP32BLETracker::stop_scan() {
   ESP_LOGD(TAG, "Stopping scan.");
@@ -272,7 +269,7 @@ void ESP32BLETracker::start_scan_(bool first) {
     return;
   }
   this->scanner_state_ = ScannerState::STARTING;
-  ESP_LOGD(TAG, "Starting scan...");
+  ESP_LOGD(TAG, "Starting scan, set scanner state to STARTING.");
   if (!first) {
     for (auto *listener : this->listeners_)
       listener->on_scan_end();
@@ -308,7 +305,7 @@ void ESP32BLETracker::end_of_scan_() {
     ESP_LOGE(TAG, "end_of_scan_ called while scanner is not stopped.");
     return;
   }
-  ESP_LOGD(TAG, "End of scan.");
+  ESP_LOGD(TAG, "End of scan, set scanner state to IDLE.");
   this->already_discovered_.clear();
   this->cancel_timeout("scan");
 
