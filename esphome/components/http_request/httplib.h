@@ -1,6 +1,14 @@
 #pragma once
 
+/**
+ * NOTE: This is a copy of httplib.h from https://github.com/yhirose/cpp-httplib
+ *
+ * It has been modified only to add ifdefs for USE_HOST. While it contains many functions unused in ESPHome,
+ * it was considered preferable to use it with as few changes as possible, to facilitate future updates.
+ */
+
 #include "esphome/core/defines.h"
+
 //
 //  httplib.h
 //
