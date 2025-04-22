@@ -5,4 +5,4 @@ substitutions:
   use_dma: "true"
 
 packages:
-  common: !include esp32-common-idf.yaml
+  common: !include esp32-common.yaml
