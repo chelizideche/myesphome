@@ -32,6 +32,8 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   auto host = url_match_result[4].str();
   auto scheme_host = url_match_result[1].str() + url_match_result[3].str();
   auto path = url_match_result[5].str() + url_match_result[6].str();
+  if (path.empty())
+    path = "/";
 
   std::shared_ptr<HttpContainerHost> container = std::make_shared<HttpContainerHost>();
   container->set_parent(this);
@@ -60,12 +62,25 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
                                        (const uint8_t *) data + data_length);
       return true;
     });
-  } else if (method == "POST") {
-    result = client.Post(path, h_headers, body, "application/x-www-form-urlencoded");
+  } else if (method == "HEAD") {
+    result = client.Head(path, h_headers);
+  } else if (method == "PUT") {
+    result = client.Put(path, h_headers, body, "");
     if (result) {
       auto data = std::vector<uint8_t>(result->body.begin(), result->body.end());
-      container->response_body_.insert(container->response_body_.end(), (const uint8_t *) data.data(),
-                                       (const uint8_t *) data.data() + data.size());
+      container->response_body_.insert(container->response_body_.end(), data.begin(), data.end());
+    }
+  } else if (method == "PATCH") {
+    result = client.Patch(path, h_headers, body, "");
+    if (result) {
+      auto data = std::vector<uint8_t>(result->body.begin(), result->body.end());
+      container->response_body_.insert(container->response_body_.end(), data.begin(), data.end());
+    }
+  } else if (method == "POST") {
+    result = client.Post(path, h_headers, body, "");
+    if (result) {
+      auto data = std::vector<uint8_t>(result->body.begin(), result->body.end());
+      container->response_body_.insert(container->response_body_.end(), data.begin(), data.end());
     }
   } else {
     ESP_LOGW(TAG, "HTTP Request failed - unsupported method %s; URL: %s", method.c_str(), url.c_str());
@@ -74,7 +89,7 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   }
   App.feed_wdt();
   if (!result) {
-    ESP_LOGW(TAG, "HTTP Request failed; URL: %s", url.c_str());
+    ESP_LOGW(TAG, "HTTP Request failed; URL: %s, error code: %d", url.c_str(), result.error());
     container->end();
     this->status_momentary_error("failed", 1000);
     return nullptr;
