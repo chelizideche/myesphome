@@ -267,8 +267,9 @@ void ESP32BLETracker::start_scan_(bool first) {
       ESP_LOGE(TAG, "Cannot start scan while already stopping.");
     } else if (this->scanner_state_ == ScannerState::FAILED) {
       ESP_LOGE(TAG, "Cannot start scan while already failed.");
+    } else if (this->scanner_state_ == ScannerState::STOPPED) {
+      ESP_LOGE(TAG, "Cannot start scan while already stopped.");
     }
-    elsif(this->scanner_state_ == ScannerState::STOPPED) { ESP_LOGE(TAG, "Cannot start scan while already stopped."); }
     return;
   }
   this->scanner_state_ = ScannerState::STARTING;
