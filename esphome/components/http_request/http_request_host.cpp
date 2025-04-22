@@ -26,7 +26,7 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   std::smatch url_match_result;
 
   if (!std::regex_match(url, url_match_result, url_regex) || url_match_result.length() < 7) {
-    ESP_LOGW(TAG, "HTTP Request failed; Malformed URL");
+    ESP_LOGE(TAG, "HTTP Request failed; Malformed URL: %s", url.c_str());
     return nullptr;
   }
   auto host = url_match_result[4].str();
@@ -47,6 +47,10 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
     h_headers.emplace(name, value);
   }
   httplib::Client client(scheme_host.c_str());
+  if (!client.is_valid()) {
+    ESP_LOGE(TAG, "HTTP Request failed; Invalid URL: %s", url.c_str());
+    return nullptr;
+  }
   client.set_follow_location(this->follow_redirects_);
   httplib::Result result;
   if (method == "GET") {
@@ -56,8 +60,15 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
                                        (const uint8_t *) data + data_length);
       return true;
     });
+  } else if (method == "POST") {
+    result = client.Post(path, h_headers, body, "application/x-www-form-urlencoded");
+    if (result) {
+      auto data = std::vector<uint8_t>(result->body.begin(), result->body.end());
+      container->response_body_.insert(container->response_body_.end(), (const uint8_t *) data.data(),
+                                       (const uint8_t *) data.data() + data.size());
+    }
   } else {
-    ESP_LOGW(TAG, "HTTP Request failed - bad method; URL: %s", url.c_str());
+    ESP_LOGW(TAG, "HTTP Request failed - unsupported method %s; URL: %s", method.c_str(), url.c_str());
     container->end();
     return nullptr;
   }

@@ -10,9 +10,11 @@ from esphome.const import (
     CONF_TIMEOUT,
     CONF_TRIGGER_ID,
     CONF_URL,
+    PLATFORM_HOST,
     __version__,
 )
 from esphome.core import CORE, Lambda
+from esphome.helpers import IS_MACOS
 
 DEPENDENCIES = ["network"]
 AUTO_LOAD = ["json", "watchdog"]
@@ -44,6 +46,7 @@ CONF_REDIRECT_LIMIT = "redirect_limit"
 CONF_WATCHDOG_TIMEOUT = "watchdog_timeout"
 CONF_BUFFER_SIZE_RX = "buffer_size_rx"
 CONF_BUFFER_SIZE_TX = "buffer_size_tx"
+CONF_CA_CERTIFICATE_PATH = "ca_certificate_path"
 
 CONF_MAX_RESPONSE_BUFFER_SIZE = "max_response_buffer_size"
 CONF_ON_RESPONSE = "on_response"
@@ -122,6 +125,10 @@ CONFIG_SCHEMA = cv.All(
             cv.SplitDefault(CONF_BUFFER_SIZE_TX, esp32_idf=512): cv.All(
                 cv.uint16_t, cv.only_with_esp_idf
             ),
+            cv.Optional(CONF_CA_CERTIFICATE_PATH): cv.All(
+                cv.file_,
+                cv.only_on(PLATFORM_HOST),
+            ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.require_framework_version(
@@ -172,6 +179,19 @@ async def to_code(config):
         cg.add_library("ESP8266HTTPClient", None)
     if CORE.is_rp2040 and CORE.using_arduino:
         cg.add_library("HTTPClient", None)
+    if CORE.is_host:
+        if IS_MACOS:
+            cg.add_build_flag("-I/opt/homebrew/opt/openssl/include")
+            cg.add_build_flag("-L/opt/homebrew/opt/openssl")
+            cg.add_build_flag("-lssl")
+            cg.add_build_flag("-lcrypto")
+            cg.add_build_flag("-Wl,-framework,CoreFoundation")
+            cg.add_build_flag("-Wl,-framework,Security")
+            cg.add_define("CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN")
+            cg.add_define("CPPHTTPLIB_OPENSSL_SUPPORT")
+        elif path := config.get(CONF_CA_CERTIFICATE_PATH):
+            cg.add_define("CPPHTTPLIB_OPENSSL_SUPPORT")
+            cg.add(var.set_ca_path(path))
 
     await cg.register_component(var, config)
 

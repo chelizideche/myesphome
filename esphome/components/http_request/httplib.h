@@ -1,3 +1,6 @@
+#pragma once
+
+#include "esphome/core/defines.h"
 //
 //  httplib.h
 //
