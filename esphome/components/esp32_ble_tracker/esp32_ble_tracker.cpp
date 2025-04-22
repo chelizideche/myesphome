@@ -117,7 +117,7 @@ void ESP32BLETracker::loop() {
   bool promote_to_connecting = discovered && !searching && !connecting;
 
   if (this->scanner_state_ == ScannerState::RUNNING &&
-      his->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
+      this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
       xSemaphoreTake(this->scan_result_lock_, 5L / portTICK_PERIOD_MS)) {
     uint32_t index = this->scan_result_index_;
     if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
