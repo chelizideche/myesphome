@@ -54,6 +54,10 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
     return nullptr;
   }
   client.set_follow_location(this->follow_redirects_);
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  client.set_ca_cert_path(this->ca_path_);
+#endif
+
   httplib::Result result;
   if (method == "GET") {
     result = client.Get(path, h_headers, [&](const char *data, size_t data_length) {

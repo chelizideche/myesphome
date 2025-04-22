@@ -228,9 +228,6 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
     }
     container->end();
   }
-#ifdef USE_HOST
-  void set_ca_path(const char *ca_path) { this->ca_path_ = ca_path; }
-#endif
 
  protected:
   void encode_json_(Ts... x, JsonObject root) {
@@ -248,9 +245,6 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
   std::vector<Trigger<> *> error_triggers_{};
 
   size_t max_response_buffer_size_{SIZE_MAX};
-#ifdef USE_HOST
-  const char *ca_path_{};
-#endif
 };
 
 }  // namespace http_request

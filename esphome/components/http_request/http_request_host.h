@@ -24,6 +24,10 @@ class HttpRequestHost : public HttpRequestComponent {
  public:
   std::shared_ptr<HttpContainer> start(std::string url, std::string method, std::string body,
                                        std::list<Header> headers) override;
+  void set_ca_path(const char *ca_path) { this->ca_path_ = ca_path; }
+
+ protected:
+  const char *ca_path_{};
 };
 
 }  // namespace http_request
