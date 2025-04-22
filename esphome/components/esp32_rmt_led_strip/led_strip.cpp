@@ -33,6 +33,7 @@ void ESP32RMTLEDStripLightOutput::setup() {
     this->mark_failed();
     return;
   }
+  memset(this->buf_, 0, buffer_size);
 
   this->effect_data_ = allocator.allocate(this->num_leds_);
   if (this->effect_data_ == nullptr) {
@@ -57,7 +58,7 @@ void ESP32RMTLEDStripLightOutput::setup() {
   channel.flags.io_loop_back = 0;
   channel.flags.io_od_mode = 0;
   channel.flags.invert_out = 0;
-  channel.flags.with_dma = 0;
+  channel.flags.with_dma = this->use_dma_;
   channel.intr_priority = 0;
   if (rmt_new_tx_channel(&channel, &this->channel_) != ESP_OK) {
     ESP_LOGE(TAG, "Channel creation failed");

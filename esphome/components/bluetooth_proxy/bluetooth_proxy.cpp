@@ -265,6 +265,12 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
                  connection->get_connection_index(), connection->address_str().c_str());
         return;
       } else if (connection->state() == espbt::ClientState::CONNECTING) {
+        if (connection->disconnect_pending()) {
+          ESP_LOGW(TAG, "[%d] [%s] Connection request while pending disconnect, cancelling pending disconnect",
+                   connection->get_connection_index(), connection->address_str().c_str());
+          connection->cancel_pending_disconnect();
+          return;
+        }
         ESP_LOGW(TAG, "[%d] [%s] Connection request ignored, already connecting", connection->get_connection_index(),
                  connection->address_str().c_str());
         return;
@@ -475,6 +481,11 @@ void BluetoothProxy::send_connections_free() {
   api::BluetoothConnectionsFreeResponse call;
   call.free = this->get_bluetooth_connections_free();
   call.limit = this->get_bluetooth_connections_limit();
+  for (auto *connection : this->connections_) {
+    if (connection->address_ != 0) {
+      call.allocated.push_back(connection->address_);
+    }
+  }
   this->api_connection_->send_bluetooth_connections_free_response(call);
 }
 
