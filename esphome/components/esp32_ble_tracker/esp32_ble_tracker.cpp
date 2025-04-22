@@ -246,6 +246,7 @@ void ESP32BLETracker::stop_scan_() {
     return;
   }
   this->cancel_timeout("scan");
+  this->scanner_state_ = ScannerState::STOPPING;
   esp_err_t err = esp_ble_gap_stop_scanning();
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "esp_ble_gap_stop_scanning failed: %d", err);
