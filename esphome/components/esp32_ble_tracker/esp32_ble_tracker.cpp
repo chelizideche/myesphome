@@ -202,7 +202,8 @@ void ESP32BLETracker::loop() {
   // clients and no clients using the scanner to search for
   // devices, then stop scanning and promote the discovered
   // client to ready to connect.
-  if (promote_to_connecting) {
+  if (promote_to_connecting &&
+      (this->scanner_state_ == ScannerState::RUNNING || this->scanner_state_ == ScannerState::STOPPED)) {
     for (auto *client : this->clients_) {
       if (client->state() == ClientState::DISCOVERED) {
         if (this->scanner_state_ == ScannerState::RUNNING) {
