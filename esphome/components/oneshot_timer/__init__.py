@@ -3,6 +3,8 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import CONF_ID, CONF_INTERVAL, CONF_TRIGGER_ID
 
+CODEOWNERS = ["@avishorp"]
+
 CONF_AUTO_START = "auto_start"
 CONF_ON_TIMEOUT = "on_timeout"
 CONF_ON_START = "on_start"
