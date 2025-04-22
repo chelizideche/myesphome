@@ -8,9 +8,9 @@
 namespace esphome {
 namespace oneshot_timer {
 
-class OnTimeoutTrigger: public Trigger<> {};
-class OnStartTrigger: public Trigger<> {};
-class OnPauseTrigger: public Trigger<> {};
+class OnTimeoutTrigger : public Trigger<> {};
+class OnStartTrigger : public Trigger<> {};
+class OnPauseTrigger : public Trigger<> {};
 
 class OneShotTimer : public Component {
  public:
@@ -19,13 +19,13 @@ class OneShotTimer : public Component {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
 
-  void set_interval(uint32_t interval) { 
-    this->interval_ = interval; 
+  void set_interval(uint32_t interval) {
+    this->interval_ = interval;
     this->remaining_time_ = interval;
   }
   void set_auto_start(bool auto_start) { this->auto_start_ = auto_start; }
 
-  void start(std::optional<uint32_t> interval = std::nullopt);
+  void start(optional<uint32_t> interval = nullopt);
   void pause();
   void resume();
   void add_on_timeout_trigger(OnTimeoutTrigger *trigger) { this->on_timeout_trigger_.push_back(trigger); }
@@ -40,9 +40,9 @@ class OneShotTimer : public Component {
   uint32_t remaining_time_{0};
   uint32_t last_visit_{0};
   bool running_{false};
-  std::vector<OnTimeoutTrigger*> on_timeout_trigger_;
-  std::vector<OnStartTrigger*> on_start_trigger_;
-  std::vector<OnPauseTrigger*> on_pause_trigger_;
+  std::vector<OnTimeoutTrigger *> on_timeout_trigger_;
+  std::vector<OnStartTrigger *> on_start_trigger_;
+  std::vector<OnPauseTrigger *> on_pause_trigger_;
   bool auto_start_{false};
 };
 
@@ -51,14 +51,13 @@ template<typename... Ts> class StartAction : public Action<Ts...> {
   explicit StartAction(OneShotTimer *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(uint32_t, interval)
 
-public:
-  void play(Ts... x) override { 
+ public:
+  void play(Ts... x) override {
     if (this->interval_.has_value()) {
-        this->parent_->start(this->interval_.value(x...));
+      this->parent_->start(this->interval_.value(x...));
+    } else {
+      this->parent_->start();
     }
-    else {
-        this->parent_->start();
-    }  
   }
 
  protected:
