@@ -1,10 +1,6 @@
-interval:
-  - interval: 1s
-    then:
-      - logger.log: Tick
-
 oneshot_timer:
-  - interval: 5s
+  - id: timer1
+    interval: 5s
     auto_start: false
     on_timeout:
       - logger.log: Timeout
@@ -12,3 +8,26 @@ oneshot_timer:
       - logger.log: Start
     on_pause:
       - logger.log: Pause
+
+button:
+  - platform: template
+    id: start_default_interval
+    on_press:
+      oneshot_timer.start: timer1
+
+  - platform: template
+    id: start_specified_interval
+    on_press:
+      oneshot_timer.start: 
+        id: timer1
+        interval: 10s
+
+  - platform: template
+    id: pause_timer
+    on_press:
+      oneshot_timer.pause: timer1
+
+  - platform: template
+    id: resume_timer
+    on_press:
+      oneshot_timer.resume: timer1
