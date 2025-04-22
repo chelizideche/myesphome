@@ -164,7 +164,7 @@ void ESP32BLETracker::loop() {
   if (this->scanner_state_ == ScannerState::STOPPED) {
     this->end_of_scan_();  // Change state to IDLE
   }
-  if (this->scan_state_ == ScannerState::FAILED ||
+  if (this->scanner_state_ == ScannerState::FAILED ||
       (this->scan_set_param_failed_ && this->scan_state_ == ScannerState::RUNNING)) {
     this->stop_scan_();
     if (this->scan_start_fail_count_ == std::numeric_limits<uint8_t>::max()) {
