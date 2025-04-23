@@ -1,14 +1,18 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
-from esphome.const import CONF_ID, CONF_INTERVAL, CONF_TRIGGER_ID
+from esphome.const import (
+    CONF_ID,
+    CONF_INTERVAL,
+    CONF_TRIGGER_ID,
+    CONF_AUTO_START,
+    CONF_ON_TIMEOUT,
+    CONF_ON_START,
+    CONF_ON_PAUSE,
+)
 
 CODEOWNERS = ["@avishorp"]
 
-CONF_AUTO_START = "auto_start"
-CONF_ON_TIMEOUT = "on_timeout"
-CONF_ON_START = "on_start"
-CONF_ON_PAUSE = "on_pause"
 
 oneshot_timer_ns = cg.esphome_ns.namespace("oneshot_timer")
 OneShotTimer = oneshot_timer_ns.class_("OneShotTimer", cg.Component)
