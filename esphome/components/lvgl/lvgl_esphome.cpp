@@ -120,6 +120,7 @@ void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_ev
 void LvglComponent::add_page(LvPageType *page) {
   this->pages_.push_back(page);
   page->set_parent(this);
+  lv_disp_set_default(this->disp_);
   page->setup(this->pages_.size() - 1);
 }
 void LvglComponent::show_page(size_t index, lv_scr_load_anim_t anim, uint32_t time) {
@@ -423,8 +424,6 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
   this->disp_drv_.full_refresh = this->full_refresh_;
   this->disp_drv_.flush_cb = static_flush_cb;
   this->disp_drv_.rounder_cb = rounder_cb;
-  this->disp_drv_.hor_res = 0;
-  this->disp_drv_.ver_res = 0;
   this->disp_ = lv_disp_drv_register(&this->disp_drv_);
 }
 
@@ -435,20 +434,24 @@ void LvglComponent::setup() {
   auto height = display->get_height();
   size_t buffer_pixels = width * height / this->buffer_frac_;
   auto buf_bytes = buffer_pixels * LV_COLOR_DEPTH / 8;
-  auto *buffer = lv_custom_mem_alloc(buf_bytes);  // NOLINT
+  void *buffer = nullptr;
+  if (this->buffer_frac_ >= 4)
+    buffer = malloc(buf_bytes);  // NOLINT
+  if (buffer == nullptr)
+    buffer = lv_custom_mem_alloc(buf_bytes);  // NOLINT
   if (buffer == nullptr) {
     this->mark_failed();
     this->status_set_error("Memory allocation failure");
     return;
   }
-  lv_disp_draw_buf_init(&this->draw_buf_, buffer, nullptr, buf_bytes);
+  lv_disp_draw_buf_init(&this->draw_buf_, buffer, nullptr, buffer_pixels);
   this->disp_drv_.hor_res = width;
   this->disp_drv_.ver_res = height;
   // this->setup_driver_(display->get_width(), display->get_height());
   lv_disp_drv_update(this->disp_, &this->disp_drv_);
   this->rotation = display->get_rotation();
   if (this->rotation != display::DISPLAY_ROTATION_0_DEGREES) {
-    this->rotate_buf_ = static_cast<lv_color_t *>(lv_custom_mem_alloc(this->draw_buf_.size));  // NOLINT
+    this->rotate_buf_ = static_cast<lv_color_t *>(lv_custom_mem_alloc(buf_bytes));  // NOLINT
     if (this->rotate_buf_ == nullptr) {
       this->mark_failed();
       this->status_set_error("Memory allocation failure");
