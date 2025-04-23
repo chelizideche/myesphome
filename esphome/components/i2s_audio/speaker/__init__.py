@@ -38,6 +38,7 @@ I2SAudioSpeaker = i2s_audio_ns.class_(
 
 CONF_DAC_TYPE = "dac_type"
 CONF_I2S_COMM_FMT = "i2s_comm_fmt"
+CONF_UNSIGNED = "unsigned"
 
 i2s_dac_mode_t = cg.global_ns.enum("i2s_dac_mode_t")
 INTERNAL_DAC_OPTIONS = {
@@ -146,6 +147,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_I2S_COMM_FMT, default="stand_i2s"): cv.enum(
                         I2C_COMM_FMT_OPTIONS, lower=True
                     ),
+                    cv.Optional(CONF_UNSIGNED, default="false"): cv.boolean,
                 }
             ),
         },
@@ -171,3 +173,5 @@ async def to_code(config):
     if config[CONF_TIMEOUT] != CONF_NEVER:
         cg.add(var.set_timeout(config[CONF_TIMEOUT]))
     cg.add(var.set_buffer_duration(config[CONF_BUFFER_DURATION]))
+    if config[CONF_UNSIGNED]:
+        cg.add_define("I2S_HACK_UNSIGNED")
