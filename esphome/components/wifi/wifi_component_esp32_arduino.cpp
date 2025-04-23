@@ -845,9 +845,9 @@ bssid_t WiFiComponent::wifi_bssid() {
 std::string WiFiComponent::wifi_ssid() { return WiFi.SSID().c_str(); }
 int8_t WiFiComponent::wifi_rssi() { return WiFi.RSSI(); }
 int32_t WiFiComponent::get_wifi_channel() { return WiFi.channel(); }
-network::IPAddress WiFiComponent::wifi_subnet_mask_() { return network::IPAddress(WiFi.subnetMask()); }
-network::IPAddress WiFiComponent::wifi_gateway_ip_() { return network::IPAddress(WiFi.gatewayIP()); }
-network::IPAddress WiFiComponent::wifi_dns_ip_(int num) { return network::IPAddress(WiFi.dnsIP(num)); }
+std::string WiFiComponent::wifi_subnet_mask_() { return WiFi.subnetMask().toString().c_str(); }
+std::string WiFiComponent::wifi_gateway_ip_() { return WiFi.gatewayIP().toString().c_str(); }
+std::string WiFiComponent::wifi_dns_ip_(int num) { return WiFi.dnsIP(num).toString().c_str(); }
 
 }  // namespace wifi
 }  // namespace esphome

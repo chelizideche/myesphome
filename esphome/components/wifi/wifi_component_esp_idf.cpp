@@ -999,27 +999,27 @@ int32_t WiFiComponent::get_wifi_channel() {
   }
   return primary;
 }
-network::IPAddress WiFiComponent::wifi_subnet_mask_() {
+std::string WiFiComponent::wifi_subnet_mask_() {
   esp_netif_ip_info_t ip;
   esp_err_t err = esp_netif_get_ip_info(s_sta_netif, &ip);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "esp_netif_get_ip_info failed: %s", esp_err_to_name(err));
     return {};
   }
-  return network::IPAddress(&ip.netmask);
+  return network::IPAddress(&ip.netmask).str();
 }
-network::IPAddress WiFiComponent::wifi_gateway_ip_() {
+std::string WiFiComponent::wifi_gateway_ip_() {
   esp_netif_ip_info_t ip;
   esp_err_t err = esp_netif_get_ip_info(s_sta_netif, &ip);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "esp_netif_get_ip_info failed: %s", esp_err_to_name(err));
     return {};
   }
-  return network::IPAddress(&ip.gw);
+  return network::IPAddress(&ip.gw).str();
 }
-network::IPAddress WiFiComponent::wifi_dns_ip_(int num) {
+std::string WiFiComponent::wifi_dns_ip_(int num) {
   const ip_addr_t *dns_ip = dns_getserver(num);
-  return network::IPAddress(dns_ip);
+  return network::IPAddress(dns_ip).str();
 }
 
 }  // namespace wifi

@@ -199,11 +199,11 @@ network::IPAddresses WiFiComponent::wifi_sta_ip_addresses() {
   }
   return addresses;
 }
-network::IPAddress WiFiComponent::wifi_subnet_mask_() { return {(const ip_addr_t *) WiFi.subnetMask()}; }
-network::IPAddress WiFiComponent::wifi_gateway_ip_() { return {(const ip_addr_t *) WiFi.gatewayIP()}; }
-network::IPAddress WiFiComponent::wifi_dns_ip_(int num) {
+std::string WiFiComponent::wifi_subnet_mask_() { return WiFi.subnetMask().toString().c_str(); }
+std::string WiFiComponent::wifi_gateway_ip_() { return WiFi.gatewayIP().toString().c_str(); }
+std::string WiFiComponent::wifi_dns_ip_(int num) {
   const ip_addr_t *dns_ip = dns_getserver(num);
-  return network::IPAddress(dns_ip);
+  return network::IPAddress(dns_ip).str();
 }
 
 void WiFiComponent::wifi_loop_() {

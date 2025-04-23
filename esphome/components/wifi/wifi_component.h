@@ -348,9 +348,9 @@ class WiFiComponent : public Component {
 
   bool wifi_disconnect_();
 
-  network::IPAddress wifi_subnet_mask_();
-  network::IPAddress wifi_gateway_ip_();
-  network::IPAddress wifi_dns_ip_(int num);
+  std::string wifi_subnet_mask_();
+  std::string wifi_gateway_ip_();
+  std::string wifi_dns_ip_(int num);
 
   bool is_captive_portal_active_();
   bool is_esp32_improv_active_();

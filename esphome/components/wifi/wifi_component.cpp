@@ -445,10 +445,10 @@ void WiFiComponent::print_connect_params_() {
     ESP_LOGV(TAG, "  Priority: %.1f", this->get_sta_priority(*this->selected_ap_.get_bssid()));
   }
   ESP_LOGCONFIG(TAG, "  Channel: %" PRId32, get_wifi_channel());
-  ESP_LOGCONFIG(TAG, "  Subnet: %s", wifi_subnet_mask_().str().c_str());
-  ESP_LOGCONFIG(TAG, "  Gateway: %s", wifi_gateway_ip_().str().c_str());
-  ESP_LOGCONFIG(TAG, "  DNS1: %s", wifi_dns_ip_(0).str().c_str());
-  ESP_LOGCONFIG(TAG, "  DNS2: %s", wifi_dns_ip_(1).str().c_str());
+  ESP_LOGCONFIG(TAG, "  Subnet: %s", wifi_subnet_mask_());
+  ESP_LOGCONFIG(TAG, "  Gateway: %s", wifi_gateway_ip_());
+  ESP_LOGCONFIG(TAG, "  DNS1: %s", wifi_dns_ip_(0));
+  ESP_LOGCONFIG(TAG, "  DNS2: %s", wifi_dns_ip_(1));
 #ifdef USE_WIFI_11KV_SUPPORT
   ESP_LOGCONFIG(TAG, "  BTM: %s", this->btm_ ? "enabled" : "disabled");
   ESP_LOGCONFIG(TAG, "  RRM: %s", this->rrm_ ? "enabled" : "disabled");
