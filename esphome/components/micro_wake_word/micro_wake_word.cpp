@@ -157,6 +157,11 @@ void MicroWakeWord::start() {
     return;
   }
 
+  if (this->state_ != State::IDLE) {
+    ESP_LOGW(TAG, "Wake word is already running");
+    return;
+  }
+
   if (!this->load_models_() || !this->allocate_buffers_()) {
     ESP_LOGE(TAG, "Failed to load the wake word model(s) or allocate buffers");
     this->status_set_error();
@@ -166,11 +171,6 @@ void MicroWakeWord::start() {
 
   if (this->status_has_error()) {
     ESP_LOGW(TAG, "Wake word component has an error. Please check logs");
-    return;
-  }
-
-  if (this->state_ != State::IDLE) {
-    ESP_LOGW(TAG, "Wake word is already running");
     return;
   }
 
