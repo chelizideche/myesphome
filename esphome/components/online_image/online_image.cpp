@@ -15,6 +15,9 @@ static const char *const TAG = "online_image";
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
 #include "png_image.h"
 #endif
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+#include "webp_image.h"
+#endif
 
 namespace esphome {
 namespace online_image {
@@ -32,7 +35,7 @@ inline bool is_color_on(const Color &color) {
 
 OnlineImage::OnlineImage(const std::string &url, int width, int height, ImageFormat format, ImageType type,
                          image::Transparency transparency, uint32_t download_buffer_size)
-    : Image(nullptr, 0, 0, type, transparency),
+    : Animation(nullptr, 0, 0, 1, type, transparency),
       buffer_(nullptr),
       download_buffer_(download_buffer_size),
       download_buffer_initial_size_(download_buffer_size),
@@ -60,21 +63,22 @@ void OnlineImage::release() {
     this->height_ = 0;
     this->buffer_width_ = 0;
     this->buffer_height_ = 0;
+    this->buffer_frame_size_ = 0;
     this->end_connection_();
   }
 }
 
-size_t OnlineImage::resize_(int width_in, int height_in) {
+size_t OnlineImage::resize_(int width_in, int height_in, int frames) {
   int width = this->fixed_width_;
   int height = this->fixed_height_;
   if (this->is_auto_resize_()) {
     width = width_in;
     height = height_in;
-    if (this->width_ != width && this->height_ != height) {
+    if (this->width_ != width || this->height_ != height || this->animation_frame_count_ != frames) {
       this->release();
     }
   }
-  size_t new_size = this->get_buffer_size_(width, height);
+  size_t new_size = this->get_buffer_size_(width, height, frames);
   if (this->buffer_) {
     // Buffer already allocated => no need to resize
     return new_size;
@@ -90,7 +94,10 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
   this->buffer_width_ = width;
   this->buffer_height_ = height;
   this->width_ = width;
-  ESP_LOGV(TAG, "New size: (%d, %d)", width, height);
+  this->animation_frame_count_ = frames;
+  this->buffer_frame_size_ = new_size / frames;
+  this->current_frame_ = 0;
+  ESP_LOGV(TAG, "New size: (%d, %d). Frames: %d", width, height, frames);
   return new_size;
 }
 
@@ -122,6 +129,11 @@ void OnlineImage::update() {
       accept_mime_type = "image/png";
       break;
 #endif  // ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+    case ImageFormat::WEBP:
+      accept_mime_type = "image/webp";
+      break;
+#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
     default:
       accept_mime_type = "image/*";
   }
@@ -172,6 +184,12 @@ void OnlineImage::update() {
     this->decoder_ = make_unique<PngDecoder>(this);
   }
 #endif  // ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+  if (this->format_ == ImageFormat::WEBP) {
+    ESP_LOGD(TAG, "Allocating WEBP decoder");
+    this->decoder_ = esphome::make_unique<WebpDecoder>(this);
+  }
+#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
 
   if (!this->decoder_) {
     ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
@@ -196,6 +214,7 @@ void OnlineImage::loop() {
   }
   if (!this->downloader_ || this->decoder_->is_finished()) {
     this->data_start_ = buffer_;
+    this->animation_data_start_ = this->buffer_;
     this->width_ = buffer_width_;
     this->height_ = buffer_height_;
     ESP_LOGD(TAG, "Image fully downloaded, read %zu bytes, width/height = %d/%d", this->downloader_->get_bytes_read(),
@@ -228,6 +247,15 @@ void OnlineImage::loop() {
       this->download_buffer_.read(fed);
     }
   }
+  // if the download has finished and the image is not fully decoded yet, call decode_loop()
+  if (!this->decoder_->is_finished()) {
+    auto ret = this->decoder_->decode_loop();
+    if (ret != DECODE_ERROR_NONE) {
+      ESP_LOGE(TAG, "Error when decoding image.");
+      this->download_error_callback_.call();
+      return;
+    }
+  }
 }
 
 void OnlineImage::map_chroma_key(Color &color) {
@@ -243,16 +271,17 @@ void OnlineImage::map_chroma_key(Color &color) {
   }
 }
 
-void OnlineImage::draw_pixel_(int x, int y, Color color) {
+void OnlineImage::draw_pixel_(int x, int y, Color color, int frame) {
   if (!this->buffer_) {
     ESP_LOGE(TAG, "Buffer not allocated!");
     return;
   }
-  if (x < 0 || y < 0 || x >= this->buffer_width_ || y >= this->buffer_height_) {
-    ESP_LOGE(TAG, "Tried to paint a pixel (%d,%d) outside the image!", x, y);
+  if (x < 0 || y < 0 || frame < 0 || x >= this->buffer_width_ || y >= this->buffer_height_ ||
+      frame >= this->animation_frame_count_) {
+    ESP_LOGE(TAG, "Tried to paint a pixel (%d,%d,%d) outside the image!", x, y, frame);
     return;
   }
-  uint32_t pos = this->get_position_(x, y);
+  uint32_t pos = this->get_position_(x, y, frame);
   switch (this->type_) {
     case ImageType::IMAGE_TYPE_BINARY: {
       const uint32_t width_8 = ((this->width_ + 7u) / 8u) * 8u;

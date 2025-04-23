@@ -5,6 +5,7 @@ namespace esphome {
 namespace online_image {
 
 enum DecodeError : int {
+  DECODE_ERROR_NONE = 0,
   DECODE_ERROR_INVALID_TYPE = -1,
   DECODE_ERROR_UNSUPPORTED_FORMAT = -2,
   DECODE_ERROR_OUT_OF_MEMORY = -3,
@@ -50,14 +51,23 @@ class ImageDecoder {
   virtual int decode(uint8_t *buffer, size_t size) = 0;
 
   /**
+   * @brief For images that may take a while to decode, such as animations
+   * call decode_loop() from the component's main loop() after decode()
+   * until is_finished() returns true
+   * @return any decoding error encountered or DECODE_ERROR_NONE
+   */
+  virtual enum DecodeError decode_loop() { return DECODE_ERROR_NONE; }
+
+  /**
    * @brief Request the image to be resized once the actual dimensions are known.
    * Called by the callback functions, to be able to access the parent Image class.
    *
    * @param width The image's width.
    * @param height The image's height.
+   * @param frames The number of frames in an image if animated.
    * @return true if the image was resized, false otherwise.
    */
-  bool set_size(int width, int height);
+  bool set_size(int width, int height, int frames = 1);
 
   /**
    * @brief Fill a rectangle on the display_buffer using the defined color.
@@ -70,8 +80,9 @@ class ImageDecoder {
    * @param w The width of the rectangle.
    * @param h The height of the rectangle.
    * @param color The fill color
+   * @param frame The frame to write to
    */
-  void draw(int x, int y, int w, int h, const Color &color);
+  void draw(int x, int y, int w, int h, const Color &color, int frame = 0);
 
   bool is_finished() const { return this->decoded_bytes_ == this->download_size_; }
 

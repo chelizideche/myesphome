@@ -2,6 +2,7 @@ import logging
 
 from esphome import automation
 import esphome.codegen as cg
+from esphome.components.animation import Animation_
 from esphome.components.http_request import CONF_HTTP_REQUEST_ID, HttpRequestComponent
 from esphome.components.image import (
     CONF_INVERT_ALPHA,
@@ -25,7 +26,7 @@ from esphome.const import (
     CONF_URL,
 )
 
-AUTO_LOAD = ["image"]
+AUTO_LOAD = ["image", "animation"]
 DEPENDENCIES = ["display", "http_request"]
 CODEOWNERS = ["@guillempages", "@clydebarrow"]
 MULTI_CONF = True
@@ -78,17 +79,29 @@ class PNGFormat(Format):
         cg.add_library("pngle", "1.0.2")
 
 
+class WEBPFormat(Format):
+    def __init__(self):
+        super().__init__("WEBP")
+
+    def actions(self):
+        cg.add_define("USE_ONLINE_IMAGE_WEBP_SUPPORT")
+        cg.add_library("libwebp", None, "https://github.com/acvigue/libwebp#26b0c4b")
+
+
 IMAGE_FORMATS = {
     x.image_type: x
     for x in (
         BMPFormat(),
         JPEGFormat(),
         PNGFormat(),
+        WEBPFormat(),
     )
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
 
-OnlineImage = online_image_ns.class_("OnlineImage", cg.PollingComponent, Image_)
+OnlineImage = online_image_ns.class_(
+    "OnlineImage", cg.PollingComponent, Image_, Animation_
+)
 
 # Actions
 SetUrlAction = online_image_ns.class_(

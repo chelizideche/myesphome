@@ -38,6 +38,10 @@ online_image:
     url: http://www.faqs.org/images/library.jpg
     format: JPG
     type: RGB565
+  - id: online_webp_image
+    url: https://samples-files.com/samples/images/webp/480-360-sample.webp
+    format: WEBP
+    type: RGB
 
 # Check the set_url action
 esphome:
