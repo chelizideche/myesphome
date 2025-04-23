@@ -51,6 +51,8 @@ CONF_CA_CERTIFICATE_PATH = "ca_certificate_path"
 CONF_MAX_RESPONSE_BUFFER_SIZE = "max_response_buffer_size"
 CONF_ON_RESPONSE = "on_response"
 CONF_HEADERS = "headers"
+CONF_REQUEST_HEADERS = "request_headers"
+CONF_COLLECT_HEADERS = "collect_headers"
 CONF_BODY = "body"
 CONF_JSON = "json"
 CONF_CAPTURE_RESPONSE = "capture_response"
@@ -202,7 +204,10 @@ HTTP_REQUEST_ACTION_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.use_id(HttpRequestComponent),
         cv.Required(CONF_URL): cv.templatable(validate_url),
-        cv.Optional(CONF_HEADERS): cv.All(
+        cv.Optional(CONF_HEADERS): cv.invalid(
+            "The 'headers' options has been renamed to 'request_headers'"
+        ),
+        cv.Optional(CONF_REQUEST_HEADERS): cv.All(
             cv.Schema({cv.string: cv.templatable(cv.string)})
         ),
         cv.Optional(CONF_VERIFY_SSL): cv.invalid(

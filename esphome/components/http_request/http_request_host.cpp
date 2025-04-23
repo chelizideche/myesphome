@@ -14,8 +14,9 @@ namespace http_request {
 
 static const char *const TAG = "http_request.host";
 
-std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::string method, std::string body,
-                                                      std::list<Header> headers) {
+std::shared_ptr<HttpContainer> HttpRequestHost::perform(std::string url, std::string method, std::string body,
+                                                        std::list<Header> request_headers,
+                                                        std::set<std::string> response_headers) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
     ESP_LOGW(TAG, "HTTP Request failed; Not connected to network");
@@ -45,7 +46,7 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   httplib::Headers h_headers;
   h_headers.emplace("Host", host.c_str());
   h_headers.emplace("User-Agent", this->useragent_);
-  for (const auto &[name, value] : headers) {
+  for (const auto &[name, value] : request_headers) {
     h_headers.emplace(name, value);
   }
   httplib::Client client(scheme_host.c_str());
@@ -109,6 +110,13 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   }
 
   container->content_length = container->response_body_.size();
+  for (auto header : response.headers) {
+    ESP_LOGD(TAG, "Header: %s: %s", header.first.c_str(), header.second.c_str());
+    auto lower_name = str_lower_case(header.first);
+    if (response_headers.find(lower_name) != response_headers.end()) {
+      container->response_headers_[lower_name].emplace_back(header.second);
+    }
+  }
   container->duration_ms = millis() - start;
   return container;
 }
