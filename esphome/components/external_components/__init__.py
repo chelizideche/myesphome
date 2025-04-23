@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_REF,
     CONF_REFRESH,
     CONF_SOURCE,
+    CONF_SUBMODULES,
     CONF_TYPE,
     CONF_URL,
     CONF_USERNAME,
@@ -47,6 +48,7 @@ def _process_git_config(config: dict, refresh) -> str:
         domain=DOMAIN,
         username=config.get(CONF_USERNAME),
         password=config.get(CONF_PASSWORD),
+        submodules=config.get(CONF_SUBMODULES),
     )
 
     if path := config.get(CONF_PATH):

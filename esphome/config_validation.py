@@ -41,6 +41,7 @@ from esphome.const import (
     CONF_SECOND,
     CONF_SETUP_PRIORITY,
     CONF_STATE_TOPIC,
+    CONF_SUBMODULES,
     CONF_SUBSCRIBE_QOS,
     CONF_TOPIC,
     CONF_TYPE,
@@ -2010,6 +2011,7 @@ GIT_SCHEMA = Schema(
         Optional(CONF_USERNAME): string,
         Optional(CONF_PASSWORD): string,
         Optional(CONF_PATH): string,
+        Optional(CONF_SUBMODULES): ensure_list(string),
     }
 )
 LOCAL_SCHEMA = Schema(
