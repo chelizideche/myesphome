@@ -336,7 +336,8 @@ void AS7341Component::calculate_color_(float &cct, float &duv, float &lux) {
 
 float AS7341Component::get_gain_multiplier(AS7341Gain gain) {
   float gainx = ((uint16_t) 1 << (uint8_t) gain);
-  return gainx / 2;
+  // The AS7341 sensor's gain values are represented as powers of 2, but the actual gain multiplier
+  // is half of this value. This division by 2 adjusts the calculated gain multiplier accordingly.
 }
 
 void AS7341Component::calculate_basic_counts_() {
