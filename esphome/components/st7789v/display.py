@@ -140,11 +140,15 @@ def validate_st7789v(config):
         raise cv.Invalid(
             f"{CONF_HEIGHT}, {CONF_WIDTH}, {CONF_OFFSET_HEIGHT} and {CONF_OFFSET_WIDTH} must all be specified"
         )
+
     if CONF_DC_PIN not in config or CONF_RESET_PIN not in config:
         raise cv.Invalid(f"both {CONF_DC_PIN} and {CONF_RESET_PIN} must be specified")
 
     if CONF_FRAGMENTATION in config:
-        if config[CONF_WIDTH] * config[CONF_HEIGHT] // config[CONF_FRAGMENTATION] == 0:
+        if config[CONF_HEIGHT] % config[CONF_FRAGMENTATION] != 0:
+            raise cv.Invalid("Height must be divisible by fragmentation.")
+
+        if config[CONF_HEIGHT] // config[CONF_FRAGMENTATION] == 0:
             raise cv.Invalid("Fragmentation too high.")
 
     return config
