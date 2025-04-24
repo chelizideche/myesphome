@@ -149,8 +149,8 @@ void ST7789V::update() {
   for (unsigned frag = 0; frag < this->buffer_fragmentation_; frag++) {
     this->clear_clipping_();
     this->start_clipping(
-      0, this->current_fragment_offset_pixels_ / this->get_width_internal(), this->get_width_internal(),
-      (this->current_fragment_offset_pixels_ + this->buffer_fragment_length_pixels_) / this->get_width_internal());
+        0, this->current_fragment_offset_pixels_ / this->get_width_internal(), this->get_width_internal(),
+        (this->current_fragment_offset_pixels_ + this->buffer_fragment_length_pixels_) / this->get_width_internal());
 
     this->do_update_();
     this->write_display_data();
