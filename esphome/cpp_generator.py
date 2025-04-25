@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import inspect
 import math
 import re
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from esphome.core import (
     CORE,
@@ -90,7 +90,7 @@ class VariableDeclarationExpression(Expression):
 class ExpressionList(Expression):
     __slots__ = ("args",)
 
-    def __init__(self, *args: Optional[SafeExpType]):
+    def __init__(self, *args: SafeExpType | None):
         # Remove every None on end
         args = list(args)
         while args and args[-1] is None:
@@ -139,7 +139,7 @@ class CallExpression(Expression):
 class StructInitializer(Expression):
     __slots__ = ("base", "args")
 
-    def __init__(self, base: Expression, *args: tuple[str, Optional[SafeExpType]]):
+    def __init__(self, base: Expression, *args: tuple[str, SafeExpType] | None):
         self.base = base
         # TODO: args is always a Tuple, is this check required?
         if not isinstance(args, OrderedDict):
@@ -593,7 +593,7 @@ def add_global(expression: Union[SafeExpType, Statement], prepend: bool = False)
     CORE.add_global(expression, prepend)
 
 
-def add_library(name: str, version: Optional[str], repository: Optional[str] = None):
+def add_library(name: str, version: str | None, repository: str | None = None):
     """Add a library to the codegen library storage.
 
     :param name: The name of the library (for example 'AsyncTCP')
@@ -711,7 +711,7 @@ def is_template(value):
 async def templatable(
     value: Any,
     args: list[tuple[SafeExpType, str]],
-    output_type: Optional[SafeExpType],
+    output_type: SafeExpType | None,
     to_exp: Union[Callable, dict] = None,
 ):
     """Generate code for a templatable config option.
