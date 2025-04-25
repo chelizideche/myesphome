@@ -1,4 +1,4 @@
-#include "resampler_speaker.h"
+#include "speaker_math.h"
 
 #ifdef USE_ESP32
 
@@ -11,19 +11,19 @@
 #include <cstring>
 
 namespace esphome {
-namespace resampler {
+namespace speaker_math {
 
-static const UBaseType_t RESAMPLER_TASK_PRIORITY = 1;
+static const UBaseType_t SPEAKER_MATH_TASK_PRIORITY = 1;
 
 static const uint32_t TRANSFER_BUFFER_DURATION_MS = 50;
 
 static const uint32_t TASK_DELAY_MS = 20;
 static const uint32_t TASK_STACK_SIZE = 3072;
 
-static const char *const TAG = "resampler_speaker";
+static const char *const TAG = "speaker_math";
 
 enum ResamplingEventGroupBits : uint32_t {
-  COMMAND_STOP = (1 << 0),  // stops the resampler task
+  COMMAND_STOP = (1 << 0),  // stops the speaker math task
   STATE_STARTING = (1 << 10),
   STATE_RUNNING = (1 << 11),
   STATE_STOPPING = (1 << 12),
@@ -34,7 +34,7 @@ enum ResamplingEventGroupBits : uint32_t {
   ALL_BITS = 0x00FFFFFF,  // All valid FreeRTOS event group bits
 };
 
-void ResamplerSpeaker::setup() {
+void SpeakerMath::setup() {
   this->event_group_ = xEventGroupCreate();
 
   if (this->event_group_ == nullptr) {
@@ -52,16 +52,16 @@ void ResamplerSpeaker::setup() {
       });
 }
 
-void ResamplerSpeaker::loop() {
+void SpeakerMath::loop() {
   uint32_t event_group_bits = xEventGroupGetBits(this->event_group_);
 
   if (event_group_bits & ResamplingEventGroupBits::STATE_STARTING) {
-    ESP_LOGD(TAG, "Starting resampler task");
+    ESP_LOGD(TAG, "Starting speaker_math task");
     xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_STARTING);
   }
 
   if (event_group_bits & ResamplingEventGroupBits::ERR_ESP_NO_MEM) {
-    this->status_set_error("Resampler task failed to allocate the internal buffers");
+    this->status_set_error("Speaker math task failed to allocate the internal buffers");
     xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ERR_ESP_NO_MEM);
     this->state_ = speaker::STATE_STOPPING;
   }
@@ -71,23 +71,23 @@ void ResamplerSpeaker::loop() {
     this->state_ = speaker::STATE_STOPPING;
   }
   if (event_group_bits & ResamplingEventGroupBits::ERR_ESP_FAIL) {
-    this->status_set_error("Resampler task failed");
+    this->status_set_error("Speaker math task failed");
     xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL);
     this->state_ = speaker::STATE_STOPPING;
   }
 
   if (event_group_bits & ResamplingEventGroupBits::STATE_RUNNING) {
-    ESP_LOGD(TAG, "Started resampler task");
+    ESP_LOGD(TAG, "Started speaker math task");
     this->status_clear_error();
     xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_RUNNING);
   }
   if (event_group_bits & ResamplingEventGroupBits::STATE_STOPPING) {
-    ESP_LOGD(TAG, "Stopping resampler task");
+    ESP_LOGD(TAG, "Stopping speaker math task");
     xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
   }
   if (event_group_bits & ResamplingEventGroupBits::STATE_STOPPED) {
     if (this->delete_task_() == ESP_OK) {
-      ESP_LOGD(TAG, "Stopped resampler task");
+      ESP_LOGD(TAG, "Stopped speaker math task");
       xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ALL_BITS);
     }
   }
@@ -101,12 +101,12 @@ void ResamplerSpeaker::loop() {
       } else {
         switch (err) {
           case ESP_ERR_INVALID_STATE:
-            this->status_set_error("Failed to start resampler: resampler task failed to start");
+            this->status_set_error("Failed to start converter: speaker math task failed to start");
             break;
           case ESP_ERR_NO_MEM:
-            this->status_set_error("Failed to start resampler: not enough memory for task stack");
+            this->status_set_error("Failed to start converter: not enough memory for task stack");
           default:
-            this->status_set_error("Failed to start resampler");
+            this->status_set_error("Failed to start converter");
             break;
         }
 
@@ -129,27 +129,24 @@ void ResamplerSpeaker::loop() {
   }
 }
 
-size_t ResamplerSpeaker::play(const uint8_t *data, size_t length, TickType_t ticks_to_wait) {
+size_t SpeakerMath::play(const uint8_t *data, size_t length, TickType_t ticks_to_wait) {
   if (this->is_stopped()) {
     this->start();
   }
 
   size_t bytes_written = 0;
-  if ((this->output_speaker_->is_running()) && (!this->requires_resampling_())) {
-    bytes_written = this->output_speaker_->play(data, length, ticks_to_wait);
-  } else {
-    if (this->ring_buffer_.use_count() == 1) {
-      std::shared_ptr<RingBuffer> temp_ring_buffer = this->ring_buffer_.lock();
-      bytes_written = temp_ring_buffer->write_without_replacement(data, length, ticks_to_wait);
-    }
+
+  if (this->ring_buffer_.use_count() == 1) {
+    std::shared_ptr<RingBuffer> temp_ring_buffer = this->ring_buffer_.lock();
+    bytes_written = temp_ring_buffer->write_without_replacement(data, length, ticks_to_wait);
   }
 
   return bytes_written;
 }
 
-void ResamplerSpeaker::start() { this->state_ = speaker::STATE_STARTING; }
+void SpeakerMath::start() { this->state_ = speaker::STATE_STARTING; }
 
-esp_err_t ResamplerSpeaker::start_() {
+esp_err_t SpeakerMath::start_() {
   this->target_stream_info_ = audio::AudioStreamInfo(
       this->target_bits_per_sample_, this->audio_stream_info_.get_channels(), this->target_sample_rate_);
 
@@ -157,14 +154,14 @@ esp_err_t ResamplerSpeaker::start_() {
   this->output_speaker_->start();
 
   if (this->requires_resampling_()) {
-    // Start the resampler task to handle converting sample rates
+    // Start the speaker math task to handle converting sample rates
     return this->start_task_();
   }
 
   return ESP_OK;
 }
 
-esp_err_t ResamplerSpeaker::start_task_() {
+esp_err_t SpeakerMath::start_task_() {
   if (this->task_stack_buffer_ == nullptr) {
     if (this->task_stack_in_psram_) {
       RAMAllocator<StackType_t> stack_allocator(RAMAllocator<StackType_t>::ALLOC_EXTERNAL);
@@ -181,7 +178,7 @@ esp_err_t ResamplerSpeaker::start_task_() {
 
   if (this->task_handle_ == nullptr) {
     this->task_handle_ = xTaskCreateStatic(resample_task, "sample", TASK_STACK_SIZE, (void *) this,
-                                           RESAMPLER_TASK_PRIORITY, this->task_stack_buffer_, &this->task_stack_);
+                                           SPEAKER_MATH_TASK_PRIORITY, this->task_stack_buffer_, &this->task_stack_);
   }
 
   if (this->task_handle_ == nullptr) {
@@ -191,16 +188,16 @@ esp_err_t ResamplerSpeaker::start_task_() {
   return ESP_OK;
 }
 
-void ResamplerSpeaker::stop() { this->state_ = speaker::STATE_STOPPING; }
+void SpeakerMath::stop() { this->state_ = speaker::STATE_STOPPING; }
 
-void ResamplerSpeaker::stop_() {
+void SpeakerMath::stop_() {
   if (this->task_handle_ != nullptr) {
     xEventGroupSetBits(this->event_group_, ResamplingEventGroupBits::COMMAND_STOP);
   }
   this->output_speaker_->stop();
 }
 
-esp_err_t ResamplerSpeaker::delete_task_() {
+esp_err_t SpeakerMath::delete_task_() {
   if (!this->task_created_) {
     this->task_handle_ = nullptr;
 
@@ -222,70 +219,62 @@ esp_err_t ResamplerSpeaker::delete_task_() {
   return ESP_ERR_INVALID_STATE;
 }
 
-void ResamplerSpeaker::finish() { this->output_speaker_->finish(); }
+void SpeakerMath::finish() { this->output_speaker_->finish(); }
 
-bool ResamplerSpeaker::has_buffered_data() const {
+bool SpeakerMath::has_buffered_data() const {
   bool has_ring_buffer_data = false;
-  if (this->requires_resampling_() && (this->ring_buffer_.use_count() > 0)) {
-    has_ring_buffer_data = (this->ring_buffer_.lock()->available() > 0);
-  }
   return (has_ring_buffer_data || this->output_speaker_->has_buffered_data());
 }
 
-void ResamplerSpeaker::set_mute_state(bool mute_state) {
+void SpeakerMath::set_mute_state(bool mute_state) {
   this->mute_state_ = mute_state;
   this->output_speaker_->set_mute_state(mute_state);
 }
 
-void ResamplerSpeaker::set_volume(float volume) {
+void SpeakerMath::set_volume(float volume) {
   this->volume_ = volume;
   this->output_speaker_->set_volume(volume);
 }
 
-bool ResamplerSpeaker::requires_resampling_() const {
-  return (this->audio_stream_info_.get_sample_rate() != this->target_sample_rate_) ||
-         (this->audio_stream_info_.get_bits_per_sample() != this->target_bits_per_sample_);
-}
+void SpeakerMath::resample_task(void *params) {
+  SpeakerMath *this_speaker_math = (SpeakerMath *) params;
 
-void ResamplerSpeaker::resample_task(void *params) {
-  ResamplerSpeaker *this_resampler = (ResamplerSpeaker *) params;
+  this_speaker_math->task_created_ = true;
+  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STARTING);
 
-  this_resampler->task_created_ = true;
-  xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::STATE_STARTING);
+  std::unique_ptr<audio::AudioResampler> resampler = make_unique<audio::AudioResampler>(
+      this_speaker_math->audio_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS),
+      this_speaker_math->target_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS));
 
-  std::unique_ptr<audio::AudioResampler> resampler =
-      make_unique<audio::AudioResampler>(this_resampler->audio_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS),
-                                         this_resampler->target_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS));
-
-  esp_err_t err = resampler->start(this_resampler->audio_stream_info_, this_resampler->target_stream_info_,
-                                   this_resampler->taps_, this_resampler->filters_);
+  esp_err_t err = resampler->start(this_speaker_math->audio_stream_info_, this_speaker_math->target_stream_info_,
+                                   this_speaker_math->taps_, this_speaker_math->filters_);
 
   if (err == ESP_OK) {
     std::shared_ptr<RingBuffer> temp_ring_buffer =
-        RingBuffer::create(this_resampler->audio_stream_info_.ms_to_bytes(this_resampler->buffer_duration_ms_));
+        RingBuffer::create(this_speaker_math->audio_stream_info_.ms_to_bytes(this_speaker_math->buffer_duration_ms_));
 
     if (temp_ring_buffer.use_count() == 0) {
       err = ESP_ERR_NO_MEM;
     } else {
-      this_resampler->ring_buffer_ = temp_ring_buffer;
-      resampler->add_source(this_resampler->ring_buffer_);
+      this_speaker_math->ring_buffer_ = temp_ring_buffer;
+      resampler->add_source(this_speaker_math->ring_buffer_);
 
-      this_resampler->output_speaker_->set_audio_stream_info(this_resampler->target_stream_info_);
-      resampler->add_sink(this_resampler->output_speaker_);
+      this_speaker_math->output_speaker_->set_audio_stream_info(this_speaker_math->target_stream_info_);
+      resampler->add_sink(this_speaker_math->output_speaker_);
     }
   }
 
   if (err == ESP_OK) {
-    xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::STATE_RUNNING);
+    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_RUNNING);
   } else if (err == ESP_ERR_NO_MEM) {
-    xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::ERR_ESP_NO_MEM);
+    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_NO_MEM);
   } else if (err == ESP_ERR_NOT_SUPPORTED) {
-    xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED);
+    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED);
   }
 
-  this_resampler->playback_differential_ms_ = 0;
+  this_speaker_math->playback_differential_ms_ = 0;
   while (err == ESP_OK) {
-    uint32_t event_bits = xEventGroupGetBits(this_resampler->event_group_);
+    uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_);
 
     if (event_bits & ResamplingEventGroupBits::COMMAND_STOP) {
       break;
@@ -295,24 +284,24 @@ void ResamplerSpeaker::resample_task(void *params) {
     int32_t ms_differential = 0;
     audio::AudioResamplerState resampler_state = resampler->resample(false, &ms_differential);
 
-    this_resampler->playback_differential_ms_ += ms_differential;
+    this_speaker_math->playback_differential_ms_ += ms_differential;
 
     if (resampler_state == audio::AudioResamplerState::FINISHED) {
       break;
     } else if (resampler_state == audio::AudioResamplerState::FAILED) {
-      xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL);
+      xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL);
       break;
     }
   }
 
-  xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
+  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
   resampler.reset();
-  xEventGroupSetBits(this_resampler->event_group_, ResamplingEventGroupBits::STATE_STOPPED);
-  this_resampler->task_created_ = false;
+  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPED);
+  this_speaker_math->task_created_ = false;
   vTaskDelete(nullptr);
 }
 
-}  // namespace resampler
+}  // namespace speaker_math
 }  // namespace esphome
 
 #endif

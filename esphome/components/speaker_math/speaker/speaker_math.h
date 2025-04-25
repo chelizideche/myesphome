@@ -12,9 +12,9 @@
 #include <freertos/FreeRTOS.h>
 
 namespace esphome {
-namespace resampler {
+namespace speaker_math {
 
-class ResamplerSpeaker : public Component, public speaker::Speaker {
+class SpeakerMath : public Component, public speaker::Speaker {
  public:
   float get_setup_priority() const override { return esphome::setup_priority::DATA; }
   void setup() override;
@@ -57,7 +57,7 @@ class ResamplerSpeaker : public Component, public speaker::Speaker {
   ///         return value of start_task_() if resampling is required
   esp_err_t start_();
 
-  /// @brief Starts the resampler task after allocating the task stack
+  /// @brief Starts the speaker_math task after allocating the task stack
   /// @return ESP_OK if successful,
   ///         ESP_ERR_NO_MEM if the task stack couldn't be allocated
   ///         ESP_ERR_INVALID_STATE if the task wasn't created
@@ -99,7 +99,7 @@ class ResamplerSpeaker : public Component, public speaker::Speaker {
   int32_t playback_differential_ms_{0};
 };
 
-}  // namespace resampler
+}  // namespace speaker_math
 }  // namespace esphome
 
 #endif
