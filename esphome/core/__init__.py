@@ -2,7 +2,7 @@ import logging
 import math
 import os
 import re
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from esphome.const import (
     CONF_COMMENT,
@@ -509,7 +509,7 @@ class EsphomeCore:
         # A set of defines to set for the compile process in esphome/core/defines.h
         self.defines: set[Define] = set()
         # A map of all platformio options to apply
-        self.platformio_options: dict[str, Union[str, list[str]]] = {}
+        self.platformio_options: dict[str, str | list[str]] = {}
         # A set of strings of names of loaded integrations, used to find namespace ID conflicts
         self.loaded_integrations = set()
         # A set of component IDs to track what Component subclasses are declared
@@ -773,7 +773,7 @@ class EsphomeCore:
         _LOGGER.debug("Adding define: %s", define)
         return define
 
-    def add_platformio_option(self, key: str, value: Union[str, list[str]]) -> None:
+    def add_platformio_option(self, key: str, value: str | list[str]) -> None:
         new_val = value
         old_val = self.platformio_options.get(key)
         if isinstance(old_val, list):

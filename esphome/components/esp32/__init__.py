@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
-from typing import Union
 
 from esphome import git
 import esphome.codegen as cg
@@ -144,7 +143,7 @@ class RawSdkconfigValue:
     value: str
 
 
-SdkconfigValueType = Union[bool, int, HexInt, str, RawSdkconfigValue]
+SdkconfigValueType = bool | int | HexInt | str | RawSdkconfigValue
 
 
 def add_idf_sdkconfig_option(name: str, value: SdkconfigValueType):

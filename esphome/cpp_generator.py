@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import inspect
 import math
 import re
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 from esphome.core import (
     CORE,
@@ -35,19 +35,19 @@ class Expression(abc.ABC):
         """
 
 
-SafeExpType = Union[
-    Expression,
-    bool,
-    str,
-    str,
-    int,
-    float,
-    TimePeriod,
-    type[bool],
-    type[int],
-    type[float],
-    Sequence[Any],
-]
+SafeExpType = (
+    Expression
+    | bool
+    | str
+    | str
+    | int
+    | float
+    | TimePeriod
+    | type[bool]
+    | type[int]
+    | type[float]
+    | Sequence[Any]
+)
 
 
 class RawExpression(Expression):
@@ -197,9 +197,7 @@ class ParameterExpression(Expression):
 class ParameterListExpression(Expression):
     __slots__ = ("parameters",)
 
-    def __init__(
-        self, *parameters: Union[ParameterExpression, tuple[SafeExpType, str]]
-    ):
+    def __init__(self, *parameters: ParameterExpression | tuple[SafeExpType, str]):
         self.parameters = []
         for parameter in parameters:
             if not isinstance(parameter, ParameterExpression):
@@ -461,7 +459,7 @@ def static_const_array(id_, rhs) -> "MockObj":
     return obj
 
 
-def statement(expression: Union[Expression, Statement]) -> Statement:
+def statement(expression: Expression | Statement) -> Statement:
     """Convert expression into a statement unless is already a statement."""
     if isinstance(expression, Statement):
         return expression
@@ -579,7 +577,7 @@ def new_Pvariable(id_: ID, *args: SafeExpType) -> Pvariable:
     return Pvariable(id_, rhs)
 
 
-def add(expression: Union[Expression, Statement]):
+def add(expression: Expression | Statement):
     """Add an expression to the codegen section.
 
     After this is called, the given given expression will
@@ -588,7 +586,7 @@ def add(expression: Union[Expression, Statement]):
     CORE.add(expression)
 
 
-def add_global(expression: Union[SafeExpType, Statement], prepend: bool = False):
+def add_global(expression: SafeExpType | Statement, prepend: bool = False):
     """Add an expression to the codegen global storage (above setup())."""
     CORE.add_global(expression, prepend)
 
@@ -619,7 +617,7 @@ def add_define(name: str, value: SafeExpType = None):
         CORE.add_define(Define(name, safe_exp(value)))
 
 
-def add_platformio_option(key: str, value: Union[str, list[str]]):
+def add_platformio_option(key: str, value: str | list[str]):
     CORE.add_platformio_option(key, value)
 
 
@@ -654,7 +652,7 @@ async def process_lambda(
     parameters: list[tuple[SafeExpType, str]],
     capture: str = "=",
     return_type: SafeExpType = None,
-) -> Union[LambdaExpression, None]:
+) -> LambdaExpression | None:
     """Process the given lambda value into a LambdaExpression.
 
     This is a coroutine because lambdas can depend on other IDs,
@@ -712,7 +710,7 @@ async def templatable(
     value: Any,
     args: list[tuple[SafeExpType, str]],
     output_type: SafeExpType | None,
-    to_exp: Union[Callable, dict] = None,
+    to_exp: Callable | dict = None,
 ):
     """Generate code for a templatable config option.
 
@@ -821,7 +819,7 @@ class MockObj(Expression):
         assert self.op == "::"
         return MockObj(f"using namespace {self.base}")
 
-    def __getitem__(self, item: Union[str, Expression]) -> "MockObj":
+    def __getitem__(self, item: str | Expression) -> "MockObj":
         next_op = "."
         if isinstance(item, str) and item.startswith("P"):
             item = item[1:]
