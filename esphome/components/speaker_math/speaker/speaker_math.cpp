@@ -273,7 +273,11 @@ void SpeakerMath::resample_task(void *params) {
   const auto convert_offset = this_speaker_math->convert_offset_;
   const auto bits_per_sample = this_speaker_math->audio_stream_info_.get_bits_per_sample();
 
-#define SPEAKER_MATH_LOOP(DATATYPE) \
+  // The core operation of the loop varies with the target data type, and so to
+  // avoid a mess of repetition, we define the loop core based on datatype
+  // We sacrifice compile time and (to a much lesser extent with optimizations enabled)
+  // code size in order to gain improved performance (much fewer conditionals)
+#define SPEAKER_MATH_LOOP_CORE(DATATYPE) \
   while (err == ESP_OK) { \
     uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
 \
@@ -281,8 +285,8 @@ void SpeakerMath::resample_task(void *params) {
       break; \
     } \
     if (output_buffer->available() > 0) { \
-      ESP_LOGE("Conversion buffer did not empty"); \
-      xEventGroupSetBits(ResamplingEventGroupBits::ERR_ESP_FAIL); \
+      ESP_LOGE(TAG, "Conversion buffer did not empty"); \
+      xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL); \
       break; \
     } \
     /* read data from ring into processing buffer */ \
@@ -294,7 +298,7 @@ void SpeakerMath::resample_task(void *params) {
     for (int i = 0; i < available; i++) { \
       /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
       if (convert_unsigned) { \
-        convert_buffer[i] ^= (1ULL << bits_per_sample) \
+        convert_buffer[i] ^= (1ULL << sizeof(DATATYPE) - 1); \
       } \
       convert_buffer[i] += convert_offset; \
       convert_buffer[i] += convert_factor; \
@@ -302,6 +306,48 @@ void SpeakerMath::resample_task(void *params) {
     /* code will go boom if we don't empty the whole darn buffer*/ \
     output_buffer->transfer_data_to_sink(1000); \
   }
+
+// In most cases, one or both of the offset/factor will be the identity.  A check with the
+// compiler explorer shows that wrapping the loop in a if() construct to check for these
+// cases will result in it generating optimized code for these cases
+// We gate this behind a check if optimization is enabled, because otherwise this will
+// make REALLY big code for no reason
+#ifdef __OPTIMIZE__
+#define SPEAKER_MATH_LOOP(DATATYPE) \
+  { \
+    if (convert_factor == 1 && convert_offset == 0) { \
+      SPEAKER_MATH_LOOP_CORE(DATATYPE) \
+    } \
+    \ 
+  else if (convert_offset == 0) { \
+      SPEAKER_MATH_LOOP_CORE(DATATYPE) \
+    } \
+    \ 
+  else if (convert_factor == 1) { \
+      SPEAKER_MATH_LOOP_CORE(DATATYPE) \
+    } \
+    \ 
+  else { \
+      SPEAKER_MATH_LOOP_CORE(DATATYPE) \
+    } \
+  }
+#else
+#define SPEAKER_MATH_LOOP(DATATYPE) \
+  { SPEAKER_MATH_LOOP_CORE(DATATYPE) }
+#endif
+
+  if (bits_per_sample == 8 && convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(uint8_t)
+  if (bits_per_sample == 8 && !convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(int8_t)
+  if (bits_per_sample == 16 && convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(uint16_t)
+  if (bits_per_sample == 16 && !convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(int16_t)
+  if (bits_per_sample == 32 && convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(uint32_t)
+  if (bits_per_sample == 32 && !convert_unsigned)
+    SPEAKER_MATH_LOOP_CORE(int32_t)
 
   xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
   xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPED);
