@@ -292,7 +292,7 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len, TickType_t ticks_to_wa
   // i2s_channel_read expects the timeout value in ms, not ticks
   esp_err_t err = i2s_channel_read(this->rx_handle_, buf, len, &bytes_read, pdTICKS_TO_MS(ticks_to_wait));
 #endif
-  if ((err != ESP_OK) && !((err == ESP_ERR_TIMEOUT) && (ticks_to_wait == 0))) {
+  if ((err != ESP_OK) && ((err != ESP_ERR_TIMEOUT) || (ticks_to_wait != 0))) {
     // Ignore ESP_ERR_TIMEOUT if ticks_to_wait = 0, as it will read the data on the next call
     ESP_LOGW(TAG, "Error reading from I2S microphone: %s", esp_err_to_name(err));
     this->status_set_warning();
