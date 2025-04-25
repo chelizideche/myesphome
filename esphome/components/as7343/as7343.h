@@ -67,7 +67,6 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
   void set_bank_for_reg_(AS7343Registers reg = AS7343Registers::ENABLE);
   bool bank_{false};
-  bool readings_saturated_{false};
 
   //#ifdef USE_SENSOR
   SUB_SENSOR(f1);
@@ -87,6 +86,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   SUB_SENSOR(irradiance);
   SUB_SENSOR(irradiance_photopic);
   SUB_SENSOR(ppfd);
+  SUB_SENSOR(par);
   SUB_SENSOR(ct);
   SUB_SENSOR(color_temperature);
 
@@ -101,15 +101,18 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
   float glass_attenuation_factor_{1.0f};
   float corr_lx_y_cie1931_{683.0f};
-  enum : uint8_t {
-    AS7343_LIGHT_DETECTION = 0,
-    AS7343_COLOR_DETECTION = 1,
-  } detection_mode_{AS7343_LIGHT_DETECTION};
+
+  bool auto_gain_enabled_{true};
+  bool continuous_mode_{false};
+  // enum : uint8_t {
+  //   AS7343_LIGHT_DETECTION = 0,
+  //   AS7343_COLOR_DETECTION = 1,
+  // } detection_mode_{AS7343_LIGHT_DETECTION};
 
   struct {
     std::array<uint16_t, AS7343_NUM_CHANNELS + 1> raw_counts{};  // extra channel for safe inverse mapping
-    std::array<float, AS7343_NUM_CHANNELS + 1> basic_counts{};   // extra channel for safe inverse mapping
 
+    bool saturated{false};
     AS7343Gain gain;
     uint8_t atime;
     uint16_t astep;
@@ -119,9 +122,11 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     uint32_t millis_start;
 
     bool first_run{true};
+    bool valid{false};
   } readings_;
 
   struct {
+    std::array<float, AS7343_NUM_CHANNELS + 1> basic_counts{};  // extra channel for safe inverse mapping
     float lux;
     float irradiance;
     float irradiance_photopic;
@@ -131,6 +136,14 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     float duv;
     float lux_from_xyz;
   } calculated_values_;
+
+  enum {
+    GAIN_OK = 0,
+    GAIN_TOO_LOW = 1,
+    GAIN_TOO_HIGH = 2,
+  } auto_gain_status_{GAIN_OK},
+      auto_gain_status_prev_{GAIN_OK};
+  uint8_t auto_gain_tries_{0};
 
   float get_tint_();
   void optimizer_(float max_TINT);
@@ -146,6 +159,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
   template<typename T, size_t N> T get_highest_value(std::array<T, N> &data);
 
+  bool check_if_adjustments_needed_();
   void calculate_();
   void calculate_basic_counts_();
   void calculate_spectral_(float &lux, float &par, float &ppfd, float &irradiance, float &irradiance_photopic);

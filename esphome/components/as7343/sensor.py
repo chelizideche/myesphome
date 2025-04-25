@@ -9,8 +9,6 @@ from esphome.const import (
     CONF_ILLUMINANCE,
     CONF_NAME,
     DEVICE_CLASS_ILLUMINANCE,
-    ICON_BRIGHTNESS_5,
-    ICON_THERMOMETER,
     STATE_CLASS_MEASUREMENT,
     UNIT_KELVIN,
     UNIT_LUX,
@@ -45,12 +43,20 @@ CONF_CLEAR = "clear"
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
 CONF_PPFD = "ppfd"
+CONF_PAR = "par"
 CONF_SATURATION = "saturation"
 
 UNIT_COUNTS = "#"
 UNIT_IRRADIANCE = "W/m²"
 UNIT_PPFD = "µmol/s⋅m²"
 
+ICON_COUNTS = "mdi:waveform"
+ICON_IRRADIANCE = "mdi:radioactive"
+ICON_ILLUMINANCE = "mdi:weather-sunny"
+ICON_IRRADIANCE_PHOTOPIC = "mdi:sun-wireless-outline"
+ICON_PAR = "mdi:sprout"
+ICON_PPFD = "mdi:sprout-outline"
+ICON_COLOR_TEMPERATURE = "mdi:sun-thermometer-outline"
 ICON_SATURATION = "mdi:weather-sunny-alert"
 
 AS7343_GAIN = as7343_ns.enum("AS7343Gain")
@@ -74,7 +80,7 @@ GAIN_OPTIONS = {
 SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
         unit_of_measurement=UNIT_COUNTS,
-        icon=ICON_BRIGHTNESS_5,
+        icon=ICON_COUNTS,
         accuracy_decimals=4,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
@@ -105,20 +111,11 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_F7): SENSOR_SCHEMA,
             cv.Optional(CONF_F8): SENSOR_SCHEMA,
             cv.Optional(CONF_NIR): SENSOR_SCHEMA,
-            cv.Optional(CONF_CLEAR): cv.maybe_simple_value(
-                sensor.sensor_schema(
-                    unit_of_measurement=UNIT_COUNTS,
-                    icon=ICON_BRIGHTNESS_5,
-                    accuracy_decimals=5,
-                    device_class=DEVICE_CLASS_ILLUMINANCE,
-                    state_class=STATE_CLASS_MEASUREMENT,
-                ),
-                key=CONF_NAME,
-            ),
+            cv.Optional(CONF_CLEAR): SENSOR_SCHEMA,
             cv.Optional(CONF_ILLUMINANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_LUX,
-                    icon=ICON_BRIGHTNESS_5,
+                    icon=ICON_ILLUMINANCE,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
@@ -128,7 +125,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_IRRADIANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_IRRADIANCE,
-                    icon=ICON_BRIGHTNESS_5,
+                    icon=ICON_IRRADIANCE,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
@@ -138,7 +135,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_IRRADIANCE_PHOTOPIC): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_IRRADIANCE,
-                    icon=ICON_BRIGHTNESS_5,
+                    icon=ICON_IRRADIANCE_PHOTOPIC,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
@@ -148,9 +145,28 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_PPFD): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_PPFD,
-                    icon=ICON_BRIGHTNESS_5,
+                    icon=ICON_PPFD,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
+                    state_class=STATE_CLASS_MEASUREMENT,
+                ),
+                key=CONF_NAME,
+            ),
+            cv.Optional(CONF_PAR): cv.maybe_simple_value(
+                sensor.sensor_schema(
+                    unit_of_measurement=UNIT_IRRADIANCE,
+                    icon=ICON_PAR,
+                    accuracy_decimals=0,
+                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    state_class=STATE_CLASS_MEASUREMENT,
+                ),
+                key=CONF_NAME,
+            ),
+            cv.Optional(CONF_COLOR_TEMPERATURE): cv.maybe_simple_value(
+                sensor.sensor_schema(
+                    unit_of_measurement=UNIT_KELVIN,
+                    icon=ICON_COLOR_TEMPERATURE,
+                    accuracy_decimals=0,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -161,15 +177,6 @@ CONFIG_SCHEMA = (
                     icon=ICON_SATURATION,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
-                    state_class=STATE_CLASS_MEASUREMENT,
-                ),
-                key=CONF_NAME,
-            ),
-            cv.Optional(CONF_COLOR_TEMPERATURE): cv.maybe_simple_value(
-                sensor.sensor_schema(
-                    unit_of_measurement=UNIT_KELVIN,
-                    icon=ICON_THERMOMETER,
-                    accuracy_decimals=0,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -197,32 +204,11 @@ SENSORS = [
     CONF_ILLUMINANCE,
     CONF_IRRADIANCE,
     CONF_IRRADIANCE_PHOTOPIC,
+    CONF_PAR,
     CONF_PPFD,
-    CONF_SATURATION,
     CONF_COLOR_TEMPERATURE,
+    CONF_SATURATION,
 ]
-
-# SENSORS = {
-#     CONF_F1: "set_f1_sensor",
-#     CONF_F2: "set_f2_sensor",
-#     CONF_FZ: "set_fz_sensor",
-#     CONF_F3: "set_f3_sensor",
-#     CONF_F4: "set_f4_sensor",
-#     CONF_FY: "set_fy_sensor",
-#     CONF_F5: "set_f5_sensor",
-#     CONF_FXL: "set_fxl_sensor",
-#     CONF_F6: "set_f6_sensor",
-#     CONF_F7: "set_f7_sensor",
-#     CONF_F8: "set_f8_sensor",
-#     CONF_NIR: "set_nir_sensor",
-#     CONF_CLEAR: "set_clear_sensor",
-#     CONF_ILLUMINANCE: "set_illuminance_sensor",
-#     CONF_IRRADIANCE: "set_irradiance_sensor",
-#     CONF_IRRADIANCE_PHOTOPIC: "set_irradiance_photopic_sensor",
-#     CONF_PPFD: "set_ppfd_sensor",
-#     CONF_SATURATION: "set_saturation_sensor",
-#     CONF_COLOR_TEMPERATURE: "set_color_temperature_sensor",
-# }
 
 
 async def to_code(config):

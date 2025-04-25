@@ -10,11 +10,9 @@ namespace as7343 {
 static const char *const TAG = "as7343";
 
 static constexpr uint32_t DATA_COLLECTION_TIMEOUT_MS = 30 * 1000;  // 30 seconds
+static constexpr uint8_t MAX_AUTO_GAIN_TRIES = 10 * 2;
 
-#define ZERO_IF_LESS(x, threshold) \
-  if (x < threshold) \
-  x = 0.0f
-
+//
 // SMUX map
 static constexpr uint8_t SMUX_CHANNEL_MAP[AS7343_NUM_CHANNELS] = {
     AS7343_CHANNEL_405_F1, AS7343_CHANNEL_425_F2,  AS7343_CHANNEL_450_FZ,  AS7343_CHANNEL_475_F3, AS7343_CHANNEL_515_F4,
@@ -136,22 +134,32 @@ void AS7343Component::update() {
 
 void AS7343Component::loop() {
   if (this->is_ready()) {
+    // pre-read all channels so values are up to date
+    // readings are valid when 1) valid flag is set and 2) all channels are read
+    if (this->continuous_mode_ && this->is_data_ready()) {
+      this->readings_.valid = this->read_all_channels();
+    }
+
     switch (this->state_) {
       case State::IDLE:
-        // doing nothing, having best time
+        if (this->auto_gain_enabled_ && this->readings_.valid) {
+          this->check_if_adjustments_needed_();
+        }
         break;
 
       case State::START_MEASUREMENT:
         // start measurement
         this->readings_.millis_start = millis();
-        this->enable_spectral_measurement(true);
+        // this->enable_spectral_measurement(true); // it clears valid flag
         this->state_ = State::COLLECTING_DATA;
         break;
 
       case State::COLLECTING_DATA:
-        if (this->is_data_ready()) {
-          this->read_all_channels();
-          this->enable_spectral_measurement(false);
+        if (!this->continuous_mode_ && this->is_data_ready()) {
+          this->readings_.valid = this->read_all_channels();
+        }
+        if (this->readings_.valid) {
+          this->enable_spectral_measurement(true);  // keep measurements on
           if (this->readings_.first_run) {
             this->readings_.first_run = false;
             this->state_ = State::START_MEASUREMENT;
@@ -165,9 +173,13 @@ void AS7343Component::loop() {
         break;
 
       case State::DATA_COLLECTED:
-        // apply modifications
-        this->calculate_();
-        this->state_ = State::READY_TO_PUBLISH_PART_1;
+        if (this->auto_gain_enabled_ && this->check_if_adjustments_needed_()) {
+          this->state_ = State::COLLECTING_DATA;
+        } else {
+          // apply modifications
+          this->calculate_();
+          this->state_ = State::READY_TO_PUBLISH_PART_1;
+        }
         break;
 
       case State::READY_TO_PUBLISH_PART_1:
@@ -192,55 +204,58 @@ void AS7343Component::loop() {
 
 void AS7343Component::publish_channel_readings_() {
   if (this->f1_sensor_ != nullptr) {
-    this->f1_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_405_F1]]);
+    this->f1_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_405_F1]]);
   }
   if (this->f2_sensor_ != nullptr) {
-    this->f2_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_425_F2]]);
+    this->f2_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_425_F2]]);
   }
   if (this->fz_sensor_ != nullptr) {
-    this->fz_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_450_FZ]]);
+    this->fz_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_450_FZ]]);
   }
   if (this->f3_sensor_ != nullptr) {
-    this->f3_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_475_F3]]);
+    this->f3_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_475_F3]]);
   }
   if (this->f4_sensor_ != nullptr) {
-    this->f4_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_515_F4]]);
+    this->f4_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_515_F4]]);
   }
   if (this->fy_sensor_ != nullptr) {
-    this->fy_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_555_FY]]);
+    this->fy_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_555_FY]]);
   }
   if (this->f5_sensor_ != nullptr) {
-    this->f5_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_550_F5]]);
+    this->f5_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_550_F5]]);
   }
   if (this->fxl_sensor_ != nullptr) {
-    this->fxl_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_600_FXL]]);
+    this->fxl_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_600_FXL]]);
   }
   if (this->f6_sensor_ != nullptr) {
-    this->f6_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_640_F6]]);
+    this->f6_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_640_F6]]);
   }
   if (this->f7_sensor_ != nullptr) {
-    this->f7_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_690_F7]]);
+    this->f7_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_690_F7]]);
   }
   if (this->f8_sensor_ != nullptr) {
-    this->f8_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_745_F8]]);
+    this->f8_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_745_F8]]);
   }
   if (this->nir_sensor_ != nullptr) {
-    this->nir_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_855_NIR]]);
+    this->nir_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_855_NIR]]);
   }
   if (this->clear_sensor_ != nullptr) {
-    this->clear_sensor_->publish_state(this->readings_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_CLEAR_0]]);
+    this->clear_sensor_->publish_state(this->calculated_values_.basic_counts[CHANNEL_IDX[AS7343_CHANNEL_CLEAR_0]]);
   }
 }
 
 void AS7343Component::publish_derived_readings_() {
+  if (this->illuminance_sensor_ != nullptr) {
+    this->illuminance_sensor_->publish_state(this->calculated_values_.lux);
+  }
   if (this->irradiance_sensor_ != nullptr) {
     this->irradiance_sensor_->publish_state(this->calculated_values_.irradiance);
   }
   if (this->irradiance_photopic_sensor_ != nullptr) {
     this->irradiance_photopic_sensor_->publish_state(this->calculated_values_.irradiance_photopic);
   }
-  if (this->illuminance_sensor_ != nullptr) {
-    this->illuminance_sensor_->publish_state(this->calculated_values_.lux);
+  if (this->par_sensor_ != nullptr) {
+    this->par_sensor_->publish_state(this->calculated_values_.par);
   }
   if (this->ppfd_sensor_ != nullptr) {
     this->ppfd_sensor_->publish_state(this->calculated_values_.ppfd);
@@ -249,7 +264,7 @@ void AS7343Component::publish_derived_readings_() {
     this->color_temperature_sensor_->publish_state(this->calculated_values_.cct);
   }
   if (this->saturated_ != nullptr) {
-    this->saturated_->publish_state(this->readings_saturated_);
+    this->saturated_->publish_state(this->readings_.saturated);
   }
 }
 
@@ -280,52 +295,140 @@ float AS7343Component::get_gain_multiplier(AS7343Gain gain) {
 
 bool AS7343Component::setup_gain(AS7343Gain gain) {
   ESP_LOGD(TAG, "Setup gain %u", (uint8_t) gain);
+  this->readings_.valid = false;
   return this->write_byte((uint8_t) AS7343Registers::CFG1, gain);
 }
 
 bool AS7343Component::setup_atime(uint8_t atime) {
   ESP_LOGD(TAG, "Setup atime %u", atime);
+  this->readings_.valid = false;
   return this->write_byte((uint8_t) AS7343Registers::ATIME, atime);
 }
 
 bool AS7343Component::setup_astep(uint16_t astep) {
   ESP_LOGD(TAG, "Setup astep %u", astep);
+  this->readings_.valid = false;
   return this->write_byte_16((uint8_t) AS7343Registers::ASTEP_LSB, swap_bytes(astep));
 }
 
 bool AS7343Component::change_gain(AS7343Gain gain) {
   this->gain_ = gain;
   this->enable_spectral_measurement(false);
+  this->readings_.valid = false;
   return this->write_byte((uint8_t) AS7343Registers::CFG1, gain);
+}
+static float last_reported_gain = -1;
+
+bool AS7343Component::check_if_adjustments_needed_() {
+  this->auto_gain_tries_++;
+  this->auto_gain_status_prev_ = this->auto_gain_status_;
+  // check for saturation
+  uint16_t max_adc = this->get_maximum_spectral_adc_(this->readings_.atime, this->readings_.astep);
+  uint16_t min_adc = 0.5 * max_adc;
+  uint16_t highest_adc = this->get_highest_value(this->readings_.raw_counts);
+
+  if (highest_adc >= max_adc) {
+    this->auto_gain_status_ = GAIN_TOO_HIGH;
+    ESP_LOGW(TAG, "Raw Data Saturation: Highest reading: %u, max ADC: %u", highest_adc, max_adc);
+  } else if (highest_adc < min_adc) {
+    this->auto_gain_status_ = GAIN_TOO_LOW;
+    ESP_LOGW(TAG, "Raw Data Underexposure: Highest reading: %u, max ADC: %u", highest_adc, max_adc);
+  } else {
+    this->auto_gain_tries_ = 0;
+    this->auto_gain_status_ = GAIN_OK;
+    // ESP_LOGD(TAG, "Good readings. Highest reading: %u, Max ADC: %u", highest_adc, max_adc);
+  }
+
+  //  ESP_LOGD(TAG, "  Gain  =  %.1f", this->readings_.gain_x);
+  //  ESP_LOGD(TAG, "  ATIME = %u ", this->readings_.atime);
+  //  ESP_LOGD(TAG, "  ASTEP = %u ", this->readings_.astep);
+  //  ESP_LOGD(TAG, "  TINT  = %.3f ms", this->readings_.t_int_us / 1000.0f);
+
+  if (this->auto_gain_status_ == GAIN_OK) {
+    // ESP_LOGD(TAG, "Gain OK. No adjustments needed.");
+    return false;
+  }
+
+  if (this->auto_gain_tries_ > MAX_AUTO_GAIN_TRIES) {
+    ESP_LOGW(TAG, "Max auto gain tries reached. Stopping auto gain.");
+    this->auto_gain_tries_ = 0;
+    this->auto_gain_status_ = GAIN_OK;
+    return false;
+  }
+
+  bool can_we_do_something = true;
+
+  if (this->auto_gain_status_ == GAIN_TOO_HIGH) {
+    if (this->readings_.gain == AS7343Gain::AS7343_GAIN_0_5X) {
+      ESP_LOGW(TAG, "Gain too high. Can't reduce gain. Stopping auto gain.");
+      can_we_do_something = false;
+    } else {
+      if (this->auto_gain_status_prev_ == GAIN_TOO_LOW) {
+        // for now I think it might be better to get back to the previous gain and stop auto gain to avoid oscillations
+        ESP_LOGW(TAG, "Gain too high after too low. Reducing gain and stopping.");
+        this->auto_gain_tries_ = MAX_AUTO_GAIN_TRIES;
+      } else {
+        ESP_LOGW(TAG, "Gain too high. Reducing gain.");
+      }
+      this->change_gain((AS7343Gain) ((uint8_t) this->readings_.gain - 1));
+    }
+  } else if (this->auto_gain_status_ == GAIN_TOO_LOW) {
+    // avoid increasing gain back if we just decreased it
+    if (this->auto_gain_status_prev_ == GAIN_TOO_HIGH) {
+      ESP_LOGW(TAG, "We will keep this gain to avoid getting too high gain. Stopping auto gain.");
+      can_we_do_something = false;
+    } else {
+      if (this->readings_.gain == AS7343Gain::AS7343_GAIN_2048X) {
+        ESP_LOGW(TAG, "Gain too low. Can't increase gain. Stopping auto gain.");
+        can_we_do_something = false;
+      } else {
+        ESP_LOGW(TAG, "Gain too low. Increasing gain.");
+        this->change_gain((AS7343Gain) ((uint8_t) this->readings_.gain + 1));
+      }
+    }
+  }
+
+  if (!can_we_do_something) {
+    this->auto_gain_tries_ = 0;
+    this->auto_gain_status_ = GAIN_OK;
+    return false;
+  }
+  this->enable_spectral_measurement(true);
+
+  // // try to optimize gain
+  // uint8_t gain = this->readings_.gain;
+  // bool saturation = false;
+  // this->get_optimized_gain_(max_adc, highest_adc, 0, 3, gain, saturation);
+  // if (saturation) {
+  //   ESP_LOGW(TAG, "Gain too low. Setting gain to %u", gain);
+  //   this->change_gain((AS7343Gain) gain);
+  // } else {
+  //   ESP_LOGD(TAG, "Gain OK. Setting gain to %u", gain);
+  //   this->change_gain((AS7343Gain) gain);
+  // }
+  return true;
 }
 
 void AS7343Component::calculate_() {
   this->calculate_basic_counts_();
 
+  ESP_LOGD(TAG, "Parameters:");
+  ESP_LOGD(TAG, "  Gain  =  %.1f", this->readings_.gain_x);
+  ESP_LOGD(TAG, "  TINT  = %.3f ms", this->readings_.t_int_us / 1000.0f);
+  ESP_LOGD(TAG, "  ATIME = %u ", this->readings_.atime);
+  ESP_LOGD(TAG, "  ASTEP = %u ", this->readings_.astep);
+
+  uint16_t max_adc = this->get_maximum_spectral_adc_(this->readings_.atime, this->readings_.astep);
+  uint16_t min_adc = 0.5 * max_adc;
+  uint16_t highest_adc = this->get_highest_value(this->readings_.raw_counts);
+  ESP_LOGD(TAG, "  Max ADC: %u", max_adc);
+
   ESP_LOGD(TAG, "Readings:");
+  ESP_LOGD(TAG, "  Highest ADC: %.2f%%", (highest_adc / (float) max_adc) * 100.0f);
   log_cn_s(TAG, "  Channel", CHANNEL_NAME);
   log_cn_d(TAG, "  Nm", CHANNEL_WAVE_NM);
   log_cn_d(TAG, "  Counts", this->readings_.raw_counts);
-  log_cn_f(TAG, "  Basic", this->readings_.basic_counts);
-
-  // check for saturation
-  uint16_t max_adc = this->get_maximum_spectral_adc_();
-  uint16_t min_adc = 0.15 * max_adc;
-  uint16_t highest_adc = this->get_highest_value(this->readings_.raw_counts);
-
-  if (highest_adc >= max_adc) {
-    ESP_LOGW(TAG, "Software Oversaturation: Highest reading: %u, max ADC: %u", highest_adc, max_adc);
-  } else if (highest_adc < min_adc) {
-    ESP_LOGW(TAG, "Software Underexposure: Highest reading: %u, max ADC: %u", highest_adc, max_adc);
-  } else {
-    ESP_LOGD(TAG, "Good readings. Highest reading: %u, Max ADC: %u", highest_adc, max_adc);
-  }
-
-  ESP_LOGD(TAG, "Parameters:");
-  ESP_LOGD(TAG, "  Gain  =  %.1f", this->readings_.gain_x);
-  ESP_LOGD(TAG, "  ATIME = %u ", this->readings_.atime);
-  ESP_LOGD(TAG, "  ASTEP = %u ", this->readings_.astep);
-  ESP_LOGD(TAG, "  TINT  = %.3f ms", this->readings_.t_int_us / 1000.0f);
+  log_cn_f(TAG, "  Basic", this->calculated_values_.basic_counts);
 
   this->calculate_spectral_(this->calculated_values_.lux, this->calculated_values_.par, this->calculated_values_.ppfd,
                             this->calculated_values_.irradiance, this->calculated_values_.irradiance_photopic);
@@ -382,7 +485,7 @@ void AS7343Component::calculate_basic_counts_() {
 
     // when to check for dark readings?
 
-    this->readings_.basic_counts[i] = basic_count;  // units: counts·s⁻¹
+    this->calculated_values_.basic_counts[i] = basic_count;  // units: counts·s⁻¹
   }
 }
 
@@ -391,19 +494,19 @@ void AS7343Component::calculate_spectral_(float &lux, float &par, float &ppfd, f
   lux = ppfd = par = irradiance = irradiance_photopic = 0.0f;
 
   for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
-    lux += AS7343_LUX_PER_COUNT[i] * this->readings_.basic_counts[i];
-    ppfd += AS7343_PPFD_UMOL_PER_COUNT[i] * this->readings_.basic_counts[i];
-    par += AS7343_PAR_E_MW_PER_COUNT[i] * this->readings_.basic_counts[i];
-    irradiance += AS7343_IRRAD_MW_PER_COUNT[i] * this->readings_.basic_counts[i];
+    lux += AS7343_LUX_PER_COUNT[i] * this->calculated_values_.basic_counts[i];
+    ppfd += AS7343_PPFD_UMOL_PER_COUNT[i] * this->calculated_values_.basic_counts[i];
+    par += AS7343_PAR_E_MW_PER_COUNT[i] * this->calculated_values_.basic_counts[i];
+    irradiance += AS7343_IRRAD_MW_PER_COUNT[i] * this->calculated_values_.basic_counts[i];
   }
 
-  // scale values to proper units
+  // scale values for proper units in case basic counts are in counts·s⁻¹ instead of counts·µs⁻¹
   // lux /= 1e6f;                      // convert to lux
   // par /= 1e6f;                      // convert to W/m²
   // ppfd /= 1e3f;                     // convert to µmol/s·m²
   // irradiance /= 1e6f;               // convert to W/m²
 
-  ppfd *= 1e3f;
+  ppfd *= 1e3f;  // convert to µmol/s·m²
 
   irradiance_photopic = lux / 683;  // convert to W/m²
 }
@@ -414,7 +517,7 @@ void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
     float XYZ[3] = {0, 0, 0};
     for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
       for (uint8_t j = 0; j < 3; j++) {
-        XYZ[j] += AS7343_XYZ_PER_COUNT[j][i] * this->readings_.basic_counts[i];
+        XYZ[j] += AS7343_XYZ_PER_COUNT[j][i] * this->calculated_values_.basic_counts[i];
       }
     }
 
@@ -454,7 +557,7 @@ void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
   //   float XYZ[3] = {0, 0, 0};
   //   for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
   //     for (uint8_t j = 0; j < 3; j++) {
-  //       XYZ[j] += AS7343_XYZ_PER_COUNT_2[j][i] * this->readings_.basic_counts[i];
+  //       XYZ[j] += AS7343_XYZ_PER_COUNT_2[j][i] * this->calculated_values_.basic_counts[i];
   //     }
   //   }
   //   float epsilon = 0.0001;
@@ -492,7 +595,7 @@ void AS7343Component::calculate_cri_() {
     float spd_value = 0.0f;
     // no VIS/CLEAR channel
     for (uint8_t i = 0; i < AS7343_NUM_CHANNELS - 1; i++) {
-      spd_value += AS7343_CORR_MATRIX_380_780_NM[nm - 380][i] * this->readings_.basic_counts[i];
+      spd_value += AS7343_CORR_MATRIX_380_780_NM[nm - 380][i] * this->calculated_values_.basic_counts[i];
     }
     spd[nm - 380] = std::max(spd_value, 0.0f);
   }
@@ -506,17 +609,17 @@ bool AS7343Component::read_all_channels() {
 
   AS7343RegStatus status{0};
   status.raw = this->reg((uint8_t) AS7343Registers::STATUS).get();
-  ESP_LOGD(TAG, "Status 0x%02x, sint %d, fint %d, aint %d, asat %d", status.raw, status.sint, status.fint, status.aint,
-           status.asat);
+  ESP_LOGVV(TAG, "Status 0x%02x, sint %d, fint %d, aint %d, asat %d", status.raw, status.sint, status.fint, status.aint,
+            status.asat);
   this->reg((uint8_t) AS7343Registers::STATUS) = status.raw;
 
   AS7343RegAStatus astatus{0};
   astatus.raw = this->reg((uint8_t) AS7343Registers::ASTATUS).get();
-  ESP_LOGD(TAG, "AStatus 0x%02x, again_status %d, asat_status %d", astatus.raw, astatus.again_status,
-           astatus.asat_status);
+  ESP_LOGVV(TAG, "AStatus 0x%02x, again_status %d, asat_status %d", astatus.raw, astatus.again_status,
+            astatus.asat_status);
 
   if (astatus.asat_status) {
-    ESP_LOGW(TAG, "AS7343 affected by analog or digital saturation. Readings are not reliable.");
+    ESP_LOGVV(TAG, "AS7343 affected by analog or digital saturation. Readings are not reliable.");
   }
 
   auto ret = this->read_bytes_16((uint8_t) AS7343Registers::DATA_O, data.data(), AS7343_NUM_CHANNELS_MAX);
@@ -529,13 +632,17 @@ bool AS7343Component::read_all_channels() {
   uint16_t clear = data[AS7343_CHANNEL_CLEAR_0] / 2 + data[AS7343_CHANNEL_CLEAR_1] / 2;
   this->readings_.raw_counts[AS7343_NUM_CHANNELS - 1] = clear;
 
-  this->readings_.gain = astatus.again_status;
+  this->readings_.saturated = astatus.asat_status;  // latched data affected by saturation
+  this->readings_.gain = astatus.again_status;      // gain applied to the latest spectral measurement
+
   this->readings_.gain_x = this->get_gain_multiplier(this->readings_.gain);
   this->readings_.atime = this->get_atime();
   this->readings_.astep = this->get_astep();
   this->readings_.t_int_us = (1.0f + this->readings_.atime) * (1.0f + this->readings_.astep) * 2.78f;
 
-  this->readings_saturated_ = astatus.asat_status;
+  static uint32_t invokes = 0;
+  invokes++;
+  ESP_LOGD(TAG, "Readings %u:", invokes);
 
   return ret;
 }
@@ -545,8 +652,8 @@ bool AS7343Component::is_data_ready() {
   status2.raw = this->reg((uint8_t) AS7343Registers::STATUS2).get();
   this->reg((uint8_t) AS7343Registers::STATUS2) = status2.raw;
   if (status2.avalid) {
-    ESP_LOGD(TAG, "Status2 0x%02x, avalid %d, asat_digital %d, asat_analog %d", status2.raw, status2.avalid,
-             status2.asat_digital, status2.asat_analog);
+    ESP_LOGVV(TAG, "Status2 0x%02x, avalid %d, asat_digital %d, asat_analog %d", status2.raw, status2.avalid,
+              status2.asat_digital, status2.asat_analog);
   }
 
   //  return this->read_register_bit((uint8_t) AS7343Registers::STATUS2, 6);
@@ -567,6 +674,7 @@ bool AS7343Component::enable_power(bool enable) {
 }
 
 bool AS7343Component::enable_spectral_measurement(bool enable) {
+  this->readings_.valid = false;
   return this->write_register_bit((uint8_t) AS7343Registers::ENABLE, enable, AS7343_ENABLE_SP_EN_BIT);
 }
 
@@ -927,10 +1035,10 @@ template<typename T, size_t N> T AS7343Component::get_highest_value(std::array<T
 
 uint8_t LOW_AUTO_GAIN_VALUE = 3;
 uint8_t AUTO_GAIN_DIVIDER = 2;
-#define IS_SATURATION 1
-#define SATURATION_LOW_PERCENT 80
-#define SATURATION_HIGH_PERCENT 100
-#define ADC_SATURATED_VALUE 65535
+//#define IS_SATURATION 1
+static constexpr uint32_t SATURATION_LOW_PERCENT = 80;
+static constexpr uint32_t SATURATION_HIGH_PERCENT = 100;
+static constexpr uint32_t ADC_SATURATED_VALUE = 65535;
 
 bool AS7343Component::spectral_post_process_(bool fire_at_will) {
   bool need_to_repeat = false;
