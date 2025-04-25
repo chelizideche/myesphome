@@ -56,7 +56,6 @@ from esphome.const import (
     KEY_CORE,
     KEY_FRAMEWORK_VERSION,
     KEY_TARGET_FRAMEWORK,
-    KEY_TARGET_PLATFORM,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
@@ -1499,29 +1498,8 @@ def dimensions(value):
 
 
 def directory(value):
-    import json
-
     value = string(value)
     path = CORE.relative_config_path(value)
-
-    if CORE.vscode and (
-        not CORE.ace or os.path.abspath(path) == os.path.abspath(CORE.config_path)
-    ):
-        print(
-            json.dumps(
-                {
-                    "type": "check_directory_exists",
-                    "path": path,
-                }
-            )
-        )
-        data = json.loads(input())
-        assert data["type"] == "directory_exists_response"
-        if data["content"]:
-            return value
-        raise Invalid(
-            f"Could not find directory '{path}'. Please make sure it exists (full path: {os.path.abspath(path)})."
-        )
 
     if not os.path.exists(path):
         raise Invalid(
@@ -1535,29 +1513,8 @@ def directory(value):
 
 
 def file_(value):
-    import json
-
     value = string(value)
     path = CORE.relative_config_path(value)
-
-    if CORE.vscode and (
-        not CORE.ace or os.path.abspath(path) == os.path.abspath(CORE.config_path)
-    ):
-        print(
-            json.dumps(
-                {
-                    "type": "check_file_exists",
-                    "path": path,
-                }
-            )
-        )
-        data = json.loads(input())
-        assert data["type"] == "file_exists_response"
-        if data["content"]:
-            return value
-        raise Invalid(
-            f"Could not find file '{path}'. Please make sure it exists (full path: {os.path.abspath(path)})."
-        )
 
     if not os.path.exists(path):
         raise Invalid(
@@ -1641,140 +1598,39 @@ class GenerateID(Optional):
         super().__init__(key, default=lambda: None)
 
 
-def _get_priority_default(*args):
-    for arg in args:
-        if arg is not vol.UNDEFINED:
-            return arg
-    return vol.UNDEFINED
+def _get_default_key(*args):
+    return ["_".join([CORE.target_platform] + list(args))]
 
 
 class SplitDefault(Optional):
     """Mark this key to have a split default for ESP8266/ESP32."""
 
-    def __init__(
-        self,
-        key,
-        esp8266=vol.UNDEFINED,
-        esp32=vol.UNDEFINED,
-        esp32_arduino=vol.UNDEFINED,
-        esp32_idf=vol.UNDEFINED,
-        esp32_s2=vol.UNDEFINED,
-        esp32_s2_arduino=vol.UNDEFINED,
-        esp32_s2_idf=vol.UNDEFINED,
-        esp32_s3=vol.UNDEFINED,
-        esp32_s3_arduino=vol.UNDEFINED,
-        esp32_s3_idf=vol.UNDEFINED,
-        esp32_c3=vol.UNDEFINED,
-        esp32_c3_arduino=vol.UNDEFINED,
-        esp32_c3_idf=vol.UNDEFINED,
-        esp32_c6=vol.UNDEFINED,
-        esp32_c6_arduino=vol.UNDEFINED,
-        esp32_c6_idf=vol.UNDEFINED,
-        esp32_h2=vol.UNDEFINED,
-        esp32_h2_arduino=vol.UNDEFINED,
-        esp32_h2_idf=vol.UNDEFINED,
-        rp2040=vol.UNDEFINED,
-        bk72xx=vol.UNDEFINED,
-        rtl87xx=vol.UNDEFINED,
-        host=vol.UNDEFINED,
-    ):
+    def __init__(self, key, **kwargs):
         super().__init__(key)
-        self._esp8266_default = vol.default_factory(esp8266)
-        self._esp32_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_arduino, esp32)
-        )
-        self._esp32_idf_default = vol.default_factory(
-            _get_priority_default(esp32_idf, esp32)
-        )
-        self._esp32_s2_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_s2_arduino, esp32_s2, esp32_arduino, esp32)
-        )
-        self._esp32_s2_idf_default = vol.default_factory(
-            _get_priority_default(esp32_s2_idf, esp32_s2, esp32_idf, esp32)
-        )
-        self._esp32_s3_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_s3_arduino, esp32_s3, esp32_arduino, esp32)
-        )
-        self._esp32_s3_idf_default = vol.default_factory(
-            _get_priority_default(esp32_s3_idf, esp32_s3, esp32_idf, esp32)
-        )
-        self._esp32_c3_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_c3_arduino, esp32_c3, esp32_arduino, esp32)
-        )
-        self._esp32_c3_idf_default = vol.default_factory(
-            _get_priority_default(esp32_c3_idf, esp32_c3, esp32_idf, esp32)
-        )
-        self._esp32_c6_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_c6_arduino, esp32_c6, esp32_arduino, esp32)
-        )
-        self._esp32_c6_idf_default = vol.default_factory(
-            _get_priority_default(esp32_c6_idf, esp32_c6, esp32_idf, esp32)
-        )
-        self._esp32_h2_arduino_default = vol.default_factory(
-            _get_priority_default(esp32_h2_arduino, esp32_h2, esp32_arduino, esp32)
-        )
-        self._esp32_h2_idf_default = vol.default_factory(
-            _get_priority_default(esp32_h2_idf, esp32_h2, esp32_idf, esp32)
-        )
-        self._rp2040_default = vol.default_factory(rp2040)
-        self._bk72xx_default = vol.default_factory(bk72xx)
-        self._rtl87xx_default = vol.default_factory(rtl87xx)
-        self._host_default = vol.default_factory(host)
+
+        self._defaults = {}
+
+        for platform_key, value in kwargs.items():
+            self._defaults[platform_key] = vol.default_factory(value)
 
     @property
     def default(self):
-        if CORE.is_esp8266:
-            return self._esp8266_default
+        keys = []
         if CORE.is_esp32:
             from esphome.components.esp32 import get_esp32_variant
-            from esphome.components.esp32.const import (
-                VARIANT_ESP32C3,
-                VARIANT_ESP32C6,
-                VARIANT_ESP32H2,
-                VARIANT_ESP32S2,
-                VARIANT_ESP32S3,
-            )
+            from esphome.components.esp32.const import VARIANT_ESP32
 
-            variant = get_esp32_variant()
-            if variant == VARIANT_ESP32S2:
-                if CORE.using_arduino:
-                    return self._esp32_s2_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_s2_idf_default
-            elif variant == VARIANT_ESP32S3:
-                if CORE.using_arduino:
-                    return self._esp32_s3_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_s3_idf_default
-            elif variant == VARIANT_ESP32C3:
-                if CORE.using_arduino:
-                    return self._esp32_c3_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_c3_idf_default
-            elif variant == VARIANT_ESP32C6:
-                if CORE.using_arduino:
-                    return self._esp32_c6_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_c6_idf_default
-            elif variant == VARIANT_ESP32H2:
-                if CORE.using_arduino:
-                    return self._esp32_h2_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_h2_idf_default
-            else:
-                if CORE.using_arduino:
-                    return self._esp32_arduino_default
-                if CORE.using_esp_idf:
-                    return self._esp32_idf_default
-        if CORE.is_rp2040:
-            return self._rp2040_default
-        if CORE.is_bk72xx:
-            return self._bk72xx_default
-        if CORE.is_rtl87xx:
-            return self._rtl87xx_default
-        if CORE.is_host:
-            return self._host_default
-        raise NotImplementedError
+            variant = get_esp32_variant().replace(VARIANT_ESP32, "").lower()
+            framework = CORE.target_framework.replace("esp-", "")
+            if variant:
+                keys += _get_default_key(variant, framework)
+                keys += _get_default_key(variant)
+            keys += _get_default_key(framework)
+        keys += _get_default_key()
+        for key in keys:
+            if self._defaults.get(key) is not None:
+                return self._defaults[key]
+        return vol.default_factory(vol.UNDEFINED)
 
     @default.setter
     def default(self, value):
@@ -2085,70 +1941,28 @@ def platformio_version_constraint(value):
 
 def require_framework_version(
     *,
-    esp_idf=None,
-    esp32_arduino=None,
-    esp8266_arduino=None,
-    rp2040_arduino=None,
-    bk72xx_libretiny=None,
-    host=None,
     max_version=False,
     extra_message=None,
+    **kwargs,
 ):
     def validator(value):
         core_data = CORE.data[KEY_CORE]
         framework = core_data[KEY_TARGET_FRAMEWORK]
-        if framework == "esp-idf":
-            if esp_idf is None:
-                msg = "This feature is incompatible with esp-idf"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = esp_idf
-        elif CORE.is_bk72xx and framework == "arduino":
-            if bk72xx_libretiny is None:
-                msg = "This feature is incompatible with BK72XX"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = bk72xx_libretiny
-        elif CORE.is_esp32 and framework == "arduino":
-            if esp32_arduino is None:
-                msg = "This feature is incompatible with ESP32 using arduino framework"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = esp32_arduino
-        elif CORE.is_esp8266 and framework == "arduino":
-            if esp8266_arduino is None:
-                msg = "This feature is incompatible with ESP8266"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = esp8266_arduino
-        elif CORE.is_rp2040 and framework == "arduino":
-            if rp2040_arduino is None:
-                msg = "This feature is incompatible with RP2040"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = rp2040_arduino
-        elif CORE.is_host and framework == "host":
-            if host is None:
-                msg = "This feature is incompatible with host platform"
-                if extra_message:
-                    msg += f". {extra_message}"
-                raise Invalid(msg)
-            required = host
-        else:
-            raise Invalid(
-                f"""
-            Internal Error: require_framework_version does not support this platform configuration
-                platform: {core_data[KEY_TARGET_PLATFORM]}
-                framework: {framework}
 
-            Please report this issue on GitHub -> https://github.com/esphome/issues/issues/new?template=bug_report.yml.
-            """
-            )
+        if CORE.is_host and framework == "host":
+            key = "host"
+        elif framework == "esp-idf":
+            key = "esp_idf"
+        else:
+            key = CORE.target_platform + "_" + framework
+
+        if key not in kwargs:
+            msg = f"This feature is incompatible with {CORE.target_platform.upper()} using {framework} framework"
+            if extra_message:
+                msg += f". {extra_message}"
+            raise Invalid(msg)
+
+        required = kwargs[key]
 
         if max_version:
             if core_data[KEY_FRAMEWORK_VERSION] > required:
