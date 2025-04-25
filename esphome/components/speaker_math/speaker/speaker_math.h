@@ -41,6 +41,7 @@ class SpeakerMath : public Component, public speaker::Speaker {
   float get_volume() override { return this->output_speaker_->get_volume(); }
 
   void set_output_speaker(speaker::Speaker *speaker) { this->output_speaker_ = speaker; }
+  void set_task_stack_in_psram(bool task_stack_in_psram) { this->task_stack_in_psram_ = task_stack_in_psram; }
 
   void set_target_bits_per_sample(uint8_t target_bits_per_sample) {
     this->target_bits_per_sample_ = target_bits_per_sample;

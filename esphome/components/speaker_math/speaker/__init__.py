@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import audio, speaker
+from esphome.components import audio, esp32, speaker
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BITS_PER_SAMPLE,
@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_OFFSET,
     CONF_OUTPUT_SPEAKER,
     CONF_SAMPLE_RATE,
+    CONF_TASK_STACK_IN_PSRAM,
     PLATFORM_ESP32,
 )
 from esphome.core.entity_helpers import inherit_property_from
@@ -25,8 +26,8 @@ SpeakerMath = speaker_math_ns.class_("SpeakerMath", cg.Component, speaker.Speake
 
 def _set_stream_limits(config):
     audio.set_stream_limits(
-        min_bits_per_sample=16,
-        max_bits_per_sample=16,
+        min_bits_per_sample=8,
+        max_bits_per_sample=32,
     )(config)
 
     return config
@@ -57,6 +58,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_UNSIGNED, default=False): cv.boolean(),
             cv.Optional(CONF_MULTIPLY, default=1): cv.int_range(-(2**7), 2**7 - 1),
             cv.Optional(CONF_OFFSET, default=0): cv.int_range(-(2**15), 2**15 - 1),
+            cv.SplitDefault(CONF_TASK_STACK_IN_PSRAM, esp32_idf=False): cv.All(
+                cv.boolean, cv.only_with_esp_idf
+            ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on([PLATFORM_ESP32]),
@@ -82,3 +86,11 @@ async def to_code(config):
     cg.add(var.set_convert_unsigned(config[CONF_UNSIGNED]))
     cg.add(var.set_convert_factor(config[CONF_MULTIPLY]))
     cg.add(var.set_convert_offset(config[CONF_OFFSET]))
+
+    if task_stack_in_psram := config.get(CONF_TASK_STACK_IN_PSRAM):
+        cg.add(var.set_task_stack_in_psram(task_stack_in_psram))
+        if task_stack_in_psram:
+            if config[CONF_TASK_STACK_IN_PSRAM]:
+                esp32.add_idf_sdkconfig_option(
+                    "CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY", True
+                )
