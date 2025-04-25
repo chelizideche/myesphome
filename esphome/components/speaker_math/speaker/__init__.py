@@ -3,6 +3,7 @@ from esphome.components import audio, speaker
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BITS_PER_SAMPLE,
+    CONF_BUFFER_DURATION,
     CONF_ID,
     CONF_MULTIPLY,
     CONF_NUM_CHANNELS,
@@ -50,6 +51,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(SpeakerMath),
             cv.Required(CONF_OUTPUT_SPEAKER): cv.use_id(speaker.Speaker),
+            cv.Optional(
+                CONF_BUFFER_DURATION, default="10ms"
+            ): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_UNSIGNED, default=False): cv.boolean(),
             cv.Optional(CONF_MULTIPLY, default=1): cv.int_range(-(2**7), 2**7 - 1),
             cv.Optional(CONF_OFFSET, default=0): cv.int_range(-(2**15), 2**15 - 1),
@@ -70,6 +74,8 @@ async def to_code(config):
 
     output_spkr = await cg.get_variable(config[CONF_OUTPUT_SPEAKER])
     cg.add(var.set_output_speaker(output_spkr))
+
+    cg.add(var.set_buffer_duration(config[CONF_BUFFER_DURATION]))
 
     cg.add(var.set_target_bits_per_sample(config[CONF_BITS_PER_SAMPLE]))
 

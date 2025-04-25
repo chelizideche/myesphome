@@ -57,12 +57,34 @@ class ResamplerSpeaker : public Component, public speaker::Speaker {
   ///         return value of start_task_() if resampling is required
   esp_err_t start_();
 
+  /// @brief Starts the resampler task after allocating the task stack
+  /// @return ESP_OK if successful,
+  ///         ESP_ERR_NO_MEM if the task stack couldn't be allocated
+  ///         ESP_ERR_INVALID_STATE if the task wasn't created
+  esp_err_t start_task_();
+
   /// @brief Stops the output speaker. If the resampling task is running, it sends the stop command.
   void stop_();
 
+  /// @brief Deallocates the task stack and resets the pointers.
+  /// @return ESP_OK if successful
+  ///         ESP_ERR_INVALID_STATE if the task hasn't stopped itself
+  esp_err_t delete_task_();
+
+  static void resample_task(void *params);
+
   EventGroupHandle_t event_group_{nullptr};
 
+  std::weak_ptr<RingBuffer> ring_buffer_;
+
   speaker::Speaker *output_speaker_{nullptr};
+
+  bool task_stack_in_psram_{false};
+  bool task_created_{false};
+
+  TaskHandle_t task_handle_{nullptr};
+  StaticTask_t task_stack_;
+  StackType_t *task_stack_buffer_{nullptr};
 
   bool convert_unsigned_;
   int8_t convert_factor_;
