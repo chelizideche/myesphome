@@ -226,7 +226,7 @@ void Mk2PVRouter::publish_value_(const std::string &tag, const std::string &val)
  */
 void Mk2PVRouter::dump_config() {
   ESP_LOGCONFIG(TAG, "Mk2PVRouter:");
-  this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_NONE, 8);
+  this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_EVEN, 7);
 }
 
 /**
