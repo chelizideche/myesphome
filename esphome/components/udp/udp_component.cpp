@@ -522,8 +522,14 @@ void UDPComponent::process_(uint8_t *buf, const size_t len) {
       sensors[namebuf]->publish_state(rdata.f32);
 #endif
 #ifdef USE_BINARY_SENSOR
-    if (byte == BINARY_SENSOR_KEY && binary_sensors.count(namebuf) != 0)
-      binary_sensors[namebuf]->publish_state(rdata.u32 != 0);
+    if (byte == BINARY_SENSOR_KEY && binary_sensors.count(namebuf) != 0) {
+      auto state = rdata.u32 != 0;
+      if (binary_sensors[namebuf]->has_state()) {
+        binary_sensors[namebuf]->publish_state(state);
+      } else {
+        binary_sensors[namebuf]->publish_initial_state(state);
+      }
+    }
 #endif
   }
 }
