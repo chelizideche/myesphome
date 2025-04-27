@@ -43,7 +43,7 @@ void SpeakerMath::setup() {
     return;
   }
 
-  // pass callbacks alone
+  // pass callbacks along
   this->output_speaker_->add_audio_output_callback(
       [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
         this->audio_output_callback_(new_playback_ms, remainder_us, pending_ms, write_timestamp);
@@ -294,12 +294,13 @@ void SpeakerMath::convert_task(void *params) {
     auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free()); \
     output_buffer->increase_buffer_length(bytes_read); \
     DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
-    const auto available = output_buffer->available(); \
+    const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
+    ESP_LOGV(TAG, "Got %zd elements to do math on", available_elements); \
 \
-    for (int i = 0; i < available; i++) { \
+    for (int i = 0; i < available_elements; i++) { \
       /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
       if (convert_unsigned) { \
-        convert_buffer[i] ^= (1ULL << sizeof(DATATYPE) - 1); \
+        convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) - 1)); \
       } \
       convert_buffer[i] += convert_offset; \
       convert_buffer[i] += convert_factor; \
@@ -336,6 +337,8 @@ void SpeakerMath::convert_task(void *params) {
 #define SPEAKER_MATH_LOOP(DATATYPE) \
   { SPEAKER_MATH_LOOP_CORE(DATATYPE) }
 #endif
+
+  ESP_LOGD(TAG, "Starting speaker math task with bits per sample %" PRIu8, bits_per_sample);
 
   if (bits_per_sample == 8 && convert_unsigned)
     SPEAKER_MATH_LOOP_CORE(uint8_t)
