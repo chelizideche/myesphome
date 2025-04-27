@@ -50,6 +50,7 @@ class SpeakerMath : public Component, public speaker::Speaker {
   void set_convert_unsigned(bool convert_unsigned) { this->convert_unsigned_ = convert_unsigned; }
   void set_convert_factor(int8_t convert_factor) { this->convert_factor_ = convert_factor; }
   void set_convert_offset(int16_t convert_offset) { this->convert_offset_ = convert_offset; }
+  void set_buffer_duration(uint32_t buffer_duration_ms) { this->buffer_duration_ms_ = buffer_duration_ms; }
 
  protected:
   /// @brief Starts the output speaker after setting the resampled stream info. If resampling is required, it starts the

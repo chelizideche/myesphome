@@ -55,7 +55,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_BUFFER_DURATION, default="10ms"
             ): cv.positive_time_period_milliseconds,
-            cv.Optional(CONF_UNSIGNED, default=False): cv.boolean(),
+            cv.Optional(CONF_UNSIGNED, default=False): cv.boolean,
             cv.Optional(CONF_MULTIPLY, default=1): cv.int_range(-(2**7), 2**7 - 1),
             cv.Optional(CONF_OFFSET, default=0): cv.int_range(-(2**15), 2**15 - 1),
             cv.SplitDefault(CONF_TASK_STACK_IN_PSRAM, esp32_idf=False): cv.All(
