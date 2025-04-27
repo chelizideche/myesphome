@@ -3338,7 +3338,7 @@ void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
   this->data(0x0F);  // This is actually this panels default, no need to set it?
 
   // COMMAND VCOM AND DATA INTERVAL SETTING
-  // This is the most important command differentiating these panels, the lookup tables and border control are not the 
+  // This is the most important command differentiating these panels, the lookup tables and border control are not the
   // same. A red border remains with BDV[10] (0x40) on this panel, black border when you enable border control 0xC0.
   // Setting DDX[1:0] seems to have no affect?
   this->command(0x50);
