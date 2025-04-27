@@ -279,6 +279,7 @@ void SpeakerMath::convert_task(void *params) {
   // We sacrifice compile time and (to a much lesser extent with optimizations enabled)
   // code size in order to gain improved performance (much fewer conditionals)
 #define SPEAKER_MATH_LOOP_CORE(DATATYPE) \
+  ESP_LOGD(TAG, "Starting speaker math task with bits per sample %" PRIu8 "of type " #DATATYPE, bits_per_sample); \
   while (err == ESP_OK) { \
     uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
 \
@@ -337,8 +338,6 @@ void SpeakerMath::convert_task(void *params) {
 #define SPEAKER_MATH_LOOP(DATATYPE) \
   { SPEAKER_MATH_LOOP_CORE(DATATYPE) }
 #endif
-
-  ESP_LOGD(TAG, "Starting speaker math task with bits per sample %" PRIu8, bits_per_sample);
 
   if (bits_per_sample == 8 && convert_unsigned)
     SPEAKER_MATH_LOOP_CORE(uint8_t)
