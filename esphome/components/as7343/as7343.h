@@ -20,7 +20,11 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void set_gain(AS7343Gain gain) { gain_ = gain; }
   void set_atime(uint8_t atime) { atime_ = atime; }
   void set_astep(uint16_t astep) { astep_ = astep; }
+
   void set_glass_attenuation_factor(float factor) { this->glass_attenuation_factor_ = factor; }
+  void enable_auto_gain(bool enable) { this->auto_gain_enabled_ = enable; }
+  void enable_continuous_mode(bool enable) { this->continuous_mode_ = enable; }
+  void enable_scaling(bool enable) { this->scaling_enabled_ = enable; }
 
   AS7343Gain get_gain();
   uint8_t get_atime();
@@ -85,10 +89,11 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   SUB_SENSOR(illuminance);
   SUB_SENSOR(irradiance);
   SUB_SENSOR(irradiance_photopic);
+  SUB_SENSOR(irradiance_par);
   SUB_SENSOR(ppfd);
-  SUB_SENSOR(par);
   SUB_SENSOR(ct);
   SUB_SENSOR(color_temperature);
+  SUB_SENSOR(saturation_level);
 
  protected:
   //#endif
@@ -102,8 +107,11 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   float glass_attenuation_factor_{1.0f};
   float corr_lx_y_cie1931_{683.0f};
 
-  bool auto_gain_enabled_{true};
+  bool scaling_enabled_{false};
+
+  bool auto_gain_enabled_{false};
   bool continuous_mode_{false};
+
   // enum : uint8_t {
   //   AS7343_LIGHT_DETECTION = 0,
   //   AS7343_COLOR_DETECTION = 1,
@@ -130,11 +138,12 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     float lux;
     float irradiance;
     float irradiance_photopic;
+    float irradiance_par;
     float ppfd;
-    float par;
     float cct;
     float duv;
     float lux_from_xyz;
+    float saturation_level;
   } calculated_values_;
 
   enum {

@@ -254,14 +254,17 @@ void AS7343Component::publish_derived_readings_() {
   if (this->irradiance_photopic_sensor_ != nullptr) {
     this->irradiance_photopic_sensor_->publish_state(this->calculated_values_.irradiance_photopic);
   }
-  if (this->par_sensor_ != nullptr) {
-    this->par_sensor_->publish_state(this->calculated_values_.par);
+  if (this->irradiance_par_sensor_ != nullptr) {
+    this->irradiance_par_sensor_->publish_state(this->calculated_values_.irradiance_par);
   }
   if (this->ppfd_sensor_ != nullptr) {
     this->ppfd_sensor_->publish_state(this->calculated_values_.ppfd);
   }
   if (this->color_temperature_sensor_ != nullptr) {
     this->color_temperature_sensor_->publish_state(this->calculated_values_.cct);
+  }
+  if (this->saturation_level_sensor_ != nullptr) {
+    this->saturation_level_sensor_->publish_state(this->calculated_values_.saturation_level);
   }
   if (this->saturated_ != nullptr) {
     this->saturated_->publish_state(this->readings_.saturated);
@@ -423,15 +426,18 @@ void AS7343Component::calculate_() {
   uint16_t highest_adc = this->get_highest_value(this->readings_.raw_counts);
   ESP_LOGD(TAG, "  Max ADC: %u", max_adc);
 
+  this->calculated_values_.saturation_level = (max_adc == 0) ? 0 : 100.0f * highest_adc / (float) max_adc;
+
   ESP_LOGD(TAG, "Readings:");
-  ESP_LOGD(TAG, "  Highest ADC: %.2f%%", (highest_adc / (float) max_adc) * 100.0f);
+  ESP_LOGD(TAG, "  Highest ADC: %.2f%%", this->calculated_values_.saturation_level);
   log_cn_s(TAG, "  Channel", CHANNEL_NAME);
   log_cn_d(TAG, "  Nm", CHANNEL_WAVE_NM);
   log_cn_d(TAG, "  Counts", this->readings_.raw_counts);
   log_cn_f(TAG, "  Basic", this->calculated_values_.basic_counts);
 
-  this->calculate_spectral_(this->calculated_values_.lux, this->calculated_values_.par, this->calculated_values_.ppfd,
-                            this->calculated_values_.irradiance, this->calculated_values_.irradiance_photopic);
+  this->calculate_spectral_(this->calculated_values_.lux, this->calculated_values_.irradiance_par,
+                            this->calculated_values_.ppfd, this->calculated_values_.irradiance,
+                            this->calculated_values_.irradiance_photopic);
 
   this->calculate_color_(this->calculated_values_.cct, this->calculated_values_.duv,
                          this->calculated_values_.lux_from_xyz);
@@ -444,27 +450,17 @@ void AS7343Component::calculate_() {
   this->calculated_values_.lux = std::max(this->calculated_values_.lux, 0.0f);
   this->calculated_values_.irradiance = std::max(this->calculated_values_.irradiance, 0.0f);
   this->calculated_values_.irradiance_photopic = std::max(this->calculated_values_.irradiance_photopic, 0.0f);
-  this->calculated_values_.par = std::max(this->calculated_values_.par, 0.0f);
+  this->calculated_values_.irradiance_par = std::max(this->calculated_values_.irradiance_par, 0.0f);
   this->calculated_values_.ppfd = std::max(this->calculated_values_.ppfd, 0.0f);
   this->calculated_values_.lux_from_xyz = std::max(this->calculated_values_.lux_from_xyz, 0.0f);
   this->calculated_values_.cct = std::max(this->calculated_values_.cct, 0.0f);
   // this->calculated_values_.duv = std::max(this->calculated_values_.duv, 0.0f);
 
-  //
-  // apply glass attenuation
-  //
-  this->calculated_values_.irradiance *= this->glass_attenuation_factor_;
-  this->calculated_values_.irradiance_photopic *= this->glass_attenuation_factor_;
-  this->calculated_values_.lux *= this->glass_attenuation_factor_;
-  this->calculated_values_.lux_from_xyz *= this->glass_attenuation_factor_;
-  this->calculated_values_.ppfd *= this->glass_attenuation_factor_;
-  this->calculated_values_.par *= this->glass_attenuation_factor_;
-
   ESP_LOGD(TAG, "Calculated values (glass attenuation = %.2f):", this->glass_attenuation_factor_);
   ESP_LOGD(TAG, "  Illuminance         : %f lx", this->calculated_values_.lux);
   ESP_LOGD(TAG, "  Irradiance          : %f W/m²", this->calculated_values_.irradiance);
   ESP_LOGD(TAG, "  Irradiance(photopic): %f W/m²", this->calculated_values_.irradiance_photopic);
-  ESP_LOGD(TAG, "  PAR                 : %f W/m²", this->calculated_values_.par);
+  ESP_LOGD(TAG, "  PAR                 : %f W/m²", this->calculated_values_.irradiance_par);
   ESP_LOGD(TAG, "  PPFD                : %f µmol/s⋅m²", this->calculated_values_.ppfd);
   ESP_LOGD(TAG, "  Color temp(XYZ)     : %f K", this->calculated_values_.cct);
   //  ESP_LOGD(TAG, "  Duv(XYZ)            : %f", this->calculated_values_.duv);
@@ -472,6 +468,14 @@ void AS7343Component::calculate_() {
 }
 
 void AS7343Component::calculate_basic_counts_() {
+  // BasicCounts = Raw_Counts / ( Gain X Integration Time)
+  // SensorCorrectedValueOffset = BasicCounts - BasicCountOffset    // dark current
+  // scaling???
+
+  static constexpr float CHANNEL_SENS[AS7343_NUM_CHANNELS] = {0.19402, 0.26647, 0.35741, 0.41753, 0.52235,
+                                                              0.59633, 0.56242, 0.65645, 0.68882, 0.79980,
+                                                              0.70423, 0.40366, 0.38516};
+
   // gain_x  : numeric gain (0.5 … 2048.0)
   // t_int_us: integration-time in micro-seconds
   const float inv_exposure = 1.0f / (this->readings_.gain_x * this->readings_.t_int_us);  // 1/(gain·µs)
@@ -480,10 +484,21 @@ void AS7343Component::calculate_basic_counts_() {
   for (size_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
     // 1. raw → basic-counts  (now counts · s⁻¹ @ ×1 gain)
     float basic_count = this->readings_.raw_counts[i] * inv_exposure;  // * us_to_s;
-    // 2. gain-linearity correction (datasheet “GAIN_CORR” table)
+
+    // 2. remove dark. for future
+    // basic_count -= dark_counts
+
+    // 3. gain-linearity correction (datasheet “GAIN_CORR” table)
     basic_count *= AS7343_GAIN_CORRECTION[(uint8_t) this->readings_.gain][i];
 
-    // when to check for dark readings?
+    // 4. normalizaiton/scaling??? do we need it if we use GD matrix?
+    // todo/analyze
+    if (this->scaling_enabled_) {
+      basic_count /= CHANNEL_SENS[i];
+    }
+
+    // 5. glass attenuation
+    basic_count *= this->glass_attenuation_factor_;
 
     this->calculated_values_.basic_counts[i] = basic_count;  // units: counts·s⁻¹
   }

@@ -12,6 +12,7 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_KELVIN,
     UNIT_LUX,
+    UNIT_PERCENT,
 )
 
 CODEOWNERS = ["@mrgnr", "@latonita"]
@@ -43,8 +44,9 @@ CONF_CLEAR = "clear"
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
 CONF_PPFD = "ppfd"
-CONF_PAR = "par"
+CONF_IRRADIANCE_PAR = "irradiance_par"
 CONF_SATURATION = "saturation"
+CONF_SATURATION_LEVEL = "saturation_level"
 
 UNIT_COUNTS = "#"
 UNIT_IRRADIANCE = "W/m²"
@@ -81,7 +83,7 @@ SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
         unit_of_measurement=UNIT_COUNTS,
         icon=ICON_COUNTS,
-        accuracy_decimals=4,
+        accuracy_decimals=6,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
     ),
@@ -126,7 +128,7 @@ CONFIG_SCHEMA = (
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_IRRADIANCE,
-                    accuracy_decimals=0,
+                    accuracy_decimals=3,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
@@ -136,7 +138,7 @@ CONFIG_SCHEMA = (
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_IRRADIANCE_PHOTOPIC,
-                    accuracy_decimals=0,
+                    accuracy_decimals=3,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
@@ -146,17 +148,17 @@ CONFIG_SCHEMA = (
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_PPFD,
                     icon=ICON_PPFD,
-                    accuracy_decimals=0,
+                    accuracy_decimals=3,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
             ),
-            cv.Optional(CONF_PAR): cv.maybe_simple_value(
+            cv.Optional(CONF_IRRADIANCE_PAR): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_PAR,
-                    accuracy_decimals=0,
+                    accuracy_decimals=3,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
@@ -174,6 +176,16 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_SATURATION): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_COUNTS,
+                    icon=ICON_SATURATION,
+                    accuracy_decimals=0,
+                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    state_class=STATE_CLASS_MEASUREMENT,
+                ),
+                key=CONF_NAME,
+            ),
+            cv.Optional(CONF_SATURATION_LEVEL): cv.maybe_simple_value(
+                sensor.sensor_schema(
+                    unit_of_measurement=UNIT_PERCENT,
                     icon=ICON_SATURATION,
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
@@ -204,10 +216,11 @@ SENSORS = [
     CONF_ILLUMINANCE,
     CONF_IRRADIANCE,
     CONF_IRRADIANCE_PHOTOPIC,
-    CONF_PAR,
+    CONF_IRRADIANCE_PAR,
     CONF_PPFD,
     CONF_COLOR_TEMPERATURE,
     CONF_SATURATION,
+    CONF_SATURATION_LEVEL,
 ]
 
 
