@@ -284,7 +284,7 @@ void I2SAudioMicrophone::stop_() {
   this->status_clear_error();
 }
 
-size_t I2SAudioMicrophone::read(int16_t *buf, size_t len, TickType_t ticks_to_wait) {
+size_t I2SAudioMicrophone::read_(uint8_t *buf, size_t len, TickType_t ticks_to_wait) {
   size_t bytes_read = 0;
 #ifdef USE_I2S_LEGACY
   esp_err_t err = i2s_read(this->parent_->get_port(), buf, len, &bytes_read, ticks_to_wait);
@@ -350,10 +350,11 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len, TickType_t ticks_to_wa
 }
 
 void I2SAudioMicrophone::read_() {
-  std::vector<int16_t> samples;
-  samples.resize(BUFFER_SIZE);
-  size_t bytes_read = this->read(samples.data(), BUFFER_SIZE * sizeof(int16_t), 0);
-  samples.resize(bytes_read / sizeof(int16_t));
+  std::vector<uint8_t> samples;
+  const size_t bytes_to_read = this->audio_stream_info_.ms_to_bytes(32);
+  samples.resize(bytes_to_read);
+  size_t bytes_read = this->read_(samples.data(), bytes_to_read, 0);
+  samples.resize(bytes_read);
   this->data_callbacks_.call(samples);
 }
 
