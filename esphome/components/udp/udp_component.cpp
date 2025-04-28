@@ -134,10 +134,10 @@ void UDPComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Listening: %s", YESNO(this->should_listen_));
 }
 
-void UDPComponent::send_packet(std::vector<uint8_t> &buf) {
+void UDPComponent::send_packet(const uint8_t *data, size_t size) {
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
   for (const auto &saddr : this->sockaddrs_) {
-    auto result = this->broadcast_socket_->sendto(buf.data(), buf.size(), 0, &saddr, sizeof(saddr));
+    auto result = this->broadcast_socket_->sendto(data, size, 0, &saddr, sizeof(saddr));
     if (result < 0)
       ESP_LOGW(TAG, "sendto() error %d", errno);
   }
@@ -146,7 +146,7 @@ void UDPComponent::send_packet(std::vector<uint8_t> &buf) {
   auto iface = IPAddress(0, 0, 0, 0);
   for (const auto &saddr : this->ipaddrs_) {
     if (this->udp_client_.beginPacketMulticast(saddr, this->broadcast_port_, iface, 128) != 0) {
-      this->udp_client_.write(buf.data(), buf.size());
+      this->udp_client_.write(data, size);
       auto result = this->udp_client_.endPacket();
       if (result == 0)
         ESP_LOGW(TAG, "udp.write() error");
