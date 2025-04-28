@@ -131,6 +131,10 @@ void BL0940::setup() {
     }
   }
 
+  if (this->reset_calibration_button_ != nullptr) {
+    this->reset_calibration_button_->add_on_press_callback([this]() { this->reset_calibration_callback_(); });
+  }
+
   // calculate references based on schematic defaults if not set explicitly
   if (!this->voltage_reference_set_) {
     if (this->tuya_mode_enabled_) {
@@ -196,6 +200,22 @@ float BL0940::calculate_energy_reference_() {
 }
 
 float BL0940::calculate_calibration_value_(float state) { return (100 + state) / 100; }
+
+void BL0940::reset_calibration_callback_() {
+  if (this->current_calibration_ != nullptr && this->current_cal_ != 1) {
+    this->current_calibration_->publish_state(0);
+  }
+  if (this->voltage_calibration_ != nullptr && this->voltage_cal_ != 1) {
+    this->voltage_calibration_->publish_state(0);
+  }
+  if (this->power_calibration_ != nullptr && this->power_cal_ != 1) {
+    this->power_calibration_->publish_state(0);
+  }
+  if (this->energy_calibration_ != nullptr && this->energy_cal_ != 1) {
+    this->energy_calibration_->publish_state(0);
+  }
+  ESP_LOGD(TAG, "external calibration values restored to initial state");
+}
 
 void BL0940::current_calibration_callback_(float state) {
   this->current_cal_ = this->calculate_calibration_value_(state);

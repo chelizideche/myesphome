@@ -4,6 +4,11 @@ uart:
     rx_pin: ${rx_pin}
     baud_rate: 9600
 
+button:
+  - platform: bl0940
+    bl0940_id: test_id
+    name: Cal Reset
+
 sensor:
   - platform: bl0940
     id: test_id
