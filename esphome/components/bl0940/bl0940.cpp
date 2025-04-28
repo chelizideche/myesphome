@@ -99,6 +99,7 @@ void BL0940::setup() {
     }
   }
 
+#ifdef USE_NUMBER
   // add calibration callbacks
   if (this->voltage_calibration_ != nullptr) {
     this->voltage_calibration_->add_on_state_callback(
@@ -130,10 +131,13 @@ void BL0940::setup() {
       this->energy_calibration_callback_(this->energy_calibration_->state);
     }
   }
+#endif
 
+#ifdef USE_BUTTON
   if (this->reset_calibration_button_ != nullptr) {
     this->reset_calibration_button_->add_on_press_callback([this]() { this->reset_calibration_callback_(); });
   }
+#endif
 
   // calculate references based on schematic defaults if not set explicitly
   if (!this->voltage_reference_set_) {
@@ -202,6 +206,7 @@ float BL0940::calculate_energy_reference_() {
 float BL0940::calculate_calibration_value_(float state) { return (100 + state) / 100; }
 
 void BL0940::reset_calibration_callback_() {
+#ifdef USE_NUMBER
   if (this->current_calibration_ != nullptr && this->current_cal_ != 1) {
     this->current_calibration_->publish_state(0);
   }
@@ -214,6 +219,7 @@ void BL0940::reset_calibration_callback_() {
   if (this->energy_calibration_ != nullptr && this->energy_cal_ != 1) {
     this->energy_calibration_->publish_state(0);
   }
+#endif
   ESP_LOGD(TAG, "external calibration values restored to initial state");
 }
 
@@ -324,11 +330,13 @@ void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexit
   ESP_LOGCONFIG(TAG, "  Power reference: %f", this->power_reference_);
   ESP_LOGCONFIG(TAG, "  Voltage reference: %f", this->voltage_reference_);
   ESP_LOGCONFIG(TAG, "  ------------------");
+#ifdef USE_NUMBER
   ESP_LOGCONFIG(TAG, "  Current calibration: %f", this->current_cal_);
   ESP_LOGCONFIG(TAG, "  Energy calibration: %f", this->energy_cal_);
   ESP_LOGCONFIG(TAG, "  Power calibration: %f", this->power_cal_);
   ESP_LOGCONFIG(TAG, "  Voltage calibration: %f", this->voltage_cal_);
   ESP_LOGCONFIG(TAG, "  ------------------");
+#endif
   LOG_SENSOR("", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("", "Current", this->current_sensor_);
   LOG_SENSOR("", "Power", this->power_sensor_);

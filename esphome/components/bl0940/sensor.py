@@ -26,8 +26,6 @@ from esphome.const import (
 
 from . import BL0940
 
-AUTO_LOAD = ["button", "number"]
-
 CONF_TUYA_MODE = "tuya_mode"
 
 CONF_READ_COMMAND = "read_command"

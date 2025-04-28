@@ -2,8 +2,13 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/datatypes.h"
+#include "esphome/core/defines.h"
+#ifdef USE_BUTTON
 #include "esphome/components/button/button.h"
+#endif
+#ifdef USE_NUMBER
 #include "esphome/components/number/number.h"
+#endif
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 
@@ -83,13 +88,16 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
     this->voltage_reference_set_ = true;
   }
 
+#ifdef USE_NUMBER
   void set_current_calibration(number::Number *num) { this->current_calibration_ = num; }
   void set_voltage_calibration(number::Number *num) { this->voltage_calibration_ = num; }
   void set_power_calibration(number::Number *num) { this->power_calibration_ = num; }
   void set_energy_calibration(number::Number *num) { this->energy_calibration_ = num; }
+#endif
 
+#ifdef USE_BUTTON
   void set_reset_calibration_button(button::Button *button) { this->reset_calibration_button_ = button; }
-
+#endif
   void loop() override;
 
   void update() override;
@@ -106,14 +114,16 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   sensor::Sensor *internal_temperature_sensor_{nullptr};
   sensor::Sensor *external_temperature_sensor_{nullptr};
 
+#ifdef USE_NUMBER
   // calibration helpers
   number::Number *voltage_calibration_{nullptr};
   number::Number *current_calibration_{nullptr};
   number::Number *power_calibration_{nullptr};
   number::Number *energy_calibration_{nullptr};
-
+#endif
+#ifdef USE_BUTTON
   button::Button *reset_calibration_button_{nullptr};
-
+#endif
   // Max difference between two measurements of the temperature. Used to avoid noise.
   float max_temperature_diff_{0};
 
