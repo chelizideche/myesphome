@@ -34,8 +34,20 @@ void BH1900NUXSensor::update() {
     return;
   }
 
-  float sensor_resolution = 0.0625f;  // Sensor resolution in degrees Celsius
-  float temperature_value = (((temperature_raw[0] << 8) | temperature_raw[1]) >> 4) * sensor_resolution;
+  // Combined raw value, unsigned and unaligned 16 bit
+  uint16_t raw_temperatur_register_value = (temperature_raw[0] << 8) | temperature_raw[1];
+
+  // Temperature is represented in just 12 bits, shift needed
+  int16_t raw_temperature_value = raw_temperatur_register_value >> 4;
+
+  // Check if temperature is positive or negative (bit 11)
+  if (raw_temperature_value & 0x800) {  // Check if the sign bit is set
+    raw_temperature_value |= 0xF000;    // Temperature is negative, sign extension needed
+  }
+
+  float sensor_resolution = 0.0625f;  // Sensor resolution per bit in degrees celsius
+  float temperature_value = raw_temperature_value * sensor_resolution;
+
   ESP_LOGV(TAG, "Temperature value read from sensor: %f", temperature_value);
 
   this->publish_state(temperature_value);
