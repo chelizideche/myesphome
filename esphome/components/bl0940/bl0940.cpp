@@ -52,8 +52,8 @@ void BL0940::loop() {
     return;
   }
   if (read_array((uint8_t *) &buffer, sizeof(buffer))) {
-    if (validate_checksum_(&buffer)) {
-      received_package_(&buffer);
+    if (this->validate_checksum_(&buffer)) {
+      this->received_package_(&buffer);
     }
   } else {
     ESP_LOGW(TAG, "Junk on wire. Throwing away partial message");
@@ -290,25 +290,25 @@ void BL0940::received_package_(DataPacket *data) {
   }
   this->prev_cf_cnt_ = cf_cnt;
 
-  float v_rms = (uint24_t) data->v_rms / voltage_reference_cal_;
-  float i_rms = (uint24_t) data->i_rms / current_reference_cal_;
-  float watt = (int24_t) data->watt / power_reference_cal_;
-  float total_energy_consumption = cf_cnt / energy_reference_cal_;
+  float v_rms = (uint24_t) data->v_rms / this->voltage_reference_cal_;
+  float i_rms = (uint24_t) data->i_rms / this->current_reference_cal_;
+  float watt = (int24_t) data->watt / this->power_reference_cal_;
+  float total_energy_consumption = cf_cnt / this->energy_reference_cal_;
 
-  float tps1 = update_temp_(internal_temperature_sensor_, data->tps1);
-  float tps2 = update_temp_(external_temperature_sensor_, data->tps2);
+  float tps1 = update_temp_(this->internal_temperature_sensor_, data->tps1);
+  float tps2 = update_temp_(this->external_temperature_sensor_, data->tps2);
 
-  if (voltage_sensor_ != nullptr) {
-    voltage_sensor_->publish_state(v_rms);
+  if (this->voltage_sensor_ != nullptr) {
+    this->voltage_sensor_->publish_state(v_rms);
   }
-  if (current_sensor_ != nullptr) {
-    current_sensor_->publish_state(i_rms);
+  if (this->current_sensor_ != nullptr) {
+    this->current_sensor_->publish_state(i_rms);
   }
-  if (power_sensor_ != nullptr) {
-    power_sensor_->publish_state(watt);
+  if (this->power_sensor_ != nullptr) {
+    this->power_sensor_->publish_state(watt);
   }
-  if (energy_sensor_ != nullptr) {
-    energy_sensor_->publish_state(total_energy_consumption);
+  if (this->energy_sensor_ != nullptr) {
+    this->energy_sensor_->publish_state(total_energy_consumption);
   }
 
   ESP_LOGV(TAG, "BL0940: U %fV, I %fA, P %fW, Cnt %" PRId32 ", ∫P %fkWh, T1 %f°C, T2 %f°C", v_rms, i_rms, watt, cf_cnt,
