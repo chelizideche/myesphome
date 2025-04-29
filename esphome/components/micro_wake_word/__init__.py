@@ -328,8 +328,11 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(MicroWakeWord),
-            cv.Required(CONF_MICROPHONE): microphone.microphone_source_schema(
-                min_bits_per_sample=16, max_bits_per_sample=16, max_channels=1
+            cv.GenerateID(CONF_MICROPHONE): microphone.microphone_source_schema(
+                min_bits_per_sample=16,
+                max_bits_per_sample=16,
+                min_channels=1,
+                max_channels=1,
             ),
             cv.Required(CONF_MODELS): cv.ensure_list(
                 cv.maybe_simple_value(MODEL_SCHEMA, key=CONF_MODEL)
@@ -409,7 +412,7 @@ def _feature_step_size_validate(config):
 FINAL_VALIDATE_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.Optional(
+            cv.Required(
                 CONF_MICROPHONE
             ): microphone.final_validate_microphone_source_schema(
                 "micro_wake_word", sample_rate=16000
