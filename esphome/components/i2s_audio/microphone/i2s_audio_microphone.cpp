@@ -365,10 +365,11 @@ void I2SAudioMicrophone::mic_task(void *params) {
 
     if (this_microphone->data_callbacks_.size() > 0) {
       samples.resize(bytes_to_read);
-      size_t bytes_read =
-          this_microphone->read_(samples.data(), bytes_to_read, pdMS_TO_TICKS(3 * READ_DURATION_MS / 2));
+      size_t bytes_read = this_microphone->read_(samples.data(), bytes_to_read, 2 * pdMS_TO_TICKS(READ_DURATION_MS));
       samples.resize(bytes_read);
       this_microphone->data_callbacks_.call(samples);
+    } else {
+      delay(READ_DURATION_MS);
     }
   }
 
