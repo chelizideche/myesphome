@@ -544,6 +544,9 @@ void BluetoothProxy::send_device_unpairing(uint64_t address, bool success, esp_e
 }
 
 void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
+  if (this->parent_->get_scan_active() == active) {
+    return;
+  }
   ESP_LOGD(TAG, "Setting scanner mode to %s", active ? "active" : "passive");
   this->parent_->set_scan_active(active);
   this->parent_->stop_scan();
