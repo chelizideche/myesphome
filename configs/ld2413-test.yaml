@@ -4,11 +4,9 @@ esphome:
 esp32:
   board: esp32dev
 
-
-
 wifi:
-  ssid: "TP-Link_AX10"
-  password: "70663701"
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
 
 logger:
 
@@ -16,7 +14,6 @@ api:
 
 ota:
   platform: esphome
-
 
 uart:
   rx_pin: GPIO16
@@ -26,5 +23,3 @@ uart:
 sensor:
   - platform: ld2413
     name: "LD2413 Distance"
-
-web_server:
