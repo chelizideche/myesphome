@@ -489,7 +489,7 @@ template<typename... Ts> class WiFiConfigureAction : public Action<Ts...>, publi
       global_wifi_component->save_wifi_sta(old_sta_.get_ssid(), old_sta_.get_password());
       global_wifi_component->enable();
       // Start a timeout for the fallback if the connection to the old AP fails
-      this->set_timeout("wifi-fallback-timeout", 30000, [this]() {
+      this->set_timeout("wifi-fallback-timeout", this->connection_timeout_.value(x...), [this]() {
         this->connecting_ = false;
         this->error_trigger_->trigger();
       });
