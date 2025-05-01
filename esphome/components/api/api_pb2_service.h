@@ -83,6 +83,12 @@ class APIServerConnectionBase : public ProtoService {
 #endif
   virtual void on_subscribe_logs_request(const SubscribeLogsRequest &value){};
   bool send_subscribe_logs_response(const SubscribeLogsResponse &msg);
+#ifdef USE_API_NOISE
+  virtual void on_noise_encryption_set_key_request(const NoiseEncryptionSetKeyRequest &value){};
+#endif
+#ifdef USE_API_NOISE
+  bool send_noise_encryption_set_key_response(const NoiseEncryptionSetKeyResponse &msg);
+#endif
   virtual void on_subscribe_homeassistant_services_request(const SubscribeHomeassistantServicesRequest &value){};
   bool send_homeassistant_service_response(const HomeassistantServiceResponse &msg);
   virtual void on_subscribe_home_assistant_states_request(const SubscribeHomeAssistantStatesRequest &value){};
@@ -228,6 +234,12 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_BLUETOOTH_PROXY
   bool send_bluetooth_device_clear_cache_response(const BluetoothDeviceClearCacheResponse &msg);
 #endif
+#ifdef USE_BLUETOOTH_PROXY
+  bool send_bluetooth_scanner_state_response(const BluetoothScannerStateResponse &msg);
+#endif
+#ifdef USE_BLUETOOTH_PROXY
+  virtual void on_bluetooth_scanner_set_mode_request(const BluetoothScannerSetModeRequest &value){};
+#endif
 #ifdef USE_VOICE_ASSISTANT
   virtual void on_subscribe_voice_assistant_request(const SubscribeVoiceAssistantRequest &value){};
 #endif
@@ -243,6 +255,24 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_VOICE_ASSISTANT
   bool send_voice_assistant_audio(const VoiceAssistantAudio &msg);
   virtual void on_voice_assistant_audio(const VoiceAssistantAudio &value){};
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual void on_voice_assistant_timer_event_response(const VoiceAssistantTimerEventResponse &value){};
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual void on_voice_assistant_announce_request(const VoiceAssistantAnnounceRequest &value){};
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  bool send_voice_assistant_announce_finished(const VoiceAssistantAnnounceFinished &msg);
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual void on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &value){};
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  bool send_voice_assistant_configuration_response(const VoiceAssistantConfigurationResponse &msg);
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual void on_voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &value){};
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
   bool send_list_entities_alarm_control_panel_response(const ListEntitiesAlarmControlPanelResponse &msg);
@@ -304,6 +334,15 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_DATETIME_DATETIME
   virtual void on_date_time_command_request(const DateTimeCommandRequest &value){};
 #endif
+#ifdef USE_UPDATE
+  bool send_list_entities_update_response(const ListEntitiesUpdateResponse &msg);
+#endif
+#ifdef USE_UPDATE
+  bool send_update_state_response(const UpdateStateResponse &msg);
+#endif
+#ifdef USE_UPDATE
+  virtual void on_update_command_request(const UpdateCommandRequest &value){};
+#endif
  protected:
   bool read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) override;
 };
@@ -322,6 +361,9 @@ class APIServerConnection : public APIServerConnectionBase {
   virtual void subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) = 0;
   virtual GetTimeResponse get_time(const GetTimeRequest &msg) = 0;
   virtual void execute_service(const ExecuteServiceRequest &msg) = 0;
+#ifdef USE_API_NOISE
+  virtual NoiseEncryptionSetKeyResponse noise_encryption_set_key(const NoiseEncryptionSetKeyRequest &msg) = 0;
+#endif
 #ifdef USE_COVER
   virtual void cover_command(const CoverCommandRequest &msg) = 0;
 #endif
@@ -370,6 +412,9 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_DATETIME_DATETIME
   virtual void datetime_command(const DateTimeCommandRequest &msg) = 0;
 #endif
+#ifdef USE_UPDATE
+  virtual void update_command(const UpdateCommandRequest &msg) = 0;
+#endif
 #ifdef USE_BLUETOOTH_PROXY
   virtual void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) = 0;
 #endif
@@ -401,8 +446,18 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_BLUETOOTH_PROXY
   virtual void unsubscribe_bluetooth_le_advertisements(const UnsubscribeBluetoothLEAdvertisementsRequest &msg) = 0;
 #endif
+#ifdef USE_BLUETOOTH_PROXY
+  virtual void bluetooth_scanner_set_mode(const BluetoothScannerSetModeRequest &msg) = 0;
+#endif
 #ifdef USE_VOICE_ASSISTANT
   virtual void subscribe_voice_assistant(const SubscribeVoiceAssistantRequest &msg) = 0;
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual VoiceAssistantConfigurationResponse voice_assistant_get_configuration(
+      const VoiceAssistantConfigurationRequest &msg) = 0;
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  virtual void voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) = 0;
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
   virtual void alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) = 0;
@@ -420,6 +475,9 @@ class APIServerConnection : public APIServerConnectionBase {
   void on_subscribe_home_assistant_states_request(const SubscribeHomeAssistantStatesRequest &msg) override;
   void on_get_time_request(const GetTimeRequest &msg) override;
   void on_execute_service_request(const ExecuteServiceRequest &msg) override;
+#ifdef USE_API_NOISE
+  void on_noise_encryption_set_key_request(const NoiseEncryptionSetKeyRequest &msg) override;
+#endif
 #ifdef USE_COVER
   void on_cover_command_request(const CoverCommandRequest &msg) override;
 #endif
@@ -468,6 +526,9 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_DATETIME_DATETIME
   void on_date_time_command_request(const DateTimeCommandRequest &msg) override;
 #endif
+#ifdef USE_UPDATE
+  void on_update_command_request(const UpdateCommandRequest &msg) override;
+#endif
 #ifdef USE_BLUETOOTH_PROXY
   void on_subscribe_bluetooth_le_advertisements_request(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
 #endif
@@ -499,8 +560,17 @@ class APIServerConnection : public APIServerConnectionBase {
   void on_unsubscribe_bluetooth_le_advertisements_request(
       const UnsubscribeBluetoothLEAdvertisementsRequest &msg) override;
 #endif
+#ifdef USE_BLUETOOTH_PROXY
+  void on_bluetooth_scanner_set_mode_request(const BluetoothScannerSetModeRequest &msg) override;
+#endif
 #ifdef USE_VOICE_ASSISTANT
   void on_subscribe_voice_assistant_request(const SubscribeVoiceAssistantRequest &msg) override;
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  void on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &msg) override;
+#endif
+#ifdef USE_VOICE_ASSISTANT
+  void on_voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) override;
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
   void on_alarm_control_panel_command_request(const AlarmControlPanelCommandRequest &msg) override;

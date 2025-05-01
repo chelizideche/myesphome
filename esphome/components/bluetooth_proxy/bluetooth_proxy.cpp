@@ -25,6 +25,22 @@ std::vector<uint64_t> get_128bit_uuid_vec(esp_bt_uuid_t uuid_source) {
 
 BluetoothProxy::BluetoothProxy() { global_bluetooth_proxy = this; }
 
+void BluetoothProxy::setup() {
+  this->parent_->add_scanner_state_callback([this](esp32_ble_tracker::ScannerState state) {
+    if (this->api_connection_ != nullptr) {
+      this->send_bluetooth_scanner_state_(state);
+    }
+  });
+}
+
+void BluetoothProxy::send_bluetooth_scanner_state_(esp32_ble_tracker::ScannerState state) {
+  api::BluetoothScannerStateResponse resp;
+  resp.state = static_cast<api::enums::BluetoothScannerState>(state);
+  resp.mode = this->parent_->get_scan_active() ? api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_ACTIVE
+                                               : api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_PASSIVE;
+  this->api_connection_->send_bluetooth_scanner_state_response(resp);
+}
+
 bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || this->raw_advertisements_)
     return false;
@@ -54,6 +70,9 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
     }
 
     resp.advertisements.push_back(std::move(adv));
+
+    ESP_LOGV(TAG, "Proxying raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
+             result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length, result.rssi);
   }
   ESP_LOGV(TAG, "Proxying %d packets", count);
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
@@ -87,6 +106,8 @@ void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &devi
 void BluetoothProxy::dump_config() {
   ESP_LOGCONFIG(TAG, "Bluetooth Proxy:");
   ESP_LOGCONFIG(TAG, "  Active: %s", YESNO(this->active_));
+  ESP_LOGCONFIG(TAG, "  Connections: %d", this->connections_.size());
+  ESP_LOGCONFIG(TAG, "  Raw advertisements: %s", YESNO(this->raw_advertisements_));
 }
 
 int BluetoothProxy::get_bluetooth_connections_free() {
@@ -260,6 +281,12 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
                  connection->get_connection_index(), connection->address_str().c_str());
         return;
       } else if (connection->state() == espbt::ClientState::CONNECTING) {
+        if (connection->disconnect_pending()) {
+          ESP_LOGW(TAG, "[%d] [%s] Connection request while pending disconnect, cancelling pending disconnect",
+                   connection->get_connection_index(), connection->address_str().c_str());
+          connection->cancel_pending_disconnect();
+          return;
+        }
         ESP_LOGW(TAG, "[%d] [%s] Connection request ignored, already connecting", connection->get_connection_index(),
                  connection->address_str().c_str());
         return;
@@ -442,6 +469,8 @@ void BluetoothProxy::subscribe_api_connection(api::APIConnection *api_connection
   this->api_connection_ = api_connection;
   this->raw_advertisements_ = flags & BluetoothProxySubscriptionFlag::SUBSCRIPTION_RAW_ADVERTISEMENTS;
   this->parent_->recalculate_advertisement_parser_types();
+
+  this->send_bluetooth_scanner_state_(this->parent_->get_scanner_state());
 }
 
 void BluetoothProxy::unsubscribe_api_connection(api::APIConnection *api_connection) {
@@ -470,6 +499,11 @@ void BluetoothProxy::send_connections_free() {
   api::BluetoothConnectionsFreeResponse call;
   call.free = this->get_bluetooth_connections_free();
   call.limit = this->get_bluetooth_connections_limit();
+  for (auto *connection : this->connections_) {
+    if (connection->address_ != 0) {
+      call.allocated.push_back(connection->address_);
+    }
+  }
   this->api_connection_->send_bluetooth_connections_free_response(call);
 }
 
@@ -507,6 +541,17 @@ void BluetoothProxy::send_device_unpairing(uint64_t address, bool success, esp_e
   call.error = error;
 
   this->api_connection_->send_bluetooth_device_unpairing_response(call);
+}
+
+void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
+  if (this->parent_->get_scan_active() == active) {
+    return;
+  }
+  ESP_LOGD(TAG, "Setting scanner mode to %s", active ? "active" : "passive");
+  this->parent_->set_scan_active(active);
+  this->parent_->stop_scan();
+  this->parent_->set_scan_continuous(
+      true);  // Set this to true to automatically start scanning again when it has cleaned up.
 }
 
 BluetoothProxy *global_bluetooth_proxy = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

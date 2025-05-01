@@ -1,4 +1,5 @@
 #include "wifi_component.h"
+#ifdef USE_WIFI
 #include <cinttypes>
 #include <map>
 
@@ -58,14 +59,14 @@ void WiFiComponent::setup() {
 
 void WiFiComponent::start() {
   ESP_LOGCONFIG(TAG, "Starting WiFi...");
-  ESP_LOGCONFIG(TAG, "  Local MAC: %s", get_mac_address_pretty().c_str());
+  ESP_LOGCONFIG(TAG, "  Local MAC: %s", get_mac_address_pretty().c_str());
   this->last_connected_ = millis();
 
   uint32_t hash = this->has_sta() ? fnv1_hash(App.get_compilation_time()) : 88491487UL;
 
   this->pref_ = global_preferences->make_preference<wifi::SavedWifiSettings>(hash, true);
   if (this->fast_connect_) {
-    this->fast_connect_pref_ = global_preferences->make_preference<wifi::SavedWifiFastConnectSettings>(hash, false);
+    this->fast_connect_pref_ = global_preferences->make_preference<wifi::SavedWifiFastConnectSettings>(hash + 1, false);
   }
 
   SavedWifiSettings save{};
@@ -135,7 +136,7 @@ void WiFiComponent::loop() {
 
     switch (this->state_) {
       case WIFI_COMPONENT_STATE_COOLDOWN: {
-        this->status_set_warning();
+        this->status_set_warning("waiting to reconnect");
         if (millis() - this->action_started_ > 5000) {
           if (this->fast_connect_ || this->retry_hidden_) {
             this->start_connecting(this->sta_[0], false);
@@ -146,13 +147,13 @@ void WiFiComponent::loop() {
         break;
       }
       case WIFI_COMPONENT_STATE_STA_SCANNING: {
-        this->status_set_warning();
+        this->status_set_warning("scanning for networks");
         this->check_scanning_finished();
         break;
       }
       case WIFI_COMPONENT_STATE_STA_CONNECTING:
       case WIFI_COMPONENT_STATE_STA_CONNECTING_2: {
-        this->status_set_warning();
+        this->status_set_warning("associating to network");
         this->check_connecting_finished();
         break;
       }
@@ -296,8 +297,8 @@ void WiFiComponent::set_sta(const WiFiAP &ap) {
 void WiFiComponent::clear_sta() { this->sta_.clear(); }
 void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &password) {
   SavedWifiSettings save{};
-  strncpy(save.ssid, ssid.c_str(), sizeof(save.ssid));
-  strncpy(save.password, password.c_str(), sizeof(save.password));
+  snprintf(save.ssid, sizeof(save.ssid), "%s", ssid.c_str());
+  snprintf(save.password, sizeof(save.password), "%s", password.c_str());
   this->pref_.save(&save);
   // ensure it's written immediately
   global_preferences->sync();
@@ -443,7 +444,7 @@ void WiFiComponent::print_connect_params_() {
   if (this->selected_ap_.get_bssid().has_value()) {
     ESP_LOGV(TAG, "  Priority: %.1f", this->get_sta_priority(*this->selected_ap_.get_bssid()));
   }
-  ESP_LOGCONFIG(TAG, "  Channel: %" PRId32, wifi_channel_());
+  ESP_LOGCONFIG(TAG, "  Channel: %" PRId32, get_wifi_channel());
   ESP_LOGCONFIG(TAG, "  Subnet: %s", wifi_subnet_mask_().str().c_str());
   ESP_LOGCONFIG(TAG, "  Gateway: %s", wifi_gateway_ip_().str().c_str());
   ESP_LOGCONFIG(TAG, "  DNS1: %s", wifi_dns_ip_(0).str().c_str());
@@ -762,7 +763,7 @@ void WiFiComponent::load_fast_connect_settings_() {
 
 void WiFiComponent::save_fast_connect_settings_() {
   bssid_t bssid = wifi_bssid();
-  uint8_t channel = wifi_channel_();
+  uint8_t channel = get_wifi_channel();
 
   if (bssid != this->selected_ap_.get_bssid() || channel != this->selected_ap_.get_channel()) {
     SavedWifiFastConnectSettings fast_connect_save{};
@@ -856,3 +857,4 @@ WiFiComponent *global_wifi_component;  // NOLINT(cppcoreguidelines-avoid-non-con
 
 }  // namespace wifi
 }  // namespace esphome
+#endif

@@ -58,7 +58,19 @@ file_types = (
 )
 cpp_include = ("*.h", "*.c", "*.cpp", "*.tcc")
 py_include = ("*.py",)
-ignore_types = (".ico", ".png", ".woff", ".woff2", "", ".ttf", ".otf")
+ignore_types = (
+    ".ico",
+    ".png",
+    ".woff",
+    ".woff2",
+    "",
+    ".ttf",
+    ".otf",
+    ".pcf",
+    ".apng",
+    ".gif",
+    ".webp",
+)
 
 LINT_FILE_CHECKS = []
 LINT_CONTENT_CHECKS = []
@@ -280,6 +292,7 @@ def highlight(s):
         "esphome/core/log.h",
         "esphome/components/socket/headers.h",
         "esphome/core/defines.h",
+        "esphome/components/http_request/httplib.h",
     ],
 )
 def lint_no_defines(fname, match):
@@ -305,7 +318,12 @@ def lint_no_long_delays(fname, match):
     )
 
 
-@lint_content_check(include=["esphome/const.py"])
+@lint_content_check(
+    include=[
+        "esphome/const.py",
+        "esphome/components/const/__init__.py",
+    ]
+)
 def lint_const_ordered(fname, content):
     """Lint that value in const.py are ordered.
 
@@ -540,6 +558,7 @@ def lint_relative_py_import(fname):
         "esphome/components/rp2040/core.cpp",
         "esphome/components/libretiny/core.cpp",
         "esphome/components/host/core.cpp",
+        "esphome/components/http_request/httplib.h",
     ],
 )
 def lint_namespace(fname, content):
@@ -630,7 +649,7 @@ def lint_trailing_whitespace(fname, match):
         "esphome/components/lock/lock.h",
         "esphome/components/mqtt/mqtt_component.h",
         "esphome/components/number/number.h",
-        "esphome/components/text/text.h",
+        "esphome/components/one_wire/one_wire.h",
         "esphome/components/output/binary_output.h",
         "esphome/components/output/float_output.h",
         "esphome/components/nextion/nextion_base.h",
@@ -638,6 +657,7 @@ def lint_trailing_whitespace(fname, match):
         "esphome/components/sensor/sensor.h",
         "esphome/components/stepper/stepper.h",
         "esphome/components/switch/switch.h",
+        "esphome/components/text/text.h",
         "esphome/components/text_sensor/text_sensor.h",
         "esphome/components/valve/valve.h",
         "esphome/core/component.h",
@@ -668,8 +688,7 @@ def main():
     )
     args = parser.parse_args()
 
-    global EXECUTABLE_BIT
-    EXECUTABLE_BIT = git_ls_files()
+    EXECUTABLE_BIT.update(git_ls_files())
     files = list(EXECUTABLE_BIT.keys())
     # Match against re
     file_name_re = re.compile("|".join(args.files))

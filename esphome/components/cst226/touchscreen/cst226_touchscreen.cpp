@@ -5,13 +5,17 @@ namespace cst226 {
 
 void CST226Touchscreen::setup() {
   esph_log_config(TAG, "Setting up CST226 Touchscreen...");
-  this->reset_pin_->setup();
-  this->reset_pin_->digital_write(true);
-  delay(5);
-  this->reset_pin_->digital_write(false);
-  delay(5);
-  this->reset_pin_->digital_write(true);
-  this->set_timeout(30, [this] { this->continue_setup_(); });
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->setup();
+    this->reset_pin_->digital_write(true);
+    delay(5);
+    this->reset_pin_->digital_write(false);
+    delay(5);
+    this->reset_pin_->digital_write(true);
+    this->set_timeout(30, [this] { this->continue_setup_(); });
+  } else {
+    this->continue_setup_();
+  }
 }
 
 void CST226Touchscreen::update_touches() {
@@ -68,6 +72,8 @@ void CST226Touchscreen::continue_setup_() {
     if (this->read16_(0xD1F8, buffer, 4)) {
       this->x_raw_max_ = buffer[0] + (buffer[1] << 8);
       this->y_raw_max_ = buffer[2] + (buffer[3] << 8);
+      if (this->swap_x_y_)
+        std::swap(this->x_raw_max_, this->y_raw_max_);
     } else {
       this->x_raw_max_ = this->display_->get_native_width();
       this->y_raw_max_ = this->display_->get_native_height();

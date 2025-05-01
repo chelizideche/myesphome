@@ -387,6 +387,18 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::Me
 }
 #endif
 #ifdef HAS_PROTO_MESSAGE_DUMP
+template<> const char *proto_enum_to_string<enums::MediaPlayerFormatPurpose>(enums::MediaPlayerFormatPurpose value) {
+  switch (value) {
+    case enums::MEDIA_PLAYER_FORMAT_PURPOSE_DEFAULT:
+      return "MEDIA_PLAYER_FORMAT_PURPOSE_DEFAULT";
+    case enums::MEDIA_PLAYER_FORMAT_PURPOSE_ANNOUNCEMENT:
+      return "MEDIA_PLAYER_FORMAT_PURPOSE_ANNOUNCEMENT";
+    default:
+      return "UNKNOWN";
+  }
+}
+#endif
+#ifdef HAS_PROTO_MESSAGE_DUMP
 template<>
 const char *proto_enum_to_string<enums::BluetoothDeviceRequestType>(enums::BluetoothDeviceRequestType value) {
   switch (value) {
@@ -404,6 +416,38 @@ const char *proto_enum_to_string<enums::BluetoothDeviceRequestType>(enums::Bluet
       return "BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT_V3_WITHOUT_CACHE";
     case enums::BLUETOOTH_DEVICE_REQUEST_TYPE_CLEAR_CACHE:
       return "BLUETOOTH_DEVICE_REQUEST_TYPE_CLEAR_CACHE";
+    default:
+      return "UNKNOWN";
+  }
+}
+#endif
+#ifdef HAS_PROTO_MESSAGE_DUMP
+template<> const char *proto_enum_to_string<enums::BluetoothScannerState>(enums::BluetoothScannerState value) {
+  switch (value) {
+    case enums::BLUETOOTH_SCANNER_STATE_IDLE:
+      return "BLUETOOTH_SCANNER_STATE_IDLE";
+    case enums::BLUETOOTH_SCANNER_STATE_STARTING:
+      return "BLUETOOTH_SCANNER_STATE_STARTING";
+    case enums::BLUETOOTH_SCANNER_STATE_RUNNING:
+      return "BLUETOOTH_SCANNER_STATE_RUNNING";
+    case enums::BLUETOOTH_SCANNER_STATE_FAILED:
+      return "BLUETOOTH_SCANNER_STATE_FAILED";
+    case enums::BLUETOOTH_SCANNER_STATE_STOPPING:
+      return "BLUETOOTH_SCANNER_STATE_STOPPING";
+    case enums::BLUETOOTH_SCANNER_STATE_STOPPED:
+      return "BLUETOOTH_SCANNER_STATE_STOPPED";
+    default:
+      return "UNKNOWN";
+  }
+}
+#endif
+#ifdef HAS_PROTO_MESSAGE_DUMP
+template<> const char *proto_enum_to_string<enums::BluetoothScannerMode>(enums::BluetoothScannerMode value) {
+  switch (value) {
+    case enums::BLUETOOTH_SCANNER_MODE_PASSIVE:
+      return "BLUETOOTH_SCANNER_MODE_PASSIVE";
+    case enums::BLUETOOTH_SCANNER_MODE_ACTIVE:
+      return "BLUETOOTH_SCANNER_MODE_ACTIVE";
     default:
       return "UNKNOWN";
   }
@@ -469,6 +513,22 @@ template<> const char *proto_enum_to_string<enums::VoiceAssistantEvent>(enums::V
       return "VOICE_ASSISTANT_TTS_STREAM_START";
     case enums::VOICE_ASSISTANT_TTS_STREAM_END:
       return "VOICE_ASSISTANT_TTS_STREAM_END";
+    default:
+      return "UNKNOWN";
+  }
+}
+#endif
+#ifdef HAS_PROTO_MESSAGE_DUMP
+template<> const char *proto_enum_to_string<enums::VoiceAssistantTimerEvent>(enums::VoiceAssistantTimerEvent value) {
+  switch (value) {
+    case enums::VOICE_ASSISTANT_TIMER_STARTED:
+      return "VOICE_ASSISTANT_TIMER_STARTED";
+    case enums::VOICE_ASSISTANT_TIMER_UPDATED:
+      return "VOICE_ASSISTANT_TIMER_UPDATED";
+    case enums::VOICE_ASSISTANT_TIMER_CANCELLED:
+      return "VOICE_ASSISTANT_TIMER_CANCELLED";
+    case enums::VOICE_ASSISTANT_TIMER_FINISHED:
+      return "VOICE_ASSISTANT_TIMER_FINISHED";
     default:
       return "UNKNOWN";
   }
@@ -546,6 +606,20 @@ template<> const char *proto_enum_to_string<enums::ValveOperation>(enums::ValveO
       return "VALVE_OPERATION_IS_OPENING";
     case enums::VALVE_OPERATION_IS_CLOSING:
       return "VALVE_OPERATION_IS_CLOSING";
+    default:
+      return "UNKNOWN";
+  }
+}
+#endif
+#ifdef HAS_PROTO_MESSAGE_DUMP
+template<> const char *proto_enum_to_string<enums::UpdateCommand>(enums::UpdateCommand value) {
+  switch (value) {
+    case enums::UPDATE_COMMAND_NONE:
+      return "UPDATE_COMMAND_NONE";
+    case enums::UPDATE_COMMAND_UPDATE:
+      return "UPDATE_COMMAND_UPDATE";
+    case enums::UPDATE_COMMAND_CHECK:
+      return "UPDATE_COMMAND_CHECK";
     default:
       return "UNKNOWN";
   }
@@ -750,6 +824,10 @@ bool DeviceInfoResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
       this->voice_assistant_feature_flags = value.as_uint32();
       return true;
     }
+    case 19: {
+      this->api_encryption_supported = value.as_bool();
+      return true;
+    }
     default:
       return false;
   }
@@ -796,6 +874,10 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       this->suggested_area = value.as_string();
       return true;
     }
+    case 18: {
+      this->bluetooth_mac_address = value.as_string();
+      return true;
+    }
     default:
       return false;
   }
@@ -818,6 +900,8 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(14, this->legacy_voice_assistant_version);
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
   buffer.encode_string(16, this->suggested_area);
+  buffer.encode_string(18, this->bluetooth_mac_address);
+  buffer.encode_bool(19, this->api_encryption_supported);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -894,6 +978,14 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 
   out.append("  suggested_area: ");
   out.append("'").append(this->suggested_area).append("'");
+  out.append("\n");
+
+  out.append("  bluetooth_mac_address: ");
+  out.append("'").append(this->bluetooth_mac_address).append("'");
+  out.append("\n");
+
+  out.append("  api_encryption_supported: ");
+  out.append(YESNO(this->api_encryption_supported));
   out.append("\n");
   out.append("}");
 }
@@ -2958,6 +3050,48 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("NoiseEncryptionSetKeyRequest {\n");
+  out.append("  key: ");
+  out.append("'").append(this->key).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->success = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("NoiseEncryptionSetKeyResponse {\n");
+  out.append("  success: ");
+  out.append(YESNO(this->success));
+  out.append("\n");
+  out.append("}");
+}
+#endif
 void SubscribeHomeassistantServicesRequest::encode(ProtoWriteBuffer buffer) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeassistantServicesRequest::dump_to(std::string &out) const {
@@ -3079,6 +3213,16 @@ void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
 }
 #endif
+bool SubscribeHomeAssistantStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 3: {
+      this->once = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
 bool SubscribeHomeAssistantStateResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -3096,6 +3240,7 @@ bool SubscribeHomeAssistantStateResponse::decode_length(uint32_t field_id, Proto
 void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->entity_id);
   buffer.encode_string(2, this->attribute);
+  buffer.encode_bool(3, this->once);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
@@ -3107,6 +3252,10 @@ void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
 
   out.append("  attribute: ");
   out.append("'").append(this->attribute).append("'");
+  out.append("\n");
+
+  out.append("  once: ");
+  out.append(YESNO(this->once));
   out.append("\n");
   out.append("}");
 }
@@ -5078,6 +5227,74 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+bool MediaPlayerSupportedFormat::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 2: {
+      this->sample_rate = value.as_uint32();
+      return true;
+    }
+    case 3: {
+      this->num_channels = value.as_uint32();
+      return true;
+    }
+    case 4: {
+      this->purpose = value.as_enum<enums::MediaPlayerFormatPurpose>();
+      return true;
+    }
+    case 5: {
+      this->sample_bytes = value.as_uint32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool MediaPlayerSupportedFormat::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->format = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->format);
+  buffer.encode_uint32(2, this->sample_rate);
+  buffer.encode_uint32(3, this->num_channels);
+  buffer.encode_enum<enums::MediaPlayerFormatPurpose>(4, this->purpose);
+  buffer.encode_uint32(5, this->sample_bytes);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("MediaPlayerSupportedFormat {\n");
+  out.append("  format: ");
+  out.append("'").append(this->format).append("'");
+  out.append("\n");
+
+  out.append("  sample_rate: ");
+  sprintf(buffer, "%" PRIu32, this->sample_rate);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  num_channels: ");
+  sprintf(buffer, "%" PRIu32, this->num_channels);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  purpose: ");
+  out.append(proto_enum_to_string<enums::MediaPlayerFormatPurpose>(this->purpose));
+  out.append("\n");
+
+  out.append("  sample_bytes: ");
+  sprintf(buffer, "%" PRIu32, this->sample_bytes);
+  out.append(buffer);
+  out.append("\n");
+  out.append("}");
+}
+#endif
 bool ListEntitiesMediaPlayerResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -5114,6 +5331,10 @@ bool ListEntitiesMediaPlayerResponse::decode_length(uint32_t field_id, ProtoLeng
       this->icon = value.as_string();
       return true;
     }
+    case 9: {
+      this->supported_formats.push_back(value.as_message<MediaPlayerSupportedFormat>());
+      return true;
+    }
     default:
       return false;
   }
@@ -5137,6 +5358,9 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
   buffer.encode_bool(8, this->supports_pause);
+  for (auto &it : this->supported_formats) {
+    buffer.encode_message<MediaPlayerSupportedFormat>(9, it, true);
+  }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
@@ -5174,6 +5398,12 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("  supports_pause: ");
   out.append(YESNO(this->supports_pause));
   out.append("\n");
+
+  for (const auto &it : this->supported_formats) {
+    out.append("  supported_formats: ");
+    it.dump_to(out);
+    out.append("\n");
+  }
   out.append("}");
 }
 #endif
@@ -6292,6 +6522,10 @@ bool BluetoothConnectionsFreeResponse::decode_varint(uint32_t field_id, ProtoVar
       this->limit = value.as_uint32();
       return true;
     }
+    case 3: {
+      this->allocated.push_back(value.as_uint64());
+      return true;
+    }
     default:
       return false;
   }
@@ -6299,6 +6533,9 @@ bool BluetoothConnectionsFreeResponse::decode_varint(uint32_t field_id, ProtoVar
 void BluetoothConnectionsFreeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->free);
   buffer.encode_uint32(2, this->limit);
+  for (auto &it : this->allocated) {
+    buffer.encode_uint64(3, it, true);
+  }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
@@ -6313,6 +6550,13 @@ void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
   sprintf(buffer, "%" PRIu32, this->limit);
   out.append(buffer);
   out.append("\n");
+
+  for (const auto &it : this->allocated) {
+    out.append("  allocated: ");
+    sprintf(buffer, "%llu", it);
+    out.append(buffer);
+    out.append("\n");
+  }
   out.append("}");
 }
 #endif
@@ -6559,6 +6803,61 @@ void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   out.append("  error: ");
   sprintf(buffer, "%" PRId32, this->error);
   out.append(buffer);
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool BluetoothScannerStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->state = value.as_enum<enums::BluetoothScannerState>();
+      return true;
+    }
+    case 2: {
+      this->mode = value.as_enum<enums::BluetoothScannerMode>();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void BluetoothScannerStateResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_enum<enums::BluetoothScannerState>(1, this->state);
+  buffer.encode_enum<enums::BluetoothScannerMode>(2, this->mode);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void BluetoothScannerStateResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("BluetoothScannerStateResponse {\n");
+  out.append("  state: ");
+  out.append(proto_enum_to_string<enums::BluetoothScannerState>(this->state));
+  out.append("\n");
+
+  out.append("  mode: ");
+  out.append(proto_enum_to_string<enums::BluetoothScannerMode>(this->mode));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool BluetoothScannerSetModeRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->mode = value.as_enum<enums::BluetoothScannerMode>();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void BluetoothScannerSetModeRequest::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_enum<enums::BluetoothScannerMode>(1, this->mode);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("BluetoothScannerSetModeRequest {\n");
+  out.append("  mode: ");
+  out.append(proto_enum_to_string<enums::BluetoothScannerMode>(this->mode));
   out.append("\n");
   out.append("}");
 }
@@ -6854,6 +7153,293 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
   out.append("  end: ");
   out.append(YESNO(this->end));
   out.append("\n");
+  out.append("}");
+}
+#endif
+bool VoiceAssistantTimerEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->event_type = value.as_enum<enums::VoiceAssistantTimerEvent>();
+      return true;
+    }
+    case 4: {
+      this->total_seconds = value.as_uint32();
+      return true;
+    }
+    case 5: {
+      this->seconds_left = value.as_uint32();
+      return true;
+    }
+    case 6: {
+      this->is_active = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool VoiceAssistantTimerEventResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 2: {
+      this->timer_id = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->name = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantTimerEventResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_enum<enums::VoiceAssistantTimerEvent>(1, this->event_type);
+  buffer.encode_string(2, this->timer_id);
+  buffer.encode_string(3, this->name);
+  buffer.encode_uint32(4, this->total_seconds);
+  buffer.encode_uint32(5, this->seconds_left);
+  buffer.encode_bool(6, this->is_active);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantTimerEventResponse {\n");
+  out.append("  event_type: ");
+  out.append(proto_enum_to_string<enums::VoiceAssistantTimerEvent>(this->event_type));
+  out.append("\n");
+
+  out.append("  timer_id: ");
+  out.append("'").append(this->timer_id).append("'");
+  out.append("\n");
+
+  out.append("  name: ");
+  out.append("'").append(this->name).append("'");
+  out.append("\n");
+
+  out.append("  total_seconds: ");
+  sprintf(buffer, "%" PRIu32, this->total_seconds);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  seconds_left: ");
+  sprintf(buffer, "%" PRIu32, this->seconds_left);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  is_active: ");
+  out.append(YESNO(this->is_active));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool VoiceAssistantAnnounceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 4: {
+      this->start_conversation = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->media_id = value.as_string();
+      return true;
+    }
+    case 2: {
+      this->text = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->preannounce_media_id = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->media_id);
+  buffer.encode_string(2, this->text);
+  buffer.encode_string(3, this->preannounce_media_id);
+  buffer.encode_bool(4, this->start_conversation);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantAnnounceRequest {\n");
+  out.append("  media_id: ");
+  out.append("'").append(this->media_id).append("'");
+  out.append("\n");
+
+  out.append("  text: ");
+  out.append("'").append(this->text).append("'");
+  out.append("\n");
+
+  out.append("  preannounce_media_id: ");
+  out.append("'").append(this->preannounce_media_id).append("'");
+  out.append("\n");
+
+  out.append("  start_conversation: ");
+  out.append(YESNO(this->start_conversation));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool VoiceAssistantAnnounceFinished::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->success = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantAnnounceFinished {\n");
+  out.append("  success: ");
+  out.append(YESNO(this->success));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool VoiceAssistantWakeWord::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->id = value.as_string();
+      return true;
+    }
+    case 2: {
+      this->wake_word = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->trained_languages.push_back(value.as_string());
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->id);
+  buffer.encode_string(2, this->wake_word);
+  for (auto &it : this->trained_languages) {
+    buffer.encode_string(3, it, true);
+  }
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantWakeWord::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantWakeWord {\n");
+  out.append("  id: ");
+  out.append("'").append(this->id).append("'");
+  out.append("\n");
+
+  out.append("  wake_word: ");
+  out.append("'").append(this->wake_word).append("'");
+  out.append("\n");
+
+  for (const auto &it : this->trained_languages) {
+    out.append("  trained_languages: ");
+    out.append("'").append(it).append("'");
+    out.append("\n");
+  }
+  out.append("}");
+}
+#endif
+void VoiceAssistantConfigurationRequest::encode(ProtoWriteBuffer buffer) const {}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
+  out.append("VoiceAssistantConfigurationRequest {}");
+}
+#endif
+bool VoiceAssistantConfigurationResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 3: {
+      this->max_active_wake_words = value.as_uint32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool VoiceAssistantConfigurationResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->available_wake_words.push_back(value.as_message<VoiceAssistantWakeWord>());
+      return true;
+    }
+    case 2: {
+      this->active_wake_words.push_back(value.as_string());
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantConfigurationResponse::encode(ProtoWriteBuffer buffer) const {
+  for (auto &it : this->available_wake_words) {
+    buffer.encode_message<VoiceAssistantWakeWord>(1, it, true);
+  }
+  for (auto &it : this->active_wake_words) {
+    buffer.encode_string(2, it, true);
+  }
+  buffer.encode_uint32(3, this->max_active_wake_words);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantConfigurationResponse {\n");
+  for (const auto &it : this->available_wake_words) {
+    out.append("  available_wake_words: ");
+    it.dump_to(out);
+    out.append("\n");
+  }
+
+  for (const auto &it : this->active_wake_words) {
+    out.append("  active_wake_words: ");
+    out.append("'").append(it).append("'");
+    out.append("\n");
+  }
+
+  out.append("  max_active_wake_words: ");
+  sprintf(buffer, "%" PRIu32, this->max_active_wake_words);
+  out.append(buffer);
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool VoiceAssistantSetConfiguration::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->active_wake_words.push_back(value.as_string());
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void VoiceAssistantSetConfiguration::encode(ProtoWriteBuffer buffer) const {
+  for (auto &it : this->active_wake_words) {
+    buffer.encode_string(1, it, true);
+  }
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("VoiceAssistantSetConfiguration {\n");
+  for (const auto &it : this->active_wake_words) {
+    out.append("  active_wake_words: ");
+    out.append("'").append(it).append("'");
+    out.append("\n");
+  }
   out.append("}");
 }
 #endif
@@ -8280,6 +8866,262 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
   out.append("  epoch_seconds: ");
   sprintf(buffer, "%" PRIu32, this->epoch_seconds);
   out.append(buffer);
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool ListEntitiesUpdateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 6: {
+      this->disabled_by_default = value.as_bool();
+      return true;
+    }
+    case 7: {
+      this->entity_category = value.as_enum<enums::EntityCategory>();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool ListEntitiesUpdateResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->object_id = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->name = value.as_string();
+      return true;
+    }
+    case 4: {
+      this->unique_id = value.as_string();
+      return true;
+    }
+    case 5: {
+      this->icon = value.as_string();
+      return true;
+    }
+    case 8: {
+      this->device_class = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool ListEntitiesUpdateResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 2: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->object_id);
+  buffer.encode_fixed32(2, this->key);
+  buffer.encode_string(3, this->name);
+  buffer.encode_string(4, this->unique_id);
+  buffer.encode_string(5, this->icon);
+  buffer.encode_bool(6, this->disabled_by_default);
+  buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
+  buffer.encode_string(8, this->device_class);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("ListEntitiesUpdateResponse {\n");
+  out.append("  object_id: ");
+  out.append("'").append(this->object_id).append("'");
+  out.append("\n");
+
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  name: ");
+  out.append("'").append(this->name).append("'");
+  out.append("\n");
+
+  out.append("  unique_id: ");
+  out.append("'").append(this->unique_id).append("'");
+  out.append("\n");
+
+  out.append("  icon: ");
+  out.append("'").append(this->icon).append("'");
+  out.append("\n");
+
+  out.append("  disabled_by_default: ");
+  out.append(YESNO(this->disabled_by_default));
+  out.append("\n");
+
+  out.append("  entity_category: ");
+  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
+  out.append("\n");
+
+  out.append("  device_class: ");
+  out.append("'").append(this->device_class).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool UpdateStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 2: {
+      this->missing_state = value.as_bool();
+      return true;
+    }
+    case 3: {
+      this->in_progress = value.as_bool();
+      return true;
+    }
+    case 4: {
+      this->has_progress = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool UpdateStateResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 6: {
+      this->current_version = value.as_string();
+      return true;
+    }
+    case 7: {
+      this->latest_version = value.as_string();
+      return true;
+    }
+    case 8: {
+      this->title = value.as_string();
+      return true;
+    }
+    case 9: {
+      this->release_summary = value.as_string();
+      return true;
+    }
+    case 10: {
+      this->release_url = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool UpdateStateResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    case 5: {
+      this->progress = value.as_float();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void UpdateStateResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_fixed32(1, this->key);
+  buffer.encode_bool(2, this->missing_state);
+  buffer.encode_bool(3, this->in_progress);
+  buffer.encode_bool(4, this->has_progress);
+  buffer.encode_float(5, this->progress);
+  buffer.encode_string(6, this->current_version);
+  buffer.encode_string(7, this->latest_version);
+  buffer.encode_string(8, this->title);
+  buffer.encode_string(9, this->release_summary);
+  buffer.encode_string(10, this->release_url);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void UpdateStateResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("UpdateStateResponse {\n");
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  missing_state: ");
+  out.append(YESNO(this->missing_state));
+  out.append("\n");
+
+  out.append("  in_progress: ");
+  out.append(YESNO(this->in_progress));
+  out.append("\n");
+
+  out.append("  has_progress: ");
+  out.append(YESNO(this->has_progress));
+  out.append("\n");
+
+  out.append("  progress: ");
+  sprintf(buffer, "%g", this->progress);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  current_version: ");
+  out.append("'").append(this->current_version).append("'");
+  out.append("\n");
+
+  out.append("  latest_version: ");
+  out.append("'").append(this->latest_version).append("'");
+  out.append("\n");
+
+  out.append("  title: ");
+  out.append("'").append(this->title).append("'");
+  out.append("\n");
+
+  out.append("  release_summary: ");
+  out.append("'").append(this->release_summary).append("'");
+  out.append("\n");
+
+  out.append("  release_url: ");
+  out.append("'").append(this->release_url).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool UpdateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 2: {
+      this->command = value.as_enum<enums::UpdateCommand>();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool UpdateCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void UpdateCommandRequest::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_fixed32(1, this->key);
+  buffer.encode_enum<enums::UpdateCommand>(2, this->command);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void UpdateCommandRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("UpdateCommandRequest {\n");
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  command: ");
+  out.append(proto_enum_to_string<enums::UpdateCommand>(this->command));
   out.append("\n");
   out.append("}");
 }
