@@ -598,6 +598,11 @@ async def to_code(config):
         os.path.join(os.path.dirname(__file__), "post_build.py.script"),
     )
 
+    if CONF_PARTITIONS in config:
+        add_extra_build_file(
+            "partitions.csv", CORE.relative_config_path(config[CONF_PARTITIONS])
+        )
+
     if conf[CONF_TYPE] == FRAMEWORK_ESP_IDF:
         cg.add_platformio_option("framework", "espidf")
         cg.add_build_flag("-DUSE_ESP_IDF")
@@ -632,10 +637,6 @@ async def to_code(config):
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1", False)
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
-        if CONF_PARTITIONS in config:
-            add_extra_build_file(
-                "partitions.csv", CORE.relative_config_path(config[CONF_PARTITIONS])
-            )
 
         for name, value in conf[CONF_SDKCONFIG_OPTIONS].items():
             add_idf_sdkconfig_option(name, RawSdkconfigValue(value))
