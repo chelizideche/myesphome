@@ -1,4 +1,4 @@
-from esphome import pins, core
+from esphome import pins
 import esphome.codegen as cg
 from esphome.components import i2c, sensor
 import esphome.config_validation as cv
@@ -58,8 +58,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TIMING_BUDGET): cv.All(
                 cv.positive_time_period_microseconds,
                 cv.Range(
-                    min=core.TimePeriod(microseconds=20000),
-                    max=core.TimePeriod(microseconds=4294967295),
+                    min=cv.TimePeriod(microseconds=20000),
+                    max=cv.TimePeriod(microseconds=4294967295),
                 ),
             ),
         }
@@ -81,7 +81,7 @@ async def to_code(config):
         enable = await cg.gpio_pin_expression(config[CONF_ENABLE_PIN])
         cg.add(var.set_enable_pin(enable))
 
-    if CONF_TIMING_BUDGET in config:
-        cg.add(var.set_timing_budget(config[CONF_TIMING_BUDGET]))
+    if timing_budget := config.get(CONF_TIMING_BUDGET):
+        cg.add(var.set_timing_budget(timing_budget))
 
     await i2c.register_i2c_device(var, config)
