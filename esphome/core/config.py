@@ -1,5 +1,4 @@
 import logging
-import multiprocessing
 import os
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from esphome.const import (
     CONF_BUILD_PATH,
     CONF_COMMENT,
     CONF_COMPILE_PROCESS_LIMIT,
+    CONF_DEBUG_SCHEDULER,
     CONF_ESPHOME,
     CONF_FRIENDLY_NAME,
     CONF_INCLUDES,
@@ -94,10 +94,19 @@ def valid_project_name(value: str):
     return value
 
 
+def get_usable_cpu_count() -> int:
+    """Return the number of CPUs that can be used for processes.
+    On Python 3.13+ this is the number of CPUs that can be used for processes.
+    On older Python versions this is the number of CPUs.
+    """
+    return (
+        os.process_cpu_count() if hasattr(os, "process_cpu_count") else os.cpu_count()
+    )
+
+
 if "ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT" in os.environ:
     _compile_process_limit_default = min(
-        int(os.environ["ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT"]),
-        multiprocessing.cpu_count(),
+        int(os.environ["ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT"]), get_usable_cpu_count()
     )
 else:
     _compile_process_limit_default = cv.UNDEFINED
@@ -136,6 +145,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_INCLUDES, default=[]): cv.ensure_list(valid_include),
             cv.Optional(CONF_LIBRARIES, default=[]): cv.ensure_list(cv.string_strict),
             cv.Optional(CONF_NAME_ADD_MAC_SUFFIX, default=False): cv.boolean,
+            cv.Optional(CONF_DEBUG_SCHEDULER, default=False): cv.boolean,
             cv.Optional(CONF_PROJECT): cv.Schema(
                 {
                     cv.Required(CONF_NAME): cv.All(
@@ -156,7 +166,7 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
-            ): cv.int_range(min=1, max=multiprocessing.cpu_count()),
+            ): cv.int_range(min=1, max=get_usable_cpu_count()),
         }
     ),
     validate_hostname,
@@ -181,9 +191,10 @@ def _is_target_platform(name):
     from esphome.loader import get_component
 
     try:
-        if get_component(name, True).is_target_platform:
-            return True
+        return get_component(name, True).is_target_platform
     except KeyError:
+        pass
+    except ImportError:
         pass
     return False
 
@@ -217,6 +228,8 @@ def preload_core_config(config, result) -> str:
     target_platforms = []
 
     for domain, _ in config.items():
+        if domain.startswith("."):
+            continue
         if _is_target_platform(domain):
             target_platforms += [domain]
 
@@ -358,6 +371,8 @@ async def to_code(config):
     cg.add_build_flag("-Wno-unused-variable")
     cg.add_build_flag("-Wno-unused-but-set-variable")
     cg.add_build_flag("-Wno-sign-compare")
+    if config[CONF_DEBUG_SCHEDULER]:
+        cg.add_define("ESPHOME_DEBUG_SCHEDULER")
 
     if CORE.using_arduino and not CORE.is_bk72xx:
         CORE.add_job(add_arduino_global_workaround)
