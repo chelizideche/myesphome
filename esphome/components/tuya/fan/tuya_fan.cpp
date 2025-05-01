@@ -15,6 +15,7 @@ void TuyaFan::setup() {
           ESP_LOGE(TAG, "Speed has invalid value %d", datapoint.value_enum);
         } else {
           this->speed = datapoint.value_enum + 1;
+          this->publish_state();
         }
       } else if (datapoint.type == TuyaDatapointType::INTEGER) {
         ESP_LOGV(TAG, "MCU reported speed of: %d", datapoint.value_int);
@@ -27,6 +28,7 @@ void TuyaFan::setup() {
     this->parent_->register_listener(*this->switch_id_, [this](const TuyaDatapoint &datapoint) {
       ESP_LOGV(TAG, "MCU reported switch is: %s", ONOFF(datapoint.value_bool));
       this->state = datapoint.value_bool;
+      this->publish_state();
     });
   }
   if (this->oscillation_id_.has_value()) {
@@ -35,6 +37,7 @@ void TuyaFan::setup() {
       // scenarios
       ESP_LOGV(TAG, "MCU reported oscillation is: %s", ONOFF(datapoint.value_bool));
       this->oscillating = datapoint.value_bool;
+      this->publish_state();
 
       this->oscillation_type_ = datapoint.type;
     });
@@ -43,6 +46,7 @@ void TuyaFan::setup() {
     this->parent_->register_listener(*this->direction_id_, [this](const TuyaDatapoint &datapoint) {
       ESP_LOGD(TAG, "MCU reported reverse direction is: %s", ONOFF(datapoint.value_bool));
       this->direction = datapoint.value_bool ? fan::FanDirection::REVERSE : fan::FanDirection::FORWARD;
+      this->publish_state();
     });
   }
 
