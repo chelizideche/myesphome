@@ -125,9 +125,9 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await uart.register_uart_device(var, config)
 
-    if CONF_COMMAND_SPACING in config:
+    if command_spacing := config.get(CONF_COMMAND_SPACING):
         cg.add_define("USE_NEXTION_COMMAND_SPACING")
-        cg.add(var.set_command_spacing(config[CONF_COMMAND_SPACING]))
+        cg.add(var.set_command_spacing(command_spacing.total_milliseconds))
 
     if CONF_BRIGHTNESS in config:
         cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
