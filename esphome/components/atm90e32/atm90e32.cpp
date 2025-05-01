@@ -100,9 +100,11 @@ void ATM90E32Component::update() {
   this->set_publish_interval_flag_(true);
   this->status_clear_warning();
 
+#ifdef USE_TEXT_SENSOR
   this->check_phase_status();
   this->check_over_current();
   this->check_freq_status();
+#endif
 }
 
 void ATM90E32Component::setup() {
@@ -154,14 +156,12 @@ void ATM90E32Component::setup() {
 
   if (this->enable_offset_calibration_) {
     // Initialize flash storage for offset calibrations
-    uint32_t o_hash =
-        fnv1_hash(App.get_friendly_name() + "_offset_calibration_" + std::to_string((intptr_t) this->cs_));
+    uint32_t o_hash = fnv1_hash(std::string("_offset_calibration_") + this->cs_->dump_summary());
     this->offset_pref_ = global_preferences->make_preference<OffsetCalibration[3]>(o_hash, true);
     this->restore_offset_calibrations_();
 
     // Initialize flash storage for power offset calibrations
-    uint32_t po_hash =
-        fnv1_hash(App.get_friendly_name() + "_power_offset_calibration_" + std::to_string((intptr_t) this->cs_));
+    uint32_t po_hash = fnv1_hash(std::string("_power_offset_calibration_") + this->cs_->dump_summary());
     this->power_offset_pref_ = global_preferences->make_preference<PowerOffsetCalibration[3]>(po_hash, true);
     this->restore_power_offset_calibrations_();
   } else {
@@ -180,7 +180,7 @@ void ATM90E32Component::setup() {
 
   if (this->enable_gain_calibration_) {
     // Initialize flash storage for gain calibration
-    uint32_t g_hash = fnv1_hash(App.get_friendly_name() + "_gain_calibration_" + std::to_string((intptr_t) this->cs_));
+    uint32_t g_hash = fnv1_hash(std::string("_gain_calibration_") + this->cs_->dump_summary());
     this->gain_calibration_pref_ = global_preferences->make_preference<GainCalibration[3]>(g_hash, true);
     this->restore_gain_calibrations_();
 
@@ -446,6 +446,7 @@ float ATM90E32Component::get_chip_temperature_() {
   return (float) ctemp;
 }
 
+#ifdef USE_NUMBER
 void ATM90E32Component::run_gain_calibrations() {
   if (!this->enable_gain_calibration_) {
     ESP_LOGW("CALIBRATION", "Gain calibration is disabled! Enable it first with enable_gain_calibration: true");
@@ -526,6 +527,7 @@ void ATM90E32Component::run_gain_calibrations() {
   this->write_gains_to_registers_();
   this->verify_gain_writes_();
 }
+#endif
 
 void ATM90E32Component::save_gain_calibration_to_memory_() {
   bool success = this->gain_calibration_pref_.save(&this->gain_phase_);
@@ -757,6 +759,7 @@ bool ATM90E32Component::verify_gain_writes_() {
   return success;  // Return true if all writes were successful, false otherwise
 }
 
+#ifdef USE_TEXT_SENSOR
 void ATM90E32Component::check_phase_status() {
   uint16_t state0 = this->read16_(ATM90E32_REGISTER_EMMSTATE0);
   uint16_t state1 = this->read16_(ATM90E32_REGISTER_EMMSTATE1);
@@ -821,6 +824,7 @@ void ATM90E32Component::check_over_current() {
     }
   }
 }
+#endif
 
 uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t ugain, float multiplier) {
   // this assumes that 60Hz electrical systems use 120V mains,

@@ -2,8 +2,6 @@
 
 #include "atm90e32_reg.h"
 #include "esphome/components/sensor/sensor.h"
-#include "esphome/components/number/number.h"
-#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/spi/spi.h"
 #include "esphome/core/application.h"
 #include "esphome/core/component.h"
@@ -83,7 +81,9 @@ class ATM90E32Component : public PollingComponent,
   void set_pga_gain(uint16_t gain) { pga_gain_ = gain; }
   void run_offset_calibrations();
   void run_power_offset_calibrations();
+#ifdef USE_NUMBER
   void run_gain_calibrations();
+#endif
   void clear_offset_calibrations();
   void clear_power_offset_calibrations();
   void clear_gain_calibrations();
@@ -91,6 +91,7 @@ class ATM90E32Component : public PollingComponent,
   void set_enable_gain_calibration(bool flag) { enable_gain_calibration_ = flag; }
   int16_t calibrate_offset(uint8_t phase, bool voltage);
   int16_t calibrate_power_offset(uint8_t phase, bool reactive);
+#ifdef USE_NUMBER
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
   void set_reference_current(uint8_t phase, number::Number *ref_current) { ref_currents_[phase] = ref_current; }
   float get_reference_voltage(uint8_t phase) {
@@ -99,7 +100,9 @@ class ATM90E32Component : public PollingComponent,
   float get_reference_current(uint8_t phase) {
     return (phase >= 0 && phase < 3 && ref_currents_[phase]) ? ref_currents_[phase]->state : 5.0f;  // Default current
   }
+#endif
   bool using_saved_calibrations_ = false;  // Track if stored calibrations are being used
+#ifdef USE_TEXT_SENSOR
   void check_phase_status();
   void check_freq_status();
   void check_over_current();
@@ -107,14 +110,15 @@ class ATM90E32Component : public PollingComponent,
     this->phase_status_text_sensor_[phase] = sensor;
   }
   void set_freq_status_text_sensor(text_sensor::TextSensor *sensor) { this->freq_status_text_sensor_ = sensor; }
+#endif
   uint16_t calculate_voltage_threshold(int line_freq, uint16_t ugain, float multiplier);
   int32_t last_periodic_millis = millis();
 
- private:
+ protected:
+#ifdef USE_NUMBER
   number::Number *ref_voltages_[3]{nullptr, nullptr, nullptr};
   number::Number *ref_currents_[3]{nullptr, nullptr, nullptr};
-
- protected:
+#endif
   uint16_t read16_(uint16_t a_register);
   int read32_(uint16_t addr_h, uint16_t addr_l);
   void write16_(uint16_t a_register, uint16_t val);
@@ -208,8 +212,10 @@ class ATM90E32Component : public PollingComponent,
   ESPPreferenceObject gain_calibration_pref_;
 
   sensor::Sensor *freq_sensor_{nullptr};
+#ifdef USE_TEXT_SENSOR
   text_sensor::TextSensor *phase_status_text_sensor_[3]{nullptr};
   text_sensor::TextSensor *freq_status_text_sensor_{nullptr};
+#endif
   sensor::Sensor *chip_temperature_sensor_{nullptr};
   uint16_t pga_gain_{0x15};
   int line_freq_{60};
@@ -218,20 +224,6 @@ class ATM90E32Component : public PollingComponent,
   bool peak_current_signed_{false};
   bool enable_offset_calibration_{false};
   bool enable_gain_calibration_{false};
-};
-
-class ATM90E32Number : public number::Number, public Parented<ATM90E32Component> {
- public:
-  void control(float value) override { this->publish_state(value); }
-};
-class ATM90E32PhaseStatusSensor : public text_sensor::TextSensor, public Parented<ATM90E32Component> {
- public:
-  void set_parent(ATM90E32Component *parent) { this->parent_ = parent; }
-};
-
-class ATM90E32FreqStatusSensor : public text_sensor::TextSensor, public Parented<ATM90E32Component> {
- public:
-  void set_parent(ATM90E32Component *parent) { this->parent_ = parent; }
 };
 
 }  // namespace atm90e32
