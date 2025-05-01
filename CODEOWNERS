@@ -98,6 +98,7 @@ esphome/components/climate/* @esphome/core
 esphome/components/climate_ir/* @glmnet
 esphome/components/color_temperature/* @jesserockz
 esphome/components/combination/* @Cat-Ion @kahrendt
+esphome/components/const/* @esphome/core
 esphome/components/coolix/* @glmnet
 esphome/components/copy/* @OttoWinter
 esphome/components/cover/* @esphome/core
@@ -250,6 +251,7 @@ esphome/components/ltr501/* @latonita
 esphome/components/ltr_als_ps/* @latonita
 esphome/components/lvgl/* @clydebarrow
 esphome/components/m5stack_8angle/* @rnauber
+esphome/components/mapping/* @clydebarrow
 esphome/components/matrix_keypad/* @ssieb
 esphome/components/max17043/* @blacknell
 esphome/components/max31865/* @DAVe3283
@@ -266,6 +268,7 @@ esphome/components/mcp23x17_base/* @jesserockz
 esphome/components/mcp23xxx_base/* @jesserockz
 esphome/components/mcp2515/* @danielschramm @mvturnho
 esphome/components/mcp3204/* @rsumner
+esphome/components/mcp4461/* @p1ngb4ck
 esphome/components/mcp4728/* @berfenger
 esphome/components/mcp47a1/* @jesserockz
 esphome/components/mcp9600/* @mreditor97
@@ -275,7 +278,7 @@ esphome/components/mdns/* @esphome/core
 esphome/components/media_player/* @jesserockz
 esphome/components/micro_wake_word/* @jesserockz @kahrendt
 esphome/components/micronova/* @jorre05
-esphome/components/microphone/* @jesserockz
+esphome/components/microphone/* @jesserockz @kahrendt
 esphome/components/mics_4514/* @jesserockz
 esphome/components/midea/* @dudanov
 esphome/components/midea_ir/* @dudanov
@@ -323,7 +326,9 @@ esphome/components/pcf8563/* @KoenBreeman
 esphome/components/pid/* @OttoWinter
 esphome/components/pipsolar/* @andreashergert1984
 esphome/components/pm1006/* @habbie
+esphome/components/pm2005/* @andrewjswan
 esphome/components/pmsa003i/* @sjtrny
+esphome/components/pmsx003/* @ximex
 esphome/components/pmwcs3/* @SeByDocKy
 esphome/components/pn532/* @OttoWinter @jesserockz
 esphome/components/pn532_i2c/* @OttoWinter @jesserockz
@@ -448,6 +453,7 @@ esphome/components/tmp102/* @timsavage
 esphome/components/tmp1075/* @sybrenstuvel
 esphome/components/tmp117/* @Azimath
 esphome/components/tof10120/* @wstrzalka
+esphome/components/tormatic/* @ti-mo
 esphome/components/toshiba/* @kbx81
 esphome/components/touchscreen/* @jesserockz @nielsnl68
 esphome/components/tsl2591/* @wjcarpenter
