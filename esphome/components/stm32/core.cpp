@@ -41,9 +41,6 @@ int main() {
 
   setup();
   esphome::stm32::log_clock_config();
-#if defined(FLASH_BANK_2)
-  ESP_LOGI(TAG, "Active flash bank: %d", ::esphome::stm32::get_active_flash_bank());
-#endif
   while (1) {
     loop();
   }
