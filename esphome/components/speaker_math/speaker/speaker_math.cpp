@@ -258,8 +258,10 @@ void SpeakerMath::set_mute_state(bool mute_state) {
 void SpeakerMath::set_volume(float volume) {
   this->volume_ = volume;
   if (!intercept_volume_) {
+    // only pass along volume if we aren't intercepting it
     this->output_speaker_->set_volume(volume);
   } else {
+    // don't pass along volume; also assume that volume of the descendent doesn't need to be changed
     ssize_t decibel_index = remap<ssize_t, float>(volume, 0.0f, 1.0f, 0, Q15_VOLUME_SCALING_FACTORS.size() - 1);
     this->q15_volume_factor_ = Q15_VOLUME_SCALING_FACTORS[decibel_index];
   }
@@ -331,6 +333,8 @@ void SpeakerMath::convert_task(void *params) {
       DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
       const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
       auto first_element = convert_buffer[0]; \
+\
+      /* Apply volume gain now, before it is (potentially) transformed into unsigned data */ \
       if (intercept_volume) { \
         auto volume_factor = this_speaker_math->q15_volume_factor_; \
         auto buffer_start = (int16_t *) output_buffer->get_buffer_start(); \
