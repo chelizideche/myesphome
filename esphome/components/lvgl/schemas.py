@@ -226,8 +226,8 @@ FULL_STYLE_SCHEMA = STYLE_SCHEMA.extend(
     {
         cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
         cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
-        cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-        cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+        cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+        cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
     }
 )
 
@@ -370,8 +370,8 @@ LAYOUT_SCHEMA = {
                 cv.Required(df.CONF_GRID_COLUMNS): [grid_spec],
                 cv.Optional(df.CONF_GRID_COLUMN_ALIGN): grid_alignments,
                 cv.Optional(df.CONF_GRID_ROW_ALIGN): grid_alignments,
-                cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-                cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+                cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+                cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
             },
             df.TYPE_FLEX: {
                 cv.Optional(
@@ -380,8 +380,8 @@ LAYOUT_SCHEMA = {
                 cv.Optional(df.CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
                 cv.Optional(df.CONF_FLEX_ALIGN_CROSS, default="start"): flex_alignments,
                 cv.Optional(df.CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
-                cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-                cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+                cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+                cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
             },
         },
         lower=True,
@@ -427,8 +427,8 @@ ALL_STYLES = {
     **STYLE_PROPS,
     **GRID_CELL_SCHEMA,
     **FLEX_OBJ_SCHEMA,
-    cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-    cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+    cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+    cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
 }
 
 
