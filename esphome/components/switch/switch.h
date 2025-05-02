@@ -71,6 +71,14 @@ class Switch : public EntityBase, public EntityBase_DeviceClass {
    */
   void toggle();
 
+  /** Control this switch. This is called by the front-end.
+   *
+   * For implementing switches, please override write_state.
+
+   * @param state The new state.
+   */
+  void control(bool state);
+
   /** Set whether the state should be treated as inverted.
    *
    * To the developer and user an inverted switch will act just like a non-inverted one.

@@ -51,6 +51,7 @@ RESTORE_MODES = {
 ToggleAction = switch_ns.class_("ToggleAction", automation.Action)
 TurnOffAction = switch_ns.class_("TurnOffAction", automation.Action)
 TurnOnAction = switch_ns.class_("TurnOnAction", automation.Action)
+ControlAction = switch_ns.class_("ControlAction", automation.Action)
 SwitchPublishAction = switch_ns.class_("SwitchPublishAction", automation.Action)
 
 SwitchCondition = switch_ns.class_("SwitchCondition", Condition)
@@ -185,6 +186,7 @@ SWITCH_ACTION_SCHEMA = maybe_simple_id(
 )
 
 
+@automation.register_action("switch.control", ControlAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.toggle", ToggleAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.turn_off", TurnOffAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.turn_on", TurnOnAction, SWITCH_ACTION_SCHEMA)
