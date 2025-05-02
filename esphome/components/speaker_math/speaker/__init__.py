@@ -47,6 +47,8 @@ def _validate_audio_compatability(config):
         sample_rate=config.get(CONF_SAMPLE_RATE),
     )(config)
 
+    return config
+
 
 CONFIG_SCHEMA = cv.All(
     speaker.SPEAKER_SCHEMA.extend(
@@ -76,6 +78,7 @@ def _validate_audio_intercept(config):
             raise cv.Invalid(
                 "Must intercept volume control if you want to use unsigned data"
             )
+    return config
 
 
 FINAL_VALIDATE_SCHEMA = cv.All(_validate_audio_compatability, _validate_audio_intercept)
