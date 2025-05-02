@@ -81,9 +81,6 @@ class ATM90E32Component : public PollingComponent,
   void set_pga_gain(uint16_t gain) { pga_gain_ = gain; }
   void run_offset_calibrations();
   void run_power_offset_calibrations();
-#ifdef USE_NUMBER
-  void run_gain_calibrations();
-#endif
   void clear_offset_calibrations();
   void clear_power_offset_calibrations();
   void clear_gain_calibrations();
@@ -92,6 +89,7 @@ class ATM90E32Component : public PollingComponent,
   int16_t calibrate_offset(uint8_t phase, bool voltage);
   int16_t calibrate_power_offset(uint8_t phase, bool reactive);
 #ifdef USE_NUMBER
+  void run_gain_calibrations();
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
   void set_reference_current(uint8_t phase, number::Number *ref_current) { ref_currents_[phase] = ref_current; }
   float get_reference_voltage(uint8_t phase) {
@@ -158,6 +156,7 @@ class ATM90E32Component : public PollingComponent,
   void write_power_offsets_to_registers_(uint8_t phase, int16_t p_offset, int16_t q_offset);
   void write_gains_to_registers_();
   bool verify_gain_writes_();
+  bool validate_spi_read_(uint16_t expected, const char *context = nullptr);
 
   struct ATM90E32Phase {
     uint16_t voltage_gain_{0};

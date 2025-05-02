@@ -133,7 +133,7 @@ void ATM90E32Component::setup() {
   this->write16_(ATM90E32_REGISTER_SOFTRESET, 0x789A);    // Perform soft reset
   delay(6);                                               // Wait for the minimum 5ms + 1ms
   this->write16_(ATM90E32_REGISTER_CFGREGACCEN, 0x55AA);  // enable register config access
-  if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != 0x55AA) {
+  if (!this->validate_spi_read_(0x55AA, "setup()")) {
     ESP_LOGW(TAG, "Could not initialize ATM90E32 IC, check SPI settings");
     this->mark_failed();
     return;
@@ -298,8 +298,7 @@ void ATM90E32Component::write16_(uint16_t a_register, uint16_t val) {
   this->write_byte16(a_register);
   this->write_byte16(val);
   this->disable();
-  if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != val)
-    ESP_LOGW(TAG, "SPI write error 0x%04X val 0x%04X", a_register, val);
+  this->validate_spi_read_(val, "write16()");
 }
 
 float ATM90E32Component::get_local_phase_voltage_(uint8_t phase) { return this->phase_[phase].voltage_; }
@@ -332,8 +331,7 @@ float ATM90E32Component::get_local_phase_peak_current_(uint8_t phase) { return t
 
 float ATM90E32Component::get_phase_voltage_(uint8_t phase) {
   const uint16_t voltage = this->read16_(ATM90E32_REGISTER_URMS + phase);
-  if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != voltage)
-    ESP_LOGW(TAG, "SPI URMS voltage register read error.");
+  this->validate_spi_read_(voltage, "get_phase_voltage()");
   return (float) voltage / 100;
 }
 
@@ -343,8 +341,7 @@ float ATM90E32Component::get_phase_voltage_avg_(uint8_t phase) {
   uint16_t voltage = 0;
   for (uint8_t i = 0; i < reads; i++) {
     voltage = this->read16_(ATM90E32_REGISTER_URMS + phase);
-    if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != voltage)
-      ESP_LOGW(TAG, "SPI URMS voltage register read error.");
+    this->validate_spi_read_(voltage, "get_phase_voltage_avg_()");
     accumulation += voltage;
   }
   voltage = accumulation / reads;
@@ -358,8 +355,7 @@ float ATM90E32Component::get_phase_current_avg_(uint8_t phase) {
   uint16_t current = 0;
   for (uint8_t i = 0; i < reads; i++) {
     current = this->read16_(ATM90E32_REGISTER_IRMS + phase);
-    if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != current)
-      ESP_LOGW(TAG, "SPI IRMS current register read error.");
+    this->validate_spi_read_(current, "get_phase_current_avg_()");
     accumulation += current;
   }
   current = accumulation / reads;
@@ -369,8 +365,7 @@ float ATM90E32Component::get_phase_current_avg_(uint8_t phase) {
 
 float ATM90E32Component::get_phase_current_(uint8_t phase) {
   const uint16_t current = this->read16_(ATM90E32_REGISTER_IRMS + phase);
-  if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != current)
-    ESP_LOGW(TAG, "SPI IRMS current register read error.");
+  this->validate_spi_read_(current, "get_phase_current_()");
   return (float) current / 1000;
 }
 
@@ -391,8 +386,7 @@ float ATM90E32Component::get_phase_apparent_power_(uint8_t phase) {
 
 float ATM90E32Component::get_phase_power_factor_(uint8_t phase) {
   uint16_t powerfactor = this->read16_(ATM90E32_REGISTER_PFMEAN + phase);  // unsigned to compare to lastspidata
-  if (this->read16_(ATM90E32_REGISTER_LASTSPIDATA) != powerfactor)
-    ESP_LOGW(TAG, "SPI power factor read error.");
+  this->validate_spi_read_(powerfactor, "get_phase_power_factor_()");
   return (float) ((int16_t) powerfactor) / 1000;  // make it signed again
 }
 
@@ -425,15 +419,15 @@ float ATM90E32Component::get_phase_harmonic_active_power_(uint8_t phase) {
 
 float ATM90E32Component::get_phase_angle_(uint8_t phase) {
   uint16_t val = this->read16_(ATM90E32_REGISTER_PANGLE + phase) / 10.0;
-  return (float) (val > 180) ? val - 360.0 : val;
+  return (val > 180) ? (float) (val - 360.0f) : (float) val;
 }
 
 float ATM90E32Component::get_phase_peak_current_(uint8_t phase) {
   int16_t val = (float) this->read16_(ATM90E32_REGISTER_IPEAK + phase);
   if (!this->peak_current_signed_)
-    val = abs(val);
+    val = std::abs(val);
   // phase register * phase current gain value  / 1000 * 2^13
-  return (float) (val * this->phase_[phase].ct_gain_ / 8192000.0);
+  return (val * this->phase_[phase].ct_gain_ / 8192000.0);
 }
 
 float ATM90E32Component::get_frequency_() {
@@ -468,57 +462,66 @@ void ATM90E32Component::run_gain_calibrations() {
   ESP_LOGI("CALIBRATION", "---------------------------------------------------------------------");
 
   for (uint8_t phase = 0; phase < 3; phase++) {
-    uint16_t current_voltage_gain = this->read16_(voltage_gain_registers[phase]);
-    uint16_t current_current_gain = this->read16_(current_gain_registers[phase]);
-
     float measured_voltage = this->get_phase_voltage_avg_(phase);
     float measured_current = this->get_phase_current_avg_(phase);
 
-    bool voltage_valid = ref_voltages[phase] > 0.0f && measured_voltage > 0.0f;
-    bool current_valid = ref_currents[phase] > 0.0f && measured_current > 0.0f;
+    float ref_voltage = ref_voltages[phase];
+    float ref_current = ref_currents[phase];
 
-    uint32_t new_voltage_gain = current_voltage_gain;
-    uint32_t new_current_gain = current_current_gain;
+    uint16_t current_voltage_gain = this->read16_(voltage_gain_registers[phase]);
+    uint16_t current_current_gain = this->read16_(current_gain_registers[phase]);
 
-    if (!voltage_valid && !current_valid) {
-      ESP_LOGW("CALIBRATION", "Phase %s - Skipping: No valid reference values for voltage or current.",
-               phase_labels[phase]);
-      continue;
-    }
+    bool did_voltage = false;
+    bool did_current = false;
 
-    if (voltage_valid) {
-      new_voltage_gain = static_cast<uint16_t>((ref_voltages[phase] / measured_voltage) * current_voltage_gain);
+    // Voltage calibration
+    if (ref_voltage <= 0.0f) {
+      ESP_LOGW("CALIBRATION", "Phase %s - Skipping voltage calibration: reference voltage is 0.", phase_labels[phase]);
+    } else if (measured_voltage == 0.0f) {
+      ESP_LOGW("CALIBRATION", "Phase %s - Skipping voltage calibration: measured voltage is 0.", phase_labels[phase]);
+    } else {
+      uint32_t new_voltage_gain = static_cast<uint16_t>((ref_voltage / measured_voltage) * current_voltage_gain);
       if (new_voltage_gain == 0) {
-        ESP_LOGW("CALIBRATION", "Phase %s - Voltage Gain would be 0. Check reference voltage.", phase_labels[phase]);
-        continue;
+        ESP_LOGW("CALIBRATION", "Phase %s - Voltage gain would be 0. Check reference and measured voltage.",
+                 phase_labels[phase]);
+      } else {
+        if (new_voltage_gain >= 65535) {
+          ESP_LOGW("CALIBRATION",
+                   "Phase %s - Voltage gain exceeds 65535. You may need a higher output voltage transformer.",
+                   phase_labels[phase]);
+          new_voltage_gain = 65535;
+        }
+        this->gain_phase_[phase].voltage_gain = static_cast<uint16_t>(new_voltage_gain);
+        did_voltage = true;
       }
-      if (new_voltage_gain > 65535) {
-        ESP_LOGW("CALIBRATION", "Phase %s - Voltage Gain exceeds 65535, limiting to max.", phase_labels[phase]);
-        new_voltage_gain = 65535;
-      }
-      this->gain_phase_[phase].voltage_gain = new_voltage_gain;
     }
 
-    if (current_valid) {
-      new_current_gain = static_cast<uint16_t>((ref_currents[phase] / measured_current) * current_current_gain);
+    // Current calibration
+    if (ref_current == 0.0f) {
+      ESP_LOGW("CALIBRATION", "Phase %s - Skipping current calibration: reference current is 0.", phase_labels[phase]);
+    } else if (measured_current == 0.0f) {
+      ESP_LOGW("CALIBRATION", "Phase %s - Skipping current calibration: measured current is 0.", phase_labels[phase]);
+    } else {
+      uint32_t new_current_gain = static_cast<uint16_t>((ref_current / measured_current) * current_current_gain);
       if (new_current_gain == 0) {
-        ESP_LOGW("CALIBRATION", "Phase %s - Current Gain would be 0. Check reference current.", phase_labels[phase]);
-        continue;
+        ESP_LOGW("CALIBRATION", "Phase %s - Current gain would be 0. Check reference and measured current.",
+                 phase_labels[phase]);
+      } else {
+        if (new_current_gain >= 65535) {
+          ESP_LOGW("CALIBRATION", "Phase %s - Current gain exceeds 65535. You may need to turn up pga gain.",
+                   phase_labels[phase]);
+          new_current_gain = 65535;
+        }
+        this->gain_phase_[phase].current_gain = static_cast<uint16_t>(new_current_gain);
+        did_current = true;
       }
-      if (new_current_gain > 65535) {
-        ESP_LOGW("CALIBRATION", "Phase %s - Current Gain exceeds 65535, limiting to max.", phase_labels[phase]);
-        new_current_gain = 65535;
-      }
-      this->gain_phase_[phase].current_gain = new_current_gain;
     }
-
-    this->gain_phase_[phase].voltage_gain = static_cast<uint16_t>(new_voltage_gain);
-    this->gain_phase_[phase].current_gain = static_cast<uint16_t>(new_current_gain);
 
     // Final row output
     ESP_LOGI("CALIBRATION", "|   %c   |  %9.2f |  %9.4f | %5.2f | %6.4f |  %5u → %-5u  |  %5u → %-5u  |", 'A' + phase,
-             measured_voltage, measured_current, ref_voltages[phase], ref_currents[phase], current_voltage_gain,
-             this->gain_phase_[phase].voltage_gain, current_current_gain, this->gain_phase_[phase].current_gain);
+             measured_voltage, measured_current, ref_voltage, ref_current, current_voltage_gain,
+             did_voltage ? this->gain_phase_[phase].voltage_gain : current_voltage_gain, current_current_gain,
+             did_current ? this->gain_phase_[phase].current_gain : current_current_gain);
   }
 
   ESP_LOGI("CALIBRATION", "=====================================================================\n");
@@ -624,6 +627,14 @@ void ATM90E32Component::write_power_offsets_to_registers_(uint8_t phase, int16_t
 
 void ATM90E32Component::restore_gain_calibrations_() {
   if (this->gain_calibration_pref_.load(&this->gain_phase_)) {
+    ESP_LOGI("CALIBRATION", "Restoring saved gain calibrations to registers:");
+
+    for (uint8_t phase = 0; phase < 3; phase++) {
+      uint16_t v_gain = this->gain_phase_[phase].voltage_gain;
+      uint16_t i_gain = this->gain_phase_[phase].current_gain;
+      ESP_LOGI("CALIBRATION", "  Phase %c - Voltage Gain: %u, Current Gain: %u", 'A' + phase, v_gain, i_gain);
+    }
+
     this->write_gains_to_registers_();
 
     if (this->verify_gain_writes_()) {
@@ -838,6 +849,19 @@ uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t 
   float threshold = peak_01v / divider;
 
   return static_cast<uint16_t>(threshold);
+}
+
+bool ATM90E32Component::validate_spi_read_(uint16_t expected, const char *context = nullptr) {
+  uint16_t last = this->read16_(ATM90E32_REGISTER_LASTSPIDATA);
+  if (last != expected) {
+    if (context != nullptr) {
+      ESP_LOGW(TAG, "[%s] SPI read mismatch: expected 0x%04X, got 0x%04X", context, expected, last);
+    } else {
+      ESP_LOGW(TAG, "SPI read mismatch: expected 0x%04X, got 0x%04X", expected, last);
+    }
+    return false;
+  }
+  return true;
 }
 
 }  // namespace atm90e32
