@@ -2953,7 +2953,7 @@ void WaveshareEPaper5P8InV2::dump_config() {
 
 void GDEY0583T81::initialize() {
   // Allocate buffer for old data for partial updates
-  RAMAllocator<uint8_t> allocator();
+  RAMAllocator<uint8_t> allocator{};
   this->old_buffer_ = allocator.allocate(this->get_buffer_length_());
   if (this->old_buffer_ == nullptr) {
     ESP_LOGE(TAG, "Could not allocate old buffer for display!");
