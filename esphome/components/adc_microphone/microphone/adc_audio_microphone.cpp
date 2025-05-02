@@ -37,8 +37,8 @@ static const char *const TAG = "adc_microphone";
 #define ADC_DMA_NUM_FRAMES 16
 #endif
 
-#define DMA_FRAME_SIZE (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME)
-#define DMA_BUF_SIZE (DMA_FRAME_SIZE * ADC_DMA_NUM_FRAMES)
+static const uint16_t DMA_FRAME_SIZE = (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME);
+static const uint16_t DMA_BUF_SIZE = (DMA_FRAME_SIZE * ADC_DMA_NUM_FRAMES);
 
 static bool IRAM_ATTR s_conv_overflow_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata,
                                          void *user_data) {
