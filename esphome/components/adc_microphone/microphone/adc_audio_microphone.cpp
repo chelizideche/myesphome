@@ -122,6 +122,7 @@ void ADCAudioMicrophone::start_() {
 
   dma_out_buffer_ = new uint8_t[BUFFER_SIZE * sizeof(adc_digi_output_data_t)];
 
+  // hardcoded audio stream info, because thats how we roll
   this->audio_stream_info_ = audio::AudioStreamInfo(16, 1, this->sample_rate_);
 
   this->samples_.reserve(BUFFER_SIZE);
@@ -166,12 +167,11 @@ void ADCAudioMicrophone::stop_() {
 void ADCAudioMicrophone::read_() {
   // NOTE: Could acheive a possible speedup with
   // https://hackingcpp.com/cpp/recipe/uninitialized_numeric_array.html#no_init
-  // (ie, avoiding the possible 0-initializing of the end of the buffer).
+  // (ie, avoiding the 0-initializing of the buffer).
   samples_.resize(BUFFER_SIZE * sizeof(uint16_t));
   uint32_t bytes_read = 0;
   auto out_buffer = samples_.data();
 
-  // We have an intermediate buffer; we can't read more data than is available in it
   size_t max_read = BUFFER_SIZE * sizeof(adc_digi_output_data_t);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 0),
                       "read data from buffer", );
