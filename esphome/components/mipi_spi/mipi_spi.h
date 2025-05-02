@@ -93,15 +93,17 @@ class MipiSpi : public display::DisplayBuffer,
 
  protected:
   bool check_buffer_() {
-    if (!this->is_failed() && this->buffer_ == nullptr) {
-      auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
-      this->init_internal_(this->width_ * this->height_ * bytes_per_pixel);
-      if (this->buffer_ == nullptr) {
-        this->mark_failed();
-        return false;
-      }
-      this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel;
+    if (this->is_failed())
+      return false;
+    if (this->buffer_ != nullptr)
+      return true;
+    auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
+    this->init_internal_(this->width_ * this->height_ * bytes_per_pixel);
+    if (this->buffer_ == nullptr) {
+      this->mark_failed();
+      return false;
     }
+    this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel;
     return true;
   }
   void fill(Color color) override;
