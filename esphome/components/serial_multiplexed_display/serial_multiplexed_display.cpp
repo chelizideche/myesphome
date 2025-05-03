@@ -97,7 +97,7 @@ void IRAM_ATTR HOT SerialMultiplexedDisplay::timer_interrupt() {
     return;
   }
 
-  if (current_segment > length_) {
+  if (current_segment >= length_) {
     current_segment = 0;
   }
 

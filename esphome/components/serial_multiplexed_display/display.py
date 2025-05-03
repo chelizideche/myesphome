@@ -27,7 +27,7 @@ SERIAL_DEVICE_MODELS = {
 }
 
 CONF_LATCH_PIN = "latch_pin"
-CONF_DISPLAY_COMMON_CATHODE = "common_cathode"
+CONF_COMMON_CATHODE = "common_cathode"
 SERIAL_DEVICE_MODEL = "model"
 
 
@@ -47,7 +47,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_LATCH_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_MODEL): cv.enum(SERIAL_DEVICE_MODELS),
             cv.Optional(CONF_REVERSED, default=False): cv.boolean,
-            cv.Optional(CONF_DISPLAY_COMMON_CATHODE, default=False): cv.boolean,
+            cv.Optional(CONF_COMMON_CATHODE, default=False): cv.boolean,
             cv.Optional(CONF_LENGTH, default=4): cv.All(
                 cv.uint8_t, cv.Range(min=0, max=4)
             ),
@@ -70,7 +70,7 @@ async def to_code(config):
         latch_pin = await cg.gpio_pin_expression(config[CONF_LATCH_PIN])
         cg.add(var.set_latch_pin(latch_pin))
 
-    cg.add(var.set_common_cathode(config[CONF_DISPLAY_COMMON_CATHODE]))
+    cg.add(var.set_common_cathode(config[CONF_COMMON_CATHODE]))
 
     SERIAL_DEVICE_MODEL = config.get(CONF_MODEL)
     cg.add(var.set_model(SERIAL_DEVICE_MODEL))
