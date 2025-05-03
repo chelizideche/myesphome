@@ -75,6 +75,7 @@ void IRAM_ATTR HOT arch_feed_wdt();
 uint8_t progmem_read_byte(const uint8_t *addr);
 
 namespace stm32 {
+void hal_init();
 void init_uart();
 void uart_write_char(char c);
 void uart_write_str(const char *str);
@@ -82,6 +83,9 @@ void uart_write_str(const char *str);
 }  // namespace stm32
 
 };  // namespace esphome
+
+extern void setup();
+extern void loop();
 
 extern "C" {
 void SysTick_Handler(void);
