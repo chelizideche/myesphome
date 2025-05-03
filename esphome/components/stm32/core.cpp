@@ -44,20 +44,22 @@ void init_uart() {
 
   USARTx_CLK_ENABLE();
 
-  GPIO_InitStruct.Pin = USARTx_TX_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
 #ifdef GPIO_SPEED_FAST
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
 #endif
 
+  GPIO_InitStruct.Pin = USARTx_TX_PIN;
+#ifdef USARTx_TX_AF
   GPIO_InitStruct.Alternate = USARTx_TX_AF;
-
+#endif
   HAL_GPIO_Init(USARTx_TX_GPIO_PORT, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = USARTx_RX_PIN;
+#ifdef USARTx_RX_AF
   GPIO_InitStruct.Alternate = USARTx_RX_AF;
-
+#endif
   HAL_GPIO_Init(USARTx_RX_GPIO_PORT, &GPIO_InitStruct);
   UartHandle.Instance = USARTx;
 

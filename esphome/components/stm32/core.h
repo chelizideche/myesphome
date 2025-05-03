@@ -55,10 +55,10 @@
 #define USARTx_RX_PIN GPIO_PIN_3
 #define USARTx_RX_GPIO_PORT GPIOA
 
-#if defined(G0)
+#if defined(GPIO_AF1_USART2)
 #define USARTx_TX_AF GPIO_AF1_USART2
 #define USARTx_RX_AF GPIO_AF1_USART2
-#else
+#elif defined(GPIO_AF7_USART2)
 #define USARTx_TX_AF GPIO_AF7_USART2
 #define USARTx_RX_AF GPIO_AF7_USART2
 #endif
