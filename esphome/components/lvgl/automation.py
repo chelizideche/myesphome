@@ -36,11 +36,11 @@ from .lvcode import (
     lvgl_comp,
 )
 from .schemas import (
+    ALL_STYLES,
     DISP_BG_SCHEMA,
     LIST_ACTION_SCHEMA,
     LVGL_SCHEMA,
     base_update_schema,
-    id_list_schema,
 )
 from .types import (
     LV_STATE,
@@ -371,7 +371,7 @@ async def obj_update_to_code(config, action_id, template_arg, args):
 
 
 def validate_refresh_config(config):
-    for w in config[CONF_ID]:
+    for w in config:
         refreshed_widgets.add(w[CONF_ID])
     return config
 
@@ -379,16 +379,31 @@ def validate_refresh_config(config):
 @automation.register_action(
     "lvgl.widget.refresh",
     ObjUpdateAction,
-    cv.All(id_list_schema(lv_obj_t), validate_refresh_config),
+    cv.All(
+        cv.ensure_list(
+            cv.maybe_simple_value(
+                {
+                    cv.Required(CONF_ID): cv.use_id(lv_obj_t),
+                },
+                key=CONF_ID,
+            )
+        ),
+        validate_refresh_config,
+    ),
 )
 async def obj_refresh_to_code(config, action_id, template_arg, args):
-    widget = await get_widgets(config[CONF_ID])
+    widget = await get_widgets(config)
 
     async def do_refresh(widget: Widget):
-        # only update things that might have changed, i.e. are templated
+        # only update style properties that might have changed, i.e. are templated
         config = {k: v for k, v in widget.config.items() if isinstance(v, Lambda)}
         await set_obj_properties(widget, config)
-        await widget.type.to_code(widget, config)
+        # must pass full widget config here as some may be required, even if not templated.
+        # so first check if any non-style properties are templated, if not we can skip the update
+        config = {k: v for k, v in widget.config.items() if k not in ALL_STYLES}
+        if any(isinstance(v, Lambda) for v in config.values()):
+            await set_obj_properties(widget, config)
+        await widget.type.to_code(widget, widget.config)
         if (
             widget.type.w_type.value_property is not None
             and widget.type.w_type.value_property in config

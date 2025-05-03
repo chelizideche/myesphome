@@ -281,21 +281,6 @@ def automation_schema(typ: LvType):
     )
 
 
-def id_list_schema(widget_type):
-    return cv.Schema(
-        {
-            cv.Optional(CONF_ID): cv.ensure_list(
-                cv.maybe_simple_value(
-                    {
-                        cv.Required(CONF_ID): cv.use_id(widget_type),
-                    },
-                    key=CONF_ID,
-                )
-            )
-        }
-    )
-
-
 def base_update_schema(widget_type, parts):
     """
     Create a schema for updating a widgets style properties, states and flags
@@ -303,7 +288,23 @@ def base_update_schema(widget_type, parts):
     :param parts:  The allowable parts to specify
     :return:
     """
-    return part_schema(parts).extend(id_list_schema(widget_type)).extend(FLAG_SCHEMA)
+    return (
+        part_schema(parts)
+        .extend(
+            {
+                cv.Required(CONF_ID): cv.ensure_list(
+                    cv.maybe_simple_value(
+                        {
+                            cv.Required(CONF_ID): cv.use_id(widget_type),
+                        },
+                        key=CONF_ID,
+                    )
+                ),
+                cv.Optional(CONF_STATE): SET_STATE_SCHEMA,
+            }
+        )
+        .extend(FLAG_SCHEMA)
+    )
 
 
 def create_modify_schema(widget_type):
