@@ -1,4 +1,3 @@
-import json
 import logging
 
 import esphome.codegen as cg
@@ -12,12 +11,9 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 
-from .boards import detect_board_family
-from .const import CONF_BOARD_FAMILY, KEY_BOARD, KEY_PIO_FILES, KEY_STM32, stm32_ns
+from .boards import detect_board_series
+from .const import CONF_BOARD_SERIES, KEY_BOARD, KEY_STM32
 from .gpio import stm32_pin_to_code  # noqa
-
-# force import gpio to register pin schema
-# from .gpio import rp2040_pin_to_code  # noqa
 
 _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@mrk"]
@@ -31,9 +27,6 @@ def set_core_data(config):
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_STM32
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = "stm32cube"
     CORE.data[KEY_STM32][KEY_BOARD] = config[CONF_BOARD]
-
-    CORE.data[KEY_STM32][KEY_PIO_FILES] = {}
-
     return config
 
 
@@ -60,10 +53,10 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_BOARD): cv.All(
                 cv.string_strict,
             ),
-            cv.Optional(CONF_BOARD_FAMILY): cv.string_strict,
+            cv.Optional(CONF_BOARD_SERIES): cv.string_strict,
         }
     ),
-    detect_board_family,
+    detect_board_series,
     set_core_data,
 )
 
@@ -72,7 +65,7 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_build_flag("-DUSE_STM32")
-    cg.add_build_flag("-D" + config[CONF_BOARD_FAMILY])
+    cg.add_build_flag("-D" + config[CONF_BOARD_SERIES])
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_define("ESPHOME_VARIANT", "STM32")
 
