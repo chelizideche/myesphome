@@ -17,7 +17,6 @@ from .gpio import stm32_pin_to_code  # noqa
 
 _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@mrk-its"]
-# AUTO_LOAD = ["preferences"]
 AUTO_LOAD = []
 IS_TARGET_PLATFORM = True
 
@@ -28,23 +27,6 @@ def set_core_data(config):
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = "stm32cube"
     CORE.data[KEY_STM32][KEY_BOARD] = config[CONF_BOARD]
     return config
-
-
-def get_download_types(storage_json):
-    return [
-        {
-            "title": "UF2 factory format",
-            "description": "For copying to RP2040 over USB.",
-            "file": "firmware.uf2",
-            "download": f"{storage_json.name}.factory.uf2",
-        },
-        {
-            "title": "OTA format",
-            "description": "For OTA updating a device.",
-            "file": "firmware.ota.bin",
-            "download": f"{storage_json.name}.ota.bin",
-        },
-    ]
 
 
 CONFIG_SCHEMA = cv.All(
