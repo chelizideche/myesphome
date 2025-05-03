@@ -198,13 +198,17 @@ void ESP32BLETracker::loop() {
     https://github.com/espressif/esp-idf/issues/6688
 
   */
-  if (this->scanner_state_ == ScannerState::IDLE && this->scan_continuous_ && !connecting && !disconnecting &&
-      !promote_to_connecting) {
+  if (this->scanner_state_ == ScannerState::IDLE && !connecting && !disconnecting && !promote_to_connecting) {
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
-    ESP_LOGD(TAG, "Setting coexistence preference to balanced.");
-    esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
+    if (this->coex_prefer_ble_) {
+      this->coex_prefer_ble_ = false;
+      ESP_LOGD(TAG, "Setting coexistence preference to balanced.");
+      esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
+    }
 #endif
-    this->start_scan_(false);  // first = false
+    if (this->scan_continuous_) {
+      this->start_scan_(false);  // first = false
+    }
   }
   // If there is a discovered client and no connecting
   // clients and no clients using the scanner to search for
@@ -223,7 +227,10 @@ void ESP32BLETracker::loop() {
           // once the scanner is fully stopped.
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
           ESP_LOGD(TAG, "Setting coexistence to Bluetooth to make connection.");
-          esp_coex_preference_set(ESP_COEX_PREFER_BT);  // Prioritize Bluetooth
+          if (!this->coex_prefer_ble_) {
+            this->coex_prefer_ble_ = true;
+            esp_coex_preference_set(ESP_COEX_PREFER_BT);  // Prioritize Bluetooth
+          }
 #endif
           client->set_state(ClientState::READY_TO_CONNECT);
         }
