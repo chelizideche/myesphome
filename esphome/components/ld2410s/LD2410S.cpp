@@ -809,7 +809,7 @@ void LD2410S::process_ack_fw_read_(const uint8_t *data) {
     listener->on_fw_version(version);
   }
 
-  ESP_LOGD(TAG, "Firmware version: %s", version.c_str());
+  ESP_LOGI(TAG, "Firmware version: %s", version.c_str());
 }
 void LD2410S::process_ack_trigger_threshold_read_(uint8_t *data) {
   this->four_byte_to_int_array_(data, this->triggers_.trigger, 16);
@@ -857,7 +857,7 @@ void LD2410S::update_ts_thresholds_() {
   for (auto &listener : this->listeners_) {
     listener->on_trigger_threshold_ts(vals);
   }
-  ESP_LOGD(TAG, "Gate Trigger Thresholds: %s", vals.c_str());
+  ESP_LOGI(TAG, "Gate Trigger Thresholds: %s", vals.c_str());
 }
 void LD2410S::update_ts_holds_() {
   std::string vals = this->format_int_(this->triggers_.hold, 16, 2);
@@ -865,7 +865,7 @@ void LD2410S::update_ts_holds_() {
   for (auto &listener : this->listeners_) {
     listener->on_trigger_hold_ts(vals);
   }
-  ESP_LOGD(TAG, "Gate Trigger Holds: %s", vals.c_str());
+  ESP_LOGI(TAG, "Gate Trigger Holds: %s", vals.c_str());
 }
 void LD2410S::update_ts_snrs_() {
   std::string vals = this->format_int_(this->triggers_.snr, 16, 2);
@@ -874,7 +874,7 @@ void LD2410S::update_ts_snrs_() {
     listener->on_trigger_snr_ts(vals);
   }
 
-  ESP_LOGD(TAG, "Gate Trigger SNR: %s", vals.c_str());
+  ESP_LOGI(TAG, "Gate Trigger SNR: %s", vals.c_str());
 }
 void LD2410S::update_ts_energy_values_() {
   std::string vals = this->format_int_(this->energy_values_, 16, 3);
