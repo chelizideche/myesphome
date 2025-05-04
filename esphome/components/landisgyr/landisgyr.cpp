@@ -10,7 +10,8 @@ static const char *TAG = "UH50";
 static int UpdateCounter = 0;
 void LandisSensor::update() {
   // Wait a bit till we have logs
-  if (UpdateCounter++ == 0) return;
+  if (UpdateCounter++ == 0)
+    return;
 
   buffer_string.clear();
 
@@ -23,10 +24,12 @@ void LandisSensor::update() {
 }
 
 void LandisSensor::loop() {
-  if (!(state == State::ReceiveValues || state == State::RecieveInit)) return;
+  if (!(state == State::ReceiveValues || state == State::RecieveInit))
+    return;
 
   auto line = ReadLine();
-  if (line.empty()) return;
+  if (line.empty())
+    return;
 
   if (state == State::RecieveInit) {
     ESP_LOGD(TAG, "initialization message %s", line.c_str());
@@ -88,8 +91,10 @@ void LandisSensor::ParseFirstLine(std::string line) {
   std::string Energy = ParseDelimiter(line, "6.8(", "*MWh");
   std::string Water = ParseDelimiter(line, "6.26(", "*m3");
 
-  if (kwh_sensor_ != nullptr) kwh_sensor_->publish_state(strtof(Energy.c_str(), nullptr));
-  if (volume_sensor_ != nullptr) volume_sensor_->publish_state(strtof(Water.c_str(), nullptr));
+  if (kwh_sensor_ != nullptr)
+    kwh_sensor_->publish_state(strtof(Energy.c_str(), nullptr));
+  if (volume_sensor_ != nullptr)
+    volume_sensor_->publish_state(strtof(Water.c_str(), nullptr));
 }
 
 }  // namespace landisgyr
