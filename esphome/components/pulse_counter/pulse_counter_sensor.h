@@ -44,7 +44,7 @@ struct BasicPulseCounterStorage : public PulseCounterStorageBase {
   pulse_counter_t read_raw_value() override;
 
   volatile pulse_counter_t counter{0};
-  volatile uint32_t last_pulse{0};
+  volatile int32_t last_pulse{0};
 
   ISRInternalGPIOPin isr_pin;
 };
@@ -71,7 +71,7 @@ class PulseCounterSensor : public sensor::Sensor, public PollingComponent {
   void set_filter_us(uint32_t filter) { storage_.filter_us = filter; }
   void set_total_sensor(sensor::Sensor *total_sensor) { total_sensor_ = total_sensor; }
 
-  void set_total_pulses(uint32_t pulses);
+  void set_total_pulses(int32_t pulses);
 
   /// Unit of measurement is "pulses/min".
   void setup() override;
@@ -83,7 +83,7 @@ class PulseCounterSensor : public sensor::Sensor, public PollingComponent {
   InternalGPIOPin *pin_;
   PulseCounterStorageBase &storage_;
   uint32_t last_time_{0};
-  uint32_t current_total_{0};
+  int32_t current_total_{0};
   sensor::Sensor *total_sensor_{nullptr};
 };
 

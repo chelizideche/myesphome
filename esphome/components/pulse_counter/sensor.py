@@ -144,7 +144,7 @@ async def to_code(config):
     cv.Schema(
         {
             cv.Required(CONF_ID): cv.use_id(PulseCounterSensor),
-            cv.Required(CONF_VALUE): cv.templatable(cv.uint32_t),
+            cv.Required(CONF_VALUE): cv.templatable(cv.int_),
         }
     ),
 )
