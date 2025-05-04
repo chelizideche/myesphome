@@ -2,6 +2,7 @@ sensor:
   - platform: pulse_counter
     name: Pulse Counter
     pin: 4
+    dir_pin: 5
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DECREMENT
