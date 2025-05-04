@@ -27,7 +27,7 @@ void LandisSensor::loop() {
   if (!(state_ == State::RECEIVE_VALUES || state_ == State::RECIEVE_INIT))
     return;
 
-  auto line = readLine_();
+  auto line = read_line_();
   if (line.empty())
     return;
 
@@ -63,7 +63,7 @@ void LandisSensor::send_request_() {
   ESP_LOGD(TAG, "init message sent");
 }
 
-std::string LandisSensor::readLine_() {
+std::string LandisSensor::read_line_() {
   while (available()) {
     auto c = read();
     buffer_string_ += c;

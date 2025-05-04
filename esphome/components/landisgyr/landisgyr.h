@@ -26,7 +26,7 @@ class LandisSensor : public sensor::Sensor, public PollingComponent, public uart
 
   State state_ = State::IDLE;
 
-  std::string readLine_();
+  std::string read_line_();
   void parse_first_line_(std::string string);
   std::string parse_delimiter_(std::string string_to_parse, std::string first, std::string second);
 
