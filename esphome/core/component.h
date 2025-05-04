@@ -65,6 +65,8 @@ extern const uint32_t STATUS_LED_ERROR;
 
 enum class RetryResult { DONE, RETRY };
 
+extern const uint32_t WARN_IF_BLOCKING_OVER_MS;
+
 class Component {
  public:
   /** Where the component's initialization should happen.
@@ -118,6 +120,11 @@ class Component {
    */
   virtual void mark_failed();
 
+  void mark_failed(const char *message) {
+    this->status_set_error(message);
+    this->mark_failed();
+  }
+
   bool is_failed() const;
 
   bool is_ready() const;
@@ -152,6 +159,8 @@ class Component {
    * Returns "<unknown>" if source not set
    */
   const char *get_component_source() const;
+
+  bool should_warn_of_blocking(uint32_t blocking_time);
 
  protected:
   friend class Application;
@@ -279,6 +288,8 @@ class Component {
   uint32_t component_state_{0x0000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
+  uint32_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};
+  std::string error_message_{};
 };
 
 /** This class simplifies creating components that periodically check a state.
