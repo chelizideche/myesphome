@@ -17,6 +17,7 @@ from esphome.components.esp32_ble import (
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACTIVE,
+    CONF_CONTINUOUS,
     CONF_DURATION,
     CONF_ID,
     CONF_INTERVAL,

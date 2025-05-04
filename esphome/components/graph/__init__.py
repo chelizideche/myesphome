@@ -5,6 +5,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BORDER,
     CONF_COLOR,
+    CONF_CONTINUOUS,
     CONF_DIRECTION,
     CONF_DURATION,
     CONF_HEIGHT,
