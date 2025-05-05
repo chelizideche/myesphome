@@ -299,10 +299,7 @@ async def to_code(config):
         if CORE.using_esp_idf:
             add_idf_sdkconfig_option("CONFIG_ETH_USE_SPI_ETHERNET", True)
             add_idf_sdkconfig_option(
-                "CONFIG_ETH_SPI_ETHERNET_W5500", config[CONF_TYPE] == "W5500"
-            )
-            add_idf_sdkconfig_option(
-                "CONFIG_ETH_SPI_ETHERNET_DM9051", config[CONF_TYPE] == "DM9051"
+                f"CONFIG_ETH_SPI_ETHERNET_{config[CONF_TYPE]}", True
             )
     elif config[CONF_TYPE] == "OPENETH":
         cg.add_define("USE_ETHERNET_OPENETH")
