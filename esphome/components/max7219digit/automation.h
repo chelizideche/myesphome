@@ -44,7 +44,7 @@ template<typename... Ts> class DisplayIntensityAction : public Action<Ts...>, pu
 
   void play(Ts... x) override {
     uint8_t state = this->state_.optional_value(x...);
-    this->parent_->intensity(state);
+    this->parent_->set_intensity(state);
   }
 };
 
