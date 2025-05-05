@@ -63,7 +63,9 @@ class MicrophoneSource {
   bool is_stopped() const { return !this->enabled_; }
 
  protected:
-  std::vector<uint8_t> process_audio_(const std::vector<uint8_t> &data);
+  void process_audio_(const std::vector<uint8_t> &data, std::vector<uint8_t> &filtered_data);
+
+  std::shared_ptr<std::vector<uint8_t>> processed_samples_;
 
   Microphone *mic_;
   uint8_t bits_per_sample_;
