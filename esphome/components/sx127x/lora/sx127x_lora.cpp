@@ -18,5 +18,10 @@ void SX127xLoRa::setup() {
   this->parent_->register_listener(new SX127xLoRaListener(this));
 }
 
+void SX127xLoRa::set_frequency(uint32_t frequency) {
+  this->parent_->set_frequency(frequency);
+  this->parent_->configure();
+}
+
 }  // namespace sx127x
 }  // namespace esphome

@@ -14,11 +14,12 @@ class LoRaListener {
 class LoRa : public Component {
  public:
   void dump_config() override;
+  void set_platform_name(const char *name) { this->platform_name_ = name; }
+  virtual void set_frequency(uint32_t frequency) = 0;
   void packet_received(const std::vector<uint8_t> &packet, float rssi, float snr);
   virtual void send_packet(const std::vector<uint8_t> &buf) const = 0;
   void register_listener(LoRaListener *listener) { this->listeners_.push_back(listener); }
   Trigger<std::vector<uint8_t>, float, float> *get_packet_trigger() const { return this->packet_trigger_; };
-  void set_platform_name(const char *name) { this->platform_name_ = name; }
 
  protected:
   void call_listeners_(const std::vector<uint8_t> &packet, float rssi, float snr);
