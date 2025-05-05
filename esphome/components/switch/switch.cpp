@@ -21,8 +21,7 @@ void Switch::toggle() {
   this->write_state(this->inverted_ == this->state);
 }
 void Switch::control(bool state) {
-  ESP_LOGD(TAG, "'%s' Controlling %s. Was %s", this->get_name().c_str(), ONOFF(state),
-           ONOFF(this->state));
+  ESP_LOGD(TAG, "'%s' Controlling %s. Was %s", this->get_name().c_str(), ONOFF(state), ONOFF(this->state));
   this->write_state(this->inverted_ != state);
 }
 optional<bool> Switch::get_initial_state() {
