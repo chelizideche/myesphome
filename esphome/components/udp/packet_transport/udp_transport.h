@@ -3,13 +3,6 @@
 #include "../udp_component.h"
 #include "esphome/core/component.h"
 #include "esphome/components/packet_transport/packet_transport.h"
-#include "esphome/components/network/ip_address.h"
-#if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
-#include "esphome/components/socket/socket.h"
-#endif
-#ifdef USE_SOCKET_IMPL_LWIP_TCP
-#include <WiFiUdp.h>
-#endif
 #include <vector>
 
 namespace esphome {
