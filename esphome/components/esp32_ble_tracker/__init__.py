@@ -204,7 +204,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(
                 {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BLEEndOfScanTrigger)}
             ),
-            cv.Optional(CONF_SOFTWARE_COEXISTENCE, default=True): bool,
+            cv.OnlyWith(CONF_SOFTWARE_COEXISTENCE, "wifi", default=True): bool,
         }
     ).extend(cv.COMPONENT_SCHEMA),
 )
