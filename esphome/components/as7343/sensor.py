@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import i2c, sensor
+from esphome.components import i2c, sensor, text_sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CALIBRATION,
@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_ILLUMINANCE,
     CONF_NAME,
     DEVICE_CLASS_ILLUMINANCE,
+    DEVICE_CLASS_IRRADIANCE,
     STATE_CLASS_MEASUREMENT,
     UNIT_KELVIN,
     UNIT_LUX,
@@ -17,6 +18,7 @@ from esphome.const import (
 )
 
 CODEOWNERS = ["@mrgnr", "@latonita"]
+AUTO_LOAD = ["text_sensor"]
 DEPENDENCIES = ["i2c", "sensor"]
 
 as7343_ns = cg.esphome_ns.namespace("as7343")
@@ -53,6 +55,7 @@ CONF_PPFD = "ppfd"
 CONF_IRRADIANCE_PAR = "irradiance_par"
 CONF_SATURATION = "saturation"
 CONF_SATURATION_LEVEL = "saturation_level"
+CONF_RGB_HEX = "rgb_hex"
 
 UNIT_COUNTS = "#"
 UNIT_IRRADIANCE = "W/m²"
@@ -67,6 +70,8 @@ ICON_PAR = "mdi:sprout"
 ICON_PPFD = "mdi:sprout-outline"
 ICON_COLOR_TEMPERATURE = "mdi:sun-thermometer-outline"
 ICON_SATURATION = "mdi:weather-sunny-alert"
+ICON_PALETTE = "mdi:palette"
+
 
 AS7343_GAIN = as7343_ns.enum("AS7343Gain")
 GAIN_OPTIONS = {
@@ -185,7 +190,7 @@ CONFIG_SCHEMA = (
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_IRRADIANCE,
                     accuracy_decimals=3,
-                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    device_class=DEVICE_CLASS_IRRADIANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -195,7 +200,7 @@ CONFIG_SCHEMA = (
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_IRRADIANCE_PHOTOPIC,
                     accuracy_decimals=3,
-                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    device_class=DEVICE_CLASS_IRRADIANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -205,7 +210,7 @@ CONFIG_SCHEMA = (
                     unit_of_measurement=UNIT_PPFD,
                     icon=ICON_PPFD,
                     accuracy_decimals=3,
-                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    device_class=DEVICE_CLASS_IRRADIANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -215,7 +220,7 @@ CONFIG_SCHEMA = (
                     unit_of_measurement=UNIT_IRRADIANCE,
                     icon=ICON_PAR,
                     accuracy_decimals=3,
-                    device_class=DEVICE_CLASS_ILLUMINANCE,
+                    device_class=DEVICE_CLASS_IRRADIANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
@@ -246,6 +251,12 @@ CONFIG_SCHEMA = (
                     accuracy_decimals=0,
                     device_class=DEVICE_CLASS_ILLUMINANCE,
                     state_class=STATE_CLASS_MEASUREMENT,
+                ),
+                key=CONF_NAME,
+            ),
+            cv.Optional(CONF_RGB_HEX): cv.maybe_simple_value(
+                text_sensor.text_sensor_schema(
+                    icon=ICON_PALETTE,
                 ),
                 key=CONF_NAME,
             ),
@@ -317,3 +328,7 @@ async def to_code(config):
         if sensor_config := config.get(sensor_id):
             sens = await sensor.new_sensor(sensor_config)
             cg.add(getattr(var, f"set_{sensor_id}_sensor")(sens))
+
+    if rgb_config := config.get(CONF_RGB_HEX):
+        sens = await text_sensor.new_text_sensor(rgb_config)
+        cg.add(var.set_rgb_hex_sensor(sens))

@@ -1,10 +1,11 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/i2c/i2c.h"
-
 #include "as7343_registers.h"
+
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 
 namespace esphome {
 namespace as7343 {
@@ -120,6 +121,15 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   SUB_SENSOR(saturation_level);
 #endif
 
+#ifdef USE_TEXT_SENSOR
+ protected:
+  text_sensor::TextSensor *rgb_hex_sensor_{nullptr};
+  char rgb_hex_str_[10]{0};
+
+ public:
+  void set_rgb_hex_sensor(text_sensor::TextSensor *sensor) { this->rgb_hex_sensor_ = sensor; }
+#endif
+
  protected:
   uint16_t astep_;
   AS7343Gain gain_;
@@ -157,7 +167,8 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
   struct {
     ChannelValuesFloat basic_counts{};
-    ChannelValuesFloat mw_per_band{};
+    float max_basic_count;
+
     float lux_from_irradiance;
     float irradiance;
     float irradiance_photopic;

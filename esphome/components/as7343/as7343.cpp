@@ -53,6 +53,52 @@ void log_cn_s(const char *TAG, const char *str, const ChannelNames &arr) {
            arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]);
 }
 
+double clamp(double val, double min_val, double max_val) { return std::max(min_val, std::min(max_val, val)); }
+
+// Gamma correction for sRGB
+double gamma_correct(double channel) {
+  if (channel <= 0.0031308)
+    return 12.92 * channel;
+  else
+    return 1.055 * std::pow(channel, 1.0 / 2.4) - 0.055;
+}
+
+// Convert XYZ to #RRGGBB hex
+// std::string
+void xyz_to_hex(double X, double Y, double Z, char *hex) {
+  // // === Normalize ===
+  // double max_val = 1.0f / std::max({X, Y, Z});
+  // if (max_val > 0.0) {
+  //   X *= max_val;
+  //   Y *= max_val;
+  //   Z *= max_val;
+  // }
+
+  // Convert XYZ to linear RGB
+  double r_lin = 3.2406 * X - 1.5372 * Y - 0.4986 * Z;
+  double g_lin = -0.9689 * X + 1.8758 * Y + 0.0415 * Z;
+  double b_lin = 0.0557 * X - 0.2040 * Y + 1.0570 * Z;
+
+  // Apply gamma correction
+  double r = gamma_correct(r_lin);
+  double g = gamma_correct(g_lin);
+  double b = gamma_correct(b_lin);
+
+  // Clamp and convert to 0-255 range
+  int r8 = static_cast<int>(clamp(r, 0.0, 1.0) * 255.0 + 0.5);
+  int g8 = static_cast<int>(clamp(g, 0.0, 1.0) * 255.0 + 0.5);
+  int b8 = static_cast<int>(clamp(b, 0.0, 1.0) * 255.0 + 0.5);
+
+#ifdef USE_TEXT_SENSOR
+  // Format as hex string
+  // "#RRGGBB" + null terminator
+  std::snprintf(hex, 10, "#%02X%02X%02X", r8, g8, b8);
+
+  ESP_LOGD(TAG, "RGB: %s", hex);
+#endif
+  //  return std::string(hex);
+}
+
 void AS7343Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up AS7343...");
   LOG_I2C_DEVICE(this);
@@ -185,7 +231,7 @@ void AS7343Component::loop() {
         //   break;
 
       case State::START_MEASUREMENT: {
-        ESP_LOGE(TAG, "START_MEASUREMENT");
+        ESP_LOGVV(TAG, "START_MEASUREMENT");
         this->readings_.millis_start = millis();
         this->setup_atime(this->atime_);
         this->setup_astep(this->astep_);
@@ -197,7 +243,7 @@ void AS7343Component::loop() {
       } break;
 
       case State::WAIT_FOR_DATA: {
-        ESP_LOGE(TAG, "WAIT_SMUX_HIGH");
+        ESP_LOGVV(TAG, "WAIT_FOR_DATA");
         if (this->is_data_ready()) {
           if (this->readings_.first_run) {
             this->readings_.first_run = false;
@@ -212,14 +258,14 @@ void AS7343Component::loop() {
       } break;
 
       case State::READ_CHANNELS: {
-        ESP_LOGE(TAG, "READ_CHANNELS");
+        ESP_LOGVV(TAG, "READ_CHANNELS");
         this->read_channels_();
         this->enable_spectral_measurement(false);
         this->state_ = State::DATA_COLLECTED;
       } break;
 
       case State::DATA_COLLECTED: {
-        ESP_LOGE(TAG, "DATA_COLLECTED");
+        ESP_LOGVV(TAG, "DATA_COLLECTED");
 
         this->readings_.gain_x = this->get_gain_multiplier(this->readings_.gain);
         this->readings_.atime = this->get_atime();
@@ -251,14 +297,14 @@ void AS7343Component::loop() {
       } break;
 
       case State::CALCULATE_CIE: {
-        ESP_LOGE(TAG, "CALCULATE_CIE");
+        ESP_LOGVV(TAG, "CALCULATE_CIE");
         this->calculate_color_(this->calculated_values_.cct, this->calculated_values_.duv,
                                this->calculated_values_.lux_from_xyz);
         this->state_ = State::CALCULATE_SPECTRAL;
       } break;
 
       case State::CALCULATE_SPECTRAL: {
-        ESP_LOGE(TAG, "CALCULATE_SPECTRAL");
+        ESP_LOGVV(TAG, "CALCULATE_SPECTRAL");
         this->calculate_spectral_(this->calculated_values_.lux_from_irradiance, this->calculated_values_.irradiance_par,
                                   this->calculated_values_.ppfd, this->calculated_values_.irradiance,
                                   this->calculated_values_.irradiance_photopic);
@@ -266,7 +312,7 @@ void AS7343Component::loop() {
       } break;
 
       case State::VALIDATE_VALUES: {
-        ESP_LOGE(TAG, "VALIDATE_VALUES");
+        ESP_LOGVV(TAG, "VALIDATE_VALUES");
         //
         // check for wrong readings due to underexposure or overexposure, replace with 0
         //
@@ -312,19 +358,19 @@ void AS7343Component::loop() {
       } break;
 
       case State::READY_TO_PUBLISH_PART_1:
-        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_1");
+        ESP_LOGVV(TAG, "READY_TO_PUBLISH_PART_1");
         this->publish_channel_readings_();
         this->state_ = State::READY_TO_PUBLISH_PART_2;
         break;
 
       case State::READY_TO_PUBLISH_PART_2:
-        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_2");
+        ESP_LOGVV(TAG, "READY_TO_PUBLISH_PART_2");
         this->publish_basic_counts_();
         this->state_ = State::READY_TO_PUBLISH_PART_3;
         break;
 
       case State::READY_TO_PUBLISH_PART_3:
-        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_3");
+        ESP_LOGVV(TAG, "READY_TO_PUBLISH_PART_3");
         this->publish_derived_readings_();
         this->state_ = State::IDLE;
         break;
@@ -339,8 +385,9 @@ void AS7343Component::publish_channel_readings_() {
 }
 
 void AS7343Component::publish_basic_counts_() {
+  float inv_max = 1.0f / this->calculated_values_.max_basic_count;
   for (int i = 0; i < AS7343_NUM_CHANNELS; i++) {
-    this->publish_sensor(this->band_basic_counts_sensors_[i], this->calculated_values_.basic_counts[i]);
+    this->publish_sensor(this->band_basic_counts_sensors_[i], this->calculated_values_.basic_counts[i] * inv_max);
   }
 }
 
@@ -365,6 +412,9 @@ void AS7343Component::publish_derived_readings_() {
   }
   if (this->saturation_level_sensor_ != nullptr) {
     this->saturation_level_sensor_->publish_state(this->calculated_values_.saturation_level);
+  }
+  if (this->rgb_hex_sensor_ != nullptr) {
+    this->rgb_hex_sensor_->publish_state(this->rgb_hex_str_);
   }
   // if (this->saturated_ != nullptr) {
   //   this->saturated_->publish_state(this->readings_.saturated);
@@ -576,6 +626,7 @@ void AS7343Component::calculate_() {
 
 void AS7343Component::calculate_basic_counts_() {
   this->calculated_values_.basic_counts.fill(0.0f);
+  this->calculated_values_.max_basic_count = 0;
 
   const float inv_exposure = 1.0f / (this->readings_.gain_x * this->readings_.t_int_us);
 
@@ -589,6 +640,7 @@ void AS7343Component::calculate_basic_counts_() {
     basic_count *= this->glass_attenuation_factor_;
 
     this->calculated_values_.basic_counts[i] = basic_count;
+    this->calculated_values_.max_basic_count = std::max(this->calculated_values_.max_basic_count, basic_count);
   }
 }
 
@@ -598,11 +650,7 @@ void AS7343Component::calculate_spectral_(float &lux, float &par, float &ppfd, f
 
   for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
     float bc = this->calculated_values_.basic_counts[i];
-
-    float irr = AS7343_IRRAD_MW_PER_COUNT[i] * bc;
-    this->calculated_values_.mw_per_band[i] = std::max<float>(irr, 0);
-    irradiance += irr;
-
+    irradiance += AS7343_IRRAD_MW_PER_COUNT[i] * bc;
     irradiance_photopic += AS7343_IRRAD_PHOTOPIC_MW_PER_COUNT[i] * bc;
     par += AS7343_IRRAD_PAR_E_MW_PER_COUNT[i] * bc;
     ppfd += AS7343_PPFD_UMOL_PER_COUNT[i] * bc;
@@ -681,6 +729,7 @@ void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
       ESP_LOGD(TAG, "  xyz: %.4f, %.4f, %.4f", x, y, z);
       ESP_LOGD(TAG, "  CCT: %.2f, u': %.4f, v': %.4f, duv: %.2f", cct, uprime, vprime, duv);
     }
+    xyz_to_hex(XYZ[0], XYZ[1], XYZ[2], &this->rgb_hex_str_[0]);
   }
 }
 
@@ -754,8 +803,8 @@ bool AS7343Component::is_data_ready() {
   status2.raw = this->reg((uint8_t) AS7343Registers::STATUS2).get();
   this->reg((uint8_t) AS7343Registers::STATUS2) = status2.raw;
   if (status2.avalid) {
-    ESP_LOGVV(TAG, "Status2 0x%02x, avalid %d, asat_digital %d, asat_analog %d", status2.raw, status2.avalid,
-              status2.asat_digital, status2.asat_analog);
+    ESP_LOGD(TAG, "Status2 0x%02x, avalid %d, asat_digital %d, asat_analog %d", status2.raw, status2.avalid,
+             status2.asat_digital, status2.asat_analog);
   }
 
   //  return this->read_register_bit((uint8_t) AS7343Registers::STATUS2, 6);
