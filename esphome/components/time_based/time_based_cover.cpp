@@ -2,6 +2,8 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 
+#include <cinttypes>
+
 namespace esphome {
 namespace time_based {
 
@@ -13,6 +15,11 @@ void TimeBasedCover::dump_config() {
   LOG_COVER("", "Time Based Cover", this);
   ESP_LOGCONFIG(TAG, "  Open Duration: %.1fs", this->open_duration_ / 1e3f);
   ESP_LOGCONFIG(TAG, "  Close Duration: %.1fs", this->close_duration_ / 1e3f);
+
+  if (this->tilt_duration_ > 0)
+    ESP_LOGCONFIG(TAG, "  Tilt Duration: %" PRIu32 "ms", this->tilt_duration_);
+
+  ESP_LOGCONFIG(TAG, "  Activation delay: %" PRIu32 "ms", this->activation_delay_);
 }
 void TimeBasedCover::setup() {
   auto restore = this->restore_state_();
@@ -54,6 +61,7 @@ CoverTraits TimeBasedCover::get_traits() {
   traits.set_supports_stop(true);
   traits.set_supports_position(true);
   traits.set_supports_toggle(true);
+  traits.set_supports_tilt(this->tilt_duration_ > 0);
   traits.set_is_assumed_state(this->assumed_state_);
   return traits;
 }
@@ -100,6 +108,27 @@ void TimeBasedCover::control(const CoverCall &call) {
         this->position = pos == COVER_CLOSED ? COVER_OPEN : COVER_CLOSED;
       }
       this->target_position_ = pos;
+      this->start_direction_(op);
+    }
+  }
+
+  if (call.get_tilt().has_value()) {
+    auto requested_tilt = *call.get_tilt();
+    if (requested_tilt != this->tilt) {
+      CoverOperation op;
+      uint32_t operation_duration_ms;
+      if (requested_tilt < this->tilt) {
+        op = COVER_OPERATION_CLOSING;
+        operation_duration_ms = this->close_duration_;
+      } else {
+        op = COVER_OPERATION_OPENING;
+        operation_duration_ms = this->open_duration_;
+      }
+
+      const auto tilt_change_duration_ms = (requested_tilt - this->tilt) * this->tilt_duration_;
+      const auto position_shift = tilt_change_duration_ms / operation_duration_ms;
+
+      this->target_position_ = this->position + position_shift;
       this->start_direction_(op);
     }
   }
@@ -152,6 +181,7 @@ void TimeBasedCover::start_direction_(CoverOperation dir) {
   this->stop_prev_trigger_();
   trig->trigger();
   this->prev_command_trigger_ = trig;
+  this->remaining_activation_delay_ = this->activation_delay_;
 }
 void TimeBasedCover::recompute_position_() {
   if (this->current_operation == COVER_OPERATION_IDLE)
@@ -173,8 +203,19 @@ void TimeBasedCover::recompute_position_() {
   }
 
   const uint32_t now = millis();
-  this->position += dir * (now - this->last_recompute_time_) / action_dur;
-  this->position = clamp(this->position, 0.0f, 1.0f);
+  const uint32_t step_duration = now - this->last_recompute_time_;
+
+  this->remaining_activation_delay_ -= step_duration;
+
+  if (this->remaining_activation_delay_ <= 0) {
+    this->remaining_activation_delay_ = 0;
+
+    this->position += dir * (step_duration) / action_dur;
+    this->position = clamp(this->position, 0.0f, 1.0f);
+
+    this->tilt += dir * (step_duration) / this->tilt_duration_;
+    this->tilt = clamp(this->tilt, 0.0f, 1.0f);
+  }
 
   this->last_recompute_time_ = now;
 }
