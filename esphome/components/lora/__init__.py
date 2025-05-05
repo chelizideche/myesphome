@@ -16,8 +16,6 @@ IS_PLATFORM_COMPONENT = True
 DOMAIN = "lora"
 
 CONF_LORA_ID = "lora_id"
-CONF_RADIO_ID = "radio_id"
-
 
 # CONF_BANDWIDTH = "bandwidth"
 # CONF_CODING_RATE = "coding_rate"
@@ -48,7 +46,7 @@ CONF_RADIO_ID = "radio_id"
 _LOGGER = logging.getLogger(__name__)
 
 
-LORA_ID_SCHEMA = cv.Schema(
+LORA_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_LORA_ID): cv.use_id(LoRa),
     }
@@ -62,7 +60,7 @@ LORA_ID_SCHEMA = cv.Schema(
 #     return config
 
 
-LORA_SCHEMA = (
+LORA_COMPONENT_SCHEMA = (
     cv.Schema(
         {
             # cv.Optional(CONF_BANDWIDTH, default="125_0kHz"): cv.one_of(BANDWIDTHS),
@@ -83,7 +81,7 @@ async def register_lora_client(var, config):
 
 
 def lora_schema(cls):
-    return LORA_SCHEMA.extend({cv.GenerateID(): cv.declare_id(cls)})
+    return LORA_COMPONENT_SCHEMA.extend({cv.GenerateID(): cv.declare_id(cls)})
 
 
 async def new_lora(config):

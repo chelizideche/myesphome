@@ -7,6 +7,15 @@ namespace lora {
 
 static const char *const TAG = "lora";
 
+void LoRa::dump_config() {
+  ESP_LOGCONFIG(TAG, "LoRa:");
+  ESP_LOGCONFIG(TAG, "  Platform: %s", this->platform_name_);
+  // ESP_LOGCONFIG(TAG, "  Radio: %s", this->parent_->get_name().c_str());
+  // ESP_LOGCONFIG(TAG, "  Encrypted: %s", YESNO(this->is_encrypted_()));
+  // ESP_LOGCONFIG(TAG, "  Ping-pong: %s", YESNO(this->ping_pong_enable_));
+  // Component::dump_config();
+}
+
 void LoRa::packet_received(const std::vector<uint8_t> &packet, float rssi, float snr) {
   ESP_LOGD(TAG, "packet %s", format_hex(packet).c_str());
   ESP_LOGD(TAG, "rssi %.2f", rssi);
