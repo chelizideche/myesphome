@@ -312,7 +312,7 @@ async def to_code(config):
 
     if CORE.using_esp_idf:
         add_idf_sdkconfig_option("CONFIG_BT_ENABLED", True)
-        if config[CONF_SOFTWARE_COEXISTENCE]:
+        if config.get(CONF_SOFTWARE_COEXISTENCE):
             add_idf_sdkconfig_option("CONFIG_SW_COEXIST_ENABLE", True)
         # https://github.com/espressif/esp-idf/issues/4101
         # https://github.com/espressif/esp-idf/issues/2503
@@ -335,7 +335,7 @@ async def to_code(config):
 
     cg.add_define("USE_OTA_STATE_CALLBACK")  # To be notified when an OTA update starts
     cg.add_define("USE_ESP32_BLE_CLIENT")
-    if config[CONF_SOFTWARE_COEXISTENCE]:
+    if config.get(CONF_SOFTWARE_COEXISTENCE):
         cg.add_define("USE_ESP32_BLE_SOFTWARE_COEXISTENCE")
 
 
