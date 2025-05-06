@@ -4897,7 +4897,7 @@ bool ListEntitiesLockResponse::decode_varint(uint32_t field_id, ProtoVarInt valu
       return true;
     }
     case 10: {
-      this->requires_code = value.as_bool();
+      this->requires_code = value.as_bool();  // TEST IF IT WORKS
       return true;
     }
     default:
