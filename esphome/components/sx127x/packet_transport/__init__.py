@@ -21,7 +21,7 @@ CONFIG_SCHEMA = transport_schema(SX127xTransport).extend(
 
 
 async def to_code(config):
-    var = await new_packet_transport(config)
+    var, _ = await new_packet_transport(config)
     sx127x = await cg.get_variable(config[CONF_SX127X_ID])
     cg.add(var.set_parent(sx127x))
     cg.add(sx127x.register_listener(var))
