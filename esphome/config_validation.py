@@ -349,8 +349,8 @@ def icon(value):
 
 
 def sub_device_id(value):
-    devices_ns = cg.esphome_ns.namespace("devices")
-    SubDevice = devices_ns.class_("SubDevice")
+    # Duplicate definition of SubDevice to avoid circular import
+    SubDevice = cg.esphome_ns.class_("SubDevice")
     validator = use_id(SubDevice)
     return validator(value)
 
