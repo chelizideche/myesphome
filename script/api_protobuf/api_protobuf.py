@@ -35,7 +35,7 @@ will be generated, they still need to be formatted
 
 
 FILE_HEADER = """// This file was automatically generated with a tool.
-// See scripts/api_protobuf/api_protobuf.py
+// See script/api_protobuf/api_protobuf.py
 """
 
 
@@ -200,6 +200,111 @@ class TypeInfo(ABC):
     def dump(self, name: str) -> str:
         """Dump the value to the output."""
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        """Calculate the size needed for encoding this field.
+
+        Args:
+            name: The name of the field
+            force: Whether to force encoding the field even if it has a default value
+        """
+        # To be implemented by subclasses
+        return f"// No size calculation for type {self.__class__.__name__}"
+
+    def size_calc_fixed_bytes(
+        self, name: str, bytes_count: int, force: bool = False
+    ) -> str:
+        """Helper to generate size calculation code for fixed-size fields."""
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          // 1 byte for field_id, {bytes_count} bytes for value
+          total_size += {bytes_count + 1};"""
+        else:
+            return f"""if ({name} != 0) {{
+          // 1 byte for field_id, {bytes_count} bytes for value
+          total_size += {bytes_count + 1};
+        }}"""
+
+    def size_calc_float_fixed(
+        self, name: str, bytes_count: int, zero_value: str, force: bool = False
+    ) -> str:
+        """Helper to generate size calculation code for float/double fields."""
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          // 1 byte for field_id, {bytes_count} bytes for value
+          total_size += {bytes_count + 1};"""
+        else:
+            return f"""if ({name} != {zero_value}) {{
+          // 1 byte for field_id, {bytes_count} bytes for value
+          total_size += {bytes_count + 1};
+        }}"""
+
+    def size_calc_bool(self, name: str, force: bool = False) -> str:
+        """Helper to generate size calculation code for boolean fields."""
+        if force:
+            return """// Always include for repeated fields (force=true)
+          // 1 byte for field_id, 1 byte for value
+          total_size += 2;"""
+        else:
+            return f"""if ({name}) {{
+          // 1 byte for field_id, 1 byte for value
+          total_size += 2;
+        }}"""
+
+    def size_calc_varint(
+        self, name: str, cast: str = None, zigzag: str = None, force: bool = False
+    ) -> str:
+        """Helper to generate size calculation code for various varint fields.
+
+        Args:
+            name: The name of the field
+            cast: Optional cast type (e.g., "static_cast<uint32_t>")
+            zigzag: Optional zigzag expression (e.g., "31" for sint32, "63" for sint64)
+            force: Whether to force encoding the field even if it has a default value
+        """
+        value = name
+        comment = ""
+
+        # Apply zigzag encoding if specified
+        if zigzag:
+            value = f"(({name} << 1) ^ ({name} >> {zigzag}))"
+            comment = f" zigzag{zigzag}"
+
+        # Apply type cast if specified
+        if cast:
+            value = f"{cast}({value})"
+
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          // 1 byte for field_id +{comment} varint bytes
+          total_size += 1 + ProtoSizeCalculator::varint_size({value});"""
+        else:
+            return f"""if ({name} != 0) {{
+          // 1 byte for field_id +{comment} varint bytes
+          total_size += 1 + ProtoSizeCalculator::varint_size({value});
+        }}"""
+
+    def size_calc_int32(self, name: str, force: bool = False) -> str:
+        """Helper to generate size calculation code for int32 fields with special handling for negative values."""
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          if ({name} < 0) {{
+            // Field ID byte + 10 bytes for negative int32 (encoded as int64)
+            total_size += 11;
+          }} else {{
+            // Field ID byte + varint bytes for the value
+            total_size += 1 + ProtoSizeCalculator::varint_size({name});
+          }}"""
+        else:
+            return f"""if ({name} != 0) {{
+          if ({name} < 0) {{
+            // Field ID byte + 10 bytes for negative int32 (encoded as int64)
+            total_size += 11;
+          }} else {{
+            // Field ID byte + varint bytes for the value
+            total_size += 1 + ProtoSizeCalculator::varint_size({name});
+          }}
+        }}"""
+
 
 TYPE_INFO: dict[int, TypeInfo] = {}
 
@@ -227,6 +332,12 @@ class DoubleType(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Double is handled like fixed64 - 9 bytes when non-zero (1 for field + 8 for value)
+        return self.size_calc_float_fixed(
+            name, bytes_count=8, zero_value="0.0", force=force
+        )
+
 
 @register_type(2)
 class FloatType(TypeInfo):
@@ -239,6 +350,12 @@ class FloatType(TypeInfo):
         o = f'sprintf(buffer, "%g", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Float is handled like fixed32 - 5 bytes when non-zero (1 for field + 4 for value)
+        return self.size_calc_float_fixed(
+            name, bytes_count=4, zero_value="0.0f", force=force
+        )
 
 
 @register_type(3)
@@ -253,6 +370,10 @@ class Int64Type(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Int64 size calculation - effectively handled like uint64
+        return self.size_calc_varint(name, cast="static_cast<uint64_t>", force=force)
+
 
 @register_type(4)
 class UInt64Type(TypeInfo):
@@ -265,6 +386,10 @@ class UInt64Type(TypeInfo):
         o = f'sprintf(buffer, "%llu", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # UInt64 size calculation
+        return self.size_calc_varint(name, force=force)
 
 
 @register_type(5)
@@ -279,6 +404,10 @@ class Int32Type(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Calculate the size for int32 with special handling for negative values
+        return self.size_calc_int32(name, force=force)
+
 
 @register_type(6)
 class Fixed64Type(TypeInfo):
@@ -291,6 +420,10 @@ class Fixed64Type(TypeInfo):
         o = f'sprintf(buffer, "%llu", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Fixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
+        return self.size_calc_fixed_bytes(name, bytes_count=8, force=force)
 
 
 @register_type(7)
@@ -305,6 +438,10 @@ class Fixed32Type(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Fixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
+        return self.size_calc_fixed_bytes(name, bytes_count=4, force=force)
+
 
 @register_type(8)
 class BoolType(TypeInfo):
@@ -316,6 +453,10 @@ class BoolType(TypeInfo):
     def dump(self, name: str) -> str:
         o = f"out.append(YESNO({name}));"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # For bool, we know the exact size: 2 bytes when true (field_id + 1), 0 when false
+        return self.size_calc_bool(name, force=force)
 
 
 @register_type(9)
@@ -330,6 +471,20 @@ class StringType(TypeInfo):
     def dump(self, name):
         o = f'out.append("\'").append({name}).append("\'");'
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # String size calculation: if non-empty, add 1 byte field_id + size varint + string length
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          // 1 byte field_id + size varint + string length
+          total_size += 1 + ProtoSizeCalculator::varint_size(
+              static_cast<uint32_t>({name}.size())) + {name}.size();"""
+        else:
+            return f"""if (!{name}.empty()) {{
+          // 1 byte field_id + size varint + string length
+          total_size += 1 + ProtoSizeCalculator::varint_size(
+              static_cast<uint32_t>({name}.size())) + {name}.size();
+        }}"""
 
 
 @register_type(11)
@@ -360,6 +515,29 @@ class MessageType(TypeInfo):
         o = f"{name}.dump_to(out);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # For messages, we need to calculate the size of the nested message and add it to the total
+        # We need a temporary variable here since we need to check if it's greater than 0 and use it multiple times
+        if force:
+            return f"""{{
+          uint32_t nested_size = 0;
+          {name}.calculate_size(nested_size);
+          // Always include for repeated fields (force=true), even if nested_size is 0
+          total_size += ProtoSizeCalculator::field_size({self.number}, 2) +
+                        ProtoSizeCalculator::varint_size(nested_size) +
+                        nested_size;
+        }}"""
+        else:
+            return f"""{{
+          uint32_t nested_size = 0;
+          {name}.calculate_size(nested_size);
+          if (nested_size > 0) {{
+            total_size += ProtoSizeCalculator::field_size({self.number}, 2) +
+                          ProtoSizeCalculator::varint_size(nested_size) +
+                          nested_size;
+          }}
+        }}"""
+
 
 @register_type(12)
 class BytesType(TypeInfo):
@@ -374,6 +552,20 @@ class BytesType(TypeInfo):
         o = f'out.append("\'").append({name}).append("\'");'
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Bytes size calculation: if non-empty, add 1 byte field_id + size varint + bytes length
+        if force:
+            return f"""// Always include for repeated fields (force=true)
+          // 1 byte field_id + size varint + bytes length
+          total_size += 1 + ProtoSizeCalculator::varint_size(
+              static_cast<uint32_t>({name}.size())) + {name}.size();"""
+        else:
+            return f"""if (!{name}.empty()) {{
+          // 1 byte field_id + size varint + bytes length
+          total_size += 1 + ProtoSizeCalculator::varint_size(
+              static_cast<uint32_t>({name}.size())) + {name}.size();
+        }}"""
+
 
 @register_type(13)
 class UInt32Type(TypeInfo):
@@ -386,6 +578,10 @@ class UInt32Type(TypeInfo):
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Calculate the size for uint32
+        return self.size_calc_varint(name, force=force)
 
 
 @register_type(14)
@@ -408,6 +604,10 @@ class EnumType(TypeInfo):
         o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Enums are encoded as uint32
+        return self.size_calc_varint(name, cast="static_cast<uint32_t>", force=force)
+
 
 @register_type(15)
 class SFixed32Type(TypeInfo):
@@ -420,6 +620,10 @@ class SFixed32Type(TypeInfo):
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # SFixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
+        return self.size_calc_fixed_bytes(name, bytes_count=4, force=force)
 
 
 @register_type(16)
@@ -434,6 +638,10 @@ class SFixed64Type(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # SFixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
+        return self.size_calc_fixed_bytes(name, bytes_count=8, force=force)
+
 
 @register_type(17)
 class SInt32Type(TypeInfo):
@@ -447,6 +655,10 @@ class SInt32Type(TypeInfo):
         o += "out.append(buffer);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # SInt32 uses ZigZag encoding, which is more efficient for negative values
+        return self.size_calc_varint(name, zigzag="31", force=force)
+
 
 @register_type(18)
 class SInt64Type(TypeInfo):
@@ -459,6 +671,10 @@ class SInt64Type(TypeInfo):
         o = f'sprintf(buffer, "%lld", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # SInt64 uses ZigZag encoding, which is more efficient for negative values
+        return self.size_calc_varint(name, zigzag="63", force=force)
 
 
 class RepeatedTypeInfo(TypeInfo):
@@ -554,6 +770,23 @@ class RepeatedTypeInfo(TypeInfo):
     def dump(self, _: str):
         pass
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # For repeated fields, we always need to pass force=True to the underlying type's calculation
+        # This is because the encode method always sets force=true for repeated fields
+
+        if isinstance(self._ti, MessageType):
+            # For repeated messages, directly use the message's size calculation with force=True
+            o = f"""for (const auto& it : {name}) {{
+  {self._ti.get_size_calculation("it", True)}
+}}"""
+            return o
+        else:
+            # For other repeated types, use the underlying type's size calculation with force=True
+            o = f"""for (const auto {"" if self._ti_is_bool else "&"}it : {name}) {{
+  {self._ti.get_size_calculation("it", True)}
+}}"""
+            return o
+
 
 def build_enum_type(desc) -> tuple[str, str]:
     """Builds the enum type."""
@@ -587,6 +820,7 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     decode_64bit: list[str] = []
     encode: list[str] = []
     dump: list[str] = []
+    size_calc: list[str] = []
 
     for field in desc.field:
         if field.label == 3:
@@ -596,6 +830,7 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
         protected_content.extend(ti.protected_content)
         public_content.extend(ti.public_content)
         encode.append(ti.encode_content)
+        size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
 
         if ti.decode_varint_content:
             decode_varint.append(ti.decode_varint_content)
@@ -660,6 +895,19 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     o += "}\n"
     cpp += o
     prot = "void encode(ProtoWriteBuffer buffer) const override;"
+    public_content.append(prot)
+
+    # Add calculate_size method
+    o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
+    if size_calc:
+        if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
+            o += f" {size_calc[0]} "
+        else:
+            o += "\n"
+            o += indent("\n".join(size_calc)) + "\n"
+    o += "}\n"
+    cpp += o
+    prot = "void calculate_size(uint32_t &total_size) const override;"
     public_content.append(prot)
 
     o = f"void {desc.name}::dump_to(std::string &out) const {{"
@@ -751,7 +999,7 @@ def build_service_message_type(
             cout += f'  ESP_LOGVV(TAG, "{func}: %s", msg.dump().c_str());\n'
             cout += "#endif\n"
         # cout += f'  this->set_nodelay({str(nodelay).lower()});\n'
-        cout += f"  return this->send_message_<{mt.name}>(msg, {id_});\n"
+        cout += f"  return this->send_message_with_size_<{mt.name}>(msg, {id_});\n"
         cout += "}\n"
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
         # Generate receive
@@ -796,6 +1044,7 @@ def main() -> None:
     #pragma once
 
     #include "proto.h"
+    #include "api_pb2_size.h"
 
     namespace esphome {
     namespace api {
@@ -805,6 +1054,7 @@ def main() -> None:
     cpp = FILE_HEADER
     cpp += """\
     #include "api_pb2.h"
+    #include "api_pb2_size.h"
     #include "esphome/core/log.h"
 
     #include <cinttypes>

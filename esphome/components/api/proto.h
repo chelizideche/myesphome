@@ -276,6 +276,7 @@ class ProtoMessage {
   virtual ~ProtoMessage() = default;
   virtual void encode(ProtoWriteBuffer buffer) const = 0;
   void decode(const uint8_t *buffer, size_t length);
+  virtual void calculate_size(uint32_t &total_size) const = 0;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
   virtual void dump_to(std::string &out) const = 0;
@@ -305,6 +306,22 @@ class ProtoService {
   template<class C> bool send_message_(const C &msg, uint32_t message_type) {
     auto buffer = this->create_buffer();
     msg.encode(buffer);
+    return this->send_buffer(buffer, message_type);
+  }
+
+  // Pre-allocate buffer based on message size to optimize memory usage
+  template<class C> bool send_message_with_size_(const C &msg, uint32_t message_type) {
+    uint32_t msg_size = 0;
+    msg.calculate_size(msg_size);
+
+    // Create a pre-sized buffer
+    auto buffer = this->create_buffer();
+    buffer.get_buffer()->reserve(msg_size);
+
+    // Encode message into the buffer
+    msg.encode(buffer);
+
+    // Send the buffer
     return this->send_buffer(buffer, message_type);
   }
 };
