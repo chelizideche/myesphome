@@ -349,7 +349,7 @@ class DeviceInfoRequest : public ProtoMessage {
 };
 class SubDeviceInfo : public ProtoMessage {
  public:
-  uint32_t uid{};
+  uint32_t uid{0};
   std::string name{};
   std::string suggested_area{};
   void encode(ProtoWriteBuffer buffer) const override;
@@ -359,6 +359,7 @@ class SubDeviceInfo : public ProtoMessage {
 
  protected:
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
+  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DeviceInfoResponse : public ProtoMessage {
  public:
@@ -429,7 +430,7 @@ class ListEntitiesBinarySensorResponse : public ProtoMessage {
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -468,7 +469,7 @@ class ListEntitiesCoverResponse : public ProtoMessage {
   std::string icon{};
   enums::EntityCategory entity_category{};
   bool supports_stop{false};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -528,7 +529,7 @@ class ListEntitiesFanResponse : public ProtoMessage {
   std::string icon{};
   enums::EntityCategory entity_category{};
   std::vector<std::string> supported_preset_modes{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -600,7 +601,7 @@ class ListEntitiesLightResponse : public ProtoMessage {
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -690,7 +691,7 @@ class ListEntitiesSensorResponse : public ProtoMessage {
   enums::SensorLastResetType legacy_last_reset_type{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -726,7 +727,7 @@ class ListEntitiesSwitchResponse : public ProtoMessage {
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
   std::string device_class{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -773,7 +774,7 @@ class ListEntitiesTextSensorResponse : public ProtoMessage {
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
   std::string device_class{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1010,7 +1011,7 @@ class ListEntitiesCameraResponse : public ProtoMessage {
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1075,7 +1076,7 @@ class ListEntitiesClimateResponse : public ProtoMessage {
   bool supports_target_humidity{false};
   float visual_min_humidity{0.0f};
   float visual_max_humidity{0.0f};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1163,7 +1164,7 @@ class ListEntitiesNumberResponse : public ProtoMessage {
   std::string unit_of_measurement{};
   enums::NumberMode mode{};
   std::string device_class{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1210,7 +1211,7 @@ class ListEntitiesSelectResponse : public ProtoMessage {
   std::vector<std::string> options{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1262,7 +1263,7 @@ class ListEntitiesLockResponse : public ProtoMessage {
   bool supports_open{false};
   bool requires_code{false};
   std::string code_format{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1312,7 +1313,7 @@ class ListEntitiesButtonResponse : public ProtoMessage {
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
   std::string device_class{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1361,7 +1362,7 @@ class ListEntitiesMediaPlayerResponse : public ProtoMessage {
   enums::EntityCategory entity_category{};
   bool supports_pause{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -1999,7 +2000,7 @@ class ListEntitiesAlarmControlPanelResponse : public ProtoMessage {
   uint32_t supported_features{0};
   bool requires_code{false};
   bool requires_code_to_arm{false};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2051,7 +2052,7 @@ class ListEntitiesTextResponse : public ProtoMessage {
   uint32_t max_length{0};
   std::string pattern{};
   enums::TextMode mode{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2099,7 +2100,7 @@ class ListEntitiesDateResponse : public ProtoMessage {
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2150,7 +2151,7 @@ class ListEntitiesTimeResponse : public ProtoMessage {
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2203,7 +2204,7 @@ class ListEntitiesEventResponse : public ProtoMessage {
   enums::EntityCategory entity_category{};
   std::string device_class{};
   std::vector<std::string> event_types{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2240,7 +2241,7 @@ class ListEntitiesValveResponse : public ProtoMessage {
   bool assumed_state{false};
   bool supports_position{false};
   bool supports_stop{false};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2289,7 +2290,7 @@ class ListEntitiesDateTimeResponse : public ProtoMessage {
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
@@ -2336,7 +2337,7 @@ class ListEntitiesUpdateResponse : public ProtoMessage {
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
   std::string device_class{};
-  uint32_t device_uid{};
+  uint32_t device_uid{0};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
