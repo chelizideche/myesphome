@@ -1,16 +1,11 @@
+import esphome.codegen as cg
 from esphome.components.lora import LoRa, lora_schema, new_lora
 import esphome.config_validation as cv
 from esphome.cpp_types import Component
 
-from .. import (
-    CONF_SX127X_ID,
-    SX127X_SCHEMA,
-    register_sx127x_client,
-    sx127x_modes,
-    sx127x_ns,
-)
+from .. import CONF_SX127X_ID, SX127x, SX127xListener, sx127x_modes, sx127x_ns
 
-SX127xLoRa = sx127x_ns.class_("SX127xLoRa", LoRa, Component)
+SX127xLoRa = sx127x_ns.class_("SX127xLoRa", LoRa, Component, SX127xListener)
 
 
 def validate_lora(config):
@@ -23,7 +18,15 @@ def validate_lora(config):
     return config
 
 
-CONFIG_SCHEMA = lora_schema(SX127xLoRa).extend(SX127X_SCHEMA).add_extra(validate_lora)
+CONFIG_SCHEMA = (
+    lora_schema(SX127xLoRa)
+    .extend(
+        {
+            cv.GenerateID(CONF_SX127X_ID): cv.use_id(SX127x),
+        }
+    )
+    .add_extra(validate_lora)
+)
 
 
 async def to_code(config):
@@ -33,4 +36,6 @@ async def to_code(config):
     validate_lora(config)
 
     var = await new_lora(config)
-    await register_sx127x_client(var, config)
+    sx127x = await cg.get_variable(config[CONF_SX127X_ID])
+    cg.add(var.set_parent(sx127x))
+    cg.add(sx127x.register_listener(var))

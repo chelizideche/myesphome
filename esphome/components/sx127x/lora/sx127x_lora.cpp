@@ -7,17 +7,6 @@ namespace sx127x {
 
 static const char *const TAG = "sx127x_lora";
 
-SX127xLoRaListener::SX127xLoRaListener(SX127xLoRa *parent) { this->parent_ = parent; }
-
-void SX127xLoRaListener::on_packet(const std::vector<uint8_t> &packet, float rssi, float snr) {
-  this->parent_->packet_received(packet, rssi, snr);
-}
-
-void SX127xLoRa::setup() {
-  LoRa::setup();
-  this->parent_->register_listener(new SX127xLoRaListener(this));
-}
-
 void SX127xLoRa::set_frequency(uint32_t frequency) {
   this->parent_->set_frequency(frequency);
   this->parent_->configure();
