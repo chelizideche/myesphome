@@ -143,5 +143,3 @@ sdkconfig.*
 /components
 /managed_components
 
-
-**/.claude/settings.local.json
