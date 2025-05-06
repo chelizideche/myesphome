@@ -4,9 +4,10 @@ from esphome.components.packet_transport import (
     new_packet_transport,
     transport_schema,
 )
-from esphome.components.sx126x import CONF_SX126X_ID, SX126x, SX126xListener, sx126x_ns
 import esphome.config_validation as cv
 from esphome.cpp_types import PollingComponent
+
+from .. import CONF_SX126X_ID, SX126x, SX126xListener, sx126x_ns
 
 SX126xTransport = sx126x_ns.class_(
     "SX126xTransport", PacketTransport, PollingComponent, SX126xListener
