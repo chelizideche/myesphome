@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_DEBUG_SCHEDULER,
     CONF_ESPHOME,
     CONF_FRIENDLY_NAME,
+    CONF_ID,
     CONF_INCLUDES,
     CONF_LIBRARIES,
     CONF_MIN_VERSION,
@@ -26,6 +27,7 @@ from esphome.const import (
     CONF_PLATFORMIO_OPTIONS,
     CONF_PRIORITY,
     CONF_PROJECT,
+    CONF_SUB_DEVICES,
     CONF_TRIGGER_ID,
     CONF_VERSION,
     KEY_CORE,
@@ -48,7 +50,7 @@ LoopTrigger = cg.esphome_ns.class_(
 ProjectUpdateTrigger = cg.esphome_ns.class_(
     "ProjectUpdateTrigger", cg.Component, automation.Trigger.template(cg.std_string)
 )
-
+SubDevice = cg.esphome_ns.class_("SubDevice")
 
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
 
@@ -167,6 +169,15 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
             ): cv.int_range(min=1, max=get_usable_cpu_count()),
+            cv.Optional(CONF_SUB_DEVICES, default=[]): cv.ensure_list(
+                cv.Schema(
+                    {
+                        cv.GenerateID(CONF_ID): cv.declare_id(SubDevice),
+                        cv.Required(CONF_NAME): cv.string,
+                        cv.Optional(CONF_AREA, default=""): cv.string,
+                    }
+                ),
+            ),
         }
     ),
     validate_hostname,
@@ -405,3 +416,12 @@ async def to_code(config):
 
     if config[CONF_PLATFORMIO_OPTIONS]:
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
+
+    if config[CONF_SUB_DEVICES]:
+        for dev_conf in config[CONF_SUB_DEVICES]:
+            dev = cg.new_Pvariable(dev_conf[CONF_ID])
+            cg.add(dev.set_uid(hash(str(dev_conf[CONF_ID])) % 0xFFFFFFFF))
+            cg.add(dev.set_name(dev_conf[CONF_NAME]))
+            cg.add(dev.set_area(dev_conf[CONF_AREA]))
+            cg.add(cg.App.register_sub_device(dev))
+        cg.add_define("USE_SUB_DEVICE")

@@ -3,7 +3,6 @@
 #include "esphome/core/string_ref.h"
 
 namespace esphome {
-namespace devices {
 
 class SubDevice {
  public:
@@ -20,5 +19,4 @@ class SubDevice {
   std::string area_ = "";
 };
 
-}  // namespace devices
 }  // namespace esphome
