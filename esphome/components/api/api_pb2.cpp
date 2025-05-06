@@ -937,111 +937,149 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
 }
 void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(1, this->uses_password);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding uses_password", this->size());
   buffer.encode_string(2, this->name);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding name", this->size());
   buffer.encode_string(3, this->mac_address);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding mac_address", this->size());
   buffer.encode_string(4, this->esphome_version);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding esphome_version", this->size());
   buffer.encode_string(5, this->compilation_time);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding compilation_time", this->size());
   buffer.encode_string(6, this->model);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding model", this->size());
   buffer.encode_bool(7, this->has_deep_sleep);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding has_deep_sleep", this->size());
   buffer.encode_string(8, this->project_name);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding project_name", this->size());
   buffer.encode_string(9, this->project_version);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding project_version", this->size());
   buffer.encode_uint32(10, this->webserver_port);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding webserver_port", this->size());
   buffer.encode_uint32(11, this->legacy_bluetooth_proxy_version);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding legacy_bluetooth_proxy_version", this->size());
   buffer.encode_uint32(15, this->bluetooth_proxy_feature_flags);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding bluetooth_proxy_feature_flags", this->size());
   buffer.encode_string(12, this->manufacturer);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding manufacturer", this->size());
   buffer.encode_string(13, this->friendly_name);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding friendly_name", this->size());
   buffer.encode_uint32(14, this->legacy_voice_assistant_version);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding legacy_voice_assistant_version", this->size());
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding voice_assistant_feature_flags", this->size());
   buffer.encode_string(16, this->suggested_area);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding suggested_area", this->size());
   buffer.encode_string(18, this->bluetooth_mac_address);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding bluetooth_mac_address", this->size());
   buffer.encode_bool(19, this->api_encryption_supported);
+  ESP_LOGW("DeviceInfoResponse size is %d after adding api_encryption_supported", this->size());
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   if (this->uses_password) {
     // 1 byte for field_id, 1 byte for value
     total_size += 2;
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding uses_password", total_size);
   if (!this->name.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding name", total_size);
   if (!this->mac_address.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mac_address.size())) +
                   this->mac_address.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding mac_address", total_size);
   if (!this->esphome_version.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->esphome_version.size())) +
                   this->esphome_version.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding esphome_version", total_size);
   if (!this->compilation_time.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->compilation_time.size())) +
                   this->compilation_time.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding compilation_time", total_size);
   if (!this->model.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->model.size())) + this->model.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding model", total_size);
   if (this->has_deep_sleep) {
     // 1 byte for field_id, 1 byte for value
     total_size += 2;
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding has_deep_sleep", total_size);
   if (!this->project_name.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->project_name.size())) +
                   this->project_name.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding project_name", total_size);
   if (!this->project_version.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->project_version.size())) +
                   this->project_version.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding project_version", total_size);
   if (this->webserver_port != 0) {
     // 1 byte for field_id + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->webserver_port);
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding webserver_port", total_size);
   if (this->legacy_bluetooth_proxy_version != 0) {
     // 1 byte for field_id + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_bluetooth_proxy_version);
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding legacy_bluetooth_proxy_version", total_size);
   if (this->bluetooth_proxy_feature_flags != 0) {
     // 1 byte for field_id + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->bluetooth_proxy_feature_flags);
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding bluetooth_proxy_feature_flags", total_size);
   if (!this->manufacturer.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->manufacturer.size())) +
                   this->manufacturer.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding manufacturer", total_size);
   if (!this->friendly_name.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->friendly_name.size())) +
                   this->friendly_name.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding friendly_name", total_size);
   if (this->legacy_voice_assistant_version != 0) {
     // 1 byte for field_id + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_voice_assistant_version);
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding legacy_voice_assistant_version", total_size);
   if (this->voice_assistant_feature_flags != 0) {
     // 1 byte for field_id + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->voice_assistant_feature_flags);
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding voice_assistant_feature_flags", total_size);
   if (!this->suggested_area.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->suggested_area.size())) +
                   this->suggested_area.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding suggested_area", total_size);
   if (!this->bluetooth_mac_address.empty()) {
     // 1 byte field_id + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->bluetooth_mac_address.size())) +
                   this->bluetooth_mac_address.size();
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding bluetooth_mac_address", total_size);
   if (this->api_encryption_supported) {
     // 1 byte for field_id, 1 byte for value
     total_size += 2;
   }
+  ESP_LOGW("DeviceInfoResponse calculated_size is %d after adding api_encryption_supported", total_size);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
