@@ -56,6 +56,7 @@ class StreamingModel {
 
   // Quantized probability cutoffs mapping 0.0 - 1.0 to 0 - 255
   uint8_t get_default_probability_cutoff() const { return this->default_probability_cutoff_; }
+  uint8_t get_probability_cutoff() const { return this->probability_cutoff_; }
   void set_probability_cutoff(uint8_t probability_cutoff) { this->probability_cutoff_ = probability_cutoff; }
 
  protected:
