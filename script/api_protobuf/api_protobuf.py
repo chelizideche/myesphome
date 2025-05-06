@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import IntEnum
 import os
 from pathlib import Path
 import re
@@ -10,10 +11,24 @@ import sys
 from textwrap import dedent
 from typing import Any
 
-# Generate with
-# protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
 import aioesphomeapi.api_options_pb2 as pb
 import google.protobuf.descriptor_pb2 as descriptor
+
+
+class WireType(IntEnum):
+    """Protocol Buffer wire types as defined in the proto spec."""
+
+    VARINT = 0  # int32, int64, uint32, uint64, sint32, sint64, bool, enum
+    FIXED64 = 1  # fixed64, sfixed64, double
+    LENGTH_DELIMITED = 2  # string, bytes, embedded messages, packed repeated fields
+    START_GROUP = 3  # groups (deprecated)
+    END_GROUP = 4  # groups (deprecated)
+    FIXED32 = 5  # fixed32, sfixed32, float
+
+
+# Generate with
+# protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
+
 
 """Python 3 script to automatically generate C++ classes for ESPHome's native API.
 
@@ -200,11 +215,11 @@ class TypeInfo(ABC):
     def dump(self, name: str) -> str:
         """Dump the value to the output."""
 
-    def calculate_field_id_size(self, wire_type: int) -> int:
+    def calculate_field_id_size(self, wire_type: WireType) -> int:
         """Calculates the size of a field ID in bytes.
 
         Args:
-            wire_type: The wire type (0-5) of the field
+            wire_type: The wire type of the field using the WireType enum
 
         Returns:
             The number of bytes needed to encode the field ID
@@ -238,8 +253,8 @@ class TypeInfo(ABC):
         self, name: str, bytes_count: int, force: bool = False
     ) -> str:
         """Helper to generate size calculation code for fixed-size fields."""
-        # Calculate the field ID size for wire type 5 (fixed 32/64 bit)
-        field_id_size = self.calculate_field_id_size(5)
+        # Calculate the field ID size for wire type FIXED32
+        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -255,8 +270,8 @@ class TypeInfo(ABC):
         self, name: str, bytes_count: int, zero_value: str, force: bool = False
     ) -> str:
         """Helper to generate size calculation code for float/double fields."""
-        # Calculate the field ID size for wire type 5 (fixed 32/64 bit)
-        field_id_size = self.calculate_field_id_size(5)
+        # Calculate the field ID size for wire type FIXED32
+        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -270,8 +285,8 @@ class TypeInfo(ABC):
 
     def size_calc_bool(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for boolean fields."""
-        # Calculate the field ID size for wire type 0 (varint)
-        field_id_size = self.calculate_field_id_size(0)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -306,8 +321,8 @@ class TypeInfo(ABC):
         if cast:
             value = f"{cast}({value})"
 
-        # Calculate the field ID size for wire type 0 (varint)
-        field_id_size = self.calculate_field_id_size(0)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -321,8 +336,8 @@ class TypeInfo(ABC):
 
     def size_calc_int32(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for int32 fields with special handling for negative values."""
-        # Calculate the field ID size for wire type 0 (varint)
-        field_id_size = self.calculate_field_id_size(0)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -512,8 +527,8 @@ class StringType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type 2 (length-delimited)
-        field_id_size = self.calculate_field_id_size(2)
+        # Calculate the field ID size for wire type LENGTH_DELIMITED
+        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
         # String size calculation: if non-empty, add field_id bytes + size varint + string length
         if force:
@@ -558,8 +573,8 @@ class MessageType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type 2 (length-delimited)
-        field_id_size = self.calculate_field_id_size(2)
+        # Calculate the field ID size for wire type LENGTH_DELIMITED
+        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
         # For messages, we need to calculate the size of the nested message and add it to the total
         # We need a temporary variable here since we need to check if it's greater than 0 and use it multiple times
@@ -598,8 +613,8 @@ class BytesType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type 2 (length-delimited)
-        field_id_size = self.calculate_field_id_size(2)
+        # Calculate the field ID size for wire type LENGTH_DELIMITED
+        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
         # Bytes size calculation: if non-empty, add field_id bytes + size varint + bytes length
         if force:
