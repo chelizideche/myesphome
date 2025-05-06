@@ -80,6 +80,12 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
   }
 }
 
+// Pre-allocate buffer based on message size to optimize memory usage
+void ProtoService::log_mismatch_size(uint32_t msg_size, uint32_t actual_size, uint32_t message_type) {
+  ESP_LOGW("api.proto", "Message size mismatch - Calculated: %u, Actual: %u, Type: %u", msg_size, actual_size,
+           message_type);
+}
+
 #ifdef HAS_PROTO_MESSAGE_DUMP
 std::string ProtoMessage::dump() const {
   std::string out;

@@ -302,8 +302,10 @@ class ProtoService {
   virtual ProtoWriteBuffer create_buffer() = 0;
   virtual bool send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) = 0;
   virtual bool read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) = 0;
+  log_mismatch_size(uint32_t msg_size, uint32_t actual_size, uint32_t message_type)
 
-  template<class C> bool send_message_(const C &msg, uint32_t message_type) {
+      template<class C>
+      bool send_message_(const C &msg, uint32_t message_type) {
     auto buffer = this->create_buffer();
     msg.encode(buffer);
     return this->send_buffer(buffer, message_type);
@@ -320,6 +322,12 @@ class ProtoService {
 
     // Encode message into the buffer
     msg.encode(buffer);
+
+    // Log the calculated vs actual size
+    uint32_t actual_size = buffer.get_buffer()->size();
+    if (actual_size != msg_size) {
+      log_mismatch_size(msg_size, actual_size, message_type);
+    }
 
     // Send the buffer
     return this->send_buffer(buffer, message_type);
