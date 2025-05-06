@@ -9,7 +9,7 @@ import re
 from subprocess import call
 import sys
 from textwrap import dedent
-from typing import Any
+from typing import Any, Literal
 
 import aioesphomeapi.api_options_pb2 as pb
 import google.protobuf.descriptor_pb2 as descriptor
@@ -296,14 +296,18 @@ class TypeInfo(ABC):
         }}"""
 
     def size_calc_varint(
-        self, name: str, cast: str = None, zigzag: str = None, force: bool = False
+        self,
+        name: str,
+        cast: str = None,
+        zigzag: Literal["31", "63"] = None,
+        force: bool = False,
     ) -> str:
         """Helper to generate size calculation code for various varint fields.
 
         Args:
             name: The name of the field
             cast: Optional cast type (e.g., "static_cast<uint32_t>")
-            zigzag: Optional zigzag expression (e.g., "31" for sint32, "63" for sint64)
+            zigzag: Optional zigzag expression, either "31" for sint32 or "63" for sint64
             force: Whether to force encoding the field even if it has a default value
         """
         value = name
