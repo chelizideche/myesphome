@@ -21,7 +21,7 @@ from esphome.const import (
     CONF_COMMAND_RETAIN,
     CONF_COMMAND_TOPIC,
     CONF_DAY,
-    CONF_DEVICE_UID,
+    CONF_DEVICE_ID,
     CONF_DISABLED_BY_DEFAULT,
     CONF_DISCOVERY,
     CONF_ENTITY_CATEGORY,
@@ -348,7 +348,7 @@ def icon(value):
     )
 
 
-def sub_device_uid(value):
+def sub_device_id(value):
     devices_ns = cg.esphome_ns.namespace("devices")
     SubDevice = devices_ns.class_("SubDevice")
     validator = use_id(SubDevice)
@@ -1832,7 +1832,7 @@ ENTITY_BASE_SCHEMA = Schema(
         Optional(CONF_DISABLED_BY_DEFAULT, default=False): boolean,
         Optional(CONF_ICON): icon,
         Optional(CONF_ENTITY_CATEGORY): entity_category,
-        Optional(CONF_DEVICE_UID): sub_device_uid,
+        Optional(CONF_DEVICE_ID): sub_device_id,
     }
 )
 

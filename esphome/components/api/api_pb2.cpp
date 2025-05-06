@@ -2565,6 +2565,10 @@ bool ListEntitiesSensorResponse::decode_varint(uint32_t field_id, ProtoVarInt va
       this->entity_category = value.as_enum<enums::EntityCategory>();
       return true;
     }
+    case 14: {
+      this->device_uid = value.as_uint32();
+      return true;
+    }
     default:
       return false;
   }
@@ -2593,10 +2597,6 @@ bool ListEntitiesSensorResponse::decode_length(uint32_t field_id, ProtoLengthDel
     }
     case 9: {
       this->device_class = value.as_string();
-      return true;
-    }
-    case 14: {
-      this->device_uid = value.as_uint32();
       return true;
     }
     default:
@@ -4853,6 +4853,10 @@ bool ListEntitiesSelectResponse::decode_varint(uint32_t field_id, ProtoVarInt va
       this->entity_category = value.as_enum<enums::EntityCategory>();
       return true;
     }
+    case 9: {
+      this->device_uid = value.as_uint32();
+      return true;
+    }
     default:
       return false;
   }
@@ -4877,10 +4881,6 @@ bool ListEntitiesSelectResponse::decode_length(uint32_t field_id, ProtoLengthDel
     }
     case 6: {
       this->options.push_back(value.as_string());
-      return true;
-    }
-    case 9: {
-      this->device_uid = value.as_uint32();
       return true;
     }
     default:

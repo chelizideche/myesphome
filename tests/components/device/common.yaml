@@ -8,4 +8,4 @@ binary_sensor:
 
   - platform: template
     name: Other device sensor
-    device_uid: other_device
+    device_id: other_device
