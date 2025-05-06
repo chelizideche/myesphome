@@ -10,7 +10,7 @@
 #include "esphome/core/scheduler.h"
 
 #ifdef USE_SUB_DEVICE
-#include "esphome/components/devices/devices.h"
+#include "esphome/core/sub_device.h"
 #endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
@@ -101,7 +101,7 @@ class Application {
   }
 
 #ifdef USE_SUB_DEVICE
-  void register_sub_device(devices::SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
+  void register_sub_device(SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
 #endif
 
   void set_current_component(Component *component) { this->current_component_ = component; }
@@ -254,10 +254,10 @@ class Application {
   uint32_t get_app_state() const { return this->app_state_; }
 
 #ifdef USE_SUB_DEVICE
-  const std::vector<devices::SubDevice *> &get_sub_devices() { return this->sub_devices_; }
+  const std::vector<SubDevice *> &get_sub_devices() { return this->sub_devices_; }
   // /* Very likely no need for get_sub_device_by_key as it only seem to be used when requesting update from API
   //    and the sub_devices shaould only be sent once at connection. */
-  // devices::SubDevice *get_sub_device_by_key(uint32_t key, bool include_internal = false) {
+  // SubDevice *get_sub_device_by_key(uint32_t key, bool include_internal = false) {
   //   for (auto *obj : this->sub_devices_) {
   //     if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))
   //       return obj;
@@ -496,7 +496,7 @@ class Application {
   std::vector<Component *> looping_components_{};
 
 #ifdef USE_SUB_DEVICE
-  std::vector<devices::SubDevice *> sub_devices_{};
+  std::vector<SubDevice *> sub_devices_{};
 #endif
 #ifdef USE_BINARY_SENSOR
   std::vector<binary_sensor::BinarySensor *> binary_sensors_{};
