@@ -9,7 +9,7 @@ namespace api {
 
 namespace enums {
 
-enum EntityCategory : uint32_t {  // TEST IF IT WORKS
+enum EntityCategory : uint32_t {
   ENTITY_CATEGORY_NONE = 0,
   ENTITY_CATEGORY_CONFIG = 1,
   ENTITY_CATEGORY_DIAGNOSTIC = 2,
