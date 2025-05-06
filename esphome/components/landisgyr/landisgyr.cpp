@@ -5,13 +5,14 @@
 namespace esphome {
 namespace landisgyr {
 
-static const char *TAG = "UH50";
+static char const *const TAG = "UH50";
 
-static int UpdateCounter = 0;
 void LandisSensor::update() {
   // Wait a bit till we have logs
-  if (UpdateCounter++ == 0)
+  if (!initialized_) {
+    initialized_ = true;
     return;
+  }
 
   buffer_string_.clear();
 
@@ -89,8 +90,8 @@ std::string LandisSensor::parse_delimiter_(const std::string &string_to_parse, c
 }
 
 void LandisSensor::parse_first_line_(const std::string &line) {
-  std::string energy = parse_delimiter_(line, "6.8(", "*MWh");
-  std::string water = parse_delimiter_(line, "6.26(", "*m3");
+  auto energy = parse_delimiter_(line, "6.8(", "*MWh");
+  auto water = parse_delimiter_(line, "6.26(", "*m3");
 
   if (kwh_sensor_ != nullptr)
     kwh_sensor_->publish_state(strtof(energy.c_str(), nullptr));

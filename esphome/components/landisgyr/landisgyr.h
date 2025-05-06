@@ -36,6 +36,7 @@ class LandisSensor : public sensor::Sensor, public PollingComponent, public uart
 
   std::string init_message_{"/LUGCUH50"};
   std::string buffer_string_;
+  int initialized_{false};
 };
 
 }  // namespace landisgyr
