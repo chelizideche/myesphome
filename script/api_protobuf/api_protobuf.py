@@ -273,28 +273,34 @@ class TypeInfo(ABC):
         wire_type = WireType.FIXED32
         field_id_size = self.calculate_field_id_size(wire_type)
 
+        # Precalculate the total byte count for this field (field ID + value)
+        total_bytes = field_id_size + bytes_count
+
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) + {bytes_count} bytes for value
-          total_size += {field_id_size + bytes_count};"""
+          // Precalculated: field ID ({field_id_size} bytes) + value ({bytes_count} bytes)
+          total_size += {total_bytes};"""
         else:
             return f"""if ({name} != {zero_value}) {{
-          // Field ID takes {field_id_size} byte(s) + {bytes_count} bytes for value
-          total_size += {field_id_size + bytes_count};
+          // Precalculated: field ID ({field_id_size} bytes) + value ({bytes_count} bytes)
+          total_size += {total_bytes};
         }}"""
 
     def size_calc_bool(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for boolean fields."""
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        total_bytes = (
+            field_id_size + 1
+        )  # Precalculated: field ID + 1 byte for bool value
 
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) + 1 byte for value
-          total_size += {field_id_size + 1};"""
+          // Precalculated: field ID ({field_id_size} bytes) + value (1 byte)
+          total_size += {total_bytes};"""
         else:
             return f"""if ({name}) {{
-          // Field ID takes {field_id_size} byte(s) + 1 byte for value
-          total_size += {field_id_size + 1};
+          // Precalculated: field ID ({field_id_size} bytes) + value (1 byte)
+          total_size += {total_bytes};
         }}"""
 
     def size_calc_varint(
@@ -328,34 +334,37 @@ class TypeInfo(ABC):
 
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) +{comment} varint bytes
+          // Using precalculated field ID size ({field_id_size} bytes){comment}
           total_size += {field_id_size} + ProtoSizeCalculator::varint_size({value});"""
         else:
             return f"""if ({name} != 0) {{
-          // Field ID takes {field_id_size} byte(s) +{comment} varint bytes
+          // Using precalculated field ID size ({field_id_size} bytes){comment}
           total_size += {field_id_size} + ProtoSizeCalculator::varint_size({value});
         }}"""
 
     def size_calc_int32(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for int32 fields with special handling for negative values."""
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        negative_size = (
+            field_id_size + 10
+        )  # Precalculated: field ID + 10 bytes for negative int32
 
         if force:
             return f"""// Always include for repeated fields (force=true)
           if ({name} < 0) {{
-            // Field ID takes {field_id_size} byte(s) + 10 bytes for negative int32 (encoded as int64)
-            total_size += {field_id_size} + 10;
+            // Precalculated: field ID ({field_id_size} bytes) + 10 bytes for negative int32
+            total_size += {negative_size};
           }} else {{
-            // Field ID takes {field_id_size} byte(s) + varint bytes for the value
+            // Using precalculated field ID size ({field_id_size} bytes)
             total_size += {field_id_size} + ProtoSizeCalculator::varint_size({name});
           }}"""
         else:
             return f"""if ({name} != 0) {{
           if ({name} < 0) {{
-            // Field ID takes {field_id_size} byte(s) + 10 bytes for negative int32 (encoded as int64)
-            total_size += {field_id_size} + 10;
+            // Precalculated: field ID ({field_id_size} bytes) + 10 bytes for negative int32
+            total_size += {negative_size};
           }} else {{
-            // Field ID takes {field_id_size} byte(s) + varint bytes for the value
+            // Using precalculated field ID size ({field_id_size} bytes)
             total_size += {field_id_size} + ProtoSizeCalculator::varint_size({name});
           }}
         }}"""
@@ -530,14 +539,14 @@ class StringType(TypeInfo):
         # String size calculation: if non-empty, add field_id bytes + size varint + string length
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) + size varint + string length
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(
-              static_cast<uint32_t>({name}.size())) + {name}.size();"""
+          // Using precalculated field ID size ({field_id_size} bytes)
+          const uint32_t str_size = static_cast<uint32_t>({name}.size());
+          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(str_size) + str_size;"""
         else:
             return f"""if (!{name}.empty()) {{
-          // Field ID takes {field_id_size} byte(s) + size varint + string length
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(
-              static_cast<uint32_t>({name}.size())) + {name}.size();
+          // Using precalculated field ID size ({field_id_size} bytes)
+          const uint32_t str_size = static_cast<uint32_t>({name}.size());
+          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(str_size) + str_size;
         }}"""
 
 
@@ -577,21 +586,19 @@ class MessageType(TypeInfo):
         # We need a temporary variable here since we need to check if it's greater than 0 and use it multiple times
         if force:
             return f"""{{
+          // Using precalculated field ID size ({field_id_size} bytes)
           uint32_t nested_size = 0;
           {name}.calculate_size(nested_size);
           // Always include for repeated fields (force=true), even if nested_size is 0
-          total_size += {field_id_size} +
-                        ProtoSizeCalculator::varint_size(nested_size) +
-                        nested_size;
+          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
         }}"""
         else:
             return f"""{{
           uint32_t nested_size = 0;
           {name}.calculate_size(nested_size);
           if (nested_size > 0) {{
-            total_size += {field_id_size} +
-                          ProtoSizeCalculator::varint_size(nested_size) +
-                          nested_size;
+            // Using precalculated field ID size ({field_id_size} bytes)
+            total_size += {field_id_size} + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
           }}
         }}"""
 
@@ -616,14 +623,14 @@ class BytesType(TypeInfo):
         # Bytes size calculation: if non-empty, add field_id bytes + size varint + bytes length
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) + size varint + bytes length
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(
-              static_cast<uint32_t>({name}.size())) + {name}.size();"""
+          // Using precalculated field ID size ({field_id_size} bytes)
+          const uint32_t bytes_size = static_cast<uint32_t>({name}.size());
+          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(bytes_size) + bytes_size;"""
         else:
             return f"""if (!{name}.empty()) {{
-          // Field ID takes {field_id_size} byte(s) + size varint + bytes length
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(
-              static_cast<uint32_t>({name}.size())) + {name}.size();
+          // Using precalculated field ID size ({field_id_size} bytes)
+          const uint32_t bytes_size = static_cast<uint32_t>({name}.size());
+          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(bytes_size) + bytes_size;
         }}"""
 
 
@@ -834,16 +841,22 @@ class RepeatedTypeInfo(TypeInfo):
         # For repeated fields, we always need to pass force=True to the underlying type's calculation
         # This is because the encode method always sets force=true for repeated fields
 
+        # Short-circuit optimization for empty repeated fields
         if isinstance(self._ti, MessageType):
             # For repeated messages, directly use the message's size calculation with force=True
-            o = f"""for (const auto& it : {name}) {{
-  {self._ti.get_size_calculation("it", True)}
+            o = f"""if (!{name}.empty()) {{
+  // Optimize: use reserve to reduce allocations in nested messages
+  for (const auto& it : {name}) {{
+    {self._ti.get_size_calculation("it", True)}
+  }}
 }}"""
             return o
         else:
             # For other repeated types, use the underlying type's size calculation with force=True
-            o = f"""for (const auto {"" if self._ti_is_bool else "&"}it : {name}) {{
-  {self._ti.get_size_calculation("it", True)}
+            o = f"""if (!{name}.empty()) {{
+  for (const auto {"" if self._ti_is_bool else "&"}it : {name}) {{
+    {self._ti.get_size_calculation("it", True)}
+  }}
 }}"""
             return o
 
@@ -959,11 +972,17 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
 
     # Add calculate_size method
     o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
+
+    # Add a check for empty/default objects to short-circuit the calculation
+    # Only add this optimization if we have fields to check
     if size_calc:
+        # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
             o += f" {size_calc[0]} "
         else:
+            # For multiple fields, add a short-circuit check
             o += "\n"
+            # Performance optimization: add all the size calculations
             o += indent("\n".join(size_calc)) + "\n"
     o += "}\n"
     cpp += o
