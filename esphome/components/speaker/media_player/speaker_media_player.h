@@ -73,10 +73,6 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
 
   void play_file(audio::AudioFile *media_file, bool announcement, bool enqueue);
 
-  uint32_t get_playback_ms() const { return this->playback_ms_; }
-  uint32_t get_playback_us() const { return this->playback_us_; }
-  uint32_t get_decoded_playback_ms() const { return this->decoded_playback_ms_; }
-
   void set_playlist_delay_ms(AudioPipelineType pipeline_type, uint32_t delay_ms);
 
  protected:
