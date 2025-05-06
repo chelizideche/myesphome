@@ -4,6 +4,7 @@
 #include "esphome/core/entity_base.h"
 #include "esphome/core/preferences.h"
 #include "esphome/core/helpers.h"
+#include "switch_call.h"
 
 namespace esphome {
 namespace switch_ {
@@ -119,6 +120,8 @@ class Switch : public EntityBase, public EntityBase_DeviceClass {
   bool is_inverted() const;
 
   void set_restore_mode(SwitchRestoreMode restore_mode) { this->restore_mode = restore_mode; }
+
+  SwitchCall make_call() { return SwitchCall(this); }
 
  protected:
   /** Write the given state to hardware. You should implement this

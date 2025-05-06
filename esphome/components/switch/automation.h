@@ -42,7 +42,11 @@ template<typename... Ts> class ControlAction : public Action<Ts...> {
   explicit ControlAction(Switch *a_switch) : switch_(a_switch) {}
   TEMPLATABLE_VALUE(bool, state)
 
-  void play(Ts... x) override { this->switch_->control(this->state_.value(x...)); }
+  void play(Ts... x) override {
+    auto call = this->switch_->make_call();
+    call.set_state(this->state_.value(x...));
+    call.perform();
+  }
 
  protected:
   Switch *switch_;
