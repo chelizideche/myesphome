@@ -349,8 +349,9 @@ def icon(value):
 
 
 def sub_device_id(value):
-    # Duplicate definition of SubDevice to avoid circular import
-    SubDevice = cg.esphome_ns.class_("SubDevice")
+    # Lazy import to avoid circular imports
+    from esphome.core.config import SubDevice
+
     validator = use_id(SubDevice)
     return validator(value)
 
