@@ -389,7 +389,7 @@ class DoubleType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Double size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
 
 
 @register_type(2)
@@ -409,7 +409,7 @@ class FloatType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Float size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
 
 
 @register_type(3)
@@ -480,7 +480,7 @@ class Fixed64Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Fixed64 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(7)
@@ -500,7 +500,7 @@ class Fixed32Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Fixed32 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(8)
@@ -682,7 +682,7 @@ class SFixed32Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # SFixed32 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(16)
@@ -702,7 +702,7 @@ class SFixed64Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # SFixed64 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(17)

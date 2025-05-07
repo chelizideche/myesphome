@@ -166,48 +166,32 @@ class ProtoSize {
   }
 
   /**
-   * @brief Directly adds the size of a fixed32 or float field to the total message size
+   * @brief Directly adds the size of a fixed field to the total message size
    *
-   * Fixed32 fields always take exactly 4 bytes. This method directly updates the total_size
-   * reference, avoiding unnecessary addition operations when the value is zero.
+   * Fixed fields always take exactly N bytes (4 for fixed32/float, 8 for fixed64/double).
+   * This method directly updates the total_size reference, avoiding unnecessary
+   * addition operations when the value is zero.
    *
+   * @tparam NumBytes The number of bytes for this fixed field (4 or 8)
    * @param total_size Reference to the total message size to update
    * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The value to check if it's zero (for float, use 0.0f)
+   * @param is_nonzero Whether the value is non-zero
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_fixed32_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
-                                       bool force = false) {
+  template<uint32_t NumBytes>
+  static inline void add_fixed_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
+                                     bool force = false) {
     // Skip calculation if value is zero and not forced
     if (!is_nonzero && !force) {
       return;  // No need to update total_size
     }
 
-    // Fixed32 fields always take exactly 4 bytes
-    total_size += field_id_size + 4;
+    // Fixed fields always take exactly NumBytes
+    total_size += field_id_size + NumBytes;
   }
 
-  /**
-   * @brief Directly adds the size of a fixed64 or double field to the total message size
-   *
-   * Fixed64 fields always take exactly 8 bytes. This method directly updates the total_size
-   * reference, avoiding unnecessary addition operations when the value is zero.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The value to check if it's zero (for double, use 0.0)
-   * @param force Whether to calculate size even if the value is zero
-   */
-  static inline void add_fixed64_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
-                                       bool force = false) {
-    // Skip calculation if value is zero and not forced
-    if (!is_nonzero && !force) {
-      return;  // No need to update total_size
-    }
-
-    // Fixed64 fields always take exactly 8 bytes
-    total_size += field_id_size + 8;
-  }
+  // Backward compatibility wrappers have been removed now that the generator
+  // uses the templated add_fixed_field<NumBytes> function directly
 
   /**
    * @brief Directly adds the size of an enum field to the total message size
