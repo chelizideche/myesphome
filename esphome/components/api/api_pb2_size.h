@@ -39,14 +39,15 @@ class ProtoSize {
       return 1;  // 7 bits, common case for small values
 
     // For larger values, count bytes needed based on the position of the highest bit set
-    if (value < 16384)
+    if (value < 16384) {
       return 2;  // 14 bits
-    else if (value < 2097152)
+    } else if (value < 2097152) {
       return 3;  // 21 bits
-    else if (value < 268435456)
+    } else if (value < 268435456) {
       return 4;  // 28 bits
-    else
+    } else {
       return 5;  // 32 bits (maximum for uint32_t)
+    }
   }
 
   /**
@@ -62,18 +63,19 @@ class ProtoSize {
     }
 
     // For larger values, determine size based on highest bit position
-    if (value < (1ULL << 35))
+    if (value < (1ULL << 35)) {
       return 5;  // 35 bits
-    else if (value < (1ULL << 42))
+    } else if (value < (1ULL << 42)) {
       return 6;  // 42 bits
-    else if (value < (1ULL << 49))
+    } else if (value < (1ULL << 49)) {
       return 7;  // 49 bits
-    else if (value < (1ULL << 56))
+    } else if (value < (1ULL << 56)) {
       return 8;  // 56 bits
-    else if (value < (1ULL << 63))
+    } else if (value < (1ULL << 63)) {
       return 9;  // 63 bits
-    else
+    } else {
       return 10;  // 64 bits (maximum for uint64_t)
+    }
   }
 
   /**
