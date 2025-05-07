@@ -66,12 +66,12 @@ class PulseCounterSensor : public sensor::Sensor, public PollingComponent {
  public:
   explicit PulseCounterSensor(bool hw_pcnt = false) : storage_(*get_storage(hw_pcnt)) {}
 
-  void set_pin(InternalGPIOPin *pin) { pin_ = pin; }
-  void set_dir_pin(InternalGPIOPin *pin) { dir_pin_ = pin; }
-  void set_rising_edge_mode(PulseCounterCountMode mode) { storage_.rising_edge_mode = mode; }
-  void set_falling_edge_mode(PulseCounterCountMode mode) { storage_.falling_edge_mode = mode; }
-  void set_filter_us(uint32_t filter) { storage_.filter_us = filter; }
-  void set_total_sensor(sensor::Sensor *total_sensor) { total_sensor_ = total_sensor; }
+  void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
+  void set_dir_pin(InternalGPIOPin *pin) { this->dir_pin_ = pin; }
+  void set_rising_edge_mode(PulseCounterCountMode mode) { this->storage_.rising_edge_mode = mode; }
+  void set_falling_edge_mode(PulseCounterCountMode mode) { this->storage_.falling_edge_mode = mode; }
+  void set_filter_us(uint32_t filter) { this->storage_.filter_us = filter; }
+  void set_total_sensor(sensor::Sensor *total_sensor) { this->total_sensor_ = total_sensor; }
 
   void set_total_pulses(int32_t pulses);
 

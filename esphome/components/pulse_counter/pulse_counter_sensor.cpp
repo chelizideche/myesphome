@@ -30,20 +30,16 @@ void IRAM_ATTR BasicPulseCounterStorage::gpio_intr(BasicPulseCounterStorage *arg
       break;
     case PULSE_COUNTER_INCREMENT: {
       if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
-        auto x = arg->counter - 1;
-        arg->counter = x;
+        arg->counter = arg->counter - 1;
       } else {
-        auto x = arg->counter + 1;
-        arg->counter = x;
+        arg->counter = arg->counter + 1;
       }
     } break;
     case PULSE_COUNTER_DECREMENT: {
       if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
-        auto x = arg->counter + 1;
-        arg->counter = x;
+        arg->counter = arg->counter + 1;
       } else {
-        auto x = arg->counter - 1;
-        arg->counter = x;
+        arg->counter = arg->counter - 1;
       }
     } break;
   }
