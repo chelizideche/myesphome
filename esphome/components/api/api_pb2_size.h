@@ -376,16 +376,15 @@ class ProtoSize {
    * @brief Calculates and adds the size of a nested message field to the total message size
    *
    * This helper function directly updates the total_size reference if the nested size
-   * is greater than zero or force is true. This function is simpler than doing
-   * a full lambda-based approach but achieves the same result.
+   * is greater than zero or force is true.
    *
    * @param total_size Reference to the total message size to update
    * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param nested_size The pre-calculated size of the nested message
    * @param force Whether to calculate size even if the nested message is empty (nested_size = 0)
    */
-  static inline void add_message_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t nested_size,
-                                            bool force = false) {
+  static inline void add_message_field(uint32_t &total_size, uint32_t field_id_size, uint32_t nested_size,
+                                       bool force = false) {
     // Skip calculation if nested message is empty and not forced
     if (nested_size == 0 && !force) {
       return;  // No need to update total_size
@@ -394,6 +393,29 @@ class ProtoSize {
     // Calculate and directly add to total_size
     // Field ID + length varint + nested message content
     total_size += field_id_size + varint(nested_size) + nested_size;
+  }
+
+  /**
+   * @brief Calculates and adds the size of a nested message field to the total message size
+   *
+   * This templated version directly takes a message object, calculates its size internally,
+   * and updates the total_size reference. This version eliminates the need for a
+   * temporary variable at the call site.
+   *
+   * @tparam MessageType The type of the nested message (inferred from parameter)
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param message The nested message object
+   * @param force Whether to calculate size even if the nested message is empty
+   */
+  template<typename MessageType>
+  static inline void add_message_object(uint32_t &total_size, uint32_t field_id_size, const MessageType &message,
+                                        bool force = false) {
+    uint32_t nested_size = 0;
+    message.calculate_size(nested_size);
+
+    // Use the base implementation with the calculated nested_size
+    add_message_field(total_size, field_id_size, nested_size, force);
   }
 };
 

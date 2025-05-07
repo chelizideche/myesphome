@@ -3459,25 +3459,19 @@ void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
   if (!this->data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   if (!this->data_template.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data_template) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   if (!this->variables.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->variables) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   ProtoSize::add_bool_field(total_size, 1, this->is_event, false);
@@ -3728,9 +3722,7 @@ void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   if (!this->args.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->args) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -3941,9 +3933,7 @@ void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
   if (!this->args.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->args) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -5951,9 +5941,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   if (!this->supported_formats.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->supported_formats) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -6341,17 +6329,13 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
   if (!this->service_data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->service_data) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   if (!this->manufacturer_data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->manufacturer_data) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
@@ -6483,9 +6467,7 @@ void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) 
   if (!this->advertisements.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->advertisements) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -6738,9 +6720,7 @@ void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   if (!this->descriptors.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->descriptors) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -6816,9 +6796,7 @@ void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
   if (!this->characteristics.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->characteristics) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -6877,9 +6855,7 @@ void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) cons
   if (!this->services.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->services) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -7814,11 +7790,7 @@ void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->start, false);
   ProtoSize::add_string_field(total_size, 1, this->conversation_id, false);
   ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
-  {
-    uint32_t nested_size = 0;
-    this->audio_settings.calculate_size(nested_size);
-    ProtoSize::add_message_field_size(total_size, 1, nested_size, false);
-  }
+  ProtoSize::add_message_object(total_size, 1, this->audio_settings, false);
   ProtoSize::add_string_field(total_size, 1, this->wake_word_phrase, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7952,9 +7924,7 @@ void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
   if (!this->data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
 }
@@ -8284,9 +8254,7 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
   if (!this->available_wake_words.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->available_wake_words) {
-      uint32_t nested_size = 0;
-      it.calculate_size(nested_size);
-      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
+      ProtoSize::add_message_object(total_size, 1, it, true);
     }
   }
   if (!this->active_wake_words.empty()) {

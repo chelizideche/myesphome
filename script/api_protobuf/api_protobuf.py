@@ -478,12 +478,8 @@ class MessageType(TypeInfo):
         # Calculate the field ID size for wire type LENGTH_DELIMITED
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
-        # Use the specialized helper function for message size calculation (separating calculation from addition)
-        return f"""{{
-          uint32_t nested_size = 0;
-          {name}.calculate_size(nested_size);
-          ProtoSize::add_message_field_size(total_size, {field_id_size}, nested_size, {str(force).lower()});
-        }}"""
+        # Use the templated helper function that takes the message directly, avoiding temp variables
+        return f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {str(force).lower()});"
 
 
 @register_type(12)
@@ -735,14 +731,12 @@ class RepeatedTypeInfo(TypeInfo):
 
         # Short-circuit optimization for empty repeated fields
         if isinstance(self._ti, MessageType):
-            # For repeated messages, use the specialized helper function for message size calculation
+            # For repeated messages, use the templated helper function for message size calculation
             field_id_size = self._ti.calculate_field_id_size(WireType.LENGTH_DELIMITED)
             o = f"""if (!{name}.empty()) {{
   // Optimize: use reserve to reduce allocations in nested messages
   for (const auto& it : {name}) {{
-    uint32_t nested_size = 0;
-    it.calculate_size(nested_size);
-    ProtoSize::add_message_field_size(total_size, {field_id_size}, nested_size, true);
+    ProtoSize::add_message_object(total_size, {field_id_size}, it, true);
   }}
 }}"""
             return o
