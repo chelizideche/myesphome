@@ -231,29 +231,6 @@ class ProtoSize {
   }
 
   /**
-   * @brief Optimized size calculation for string and bytes fields with field ID
-   *
-   * This method is a specialized version for string/bytes fields that combines the field ID size
-   * and the length-delimited value size calculation. It's more efficient than separate calls
-   * and avoids code duplication in the generated C++.
-   *
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param str The string or bytes value to calculate size for
-   * @param force Whether to calculate size even if the string is empty
-   * @return The total size in bytes (field ID + length varint + content), or 0 if string is empty and not forced
-   */
-  static inline uint32_t string_field_with_value(uint32_t field_id_size, const std::string &str, bool force = false) {
-    // Skip calculation if string is empty and not forced
-    if (str.empty() && !force) {
-      return 0;
-    }
-
-    // Calculate total size: field ID + length varint + string/bytes length
-    const uint32_t str_size = static_cast<uint32_t>(str.size());
-    return field_id_size + varint(str_size) + str_size;
-  }
-
-  /**
    * @brief Directly adds the size of a string/bytes field to the total message size
    *
    * This version directly updates the total_size reference, which avoids an unnecessary
