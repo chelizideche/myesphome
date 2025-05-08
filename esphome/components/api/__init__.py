@@ -216,9 +216,15 @@ async def to_code(config):
             else:
                 add_idf_sdkconfig_option("CONFIG_HEAP_TRACING_SYSTEM", True)
 
-            # Enable heap task tracking if requested
+            # Enable runtime stats gathering for task info
             if heap_tracing_config[CONF_HEAP_TASK_TRACKING]:
-                add_idf_sdkconfig_option("CONFIG_HEAP_TASK_TRACKING", True)
+                add_idf_sdkconfig_option(
+                    "CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS", True
+                )
+                add_idf_sdkconfig_option(
+                    "CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS", True
+                )
+                add_idf_sdkconfig_option("CONFIG_FREERTOS_USE_TRACE_FACILITY", True)
 
             # Generate code to implement heap tracing
             cg.add_global(cg.RawStatement('#include "esp_heap_trace.h"'))
@@ -231,11 +237,7 @@ async def to_code(config):
                 )
             )
 
-            # If task tracking is enabled, add the task tracking code
-            if heap_tracing_config[CONF_HEAP_TASK_TRACKING]:
-                max_tasks = heap_tracing_config[CONF_HEAP_TASK_MAX]
-                # Add the global define to update the max tasks value in the implementation
-                cg.add_define(f"MAX_HEAP_TASKS {max_tasks}")
+            # No additional setup needed for task tracking
 
             # Add helper functions for heap tracing with extern "C" to make them globally accessible
             cg.add_global(

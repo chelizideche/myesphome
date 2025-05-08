@@ -16,46 +16,47 @@
 
 #ifdef USE_API_HEAP_TRACE
 #include "esp_heap_trace.h"
-#include "esp_heap_task_info.h"
+#include "esp_heap_caps.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // Forward declare heap tracing functions that will be used in the API class
 extern "C" void start_heap_trace();
 extern "C" void stop_and_dump_heap_trace();
 
-// Maximum number of tasks we expect to track
-#define MAX_HEAP_TASKS 10
-
-// Global storage for task heap info
-static heap_task_info_t task_info[MAX_HEAP_TASKS];
-static size_t tcb_info_size = 0;
-static heap_task_totals_t heap_totals[1] = {{.caps = MALLOC_CAP_DEFAULT}};
-
-// Dump task heap information
+// Task heap information tracking
 extern "C" void dump_task_heap_info() {
-  heap_task_info_params_t heap_info = {
-      .task_info = task_info,
-      .size = MAX_HEAP_TASKS,
-      .totals = heap_totals,
-      .totals_size = 1,
-  };
+  // Get basic heap statistics
+  multi_heap_info_t info;
+  heap_caps_get_info(&info, MALLOC_CAP_INTERNAL);
 
-  esp_err_t err = heap_caps_get_per_task_info(&heap_info, &tcb_info_size);
-  if (err != ESP_OK) {
-    ESP_LOGE("HEAP", "Failed to get per-task heap info: %d", err);
-    return;
-  }
-
-  ESP_LOGI("HEAP", "Task Heap Information (%d tasks):", tcb_info_size);
+  ESP_LOGI("HEAP", "=== Task Heap Information ===");
   ESP_LOGI("HEAP", "-------------------------------------");
-  ESP_LOGI("HEAP", "%-20s %10s", "Task", "Heap Usage");
+  ESP_LOGI("HEAP", "Total free bytes: %u", info.total_free_bytes);
+  ESP_LOGI("HEAP", "Total allocated bytes: %u", info.total_allocated_bytes);
+  ESP_LOGI("HEAP", "Minimum free bytes: %u", info.minimum_free_bytes);
+  ESP_LOGI("HEAP", "Largest free block: %u", info.largest_free_block);
+  ESP_LOGI("HEAP", "Free blocks: %u", info.free_blocks);
+  ESP_LOGI("HEAP", "Allocated blocks: %u", info.allocated_blocks);
+  ESP_LOGI("HEAP", "Total blocks: %u", info.total_blocks);
   ESP_LOGI("HEAP", "-------------------------------------");
 
-  for (size_t i = 0; i < tcb_info_size; i++) {
-    ESP_LOGI("HEAP", "%-20s %10d bytes", task_info[i].task_name, task_info[i].caps[0]);
-  }
+  // Get information about running tasks
+  char buffer[128];
+  vTaskList(buffer);
 
+  ESP_LOGI("HEAP", "Task Information:");
+  ESP_LOGI("HEAP", "Name          State  Priority  Stack   Num");
   ESP_LOGI("HEAP", "-------------------------------------");
-  ESP_LOGI("HEAP", "Total heap allocated: %d bytes", heap_totals[0].size);
+  ESP_LOGI("HEAP", "%s", buffer);
+  ESP_LOGI("HEAP", "-------------------------------------");
+
+  // Additional runtime statistics about tasks
+  vTaskGetRunTimeStats(buffer);
+  ESP_LOGI("HEAP", "Task Runtime Statistics:");
+  ESP_LOGI("HEAP", "Name          Time      Percentage");
+  ESP_LOGI("HEAP", "-------------------------------------");
+  ESP_LOGI("HEAP", "%s", buffer);
   ESP_LOGI("HEAP", "-------------------------------------");
 }
 #endif
