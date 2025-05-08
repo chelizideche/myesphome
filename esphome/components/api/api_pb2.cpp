@@ -1049,6 +1049,7 @@ void SubscribeStatesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeStatesRequest::dump_to(std::string &out) const { out.append("SubscribeStatesRequest {}"); }
 #endif
+#ifdef USE_BINARY_SENSOR
 bool ListEntitiesBinarySensorResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -1168,6 +1169,8 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BINARY_SENSOR
+#ifdef USE_BINARY_SENSOR
 bool BinarySensorStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -1221,6 +1224,8 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BINARY_SENSOR
+#ifdef USE_COVER
 bool ListEntitiesCoverResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 5: {
@@ -1370,6 +1375,8 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_COVER
 bool CoverStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -1445,6 +1452,8 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_COVER
 bool CoverCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -1550,6 +1559,8 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_FAN
 bool ListEntitiesFanResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 5: {
@@ -1708,6 +1719,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_FAN
+#ifdef USE_FAN
 bool FanStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -1808,6 +1821,8 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_FAN
+#ifdef USE_FAN
 bool FanCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -1968,6 +1983,8 @@ void FanCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_FAN
+#ifdef USE_LIGHT
 bool ListEntitiesLightResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 12: {
@@ -2165,6 +2182,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LIGHT
+#ifdef USE_LIGHT
 bool LightStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -2333,6 +2352,8 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LIGHT
+#ifdef USE_LIGHT
 bool LightCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -2643,6 +2664,8 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LIGHT
+#ifdef USE_SENSOR
 bool ListEntitiesSensorResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 7: {
@@ -2803,6 +2826,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SENSOR
+#ifdef USE_SENSOR
 bool SensorStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -2857,6 +2882,8 @@ void SensorStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SENSOR
+#ifdef USE_SWITCH
 bool ListEntitiesSwitchResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -2976,6 +3003,8 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SWITCH
+#ifdef USE_SWITCH
 bool SwitchStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -3019,6 +3048,8 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SWITCH
+#ifdef USE_SWITCH
 bool SwitchCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -3062,6 +3093,8 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SWITCH
+#ifdef USE_TEXT_SENSOR
 bool ListEntitiesTextSensorResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -3171,6 +3204,8 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_TEXT_SENSOR
+#ifdef USE_TEXT_SENSOR
 bool TextSensorStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -3230,6 +3265,7 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_TEXT_SENSOR
 bool SubscribeLogsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -3318,6 +3354,7 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_API_NOISE
 bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -3342,6 +3379,8 @@ void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_API_NOISE
+#ifdef USE_API_NOISE
 bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -3366,6 +3405,7 @@ void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_API_NOISE
 void SubscribeHomeassistantServicesRequest::encode(ProtoWriteBuffer buffer) const {}
 void SubscribeHomeassistantServicesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3929,6 +3969,7 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_ESP32_CAMERA
 bool ListEntitiesCameraResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 5: {
@@ -4028,6 +4069,8 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ESP32_CAMERA
+#ifdef USE_ESP32_CAMERA
 bool CameraImageResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -4087,6 +4130,8 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ESP32_CAMERA
+#ifdef USE_ESP32_CAMERA
 bool CameraImageRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -4123,6 +4168,8 @@ void CameraImageRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ESP32_CAMERA
+#ifdef USE_CLIMATE
 bool ListEntitiesClimateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 5: {
@@ -4456,6 +4503,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 bool ClimateStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -4641,6 +4690,8 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 bool ClimateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -4904,6 +4955,8 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_NUMBER
 bool ListEntitiesNumberResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 9: {
@@ -5066,6 +5119,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_NUMBER
+#ifdef USE_NUMBER
 bool NumberStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -5120,6 +5175,8 @@ void NumberStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_NUMBER
+#ifdef USE_NUMBER
 bool NumberCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
   switch (field_id) {
     case 1: {
@@ -5158,6 +5215,8 @@ void NumberCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_NUMBER
+#ifdef USE_SELECT
 bool ListEntitiesSelectResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 7: {
@@ -5275,6 +5334,8 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SELECT
+#ifdef USE_SELECT
 bool SelectStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -5334,6 +5395,8 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SELECT
+#ifdef USE_SELECT
 bool SelectCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
@@ -5377,6 +5440,8 @@ void SelectCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_SELECT
+#ifdef USE_LOCK
 bool ListEntitiesLockResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -5516,6 +5581,8 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LOCK
+#ifdef USE_LOCK
 bool LockStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -5559,6 +5626,8 @@ void LockStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LOCK
+#ifdef USE_LOCK
 bool LockCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -5628,6 +5697,8 @@ void LockCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_LOCK
+#ifdef USE_BUTTON
 bool ListEntitiesButtonResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -5737,6 +5808,8 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BUTTON
+#ifdef USE_BUTTON
 bool ButtonCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
   switch (field_id) {
     case 1: {
@@ -5762,6 +5835,8 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BUTTON
+#ifdef USE_MEDIA_PLAYER
 bool MediaPlayerSupportedFormat::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -5837,6 +5912,8 @@ void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 bool ListEntitiesMediaPlayerResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -5960,6 +6037,8 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 bool MediaPlayerStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -6024,6 +6103,8 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 bool MediaPlayerCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -6144,6 +6225,8 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_BLUETOOTH_PROXY
 bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6171,6 +6254,7 @@ void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const 
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
 bool BluetoothServiceData::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -6232,6 +6316,7 @@ void BluetoothServiceData::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothLEAdvertisementResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6343,6 +6428,7 @@ void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
 bool BluetoothLERawAdvertisement::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6408,6 +6494,7 @@ void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -6438,6 +6525,8 @@ void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothDeviceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6496,6 +6585,8 @@ void BluetoothDeviceRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothDeviceConnectionResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6555,6 +6646,8 @@ void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6580,6 +6673,7 @@ void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
 bool BluetoothGATTDescriptor::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6769,6 +6863,7 @@ void BluetoothGATTService::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTGetServicesResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6816,6 +6911,8 @@ void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTGetServicesDoneResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6843,6 +6940,8 @@ void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTReadRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6881,6 +6980,8 @@ void BluetoothGATTReadRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTReadResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6935,6 +7036,8 @@ void BluetoothGATTReadResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTWriteRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -6999,6 +7102,8 @@ void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTReadDescriptorRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7037,6 +7142,8 @@ void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTWriteDescriptorRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7091,6 +7198,8 @@ void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTNotifyRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7139,6 +7248,8 @@ void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTNotifyDataResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7193,6 +7304,8 @@ void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 void SubscribeBluetoothConnectionsFreeRequest::encode(ProtoWriteBuffer buffer) const {}
 void SubscribeBluetoothConnectionsFreeRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7200,6 +7313,8 @@ void SubscribeBluetoothConnectionsFreeRequest::dump_to(std::string &out) const {
   out.append("SubscribeBluetoothConnectionsFreeRequest {}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothConnectionsFreeResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7257,6 +7372,8 @@ void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTErrorResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7306,6 +7423,8 @@ void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTWriteResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7344,6 +7463,8 @@ void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTNotifyResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7382,6 +7503,8 @@ void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothDevicePairingResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7430,6 +7553,8 @@ void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothDeviceUnpairingResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7478,6 +7603,8 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 void UnsubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) const {}
 void UnsubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7485,6 +7612,8 @@ void UnsubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) cons
   out.append("UnsubscribeBluetoothLEAdvertisementsRequest {}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothDeviceClearCacheResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7533,6 +7662,8 @@ void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothScannerStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7569,6 +7700,8 @@ void BluetoothScannerStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothScannerSetModeRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7595,6 +7728,8 @@ void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_VOICE_ASSISTANT
 bool SubscribeVoiceAssistantRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7632,6 +7767,7 @@ void SubscribeVoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
 bool VoiceAssistantAudioSettings::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7687,6 +7823,7 @@ void VoiceAssistantAudioSettings::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7760,6 +7897,8 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7797,6 +7936,7 @@ void VoiceAssistantResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
 bool VoiceAssistantEventData::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -7833,6 +7973,7 @@ void VoiceAssistantEventData::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -7879,6 +8020,8 @@ void VoiceAssistantEventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantAudio::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -7921,6 +8064,8 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantTimerEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -8005,6 +8150,8 @@ void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantAnnounceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 4: {
@@ -8067,6 +8214,8 @@ void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantAnnounceFinished::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -8091,6 +8240,7 @@ void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
 bool VoiceAssistantWakeWord::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -8145,6 +8295,7 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#ifdef USE_VOICE_ASSISTANT
 void VoiceAssistantConfigurationRequest::encode(ProtoWriteBuffer buffer) const {}
 void VoiceAssistantConfigurationRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -8152,6 +8303,8 @@ void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
   out.append("VoiceAssistantConfigurationRequest {}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantConfigurationResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -8217,6 +8370,8 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 bool VoiceAssistantSetConfiguration::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -8251,6 +8406,8 @@ void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_ALARM_CONTROL_PANEL
 bool ListEntitiesAlarmControlPanelResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -8381,6 +8538,8 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_ALARM_CONTROL_PANEL
 bool AlarmControlPanelStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -8424,6 +8583,8 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_ALARM_CONTROL_PANEL
 bool AlarmControlPanelCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -8483,6 +8644,8 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_TEXT
 bool ListEntitiesTextResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -8624,6 +8787,8 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_TEXT
+#ifdef USE_TEXT
 bool TextStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -8683,6 +8848,8 @@ void TextStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_TEXT
+#ifdef USE_TEXT
 bool TextCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
@@ -8726,6 +8893,8 @@ void TextCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_TEXT
+#ifdef USE_DATETIME_DATE
 bool ListEntitiesDateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -8825,6 +8994,8 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATE
+#ifdef USE_DATETIME_DATE
 bool DateStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -8901,6 +9072,8 @@ void DateStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATE
+#ifdef USE_DATETIME_DATE
 bool DateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -8967,6 +9140,8 @@ void DateCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATE
+#ifdef USE_DATETIME_TIME
 bool ListEntitiesTimeResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -9066,6 +9241,8 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_TIME
+#ifdef USE_DATETIME_TIME
 bool TimeStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -9142,6 +9319,8 @@ void TimeStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_TIME
+#ifdef USE_DATETIME_TIME
 bool TimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -9208,6 +9387,8 @@ void TimeCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_TIME
+#ifdef USE_EVENT
 bool ListEntitiesEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -9335,6 +9516,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_EVENT
+#ifdef USE_EVENT
 bool EventResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
@@ -9378,6 +9561,8 @@ void EventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_EVENT
+#ifdef USE_VALVE
 bool ListEntitiesValveResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -9517,6 +9702,8 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VALVE
+#ifdef USE_VALVE
 bool ValveStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 3: {
@@ -9571,6 +9758,8 @@ void ValveStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VALVE
+#ifdef USE_VALVE
 bool ValveCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -9635,6 +9824,8 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_VALVE
+#ifdef USE_DATETIME_DATETIME
 bool ListEntitiesDateTimeResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -9734,6 +9925,8 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATETIME
+#ifdef USE_DATETIME_DATETIME
 bool DateTimeStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -9788,6 +9981,8 @@ void DateTimeStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATETIME
+#ifdef USE_DATETIME_DATETIME
 bool DateTimeCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
   switch (field_id) {
     case 1: {
@@ -9826,6 +10021,8 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_DATETIME_DATETIME
+#ifdef USE_UPDATE
 bool ListEntitiesUpdateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 6: {
@@ -9935,6 +10132,8 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_UPDATE
+#ifdef USE_UPDATE
 bool UpdateStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -10065,6 +10264,8 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_UPDATE
+#ifdef USE_UPDATE
 bool UpdateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
@@ -10108,6 +10309,7 @@ void UpdateCommandRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+#endif  // USE_UPDATE
 
 }  // namespace api
 }  // namespace esphome

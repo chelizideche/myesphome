@@ -773,6 +773,9 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     dump: list[str] = []
     size_calc: list[str] = []
 
+    # Check if this message has an ifdef option
+    ifdef = get_opt(desc, pb.ifdef)
+
     for field in desc.field:
         if field.label == 3:
             ti = RepeatedTypeInfo(field)
@@ -795,6 +798,10 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
             dump.append(ti.dump_content)
 
     cpp = ""
+    # Add ifdef at the beginning of the cpp content if needed
+    if ifdef is not None:
+        cpp += f"#ifdef {ifdef}\n"
+
     if decode_varint:
         decode_varint.append("default:\n  return false;")
         o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
@@ -893,7 +900,16 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     prot += "#endif\n"
     public_content.append(prot)
 
-    out = f"class {desc.name} : public ProtoMessage {{\n"
+    # Close the ifdef if needed
+    if ifdef is not None:
+        cpp += f"#endif  // {ifdef}\n"
+
+    out = ""
+    # Add ifdef at the beginning of the header content if needed
+    if ifdef is not None:
+        out += f"#ifdef {ifdef}\n"
+
+    out += f"class {desc.name} : public ProtoMessage {{\n"
     out += " public:\n"
     out += indent("\n".join(public_content)) + "\n"
     out += "\n"
@@ -902,6 +918,11 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     if len(protected_content) > 0:
         out += "\n"
     out += "};\n"
+
+    # Close the ifdef in the header if needed
+    if ifdef is not None:
+        out += f"#endif  // {ifdef}\n"
+
     return out, cpp
 
 
