@@ -76,7 +76,7 @@ class APIFrameHelper {
  protected:
   // Common implementation for writing raw data to socket
   template<typename StateEnum>
-  APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf_,
+  APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf,
                       const std::string &info, StateEnum &state, StateEnum failed_state);
 };
 
