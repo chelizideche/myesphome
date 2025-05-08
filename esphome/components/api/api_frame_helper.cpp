@@ -5,6 +5,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/application.h"
 #include "proto.h"
+#include "api_pb2_size.h"
 #include <cstring>
 
 namespace esphome {
@@ -311,6 +312,10 @@ APIError APINoiseFrameHelper::state_action_() {
     const std::string &name = App.get_name();
     const uint8_t *name_ptr = reinterpret_cast<const uint8_t *>(name.c_str());
     msg.insert(msg.end(), name_ptr, name_ptr + name.size() + 1);
+    // node mac, terminated by null byte
+    const std::string &mac = get_mac_address();
+    const uint8_t *mac_ptr = reinterpret_cast<const uint8_t *>(mac.c_str());
+    msg.insert(msg.end(), mac_ptr, mac_ptr + mac.size() + 1);
 
     aerr = write_frame_(msg.data(), msg.size());
     if (aerr != APIError::OK)
@@ -570,6 +575,8 @@ APIError APINoiseFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
 
   if (!tx_buf_.empty()) {
     // tx buf not empty, can't write now because then stream would be inconsistent
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
       tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
@@ -580,6 +587,8 @@ APIError APINoiseFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   ssize_t sent = socket_->writev(iov, iovcnt);
   if (is_would_block(sent)) {
     // operation would block, add buffer to tx_buf
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
       tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
@@ -592,6 +601,10 @@ APIError APINoiseFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     return APIError::SOCKET_WRITE_FAILED;
   } else if ((size_t) sent != total_write_len) {
     // partially sent, add end to tx_buf
+    size_t remaining = total_write_len - sent;
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + remaining);
+
     size_t to_consume = sent;
     for (int i = 0; i < iovcnt; i++) {
       if (to_consume >= iov[i].iov_len) {
@@ -893,8 +906,28 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
 
   ParsedFrame frame;
   aerr = try_read_frame_(&frame);
-  if (aerr != APIError::OK)
+  if (aerr != APIError::OK) {
+    if (aerr == APIError::BAD_INDICATOR) {
+      // Make sure to tell the remote that we don't
+      // understand the indicator byte so it knows
+      // we do not support it.
+      struct iovec iov[1];
+      // The \x00 first byte is the marker for plaintext.
+      //
+      // The remote will know how to handle the indicator byte,
+      // but it likely won't understand the rest of the message.
+      //
+      // We must send at least 3 bytes to be read, so we add
+      // a message after the indicator byte to ensures its long
+      // enough and can aid in debugging.
+      const char msg[] = "\x00"
+                         "Bad indicator byte";
+      iov[0].iov_base = (void *) msg;
+      iov[0].iov_len = 19;
+      write_raw_(iov, 1);
+    }
     return aerr;
+  }
 
   buffer->container = std::move(frame.msg);
   buffer->data_offset = 0;
@@ -909,6 +942,8 @@ APIError APIPlaintextFrameHelper::write_packet(uint16_t type, const uint8_t *pay
   }
 
   std::vector<uint8_t> header;
+  header.reserve(1 + api::ProtoSize::varint(static_cast<uint32_t>(payload_len)) +
+                 api::ProtoSize::varint(static_cast<uint32_t>(type)));
   header.push_back(0x00);
   ProtoVarInt(payload_len).encode(header);
   ProtoVarInt(type).encode(header);
@@ -970,6 +1005,8 @@ APIError APIPlaintextFrameHelper::write_raw_(const struct iovec *iov, int iovcnt
 
   if (!tx_buf_.empty()) {
     // tx buf not empty, can't write now because then stream would be inconsistent
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
       tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
@@ -980,6 +1017,8 @@ APIError APIPlaintextFrameHelper::write_raw_(const struct iovec *iov, int iovcnt
   ssize_t sent = socket_->writev(iov, iovcnt);
   if (is_would_block(sent)) {
     // operation would block, add buffer to tx_buf
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
       tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
@@ -992,6 +1031,10 @@ APIError APIPlaintextFrameHelper::write_raw_(const struct iovec *iov, int iovcnt
     return APIError::SOCKET_WRITE_FAILED;
   } else if ((size_t) sent != total_write_len) {
     // partially sent, add end to tx_buf
+    size_t remaining = total_write_len - sent;
+    // Reserve space upfront to avoid multiple reallocations
+    tx_buf_.reserve(tx_buf_.size() + remaining);
+
     size_t to_consume = sent;
     for (int i = 0; i < iovcnt; i++) {
       if (to_consume >= iov[i].iov_len) {
