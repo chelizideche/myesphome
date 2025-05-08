@@ -1780,11 +1780,11 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
 
   // Add size for level field (field ID 1, varint type)
   // 1 byte for field tag + size of the level varint
-  msg_size += 1 + ProtoSize::varint(static_cast<uint32_t>(level));
+  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(level));
 
   // Add size for string field (field ID 3, string type)
   // 1 byte for field tag + size of length varint + string length
-  msg_size += 1 + ProtoSize::varint(line_length) + line_length;
+  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(line_length)) + line_length;
 
   // Create a pre-sized buffer
   auto buffer = this->create_buffer();
