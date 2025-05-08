@@ -1794,9 +1794,6 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
   buffer.encode_uint32(1, static_cast<uint32_t>(level));  // LogLevel level = 1
   buffer.encode_string(3, line, line_length);             // string message = 3
 
-  ESP_LOGW(TAG, "Sending log message, expected size: %" PRIu32 ", actual size: %" PRIu32, msg_size,
-           static_cast<uint32_t>(buffer.get_buffer()->size()));
-
   // SubscribeLogsResponse - 29
   return this->send_buffer(buffer, 29);
 }
