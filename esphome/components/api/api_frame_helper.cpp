@@ -96,7 +96,6 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
 
   if (!tx_buf_.empty()) {
     // try to empty tx_buf_ first
-    // Try send from tx_buf_
     while (!tx_buf_.empty()) {
       ssize_t sent = socket->write(tx_buf_.data(), tx_buf_.size());
       if (is_would_block(sent)) {
@@ -156,7 +155,6 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
     }
     return APIError::OK;  // Success, data buffered
   }
-  // fully sent
   return APIError::OK;  // Success, all data sent
 }
 
