@@ -755,12 +755,9 @@ def get_opt(
     default: Any = None,
 ) -> Any:
     """Get the option from the descriptor."""
-    try:
-        if not desc.options.HasExtension(opt):
-            return default
-        return desc.options.Extensions[opt]
-    except (AttributeError, KeyError):
+    if not desc.options.HasExtension(opt):
         return default
+    return desc.options.Extensions[opt]
 
 
 # Create a mapping to associate enums with components
