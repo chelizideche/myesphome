@@ -3,7 +3,6 @@ from esphome.components import text_sensor
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C
 
-from .. import atm90e32_ns
 from ..sensor import ATM90E32Component
 
 CONF_PHASE_STATUS = "phase_status"
