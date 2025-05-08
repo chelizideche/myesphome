@@ -92,7 +92,7 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
         {
             cv.GenerateID(): cv.declare_id(RemoteReceiverComponent),
             cv.Required(CONF_PIN): cv.All(pins.internal_gpio_input_pin_schema),
-            cv.SplitDefault(CONF_CARRIER_DUTY_PERCENT, esp32_idf=33): cv.All(
+            cv.SplitDefault(CONF_CARRIER_DUTY_PERCENT, esp32_idf=100): cv.All(
                 cv.only_with_esp_idf,
                 cv.percentage_int,
                 cv.Range(min=1, max=100),
