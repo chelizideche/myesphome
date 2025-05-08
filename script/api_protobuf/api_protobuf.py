@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from enum import IntEnum
 import os
 from pathlib import Path
@@ -763,7 +764,9 @@ def get_opt(
 
 
 # Create a mapping to associate enums with components
+# Track which components use each enum to identify shared enums
 enum_component_map: dict[str, str] = {}
+enum_usage_set = defaultdict(set)
 
 
 def build_enum_type(desc: descriptor.EnumDescriptorProto) -> tuple[str, str]:
@@ -821,11 +824,13 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     # Check if this message has an ifdef option
     ifdef = get_opt(desc, pb.ifdef)
 
-    # If it has an ifdef, check all enum fields to map them to the component
+    # If it has an ifdef, check all enum fields to track their usage by component
     if ifdef is not None:
         for field in desc.field:
             if field.type == 14:  # ENUM type
                 enum_name = field.type_name.split(".")[-1]
+                enum_usage_set[enum_name].add(ifdef)
+                # Initially map the enum to its component
                 enum_component_map[enum_name] = ifdef
 
     for field in desc.field:
@@ -1083,7 +1088,13 @@ def main() -> None:
             for field in m.field:
                 if field.type == 14:  # ENUM type
                     enum_name = field.type_name.split(".")[-1]
+                    enum_usage_set[enum_name].add(ifdef)
                     enum_component_map[enum_name] = ifdef
+
+    # Remove ifdefs for enums that are used by multiple different components
+    for enum_name, components in enum_usage_set.items():
+        if len(components) > 1:
+            enum_component_map[enum_name] = None
 
     content += "namespace enums {\n\n"
 
