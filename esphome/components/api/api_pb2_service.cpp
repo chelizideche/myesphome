@@ -1738,6 +1738,23 @@ void APIServerConnection::on_bluetooth_gatt_notify_request(const BluetoothGATTNo
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
+void APIServerConnection::on_subscribe_bluetooth_connections_free_request(
+    const SubscribeBluetoothConnectionsFreeRequest &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  BluetoothConnectionsFreeResponse ret = this->subscribe_bluetooth_connections_free(msg);
+  if (!this->send_bluetooth_connections_free_response(ret)) {
+    this->on_fatal_error();
+  }
+}
+#endif
+#ifdef USE_BLUETOOTH_PROXY
 void APIServerConnection::on_unsubscribe_bluetooth_le_advertisements_request(
     const UnsubscribeBluetoothLEAdvertisementsRequest &msg) {
   if (!this->is_connection_setup()) {
@@ -1775,6 +1792,35 @@ void APIServerConnection::on_subscribe_voice_assistant_request(const SubscribeVo
     return;
   }
   this->subscribe_voice_assistant(msg);
+}
+#endif
+#ifdef USE_VOICE_ASSISTANT
+void APIServerConnection::on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  VoiceAssistantConfigurationResponse ret = this->voice_assistant_get_configuration(msg);
+  if (!this->send_voice_assistant_configuration_response(ret)) {
+    this->on_fatal_error();
+  }
+}
+#endif
+#ifdef USE_VOICE_ASSISTANT
+void APIServerConnection::on_voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) {
+  if (!this->is_connection_setup()) {
+    this->on_no_setup_connection();
+    return;
+  }
+  if (!this->is_authenticated()) {
+    this->on_unauthenticated_access();
+    return;
+  }
+  this->voice_assistant_set_configuration(msg);
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
