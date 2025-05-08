@@ -5,7 +5,7 @@
 namespace esphome {
 namespace atm90e32 {
 
-static const char *const TAG = "CALIBRATION Button";
+static const char *const TAG = "atm90e32.button";
 
 void ATM90E32GainCalibrationButton::press_action() {
   if (this->parent_ == nullptr) {
