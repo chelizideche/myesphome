@@ -63,8 +63,9 @@ void MicrophoneSource::process_audio_(const std::vector<uint8_t> &data, std::vec
   const size_t target_bytes_per_sample = (this->bits_per_sample_ + 7) / 8;
   const size_t target_bytes_per_frame = target_bytes_per_sample * this->channels_.count();
 
-  filtered_data.reserve(target_bytes_per_frame * total_frames);
-  filtered_data.resize(0);
+  filtered_data.resize(target_bytes_per_frame * total_frames);
+
+  uint8_t *current_data = filtered_data.data();
 
   for (uint32_t frame_index = 0; frame_index < total_frames; ++frame_index) {
     for (uint32_t channel_index = 0; channel_index < source_channels; ++channel_index) {
@@ -82,26 +83,10 @@ void MicrophoneSource::process_audio_(const std::vector<uint8_t> &data, std::vec
         // Clamp ``sample`` in case gain multiplication overflows 25 bits
         sample = clamp<int32_t>(sample, Q25_MIN_VALUE, Q25_MAX_VALUE);  // Q25
 
-        // Copy ``target_bytes_per_sample`` bytes to the output buffer.
-        if (target_bytes_per_sample == 1) {
-          sample >>= 18;  // Q25 -> Q7
-          filtered_data.push_back(static_cast<uint8_t>(sample));
-        } else if (target_bytes_per_sample == 2) {
-          sample >>= 10;  // Q25 -> Q15
-          filtered_data.push_back(static_cast<uint8_t>(sample));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 8));
-        } else if (target_bytes_per_sample == 3) {
-          sample >>= 2;  // Q25 -> Q23
-          filtered_data.push_back(static_cast<uint8_t>(sample));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 8));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 16));
-        } else {
-          sample *= (1 << 6);  // Q25 -> Q31
-          filtered_data.push_back(static_cast<uint8_t>(sample));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 8));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 16));
-          filtered_data.push_back(static_cast<uint8_t>(sample >> 24));
-        }
+        sample *= (1 << 6);  // Q25 -> Q31
+
+        audio::pack_q31_as_audio_sample(sample, current_data, target_bytes_per_sample);
+        current_data = current_data + target_bytes_per_sample;
       }
     }
   }
