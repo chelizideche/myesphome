@@ -17,13 +17,8 @@ TemplateAlarmControlPanel::TemplateAlarmControlPanel(){};
 
 #ifdef USE_BINARY_SENSOR
 void TemplateAlarmControlPanel::add_sensor(binary_sensor::BinarySensor *sensor, uint16_t flags, AlarmSensorType type) {
-  // Save the flags and type. Assign a store index for the per sensor data type.
-  SensorDataStore sd;
-  sd.last_chime_state = false;
   this->sensor_map_[sensor].flags = flags;
   this->sensor_map_[sensor].type = type;
-  this->sensor_data_.push_back(sd);
-  this->sensor_map_[sensor].store_index = this->next_store_index_++;
 };
 #endif
 
@@ -95,17 +90,7 @@ void TemplateAlarmControlPanel::loop() {
       delay = this->arming_night_time_;
     }
     if ((millis() - this->last_update_) > delay) {
-#ifdef USE_BINARY_SENSOR
-      for (auto sensor_info : this->sensor_map_) {
-        auto *sensor = sensor_info.first;
-        auto &info = sensor_info.second;
-        // Check for faulted bypass_auto sensors and remove them from monitoring
-        if ((info.flags & BINARY_SENSOR_MODE_BYPASS_AUTO) && (sensor->state)) {
-          ESP_LOGW(TAG, "%s is faulted and will be automatically bypassed", sensor->get_name().c_str());
-          this->bypassed_sensor_indicies_.push_back(info.store_index);
-        }
-      }
-#endif
+      this->auto_bypass_sensors_();
       this->publish_state(this->desired_state_);
     }
     return;
@@ -133,20 +118,19 @@ void TemplateAlarmControlPanel::loop() {
     // Check for chime zones
     if (info.flags & BINARY_SENSOR_MODE_CHIME) {
       // Look for the transition from closed to open
-      if ((!this->sensor_data_[info.store_index].last_chime_state) && (sensor->state)) {
+      if ((!info.chime_active) && (sensor->state)) {
         // Must be disarmed to chime
         if (this->current_state_ == ACP_STATE_DISARMED) {
           this->chime_callback_.call();
         }
       }
       // Record the sensor state change
-      this->sensor_data_[info.store_index].last_chime_state = sensor->state;
+      info.chime_active = sensor_info.first->state;
     }
     // Check for faulted sensors
     if (sensor->state) {
       // Skip if auto bypassed
-      if (std::count(this->bypassed_sensor_indicies_.begin(), this->bypassed_sensor_indicies_.end(),
-                     info.store_index) == 1) {
+      if (info.auto_bypassed) {
         continue;
       }
       // Skip if bypass armed home
@@ -247,6 +231,29 @@ void TemplateAlarmControlPanel::arm_(optional<std::string> code, alarm_control_p
   }
 }
 
+void TemplateAlarmControlPanel::auto_bypass_sensors_() {
+#ifdef USE_BINARY_SENSOR
+  // Check for faulted bypass_auto sensors and remove them from monitoring
+  for (auto &sensor_info : this->sensor_map_) {
+    auto *sensor = sensor_info.first;
+    auto &info = sensor_info.second;
+    if ((info.flags & BINARY_SENSOR_MODE_BYPASS_AUTO) && (sensor->state)) {
+      ESP_LOGI(TAG, "%s is faulted and will be automatically bypassed", sensor->get_name().c_str());
+      info.auto_bypassed = true;
+    }
+  }
+#endif
+}
+
+void TemplateAlarmControlPanel::clear_auto_bypassed_sensors_() {
+#ifdef USE_BINARY_SENSOR
+  for (auto &sensor_info : this->sensor_map_) {
+    auto &info = sensor_info.second;
+    info.auto_bypassed = false;
+  }
+#endif
+}
+
 void TemplateAlarmControlPanel::control(const AlarmControlPanelCall &call) {
   if (call.get_state()) {
     if (call.get_state() == ACP_STATE_ARMED_AWAY) {
@@ -262,9 +269,7 @@ void TemplateAlarmControlPanel::control(const AlarmControlPanelCall &call) {
       }
       this->desired_state_ = ACP_STATE_DISARMED;
       this->publish_state(ACP_STATE_DISARMED);
-#ifdef USE_BINARY_SENSOR
-      this->bypassed_sensor_indicies_.clear();
-#endif
+      this->clear_auto_bypassed_sensors_();
     } else if (call.get_state() == ACP_STATE_TRIGGERED) {
       this->publish_state(ACP_STATE_TRIGGERED);
     } else if (call.get_state() == ACP_STATE_PENDING) {
