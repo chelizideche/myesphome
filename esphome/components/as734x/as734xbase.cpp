@@ -6,9 +6,9 @@ namespace as734x {
 
 static const char *const TAG = "as734x.base";
 
-AS734xBase::AS734xBase(i2c::I2CDevice *i2c_device_, uint8_t number_of_channels)
-    : i2c_device_(i2c_device_), number_of_channels_(number_of_channels) {
-  ESP_LOGD(TAG, "AS734xBase constructor %p, %d", i2c_device_, number_of_channels);
+AS734xBase::AS734xBase(i2c::I2CDevice *i2c_device, uint8_t number_of_channels)
+    : i2c_device_(i2c_device), number_of_channels_(number_of_channels) {
+  ESP_LOGD(TAG, "AS734xBase constructor %p, %d", i2c_device, number_of_channels);
 }
 
 bool AS734xBase::write_gain(Gain gain) { return this->i2c_device_->write_byte(this->registers().CFG1, gain); }

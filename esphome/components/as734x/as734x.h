@@ -12,9 +12,6 @@ namespace esphome {
 namespace as734x {
 
 class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
- protected:
-  AS734xBase *device_{nullptr};
-
  public:
   void setup_model(Model model);
 
@@ -41,6 +38,7 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
 
  protected:
   Model model_{Model::AS7343};
+  AS734xBase *device_{nullptr};
 
   //
   // Internal state machine, used to split all the actions into
@@ -48,7 +46,6 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
   //
   enum class State : uint8_t {
     NOT_INITIALIZED,
-    INITIAL_SETUP_COMPLETED,
     IDLE,
     START_MEASUREMENT,
     CONFIGURE_SMUX,
@@ -64,6 +61,17 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
   } state_{State::NOT_INITIALIZED};
 
 #ifdef USE_SENSOR
+
+  // derived values
+  SUB_SENSOR(illuminance);
+  SUB_SENSOR(irradiance);
+  SUB_SENSOR(irradiance_photopic);
+  SUB_SENSOR(irradiance_par);
+  SUB_SENSOR(ppfd);
+  SUB_SENSOR(ct);
+  SUB_SENSOR(color_temperature);
+  SUB_SENSOR(saturation_level);
+
  protected:
   SensorArray band_counts_sensors_{};
   SensorArray band_basic_counts_sensors_{};
@@ -79,16 +87,6 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
       band_basic_counts_sensors_[channel] = sensor;
     }
   }
-
-  // derived values
-  SUB_SENSOR(illuminance);
-  SUB_SENSOR(irradiance);
-  SUB_SENSOR(irradiance_photopic);
-  SUB_SENSOR(irradiance_par);
-  SUB_SENSOR(ppfd);
-  SUB_SENSOR(ct);
-  SUB_SENSOR(color_temperature);
-  SUB_SENSOR(saturation_level);
 #endif
 
 #ifdef USE_TEXT_SENSOR

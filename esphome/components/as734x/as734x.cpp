@@ -23,19 +23,19 @@ static constexpr uint8_t MAX_AUTO_GAIN_TRIES = 10 * 2;
 static constexpr float Y_LX_CIE1931_FACTOR = 683.002f;
 
 // LOGGING. printing out channel values except for last one which is fake just for the safety of inverse mapping
-void log_cn_f(const char *TAG, const char *str, const ChannelValuesFloat &arr) {
+void log_cn_f(const char *str, const ChannelValuesFloat &arr) {
   ESP_LOGD(TAG, "%s, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, ", str, arr[0],
            arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]);
 }
 
 // LOGGING. printing out channel values except for last one which is fake just for the safety of inverse mapping
-void log_cn_f0(const char *TAG, const char *str, const ChannelValuesFloat &arr) {
+void log_cn_f0(const char *str, const ChannelValuesFloat &arr) {
   ESP_LOGD(TAG, "%s, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, ", str, arr[0],
            arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]);
 }
 
 // LOGGING. printing out channel values except for last one which is fake just for the safety of inverse mapping
-void log_cn_d(const char *TAG, const char *str, const ChannelValuesUint16 &arr) {
+void log_cn_d(const char *str, const ChannelValuesUint16 &arr) {
   ESP_LOGD(TAG, "%s, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, ", str, arr[0], arr[1], arr[2], arr[3], arr[4],
            arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]);
 }
@@ -48,7 +48,7 @@ void log_cn_d(const char *TAG, const char *str, const ChannelValuesUint16 &arr) 
 // }
 
 void AS734XComponent::setup_model(Model model) {
-  ESP_LOGD(TAG, "Setting up model %d", model);
+  ESP_LOGD(TAG, "Setting up model %u", model);
   this->model_ = model;
   if (this->model_ == Model::AS7341) {
 #ifdef USE_AS7341
@@ -59,7 +59,7 @@ void AS734XComponent::setup_model(Model model) {
     this->device_ = new AS7343(this);
 #endif
   } else {
-    ESP_LOGE(TAG, "Unknown model %d", this->model_);
+    ESP_LOGE(TAG, "Unknown model %u", this->model_);
     this->mark_failed();
     return;
   }
@@ -127,7 +127,7 @@ void AS734XComponent::set_channel_correction(const CalibrationParams &vals) {
   std::fill(this->channel_correction_.begin(), this->channel_correction_.end(), 1.0f);
   std::copy(vals.begin(), vals.end(), this->channel_correction_.begin());
 
-  log_cn_f(TAG, "    Corr Coeff", this->channel_correction_);
+  log_cn_f("    Corr Coeff", this->channel_correction_);
 }
 
 void AS734XComponent::update() {
@@ -142,6 +142,12 @@ void AS734XComponent::update() {
 void AS734XComponent::loop() {
   if (this->is_ready()) {
     switch (this->state_) {
+      case State::NOT_INITIALIZED: {
+        // we shall not be here
+        ESP_LOGE(TAG, "State machine not initialized");
+        this->mark_failed();
+      } break;
+
       case State::IDLE: {
       } break;
 
@@ -229,11 +235,11 @@ void AS734XComponent::loop() {
         ESP_LOGD(TAG, "Readings:");
         ESP_LOGD(TAG, "  Max ADC: %u", max_adc);
         ESP_LOGD(TAG, "  Highest ADC: %.2f%%", this->calculated_values_.saturation_level);
-        log_cn_d(TAG, "  Counts", this->readings_.raw_counts);
-        log_cn_f(TAG, "    - Corr Dark", this->dark_current_offset_);
-        log_cn_f(TAG, "    * Corr Coeff", this->channel_correction_);
+        log_cn_d("  Counts", this->readings_.raw_counts);
+        log_cn_f("    - Corr Dark", this->dark_current_offset_);
+        log_cn_f("    * Corr Coeff", this->channel_correction_);
         ESP_LOGD(TAG, "    * Glass attn. %.2f", this->glass_attenuation_factor_);
-        log_cn_f(TAG, "  Basic", this->calculated_values_.basic_counts);
+        log_cn_f("  Basic", this->calculated_values_.basic_counts);
 
         this->state_ = State::CALCULATE_CIE;
       } break;

@@ -8,10 +8,11 @@ inline float clamp(float val, float min_val, float max_val) { return std::fmax(m
 
 // Gamma correction for sRGB
 float gamma_correct(float channel) {
-  if (channel <= 0.0031308)
+  if (channel <= 0.0031308) {
     return 12.92 * channel;
-  else
+  } else {
     return 1.055 * std::pow(channel, 1.0 / 2.4) - 0.055;
+  }
 }
 
 void tristimulus_to_hex(float x, float y, float z, uint8_t &ro, uint8_t &go, uint8_t &bo) {
@@ -34,7 +35,7 @@ void tristimulus_to_hex(float x, float y, float z, uint8_t &ro, uint8_t &go, uin
 void tristimulus_to_cct(float x, float y, float z, float &cct) {
   constexpr float epsilon = 0.001;
   float xyz_sum = x + y + z;
-  float chroma_x{0}, chroma_y{0}, chroma_z{0};  // chromaticity coordinates
+  float chroma_x{0}, chroma_y{0} /*, chroma_z{0}*/;  // chromaticity coordinates
   if (std::fabs(xyz_sum) < epsilon) {
     cct = 0;
   } else {
