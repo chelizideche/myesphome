@@ -6,12 +6,10 @@ namespace microphone {
 static const int32_t Q25_MAX_VALUE = (1 << 25) - 1;
 static const int32_t Q25_MIN_VALUE = ~Q25_MAX_VALUE;
 
-static const uint32_t HISTORY_VALUES = 32;
-
 void MicrophoneSource::add_data_callback(std::function<void(const std::vector<uint8_t> &)> &&data_callback) {
   std::function<void(const std::vector<uint8_t> &)> filtered_callback =
       [this, data_callback](const std::vector<uint8_t> &data) {
-        if (this->enabled_) {
+        if (this->enabled_ || this->passive_) {
           if (this->processed_samples_.use_count() == 0) {
             // Create vector if its unused
             this->processed_samples_ = std::make_shared<std::vector<uint8_t>>();
@@ -32,13 +30,14 @@ audio::AudioStreamInfo MicrophoneSource::get_audio_stream_info() {
 }
 
 void MicrophoneSource::start() {
-  if (!this->enabled_) {
+  if (!this->enabled_ && !this->passive_) {
     this->enabled_ = true;
     this->mic_->start();
   }
 }
+
 void MicrophoneSource::stop() {
-  if (this->enabled_) {
+  if (this->enabled_ && !this->passive_) {
     this->enabled_ = false;
     this->mic_->stop();
     this->processed_samples_.reset();

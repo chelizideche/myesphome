@@ -162,13 +162,14 @@ def final_validate_microphone_source_schema(
     return _validate_audio_compatability
 
 
-async def microphone_source_to_code(config):
+async def microphone_source_to_code(config, passive=False):
     mic = await cg.get_variable(config[CONF_MICROPHONE])
     mic_source = cg.new_Pvariable(
         config[CONF_ID],
         mic,
         config[CONF_BITS_PER_SAMPLE],
         config[CONF_GAIN_FACTOR],
+        passive,
     )
     for channel in config[CONF_CHANNELS]:
         cg.add(mic_source.add_channel(channel))
