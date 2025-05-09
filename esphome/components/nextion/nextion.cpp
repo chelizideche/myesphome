@@ -31,16 +31,27 @@ bool Nextion::send_command_(const std::string &command) {
     return false;
   }
 
+#ifdef USE_NEXTION_COMMAND_SPACING
+  if (!this->ignore_is_setup_ && !this->command_pacer_.can_send()) {
+    return false;
+  }
+#endif  // USE_NEXTION_COMMAND_SPACING
+
   ESP_LOGN(TAG, "send_command %s", command.c_str());
 
   this->write_str(command.c_str());
   const uint8_t to_send[3] = {0xFF, 0xFF, 0xFF};
   this->write_array(to_send, sizeof(to_send));
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  this->command_pacer_.mark_sent();
+#endif  // USE_NEXTION_COMMAND_SPACING
+
   return true;
 }
 
 bool Nextion::check_connect_() {
-  if (this->get_is_connected_())
+  if (this->is_connected_)
     return true;
 
   // Check if the handshake should be skipped for the Nextion connection
@@ -158,6 +169,10 @@ void Nextion::dump_config() {
   if (this->start_up_page_ != -1) {
     ESP_LOGCONFIG(TAG, "  Start Up Page:    %" PRId16, this->start_up_page_);
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  ESP_LOGCONFIG(TAG, "  Command spacing:  %" PRIu8 "ms", this->command_pacer_.get_spacing());
+#endif  // USE_NEXTION_COMMAND_SPACING
 }
 
 float Nextion::get_setup_priority() const { return setup_priority::DATA; }
@@ -188,6 +203,10 @@ void Nextion::add_new_page_callback(std::function<void(uint8_t)> &&callback) {
 
 void Nextion::add_touch_event_callback(std::function<void(uint8_t, uint8_t, bool)> &&callback) {
   this->touch_callback_.add(std::move(callback));
+}
+
+void Nextion::add_buffer_overflow_event_callback(std::function<void()> &&callback) {
+  this->buffer_overflow_callback_.add(std::move(callback));
 }
 
 void Nextion::update_all_components() {
@@ -269,19 +288,13 @@ void Nextion::loop() {
     this->sent_setup_commands_ = true;
     this->send_command_("bkcmd=3");  // Always, returns 0x00 to 0x23 result of serial command.
 
-    this->set_backlight_brightness(this->brightness_);
+    if (this->brightness_.has_value()) {
+      this->set_backlight_brightness(this->brightness_.value());
+    }
 
     // Check if a startup page has been set and send the command
     if (this->start_up_page_ != -1) {
       this->goto_page(this->start_up_page_);
-    }
-
-    // This could probably be removed from the loop area, as those are redundant.
-    this->set_auto_wake_on_touch(this->auto_wake_on_touch_);
-    this->set_exit_reparse_on_start(this->exit_reparse_on_start_);
-
-    if (this->touch_sleep_timeout_ != 0) {
-      this->set_touch_sleep_timeout(this->touch_sleep_timeout_);
     }
 
     if (this->wake_up_page_ != -1) {
@@ -314,6 +327,11 @@ bool Nextion::remove_from_q_(bool report_empty) {
   }
 
   NextionQueue *nb = this->nextion_queue_.front();
+  if (!nb || !nb->component) {
+    ESP_LOGE(TAG, "Invalid queue entry!");
+    this->nextion_queue_.pop_front();
+    return false;
+  }
   NextionComponentBase *component = nb->component;
 
   ESP_LOGN(TAG, "Removing %s from the queue", component->get_variable_name().c_str());
@@ -339,9 +357,15 @@ void Nextion::process_serial_() {
 }
 // nextion.tech/instruction-set/
 void Nextion::process_nextion_commands_() {
-  if (this->command_data_.length() == 0) {
+  if (this->command_data_.empty()) {
     return;
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  if (!this->command_pacer_.can_send()) {
+    return;  // Will try again in next loop iteration
+  }
+#endif
 
   size_t to_process_length = 0;
   std::string to_process;
@@ -382,7 +406,9 @@ void Nextion::process_nextion_commands_() {
             this->setup_callback_.call();
           }
         }
-
+#ifdef USE_NEXTION_COMMAND_SPACING
+        this->command_pacer_.mark_sent();  // Here is where we should mark the command as sent
+#endif
         break;
       case 0x02:  // invalid Component ID or name was used
         ESP_LOGW(TAG, "Nextion reported component ID or name invalid!");
@@ -458,7 +484,9 @@ void Nextion::process_nextion_commands_() {
         this->remove_from_q_();
         break;
       case 0x24:  //  Serial Buffer overflow occurs
-        ESP_LOGW(TAG, "Nextion reported Serial Buffer overflow!");
+        // Buffer will continue to receive the current instruction, all previous instructions are lost.
+        ESP_LOGE(TAG, "Nextion reported Serial Buffer overflow!");
+        this->buffer_overflow_callback_.call();
         break;
       case 0x65: {  // touch event return data
         if (to_process_length != 3) {
@@ -524,6 +552,11 @@ void Nextion::process_nextion_commands_() {
         }
 
         NextionQueue *nb = this->nextion_queue_.front();
+        if (!nb || !nb->component) {
+          ESP_LOGE(TAG, "Invalid queue entry!");
+          this->nextion_queue_.pop_front();
+          return;
+        }
         NextionComponentBase *component = nb->component;
 
         if (component->get_queue_type() != NextionQueueType::TEXT_SENSOR) {
@@ -557,16 +590,18 @@ void Nextion::process_nextion_commands_() {
           break;
         }
 
-        int dataindex = 0;
-
         int value = 0;
 
         for (int i = 0; i < 4; ++i) {
           value += to_process[i] << (8 * i);
-          ++dataindex;
         }
 
         NextionQueue *nb = this->nextion_queue_.front();
+        if (!nb || !nb->component) {
+          ESP_LOGE(TAG, "Invalid queue entry!");
+          this->nextion_queue_.pop_front();
+          return;
+        }
         NextionComponentBase *component = nb->component;
 
         if (component->get_queue_type() != NextionQueueType::SENSOR &&

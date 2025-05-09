@@ -173,15 +173,15 @@ class LambdaContext(CodeContext):
 
 class LvContext(LambdaContext):
     """
-    Code generation into the LVGL initialisation code (called in `setup()`)
+    Code generation into the LVGL initialisation code, called before setup() and loop()
+    Basically just does cg.add, so now fairly redundant.
     """
 
     added_lambda_count = 0
 
-    def __init__(self, lv_component, args=None):
+    def __init__(self, args=None):
         self.args = args or LVGL_COMP_ARG
         super().__init__(parameters=self.args)
-        self.lv_component = lv_component
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await super().__aexit__(exc_type, exc_val, exc_tb)
@@ -207,11 +207,16 @@ class LocalVariable(MockObj):
 
     def __enter__(self):
         CodeContext.start_block()
-        CodeContext.append(
-            VariableDeclarationExpression(self.base.type, self.modifier, self.base.id)
-        )
         if self.rhs is not None:
-            CodeContext.append(AssignmentExpression(None, "", self.base, self.rhs))
+            CodeContext.append(
+                AssignmentExpression(self.base.type, self.modifier, self.base, self.rhs)
+            )
+        else:
+            CodeContext.append(
+                VariableDeclarationExpression(
+                    self.base.type, self.modifier, self.base.id
+                )
+            )
         return MockObj(self.base)
 
     def __exit__(self, *args):
@@ -286,10 +291,6 @@ class LvExpr(MockLv):
         pass
 
 
-def static_cast(type, value):
-    return literal(f"static_cast<{type}>({value})")
-
-
 # Top level mock for generic lv_ calls to be recorded
 lv = MockLv("lv_")
 # Just generate an expression
@@ -298,6 +299,7 @@ lv_expr = LvExpr("lv_")
 lv_obj = MockLv("lv_obj_")
 # Operations on the LVGL component
 lvgl_comp = MockObj(LVGL_COMP, "->")
+lvgl_static = MockObj("LvglComponent", "::")
 
 
 # equivalent to cg.add() for the current code context
