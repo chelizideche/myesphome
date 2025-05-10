@@ -100,10 +100,10 @@ void TemplateAlarmControlPanel::loop() {
     next_state = this->desired_state_;
   }
 
+#ifdef USE_BINARY_SENSOR
   bool delayed_sensor_faulted = false;
   bool instant_sensor_faulted = false;
 
-#ifdef USE_BINARY_SENSOR
   // Test all of the sensors regardless of the alarm panel state
   for (auto &sensor_info : this->sensor_map_) {
     auto *sensor = sensor_info.first;
@@ -164,13 +164,13 @@ void TemplateAlarmControlPanel::loop() {
     this->ready_callback_.call();
   }
 
-#endif
   // Update next_state based on faulted sensors.
   if (instant_sensor_faulted && (next_state != ACP_STATE_DISARMED)) {
     next_state = ACP_STATE_TRIGGERED;
   } else if (delayed_sensor_faulted && this->is_state_armed(next_state)) {
     next_state = (this->pending_time_ > 0) ? ACP_STATE_PENDING : ACP_STATE_TRIGGERED;
   }
+#endif
   if (next_state != this->current_state_) {
     this->publish_state(next_state);
   }
