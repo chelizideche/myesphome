@@ -6,19 +6,6 @@ namespace as734x {
 
 class AS7341 : public AS734xBase {
  public:
-  static constexpr uint8_t NUM_CHANNELS = 10;
-
-  // datasheet values
-  static const CalibrationParams DEFAULT_CORRECTION;
-  static const float GAIN_CORRECTION[Gain::AS734X_MAX_GAIN];
-  static const float XYZ_PER_COUNT[3][NUM_CHANNELS];
-
-  // precalculated values
-  static const float IRRAD_MW_PER_COUNT[NUM_CHANNELS];
-  static const float IRRAD_PAR_E_MW_PER_COUNT[NUM_CHANNELS];
-  static const float IRRAD_PHOTOPIC_MW_PER_COUNT[NUM_CHANNELS];
-  static const float PPFD_UMOL_PER_COUNT[NUM_CHANNELS];
-
   AS7341(i2c::I2CDevice *i2c_device);
   const RegisterMap &registers() const override { return REG_MAP; }
 
@@ -38,7 +25,19 @@ class AS7341 : public AS734xBase {
   void get_xyz_conversion(uint8_t channel, float &tri_x, float &tri_y, float &tri_z) override;
 
  protected:
+  static constexpr uint8_t NUM_CHANNELS = 10;
   static const RegisterMap REG_MAP;
+
+  // datasheet values
+  static const CalibrationParams DEFAULT_CORRECTION;
+  static const float GAIN_CORRECTION[Gain::AS734X_MAX_GAIN];
+  static const float XYZ_PER_COUNT[3][NUM_CHANNELS];
+
+  // precalculated values
+  static const float IRRAD_MW_PER_COUNT[NUM_CHANNELS];
+  static const float IRRAD_PAR_E_MW_PER_COUNT[NUM_CHANNELS];
+  static const float IRRAD_PHOTOPIC_MW_PER_COUNT[NUM_CHANNELS];
+  static const float PPFD_UMOL_PER_COUNT[NUM_CHANNELS];
 };
 
 }  // namespace as734x

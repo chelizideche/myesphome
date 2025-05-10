@@ -48,27 +48,26 @@ void log_cn_d(const char *str, const ChannelValuesUint16 &arr) {
 // }
 
 void AS734XComponent::setup_model(Model model) {
-  ESP_LOGD(TAG, "Setting up model %u", model);
+  ESP_LOGD(TAG, "Setting up model %u", static_cast<uint8_t>(model));
   this->model_ = model;
-  if (this->model_ == Model::AS7341) {
+
+  switch (this->model_) {
+    case Model::AS7341:
 #ifdef USE_AS7341
-    this->device_ = new AS7341(this);
+      this->device_ = new AS7341(this);
 #endif
-  } else if (this->model_ == Model::AS7343) {
+      break;
+    case Model::AS7343:
 #ifdef USE_AS7343
-    this->device_ = new AS7343(this);
+      this->device_ = new AS7343(this);
 #endif
-  } else {
-    ESP_LOGE(TAG, "Unknown model %u", this->model_);
-    this->mark_failed();
-    return;
+      break;
+    default:
+      ESP_LOGE(TAG, "Unknown model");
+      this->mark_failed();
+      return;
   }
 
-  if (this->device_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create device");
-    this->mark_failed();
-    return;
-  }
   this->number_of_channels_ = this->device_->get_number_of_channels();
   this->set_channel_correction(this->device_->get_default_correction());
   this->dark_current_offset_.fill(0.0f);
@@ -110,13 +109,18 @@ void AS734XComponent::dump_config() {
   }
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Model: %s", this->model_ == Model::AS7341 ? "AS7341" : "AS7343");
-  ESP_LOGCONFIG(TAG, "  Gain: %.1f", get_gain_multiplier(this->gain_));
+  ESP_LOGCONFIG(TAG, "  Gain: %.1f", this->get_gain_multiplier_(this->gain_));
   ESP_LOGCONFIG(TAG, "  ATIME: %u", this->atime_);
   ESP_LOGCONFIG(TAG, "  ASTEP: %u", this->astep_);
   ESP_LOGCONFIG(TAG, "  Glass attenuation factor: %f", this->glass_attenuation_factor_);
 }
 
 float AS734XComponent::get_setup_priority() const { return setup_priority::DATA; }
+
+void AS734XComponent::enable_led(bool enable) {
+  this->led_enabled_ = enable;
+  this->device_->enable_led(enable);
+}
 
 void AS734XComponent::set_dark_current_calibration(const CalibrationParams &vals) {
   std::fill(this->dark_current_offset_.begin(), this->dark_current_offset_.end(), 0.0f);
@@ -216,7 +220,7 @@ void AS734XComponent::loop() {
       case State::DATA_COLLECTED: {
         ESP_LOGVV(TAG, "DATA_COLLECTED");
 
-        this->readings_.gain_x = this->get_gain_multiplier(this->readings_.gain);
+        this->readings_.gain_x = this->get_gain_multiplier_(this->readings_.gain);
         this->readings_.atime = this->device_->read_atime();
         this->readings_.astep = this->device_->read_astep();
         this->readings_.t_int_us = this->get_t_int_us_(this->readings_.atime, this->readings_.astep);
@@ -426,7 +430,7 @@ inline float AS734XComponent::get_t_int_us_(uint16_t atime, uint16_t astep) {
   return (1.0f + atime) * (1.0f + astep) * 2.78f;
 }
 
-float AS734XComponent::get_gain_multiplier(Gain gain) {
+float AS734XComponent::get_gain_multiplier_(Gain gain) {
   float gainx = ((uint16_t) 1 << (uint8_t) gain);
   // The AS734x sensor's gain values are represented as powers of 2, but the actual gain multiplier
   // is half of this value. This division by 2 adjusts the calculated gain multiplier accordingly.
@@ -451,8 +455,5 @@ uint16_t AS734XComponent::get_maximum_spectral_adc_(uint16_t atime, uint16_t ast
   }
   return value;
 }
-
-///////////////////////////////////////////////////////////////////////////////
-
 }  // namespace as734x
 }  // namespace esphome

@@ -9,6 +9,7 @@ static const char *const TAG = "as734x.as7341";
 
 static constexpr uint8_t AS7341_CHIP_ID = 0x09;
 
+static const uint8_t AS7341_CONFIG = 0x70;
 static const uint8_t AS7341_ENABLE = 0x80;
 static const uint8_t AS7341_ASTATUS = 0x94;
 static const uint8_t AS7341_CH0_DATA_L = 0x95;
@@ -85,10 +86,7 @@ bool AS7341::verify_device_id() {
   return ((id & 0xFC) == (AS7341_CHIP_ID << 2));
 }
 
-void AS7341::write_default_config() {
-  static const uint8_t AS7341_CONFIG = 0x70;
-  this->i2c_device_->write_byte(AS7341_CONFIG, 0x00);
-}
+void AS7341::write_default_config() { this->i2c_device_->write_byte(AS7341_CONFIG, 0x00); }
 
 float AS7341::get_gain_correction(uint8_t channel, const Gain gain) {
   return GAIN_CORRECTION[static_cast<uint8_t>(gain)];

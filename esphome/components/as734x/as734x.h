@@ -26,6 +26,8 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
   void set_astep(uint16_t astep) { this->astep_ = astep; }
   void set_led_enabled(bool enabled) { this->led_enabled_ = enabled; }
 
+  void enable_led(bool enable);
+
   // calibration coeffs
   void set_dark_current_calibration(const CalibrationParams &vals);
   void set_channel_correction(const CalibrationParams &vals);
@@ -33,8 +35,6 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
 
   // normalization before publication
   void set_normalize_basic_counts(bool enable) { this->normalization_enabled_ = enable; }
-
-  float get_gain_multiplier(Gain gain);
 
  protected:
   Model model_{Model::AS7343};
@@ -102,19 +102,13 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
   uint16_t astep_;
   Gain gain_;
   uint8_t atime_;
-  bool led_enabled_{false};
-
   uint8_t number_of_channels_{MAX_CHANNELS};
+  float glass_attenuation_factor_{1.0f};
+  bool normalization_enabled_{false};
+  bool led_enabled_{false};
 
   ChannelValuesFloat dark_current_offset_{};
   ChannelValuesFloat channel_correction_{};
-
-  float glass_attenuation_factor_{1.0f};
-
-  bool normalization_enabled_{false};
-
-  bool auto_gain_enabled_{false};
-  bool continuous_mode_{false};
 
   struct {
     ChannelValuesUint16 raw_counts{};
@@ -157,6 +151,7 @@ class AS734XComponent : public PollingComponent, public i2c::I2CDevice {
   void publish_basic_counts_();
   void publish_derived_readings_();
 
+  float get_gain_multiplier_(Gain gain);
   inline float get_t_int_us_(uint16_t atime, uint16_t astep);
 
   template<typename T, size_t N> T get_highest_value_(std::array<T, N> &data);
