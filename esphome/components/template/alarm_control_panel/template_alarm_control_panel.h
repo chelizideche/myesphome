@@ -142,11 +142,13 @@ class TemplateAlarmControlPanel : public alarm_control_panel::AlarmControlPanel,
   bool supports_arm_night_ = false;
   bool sensors_ready_ = false;
   // check if the code is valid
-  bool is_code_valid_(optional<std::string> code);
+  bool is_code_valid_(const optional<std::string> &code);
 
-  void arm_(optional<std::string> code, alarm_control_panel::AlarmControlPanelState state, uint32_t delay);
+  void arm_(const optional<std::string> &code, alarm_control_panel::AlarmControlPanelState state);
   void auto_bypass_sensors_();
   void clear_auto_bypassed_sensors_();
+  // determine the arming delay corresponding to the desired_state_
+  uint32_t desired_arming_delay_();
 };
 
 }  // namespace template_
