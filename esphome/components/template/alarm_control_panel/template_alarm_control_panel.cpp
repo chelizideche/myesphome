@@ -143,11 +143,10 @@ void TemplateAlarmControlPanel::loop() {
           instant_sensor_faulted = true;
           break;
         case ALARM_SENSOR_TYPE_DELAYED_FOLLOWER:
-          // Look to see if we are in the pending state
-          if (this->current_state_ == ACP_STATE_PENDING) {
-            delayed_sensor_faulted = true;
-          } else {
+          if (this->is_state_armed(next_state)) {
             instant_sensor_faulted = true;
+          } else {
+            delayed_sensor_faulted = true;
           }
           break;
         case ALARM_SENSOR_TYPE_DELAYED:
