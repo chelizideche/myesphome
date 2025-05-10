@@ -197,7 +197,7 @@ void APIConnection::loop() {
   }
 
 #ifdef USE_CAMERA
-  if (this->image_reader_.available() && this->helper_->can_write_without_blocking()) {
+  if (this->image_reader_ && this->image_reader_->available() && this->helper_->can_write_without_blocking()) {
     // Message will use 8 more bytes than the minimum size, and typical
     // MTU is 1500. Sometimes users will see as low as 1460 MTU.
     // If its IPv6 the header is 40 bytes, and if its IPv4
@@ -209,8 +209,8 @@ void APIConnection::loop() {
     // to send in one go. This is the maximum size of a single packet
     // that can be sent over the network.
     // This is to avoid fragmentation of the packet.
-    uint32_t to_send = std::min((size_t) 1390, this->image_reader_.available());
-    bool done = this->image_reader_.available() == to_send;
+    uint32_t to_send = std::min((size_t) 1390, this->image_reader_->available());
+    bool done = this->image_reader_->available() == to_send;
     uint32_t msg_size = 0;
     ProtoSize::add_fixed_field<4>(msg_size, 1, true);
     // partial message size calculated manually since its a special case
