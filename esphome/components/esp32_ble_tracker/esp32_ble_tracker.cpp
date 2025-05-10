@@ -21,6 +21,10 @@
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+#include <esp_coexist.h>
+#endif
+
 #ifdef USE_ARDUINO
 #include <esp32-hal-bt.h>
 #endif
@@ -194,9 +198,17 @@ void ESP32BLETracker::loop() {
     https://github.com/espressif/esp-idf/issues/6688
 
   */
-  if (this->scanner_state_ == ScannerState::IDLE && this->scan_continuous_ && !connecting && !disconnecting &&
-      !promote_to_connecting) {
-    this->start_scan_(false);  // first = false
+  if (this->scanner_state_ == ScannerState::IDLE && !connecting && !disconnecting && !promote_to_connecting) {
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+    if (this->coex_prefer_ble_) {
+      this->coex_prefer_ble_ = false;
+      ESP_LOGD(TAG, "Setting coexistence preference to balanced.");
+      esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
+    }
+#endif
+    if (this->scan_continuous_) {
+      this->start_scan_(false);  // first = false
+    }
   }
   // If there is a discovered client and no connecting
   // clients and no clients using the scanner to search for
@@ -213,6 +225,13 @@ void ESP32BLETracker::loop() {
           ESP_LOGD(TAG, "Promoting client to connect...");
           // We only want to promote one client at a time.
           // once the scanner is fully stopped.
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+          ESP_LOGD(TAG, "Setting coexistence to Bluetooth to make connection.");
+          if (!this->coex_prefer_ble_) {
+            this->coex_prefer_ble_ = true;
+            esp_coex_preference_set(ESP_COEX_PREFER_BT);  // Prioritize Bluetooth
+          }
+#endif
           client->set_state(ClientState::READY_TO_CONNECT);
         }
         break;
@@ -245,7 +264,7 @@ void ESP32BLETracker::stop_scan_() {
     return;
   }
   this->cancel_timeout("scan");
-  this->scanner_state_ = ScannerState::STOPPING;
+  this->set_scanner_state_(ScannerState::STOPPING);
   esp_err_t err = esp_ble_gap_stop_scanning();
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "esp_ble_gap_stop_scanning failed: %d", err);
@@ -272,7 +291,7 @@ void ESP32BLETracker::start_scan_(bool first) {
     }
     return;
   }
-  this->scanner_state_ = ScannerState::STARTING;
+  this->set_scanner_state_(ScannerState::STARTING);
   ESP_LOGD(TAG, "Starting scan, set scanner state to STARTING.");
   if (!first) {
     for (auto *listener : this->listeners_)
@@ -315,7 +334,7 @@ void ESP32BLETracker::end_of_scan_() {
 
   for (auto *listener : this->listeners_)
     listener->on_scan_end();
-  this->scanner_state_ = ScannerState::IDLE;
+  this->set_scanner_state_(ScannerState::IDLE);
 }
 
 void ESP32BLETracker::register_client(ESPBTClient *client) {
@@ -398,9 +417,9 @@ void ESP32BLETracker::gap_scan_start_complete_(const esp_ble_gap_cb_param_t::ble
   }
   if (param.status == ESP_BT_STATUS_SUCCESS) {
     this->scan_start_fail_count_ = 0;
-    this->scanner_state_ = ScannerState::RUNNING;
+    this->set_scanner_state_(ScannerState::RUNNING);
   } else {
-    this->scanner_state_ = ScannerState::FAILED;
+    this->set_scanner_state_(ScannerState::FAILED);
     if (this->scan_start_fail_count_ != std::numeric_limits<uint8_t>::max()) {
       this->scan_start_fail_count_++;
     }
@@ -422,7 +441,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
       ESP_LOGE(TAG, "Scan was stopped when stop complete.");
     }
   }
-  this->scanner_state_ = ScannerState::STOPPED;
+  this->set_scanner_state_(ScannerState::STOPPED);
 }
 
 void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
@@ -449,7 +468,7 @@ void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_re
         ESP_LOGE(TAG, "Scan was stopped when scan completed.");
       }
     }
-    this->scanner_state_ = ScannerState::STOPPED;
+    this->set_scanner_state_(ScannerState::STOPPED);
   }
 }
 
@@ -458,6 +477,11 @@ void ESP32BLETracker::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
   for (auto *client : this->clients_) {
     client->gattc_event_handler(event, gattc_if, param);
   }
+}
+
+void ESP32BLETracker::set_scanner_state_(ScannerState state) {
+  this->scanner_state_ = state;
+  this->scanner_state_callbacks_.call(state);
 }
 
 ESPBLEiBeacon::ESPBLEiBeacon(const uint8_t *data) { memcpy(&this->beacon_data_, data, sizeof(beacon_data_)); }

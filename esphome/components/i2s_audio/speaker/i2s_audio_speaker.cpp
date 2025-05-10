@@ -14,6 +14,8 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
+#include "esp_timer.h"
+
 namespace esphome {
 namespace i2s_audio {
 
@@ -366,25 +368,15 @@ void I2SAudioSpeaker::speaker_task(void *params) {
                             bytes_to_write, &bytes_written, pdMS_TO_TICKS(DMA_BUFFER_DURATION_MS * 5));
 #endif
 
-          uint32_t write_timestamp = micros();
+          int64_t now = esp_timer_get_time();
 
           if (bytes_written != bytes_to_write) {
             xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::ERR_ESP_INVALID_SIZE);
           }
-
           bytes_read -= bytes_written;
 
-          this_speaker->accumulated_frames_written_ += audio_stream_info.bytes_to_frames(bytes_written);
-          const uint32_t new_playback_ms =
-              audio_stream_info.frames_to_milliseconds_with_remainder(&this_speaker->accumulated_frames_written_);
-          const uint32_t remainder_us =
-              audio_stream_info.frames_to_microseconds(this_speaker->accumulated_frames_written_);
-
-          uint32_t pending_frames =
-              audio_stream_info.bytes_to_frames(bytes_read + this_speaker->audio_ring_buffer_->available());
-          const uint32_t pending_ms = audio_stream_info.frames_to_milliseconds_with_remainder(&pending_frames);
-
-          this_speaker->audio_output_callback_(new_playback_ms, remainder_us, pending_ms, write_timestamp);
+          this_speaker->audio_output_callback_(audio_stream_info.bytes_to_frames(bytes_written),
+                                               now + dma_buffers_duration_ms * 1000);
 
           tx_dma_underflow = false;
           last_data_received_time = millis();
@@ -545,7 +537,7 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
     .use_apll = this->use_apll_,
     .tx_desc_auto_clear = true,
     .fixed_mclk = I2S_PIN_NO_CHANGE,
-    .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+    .mclk_multiple = this->mclk_multiple_,
     .bits_per_chan = this->bits_per_channel_,
 #if SOC_I2S_SUPPORTS_TDM
     .chan_mask = (i2s_channel_t) (I2S_TDM_ACTIVE_CH0 | I2S_TDM_ACTIVE_CH1),
@@ -614,7 +606,7 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
   i2s_std_clk_config_t clk_cfg = {
       .sample_rate_hz = audio_stream_info.get_sample_rate(),
       .clk_src = clk_src,
-      .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+      .mclk_multiple = this->mclk_multiple_,
   };
 
   i2s_slot_mode_t slot_mode = this->slot_mode_;
