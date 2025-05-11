@@ -69,8 +69,8 @@ void LogBuffer::cancel_message(void *token) {
   vRingbufferReturnItem(ring_buffer_, token);
 }
 
-bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *format,
-                                         va_list args) {
+bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
+                                         const char *format, va_list args) {
   // Create a buffer for the entire message (header + text + null terminator)
   // Stack allocation is fine for this size (typically ~150 bytes total)
   uint8_t buffer[LOG_MSG_BUFFER_SIZE];
@@ -80,8 +80,8 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   msg->level = level;
   msg->tag = tag;
   msg->line = line;
-  // Store the current task handle
-  msg->task_handle = xTaskGetCurrentTaskHandle();
+  // Use the provided task handle
+  msg->task_handle = task_handle;
 
   // Format the message text directly after the header
   char *text_area = msg->text_data();

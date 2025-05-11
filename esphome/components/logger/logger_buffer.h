@@ -47,7 +47,8 @@ class LogBuffer {
   ~LogBuffer();
 
   // Thread-safe - send a message to the ring buffer from any thread
-  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *format, va_list args);
+  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
+                                const char *format, va_list args);
 
   // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);

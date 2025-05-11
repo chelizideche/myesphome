@@ -38,8 +38,8 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   // Use the log buffer for messages from non-main tasks
   // If we successfully used the log buffer, return
-  if (this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line), format,
-                                                  args)) {
+  if (this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
+                                                  current_task, format, args)) {
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
