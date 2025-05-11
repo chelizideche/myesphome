@@ -272,8 +272,8 @@ void Logger::loop() {
   bool any_messages = false;
   int msg_count = 0;
 
-  // Process up to 10 messages per loop call to avoid blocking too long
-  while (msg_count < 10 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
+  // Force buffer processing on each loop to avoid messages getting stuck
+  while (msg_count < 50 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
     any_messages = true;
     msg_count++;
 
@@ -295,20 +295,27 @@ void Logger::loop() {
     this->write_msg_(count_buf);
   }
 
-  // If no messages were processed for 10 consecutive calls, something might be wrong
-  static uint8_t empty_count = 0;
+  // Count empty ring buffer events but report much less frequently
+  static uint32_t empty_count = 0;
+  static uint32_t last_reported_count = 0;
+
   if (!any_messages) {
-    if (++empty_count >= 10) {
+    // Only report at powers of 2
+    empty_count++;
+    if (empty_count >= 100 && (empty_count >= (last_reported_count * 2) || empty_count == 100)) {
       // Log directly to serial using emergency path - won't go through the buffer
       char emergency_buffer[80];
       snprintf(emergency_buffer, sizeof(emergency_buffer),
                "DBGINFO: No log messages in ring buffer for %u consecutive calls", empty_count);
+      last_reported_count = empty_count;  // Update report threshold
       if (this->baud_rate_ > 0) {
         this->write_msg_(emergency_buffer);
       }
     }
   } else {
+    // Messages were processed, reset counter
     empty_count = 0;
+    last_reported_count = 0;
   }
 #endif
 }

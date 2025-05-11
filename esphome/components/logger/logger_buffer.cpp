@@ -11,7 +11,9 @@ static const char *const TAG = "logger_buffer";
 
 LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Create a no-split buffer for acquire/complete operations
-  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_NOSPLIT);
+  // Make sure the buffer is at least large enough for a couple of messages plus overhead
+  size_t actual_size = (total_buffer_size < 1024) ? 1024 : total_buffer_size;
+  ring_buffer_ = xRingbufferCreate(actual_size, RINGBUF_TYPE_NOSPLIT);
 }
 
 LogBuffer::~LogBuffer() {
@@ -22,14 +24,14 @@ LogBuffer::~LogBuffer() {
 
 char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
                                  size_t &capacity, void **message_token) {
-  // Calculate minimum size needed for a usable message
-  size_t min_size = message_size_for(MIN_USEFUL_MESSAGE_SIZE);
+  // Calculate maximum size needed for a full message
+  size_t max_size = message_size_for(MAX_MESSAGE_TEXT_SIZE);
 
   // Try to acquire space in the ring buffer for a new message
   void *acquired_item = nullptr;
 
-  // Request space for a message of adequate size
-  BaseType_t result = xRingbufferSendAcquire(ring_buffer_, &acquired_item, min_size, 0);
+  // Request space for maximum possible message size to ensure we have enough space
+  BaseType_t result = xRingbufferSendAcquire(ring_buffer_, &acquired_item, max_size, 0);
   if (result != pdTRUE || acquired_item == nullptr) {
     // Failed to acquire space in the ring buffer
     capacity = 0;
@@ -37,8 +39,9 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
     return nullptr;
   }
 
-  // We successfully acquired space for our message
-  size_t item_size = min_size;
+  // We successfully acquired space for our message - use full max size since NOSPLIT
+  // ring buffer will allocate the entire requested size
+  size_t item_size = max_size;
 
   // We have successfully acquired space in the ring buffer
   // Set up the message header at the start of the acquired space
@@ -112,7 +115,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Update borrow counters
   borrow_attempts_++;
 
-  // Try to receive an item from the ring buffer
+  // Try to receive an item from the ring buffer - no timeout to avoid blocking
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
   // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
