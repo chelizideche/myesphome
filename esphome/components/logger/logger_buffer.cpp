@@ -17,7 +17,8 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
   RAMAllocator<uint8_t> allocator;
   this->storage_ = allocator.allocate(this->size_);
   // Create a static ring buffer with the allocated memory
-  this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_BYTEBUF, this->storage_, &this->structure_);
+  // Use RINGBUF_TYPE_NOSPLIT to ensure LogMessage structs don't get split across buffer boundaries
+  this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_NOSPLIT, this->storage_, &this->structure_);
 }
 
 LogBuffer::~LogBuffer() {
