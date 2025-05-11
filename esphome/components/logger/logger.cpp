@@ -2,6 +2,10 @@
 #include <cinttypes>
 #ifdef USE_ESPHOME_LOG_BUFFER
 #include <memory>
+#include "logger_buffer.h"
+#else
+// When log buffer is not enabled, define this constant locally
+constexpr size_t LOG_MSG_SIZE_WITH_NULL = 160;
 #endif
 
 #include "esphome/core/hal.h"
@@ -48,10 +52,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // Check if logging is disabled
   if (this->baud_rate_ > 0) {
     // Emergency console-only fallback - MUST be stack allocated for thread safety
-    char emergency_buffer[160];
+    char emergency_buffer[LOG_MSG_SIZE_WITH_NULL];
     int buffer_at = 0;
 
-    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, 160);
+    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
     // Remove trailing newlines to prevent double empty lines
     while (buffer_at > 0 && emergency_buffer[buffer_at - 1] == '\n') {
@@ -59,7 +63,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     }
 
     // Add null terminator before sending to output
-    if (buffer_at < 160)
+    if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
       emergency_buffer[buffer_at] = '\0';
 
     // Send directly to output, skip callbacks
