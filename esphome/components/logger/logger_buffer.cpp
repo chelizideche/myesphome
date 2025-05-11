@@ -80,17 +80,14 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   LogMessage *msg = static_cast<LogMessage *>(message_token);
 
   // Set the text length in the message header
-  msg->text_length = text_length;
-
   // No need to add null terminator as we track the length explicitly
+  msg->text_length = text_length;
 
   // Commit the message to the ring buffer
   xRingbufferSendComplete(ring_buffer_, message_token);
 
   // Increment the message counter to notify the logger task
   message_counter_.fetch_add(1, std::memory_order_relaxed);
-
-  // Logging complete
 }
 
 bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
