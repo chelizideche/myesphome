@@ -185,7 +185,7 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
 
 #ifdef USE_ESPHOME_LOG_BUFFER
 void Logger::init_log_buffer(size_t total_buffer_size) {
-  this->log_buffer_ = std::make_unique<logger::LogBuffer>(total_buffer_size);
+  this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(total_buffer_size);
 }
 #endif
 
