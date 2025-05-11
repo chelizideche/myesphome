@@ -10,8 +10,8 @@ namespace logger {
 static const char *const TAG = "logger_buffer";
 
 LogBuffer::LogBuffer(size_t total_buffer_size) {
-  // Create a byte buffer using xRingbufferCreate which handles memory allocation
-  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
+  // Create a no-split buffer for acquire/complete operations
+  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_NOSPLIT);
 }
 
 LogBuffer::~LogBuffer() {
