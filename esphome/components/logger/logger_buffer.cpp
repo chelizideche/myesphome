@@ -94,8 +94,7 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   msg->text_data()[text_length] = '\0';
 
   // Commit the message to the ring buffer
-  BaseType_t result = xRingbufferSendComplete(ring_buffer_, message_token);
-  // Nothing we can do if this fails, but it shouldn't under normal circumstances
+  xRingbufferSendComplete(ring_buffer_, message_token);
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
