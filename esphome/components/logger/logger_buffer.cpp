@@ -15,11 +15,9 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
 }
 
 LogBuffer::~LogBuffer() {
-  if (ring_buffer_ != nullptr) {
-    // Delete the ring buffer (frees the memory automatically)
-    vRingbufferDelete(ring_buffer_);
-    ring_buffer_ = nullptr;
-  }
+  // Delete the ring buffer (frees the memory automatically)
+  vRingbufferDelete(ring_buffer_);
+  ring_buffer_ = nullptr;
 }
 
 char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
