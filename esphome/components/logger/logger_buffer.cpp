@@ -95,12 +95,9 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   msg->text_data()[text_length] = '\0';
 
   // Commit the message to the ring buffer
-  BaseType_t result = xRingbufferSendComplete(ring_buffer_, message_token);
-  if (result == pdTRUE) {
-    commit_success_++;
-  }
+  xRingbufferSendComplete(ring_buffer_, message_token);
 
-  // Save counters for main loop to report - no direct console output here
+  // Logging complete
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
@@ -142,8 +139,6 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   *text = msg->text_data();
   *received_token = received_item;
 
-  // Update success counter
-  borrow_success_++;
   return true;
 }
 

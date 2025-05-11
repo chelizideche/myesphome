@@ -68,14 +68,17 @@ class LogBuffer {
 
   // For tracking buffer usage - used by logger.cpp to detect if messages need processing
   // Returns true if there are messages in the buffer ready to be processed
-  bool has_messages() const { return commit_success_ > borrow_success_; }
+  bool has_messages() const {
+    // Get actual buffer info directly from FreeRTOS
+    UBaseType_t items_waiting = 0;
+    vRingbufferGetInfo(ring_buffer_, NULL, NULL, NULL, NULL, &items_waiting);
+    return items_waiting > 0;
+  }
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
 
-  // Statistics counters - only tracking the ones needed for buffer operation
-  uint32_t commit_success_{0};
-  uint32_t borrow_success_{0};
+  // No counters needed - using direct buffer info instead
 
   // Return total message size needed for given text length
   inline size_t message_size_for(size_t text_length) const {
