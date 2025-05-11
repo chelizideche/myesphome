@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_OFFSET,
     CONF_TRIGGER_ID,
 )
+from esphome.core import CORE
 from esphome.cpp_helpers import logging
 
 from .const import (
@@ -34,6 +35,7 @@ from .const import (
     CONF_VALUE_TYPE,
 )
 
+DOMAIN = "modbus_controller"
 CODEOWNERS = ["@martgras", "@gotnone"]
 
 AUTO_LOAD = ["modbus"]
@@ -41,6 +43,10 @@ AUTO_LOAD = ["modbus"]
 CONF_READ_LAMBDA = "read_lambda"
 CONF_SERVER_REGISTERS = "server_registers"
 MULTI_CONF = True
+
+CORE.data[DOMAIN] = {
+    "ServerRegisters": set(),
+}
 
 modbus_controller_ns = cg.esphome_ns.namespace("modbus_controller")
 ModbusController = modbus_controller_ns.class_(
@@ -151,8 +157,6 @@ def validate_address(register_set: set):
     return validator
 
 
-ModbusServerRegisterSet = set()
-
 ModbusServerRegisterSchema = cv.Schema(
     cv.All(
         {
@@ -161,7 +165,7 @@ ModbusServerRegisterSchema = cv.Schema(
             cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
             cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
         },
-        validate_address(ModbusServerRegisterSet),
+        validate_address(CORE.data[DOMAIN]["ServerRegisters"]),
     )
 )
 
