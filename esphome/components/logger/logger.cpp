@@ -193,7 +193,7 @@ void Logger::loop() {
     while (this->log_buffer_->borrow_message_main_loop(&message, &text, &received_token)) {
       this->tx_buffer_at_ = 0;
       const char *thread_name = nullptr;
-      if (message->task_handle != nullptr) {
+      if (0 && message->task_handle != nullptr) {
         thread_name = pcTaskGetName(message->task_handle);
       }
       this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
