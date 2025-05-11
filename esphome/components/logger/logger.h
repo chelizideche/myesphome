@@ -131,6 +131,26 @@ class Logger : public Component {
   // add a listener for log level changes
   void add_listener(std::function<void(int)> &&callback) { this->level_callback_.add(std::move(callback)); }
 
+  // Helper to format and send a log message to both console and callbacks
+  inline void HOT log_message_to_buffer_and_send_(int level, const char *tag, int line, const char *format,
+                                                  va_list args) {
+    // Format into the tx_buffer for both console and callbacks
+    this->tx_buffer_at_ = 0;
+    this->format_log_to_buffer_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
+                                this->tx_buffer_size_);
+
+    // Make sure null terminator is present
+    this->tx_buffer_[this->tx_buffer_at_] = '\0';
+
+    // If logging is enabled, write to console
+    if (this->baud_rate_ > 0) {
+      this->write_msg_(this->tx_buffer_);
+    }
+
+    // Also send to callbacks
+    this->log_message_(level, tag);
+  }
+
   float get_setup_priority() const override;
 
   void log_vprintf_(int level, const char *tag, int line, const char *format, va_list args);  // NOLINT

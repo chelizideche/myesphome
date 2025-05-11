@@ -30,21 +30,8 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   // For main task: use the tx_buffer_ for both console and callbacks to avoid duplicating work
   if (current_task == main_task_) {
-    // Format directly into the tx_buffer
-    this->tx_buffer_at_ = 0;
-    this->format_log_to_buffer_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
-                                this->tx_buffer_size_);
-
-    // Make sure null terminator is present
-    this->tx_buffer_[this->tx_buffer_at_] = '\0';
-
-    // If logging is enabled, write to console
-    if (this->baud_rate_ > 0) {
-      this->write_msg_(this->tx_buffer_);
-    }
-
-    // Also send to callbacks
-    this->log_message_(level, tag);
+    // Format and send to both console and callbacks
+    this->log_message_to_buffer_and_send_(level, tag, line, format, args);
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
@@ -87,21 +74,8 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = true;
 
-  // Format once into the tx_buffer for both console and callbacks
-  this->tx_buffer_at_ = 0;
-  this->format_log_to_buffer_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
-                              this->tx_buffer_size_);
-
-  // Add null terminator
-  this->tx_buffer_[this->tx_buffer_at_] = '\0';
-
-  // First, output to console directly for immediacy if logging is enabled
-  if (this->baud_rate_ > 0) {
-    this->write_msg_(this->tx_buffer_);
-  }
-
-  // Also send to callbacks
-  this->log_message_(level, tag);
+  // Format and send to both console and callbacks
+  this->log_message_to_buffer_and_send_(level, tag, line, format, args);
 
   recursion_guard_ = false;
 }
