@@ -37,9 +37,30 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // Use the log buffer for messages from non-main tasks
   size_t capacity;
   void *message_token = nullptr;
+
+  // Debug counters for buffer acquisition
+  static uint32_t prepare_attempt_count = 0;
+  static uint32_t prepare_success_count = 0;
+  static uint32_t prepare_fail_count = 0;
+  prepare_attempt_count++;
+
   char *buffer = this->log_buffer_->prepare_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
                                                     thread_name, capacity, &message_token);
+
+  // Print prepare stats less frequently
+  if (prepare_attempt_count % 200 == 0 && this->baud_rate_ > 0) {
+    char dbg[80];
+    snprintf(dbg, sizeof(dbg), "MSGDBG: prepare %u success %u fail %u", prepare_attempt_count, prepare_success_count,
+             prepare_fail_count);
+    this->write_msg_(dbg);
+  }
+
+  if (buffer == nullptr) {
+    prepare_fail_count++;
+  }
+
   if (buffer != nullptr) {
+    prepare_success_count++;
     // Format the message into the ring buffer
     int ret = vsnprintf(buffer, capacity, format, args);
 
@@ -64,6 +85,15 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     // Check if we have any text to log after processing
     if (text_length > 0) {
       this->log_buffer_->commit_message(text_length, message_token);
+
+      // Debug message for successful commits - very infrequent output
+      static uint32_t commit_count = 0;
+      if ((++commit_count % 100) == 0 && this->baud_rate_ > 0) {
+        char cbuf[60];
+        snprintf(cbuf, sizeof(cbuf), "MSGDBG: Committed message #%u len=%u", commit_count, (unsigned int) text_length);
+        this->write_msg_(cbuf);
+      }
+
     } else {
       // No text to log, cancel the prepared message
       this->log_buffer_->release_message(message_token);
@@ -211,8 +241,8 @@ void Logger::loop() {
   static uint32_t loop_count = 0;
   loop_count++;
 
-  // Every 100 loops, print diagnostic directly to console
-  if (loop_count % 100 == 0) {
+  // Occasional diagnostic about loop calls
+  if (loop_count % 1000 == 0) {
     char dbg_buf[80];
     snprintf(dbg_buf, sizeof(dbg_buf), "DBGINFO: Logger loop called %u times", loop_count);
     if (this->baud_rate_ > 0) {
