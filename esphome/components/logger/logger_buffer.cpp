@@ -13,7 +13,6 @@ LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_
   max_message_size_ = header_size + MAX_MESSAGE_TEXT_SIZE + 1;  // +1 for null terminator
 
   // Ensure minimum buffer size for at least 2 full-size messages
-  // This is critical for proper buffer operation to avoid edge cases
   if (total_buffer_size < max_message_size_ * 2) {
     total_buffer_size = max_message_size_ * 2;
   }
@@ -23,7 +22,7 @@ LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_
   esphome::RAMAllocator<char> allocator;
   buffer_ = allocator.allocate(buffer_size_);
 
-  // Ensure the buffer is cleanly initialized to avoid any undefined behavior
+  // Initialize buffer memory
   memset(buffer_, 0, buffer_size_);
 
   // Initialize pointers to the beginning of the buffer
@@ -32,7 +31,6 @@ LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_
   prepared_pos_ = nullptr;
 
   // Initialize first message header to have zero length
-  // This marks the buffer as empty
   read_pos_->text_length = 0;
 }
 
@@ -68,7 +66,6 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
   size_t available_space;
   if (write_pos_ptr >= read_pos_ptr) {
     // Write is ahead of read or at same position
-    // First check space to end of buffer
     const size_t space_to_end = buffer_end - write_pos_ptr;
 
     if (space_to_end >= min_space_needed) {
@@ -76,15 +73,13 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
       available_space = space_to_end;
       prepared_pos_ = write_pos_;
     } else {
-      // Not enough space at the end for a complete message
-      // Check if we can wrap around to beginning
-      // Need to leave space before read pointer
+      // Not enough space at the end, check if we can wrap
       if (read_pos_ptr - buffer_ >= min_space_needed) {
-        // We'll wrap to the beginning - prepared_pos_ will be at buffer start
+        // Wrap to the beginning of the buffer
         prepared_pos_ = reinterpret_cast<LogMessage *>(buffer_);
         available_space = read_pos_ptr - buffer_;
       } else {
-        // Not enough space even if we wrap around
+        // Not enough space for a message
         return release_lock_and_return_null_();
       }
     }
@@ -95,11 +90,10 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
       // Not enough space
       return release_lock_and_return_null_();
     }
-    // Use the current write position
     prepared_pos_ = write_pos_;
   }
 
-  // Limit capacity to max_message_size_ to prevent excessive memory use
+  // Limit capacity to max_message_size_
   capacity = std::min(available_space - sizeof(LogMessage) - 1, max_message_size_ - sizeof(LogMessage) - 1);
 
   // Fill in the message header
@@ -109,7 +103,7 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
   prepared_pos_->thread_name = thread_name;
   prepared_pos_->text_length = 0;  // Will be filled in commit
 
-  // Return a pointer to where text should be written - right after the header
+  // Return a pointer to where text should be written
   return prepared_pos_->text_data();
 }
 
@@ -118,15 +112,15 @@ void LogBuffer::commit_message(size_t text_length) {
     return;  // No message has been prepared
   }
 
-  // Make sure text length is not zero to avoid empty messages
+  // Ensure text length is not zero
   if (text_length == 0) {
-    text_length = 1;  // Ensure at least 1 character
+    text_length = 1;
     char *text_data = prepared_pos_->text_data();
-    text_data[0] = ' ';  // Use a space as minimum content
+    text_data[0] = ' ';
   }
 
-  // Ensure we don't exceed buffer capacity
-  const size_t max_allowed_text = max_message_size_ - sizeof(LogMessage) - 1;  // -1 for null terminator
+  // Limit text length to maximum allowed
+  const size_t max_allowed_text = max_message_size_ - sizeof(LogMessage) - 1;
   if (text_length > max_allowed_text) {
     text_length = max_allowed_text;
   }
@@ -138,14 +132,12 @@ void LogBuffer::commit_message(size_t text_length) {
   char *text_data = prepared_pos_->text_data();
   text_data[text_length] = '\0';
 
-  // Calculate next message position based on this message's size
-  // This accounts for variable message sizes
+  // Calculate next message position
   const char *buffer_end = buffer_ + buffer_size_;
   const size_t total_msg_size = prepared_pos_->total_size();
   char *next_msg_pos = reinterpret_cast<char *>(prepared_pos_) + total_msg_size;
 
   // Check if we need to wrap to the beginning of the buffer
-  // We need space for at least a complete message header
   if (next_msg_pos + sizeof(LogMessage) >= buffer_end) {
     next_msg_pos = buffer_;
   }
@@ -154,10 +146,9 @@ void LogBuffer::commit_message(size_t text_length) {
   write_pos_ = reinterpret_cast<LogMessage *>(next_msg_pos);
 
   // Increment the write index atomically with release semantics
-  // This makes the message visible to readers
   write_index_.fetch_add(1, std::memory_order_release);
 
-  // Reset prepared flag and position
+  // Reset prepared flag
   message_prepared_.store(false, std::memory_order_release);
 }
 
@@ -180,7 +171,6 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
 
 void LogBuffer::release_message() {
   // Check if buffer is empty using atomic indices
-  // Use acquire semantics to synchronize with the release in commit_message
   size_t read_idx = read_index_.load(std::memory_order_acquire);
   size_t write_idx = write_index_.load(std::memory_order_acquire);
 
@@ -194,7 +184,6 @@ void LogBuffer::release_message() {
   char *next_read_pos = reinterpret_cast<char *>(read_pos_) + msg_size;
 
   // Check if we need to wrap around to beginning of buffer
-  // Use a more conservative test to ensure we don't read past buffer end
   if (next_read_pos >= buffer_end || next_read_pos + sizeof(LogMessage) > buffer_end) {
     next_read_pos = buffer_;
   }
@@ -202,8 +191,7 @@ void LogBuffer::release_message() {
   // Update read position to the next message
   read_pos_ = reinterpret_cast<LogMessage *>(next_read_pos);
 
-  // Increment the read index atomically with release semantics
-  // This makes the updated read position visible to writers
+  // Increment the read index atomically
   read_index_.fetch_add(1, std::memory_order_release);
 }
 
