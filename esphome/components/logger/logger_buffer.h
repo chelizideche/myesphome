@@ -5,26 +5,11 @@
 
 #ifdef USE_ESPHOME_LOG_BUFFER
 
-#include <cstddef>  // For size_t
-#include <atomic>
-#include <cstring>  // For memcpy
-#include <memory>   // For unique_ptr
-
-// Backport of std::make_unique from C++14
-#if __cplusplus < 201402L
-namespace std {
-template<class T, class... Args>
-typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type make_unique(Args &&...args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-template<class T>
-typename std::enable_if<std::is_array<T>::value, std::unique_ptr<T>>::type make_unique(std::size_t n) {
-  typedef typename std::remove_extent<T>::type RT;
-  return std::unique_ptr<T>(new RT[n]);
-}
-}  // namespace std
-#endif
+#include <cstddef>
+#include <cstring>
+#include <memory>
+#include <freertos/FreeRTOS.h>
+#include <freertos/ringbuf.h>
 
 namespace esphome {
 namespace logger {
@@ -80,24 +65,15 @@ class LogBuffer {
   void cancel_prepare();
 
  private:
-  char *buffer_;             // Single ring buffer for all messages and their text
-  size_t buffer_size_;       // Total size of the buffer
-  size_t max_message_size_;  // Maximum size a single message can occupy
+  RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
 
-  // Positions in the ring buffer
-  LogMessage *read_pos_{nullptr};      // Position to read next message from
-  LogMessage *write_pos_{nullptr};     // Position to write next message to
-  LogMessage *prepared_pos_{nullptr};  // Position where message is being prepared
+  // For tracking prepare/commit and borrow/release operations
+  void *acquired_item_{nullptr};  // Pointer to currently acquired item (for prepare/commit)
+  void *received_item_{nullptr};  // Pointer to currently received item (for borrow/release)
 
-  // Using atomic operations for thread-safe lock-free operation
-  std::atomic<bool> message_prepared_{false};  // Flag to prevent concurrent prepare operations
-  std::atomic<size_t> read_index_{0};          // Current read position index
-  std::atomic<size_t> write_index_{0};         // Current write position index
-
-  // Helper method to release lock and return nullptr
-  inline char *release_lock_and_return_null_() {
-    message_prepared_.store(false, std::memory_order_release);
-    return nullptr;
+  // Return total message size needed for given text length
+  inline size_t message_size_for(size_t text_length) const {
+    return sizeof(LogMessage) + text_length + 1;  // +1 for null terminator
   }
 };
 

@@ -2,203 +2,183 @@
 
 #ifdef USE_ESPHOME_LOG_BUFFER
 
+#include "esphome/core/log.h"
+
 namespace esphome {
 namespace logger {
 
-LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_index_(0), write_index_(0) {
-  // Calculate max message size based on typical log message
-  const size_t header_size = sizeof(LogMessage);
+static const char *const TAG = "logger_buffer";
 
-  // Set max message size to accommodate larger messages
-  max_message_size_ = header_size + MAX_MESSAGE_TEXT_SIZE + 1;  // +1 for null terminator
-
-  // Ensure minimum buffer size for at least 2 full-size messages
-  if (total_buffer_size < max_message_size_ * 2) {
-    total_buffer_size = max_message_size_ * 2;
+LogBuffer::LogBuffer(size_t total_buffer_size) {
+  // Ensure minimum buffer size for reasonable operation
+  if (total_buffer_size < 512) {
+    total_buffer_size = 512;  // 512 bytes minimum
   }
 
-  // Allocate the single unified buffer
-  buffer_size_ = total_buffer_size;
-  esphome::RAMAllocator<char> allocator;
-  buffer_ = allocator.allocate(buffer_size_);
+  // Create a byte buffer using xRingbufferCreate which handles memory allocation
+  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
 
-  // Initialize buffer memory
-  memset(buffer_, 0, buffer_size_);
+  if (ring_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to create ring buffer");
+    return;
+  }
 
-  // Initialize pointers to the beginning of the buffer
-  read_pos_ = reinterpret_cast<LogMessage *>(buffer_);
-  write_pos_ = reinterpret_cast<LogMessage *>(buffer_);
-  prepared_pos_ = nullptr;
-
-  // Initialize first message header to have zero length
-  read_pos_->text_length = 0;
+  // Initialize tracking pointers
+  acquired_item_ = nullptr;
+  received_item_ = nullptr;
 }
 
 LogBuffer::~LogBuffer() {
-  if (buffer_ != nullptr) {
-    // Free the buffer
-    esphome::RAMAllocator<char> allocator;
-    allocator.deallocate(buffer_, buffer_size_);
-    buffer_ = nullptr;
-    read_pos_ = nullptr;
-    write_pos_ = nullptr;
-    prepared_pos_ = nullptr;
+  if (ring_buffer_ != nullptr) {
+    // Check if there are any unreleased items and release them
+    if (acquired_item_ != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, acquired_item_);
+      acquired_item_ = nullptr;
+    }
+
+    if (received_item_ != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, received_item_);
+      received_item_ = nullptr;
+    }
+
+    // Delete the ring buffer (frees the memory automatically)
+    vRingbufferDelete(ring_buffer_);
+    ring_buffer_ = nullptr;
   }
 }
 
 char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
                                  size_t &capacity) {
-  // Try to set message_prepared_ from false to true atomically
-  bool expected = false;
-  if (!message_prepared_.compare_exchange_strong(expected, true, std::memory_order_acquire)) {
-    // Someone else is already preparing a message
+  // Calculate minimum size needed for a usable message
+  size_t min_size = message_size_for(MIN_USEFUL_MESSAGE_SIZE);
+
+  // Try to acquire space in the ring buffer for a new message
+  size_t item_size = 0;
+  acquired_item_ = xRingbufferSendAcquire(ring_buffer_, &item_size, 0);
+
+  if (acquired_item_ == nullptr || item_size < min_size) {
+    // Not enough space, we'll let the consumer handle discarding old messages
+    if (acquired_item_ != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, acquired_item_);
+      acquired_item_ = nullptr;
+    }
+
+    capacity = 0;
     return nullptr;
   }
 
-  // Calculate space needed for header + minimum text size
-  const size_t min_space_needed = sizeof(LogMessage) + MIN_USEFUL_MESSAGE_SIZE + 1;  // +1 for null terminator
+  // We have successfully acquired space in the ring buffer
+  // Set up the message header at the start of the acquired space
+  LogMessage *msg = static_cast<LogMessage *>(acquired_item_);
+  msg->level = level;
+  msg->tag = tag;
+  msg->line = line;
+  msg->thread_name = thread_name;
+  msg->text_length = 0;  // Will be filled in commit
 
-  // Calculate available space in the buffer
-  const char *buffer_end = buffer_ + buffer_size_;
-  const char *read_pos_ptr = reinterpret_cast<const char *>(read_pos_);
-  const char *write_pos_ptr = reinterpret_cast<const char *>(write_pos_);
+  // Calculate available capacity for text
+  capacity = item_size - sizeof(LogMessage) - 1;  // -1 for null terminator
 
-  size_t available_space;
-  if (write_pos_ptr >= read_pos_ptr) {
-    // Write is ahead of read or at same position
-    const size_t space_to_end = buffer_end - write_pos_ptr;
-
-    if (space_to_end >= min_space_needed) {
-      // Enough space at the end
-      available_space = space_to_end;
-      prepared_pos_ = write_pos_;
-    } else {
-      // Not enough space at the end, check if we can wrap
-      if (read_pos_ptr - buffer_ >= min_space_needed) {
-        // Wrap to the beginning of the buffer
-        prepared_pos_ = reinterpret_cast<LogMessage *>(buffer_);
-        available_space = read_pos_ptr - buffer_;
-      } else {
-        // Not enough space for a message
-        return release_lock_and_return_null_();
-      }
-    }
-  } else {
-    // Read is ahead of write
-    available_space = read_pos_ptr - write_pos_ptr;
-    if (available_space < min_space_needed) {
-      // Not enough space
-      return release_lock_and_return_null_();
-    }
-    prepared_pos_ = write_pos_;
+  // Cap capacity to a reasonable maximum
+  if (capacity > MAX_MESSAGE_TEXT_SIZE) {
+    capacity = MAX_MESSAGE_TEXT_SIZE;
   }
 
-  // Limit capacity to max_message_size_
-  capacity = std::min(available_space - sizeof(LogMessage) - 1, max_message_size_ - sizeof(LogMessage) - 1);
-
-  // Fill in the message header
-  prepared_pos_->level = level;
-  prepared_pos_->tag = tag;
-  prepared_pos_->line = line;
-  prepared_pos_->thread_name = thread_name;
-  prepared_pos_->text_length = 0;  // Will be filled in commit
-
-  // Return a pointer to where text should be written
-  return prepared_pos_->text_data();
+  // Return a pointer to where the text should be written
+  return msg->text_data();
 }
 
 void LogBuffer::commit_message(size_t text_length) {
-  // Basic validation checks before committing
-  if (!message_prepared_.load(std::memory_order_relaxed) || prepared_pos_ == nullptr || text_length == 0) {
-    // Reset prepared flag and abort if zero text length or no prepared message
-    message_prepared_.store(false, std::memory_order_release);
+  // Check if we have an acquired item to commit
+  if (acquired_item_ == nullptr || text_length == 0) {
+    // Nothing to commit or zero text length, cancel the preparation
+    cancel_prepare();
     return;
   }
 
-  // Limit text length to maximum allowed
-  const size_t max_allowed_text = max_message_size_ - sizeof(LogMessage) - 1;
+  // Get the message header
+  LogMessage *msg = static_cast<LogMessage *>(acquired_item_);
+
+  // Calculate available space for text (excluding header and null terminator)
+  size_t max_allowed_text = MAX_MESSAGE_TEXT_SIZE;
+
+  // Limit text length if necessary
   if (text_length > max_allowed_text) {
     text_length = max_allowed_text;
   }
 
-  // Store the text length
-  prepared_pos_->text_length = text_length;
+  // Set the text length in the message header
+  msg->text_length = text_length;
 
-  // Add null terminator after the text
-  char *text_data = prepared_pos_->text_data();
-  text_data[text_length] = '\0';
+  // Add null terminator
+  msg->text_data()[text_length] = '\0';
 
-  // Calculate next message position
-  const char *buffer_end = buffer_ + buffer_size_;
-  const size_t total_msg_size = prepared_pos_->total_size();
-  char *next_msg_pos = reinterpret_cast<char *>(prepared_pos_) + total_msg_size;
+  // Commit the message to the ring buffer
+  xRingbufferSendComplete(ring_buffer_, acquired_item_);
 
-  // Check if we need to wrap to the beginning of the buffer
-  // Use a more conservative check to ensure we never write past the buffer end
-  if (next_msg_pos + sizeof(LogMessage) > buffer_ + buffer_size_ - 1) {
-    next_msg_pos = buffer_;
-  }
-
-  // Update write position to the next message slot
-  write_pos_ = reinterpret_cast<LogMessage *>(next_msg_pos);
-
-  // Increment the write index atomically with release semantics
-  write_index_.fetch_add(1, std::memory_order_release);
-
-  // Reset prepared flag
-  message_prepared_.store(false, std::memory_order_release);
+  // Reset the acquired item pointer
+  acquired_item_ = nullptr;
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
-  // Check if buffer is empty using atomic indices
-  // Use acquire semantics to synchronize with the release in commit_message
-  size_t read_idx = read_index_.load(std::memory_order_acquire);
-  size_t write_idx = write_index_.load(std::memory_order_acquire);
-
-  if (read_idx == write_idx) {
-    return false;  // Buffer empty
+  // Check for valid output parameters
+  if (message == nullptr || text == nullptr) {
+    return false;
   }
 
-  // Validate pointers before dereferencing
-  if (message == nullptr || text == nullptr || read_pos_ == nullptr) {
-    return false;  // Invalid parameters or read position
+  // Make sure we don't have a previously unreleased message
+  if (received_item_ != nullptr) {
+    release_message();
   }
 
-  // Get message and its text
-  *message = read_pos_;
-  *text = read_pos_->text_data();
+  // Try to receive an item from the ring buffer
+  size_t item_size = 0;
+  received_item_ = xRingbufferReceive(ring_buffer_, &item_size, 0);
+
+  if (received_item_ == nullptr || item_size < sizeof(LogMessage)) {
+    // No message available or item too small to be valid
+    if (received_item_ != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, received_item_);
+      received_item_ = nullptr;
+    }
+    return false;
+  }
+
+  // Cast to LogMessage
+  LogMessage *msg = static_cast<LogMessage *>(received_item_);
+
+  // Validate the message size
+  if (item_size < msg->total_size()) {
+    // Message is truncated or invalid
+    xRingbufferReturnItem(ring_buffer_, received_item_);
+    received_item_ = nullptr;
+    return false;
+  }
+
+  // Set the output parameters
+  *message = msg;
+  *text = msg->text_data();
 
   return true;
 }
 
 void LogBuffer::release_message() {
-  // Check if buffer is empty or read position is invalid
-  size_t read_idx = read_index_.load(std::memory_order_acquire);
-  size_t write_idx = write_index_.load(std::memory_order_acquire);
-
-  if (read_idx == write_idx || read_pos_ == nullptr) {
-    return;  // Buffer empty or invalid read position
+  // Check if there's a received item to release
+  if (received_item_ != nullptr) {
+    // Return the item to the ring buffer
+    xRingbufferReturnItem(ring_buffer_, received_item_);
+    received_item_ = nullptr;
   }
-
-  // Calculate next read position based on the current message's size
-  const char *buffer_end = buffer_ + buffer_size_;
-  size_t msg_size = read_pos_->total_size();
-  char *next_read_pos = reinterpret_cast<char *>(read_pos_) + msg_size;
-
-  // Check if we need to wrap around to beginning of buffer
-  // Use a more conservative check to ensure we never read past the buffer end
-  if (next_read_pos + sizeof(LogMessage) > buffer_ + buffer_size_ - 1) {
-    next_read_pos = buffer_;
-  }
-
-  // Update read position to the next message
-  read_pos_ = reinterpret_cast<LogMessage *>(next_read_pos);
-
-  // Increment the read index atomically
-  read_index_.fetch_add(1, std::memory_order_release);
 }
 
-void LogBuffer::cancel_prepare() { message_prepared_.store(false, std::memory_order_release); }
+void LogBuffer::cancel_prepare() {
+  // Check if we have an acquired item to cancel
+  if (acquired_item_ != nullptr) {
+    // Return the acquired item without committing
+    xRingbufferReturnItem(ring_buffer_, acquired_item_);
+    acquired_item_ = nullptr;
+  }
+}
 
 }  // namespace logger
 }  // namespace esphome
