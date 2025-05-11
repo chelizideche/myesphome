@@ -131,11 +131,22 @@ class Logger : public Component {
   // add a listener for log level changes
   void add_listener(std::function<void(int)> &&callback) { this->level_callback_.add(std::move(callback)); }
 
-  // Helper to format a message to a buffer and prepare it for output
+  // Format a log message with printf-style arguments and write it to a buffer with header, footer, and null terminator
   // It's the caller's responsibility to initialize buffer_at (typically to 0)
-  inline void HOT format_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
-                                                    va_list args, char *buffer, int *buffer_at, int buffer_size) {
-    this->format_log_to_buffer_(level, tag, line, format, args, buffer, buffer_at, buffer_size);
+  inline void HOT format_log_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
+                                                        va_list args, char *buffer, int *buffer_at, int buffer_size) {
+// Format header
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, this->get_thread_name_());
+#else
+    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, nullptr);
+#endif
+
+    // Format message body
+    this->format_body_to_buffer_(format, args, buffer, buffer_at, buffer_size);
+
+    // Format footer
+    this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
 
     // Add null terminator before sending to output
     if (*buffer_at < buffer_size)
@@ -147,8 +158,8 @@ class Logger : public Component {
                                                   va_list args) {
     // Format to tx_buffer and prepare for output
     this->tx_buffer_at_ = 0;  // Initialize buffer position
-    this->format_to_buffer_with_terminator_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
-                                            this->tx_buffer_size_);
+    this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
+                                                this->tx_buffer_size_);
 
     // If logging is enabled, write to console
     if (this->baud_rate_ > 0) {
@@ -298,18 +309,6 @@ class Logger : public Component {
   inline void HOT write_footer_to_buffer_(char *buffer, int *buffer_at, int buffer_size) {
     static const int RESET_COLOR_LEN = strlen(ESPHOME_LOG_RESET_COLOR);
     this->write_body_to_buffer_(ESPHOME_LOG_RESET_COLOR, RESET_COLOR_LEN, buffer, buffer_at, buffer_size);
-  }
-
-  // Format a log message with printf-style arguments and write it to a buffer with header and footer
-  inline void HOT format_log_to_buffer_(int level, const char *tag, int line, const char *format, va_list args,
-                                        char *buffer, int *buffer_at, int buffer_size) {
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, this->get_thread_name_());
-#else
-    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, nullptr);
-#endif
-    this->format_body_to_buffer_(format, args, buffer, buffer_at, buffer_size);
-    this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
   }
 };
 extern Logger *global_logger;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

@@ -43,8 +43,8 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
     // Format to buffer and prepare for output (no need to capture the return value here)
     int buffer_at = 0;  // Initialize buffer position
-    this->format_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,
-                                            LOG_MSG_SIZE_WITH_NULL);
+    this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,
+                                                LOG_MSG_SIZE_WITH_NULL);
 
     // Send directly to output
     this->write_msg_(console_buffer);
@@ -104,10 +104,10 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   uint32_t offset = this->tx_buffer_at_;
 
   // Format to tx_buffer and prepare for output
-  this->format_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
-                                          &this->tx_buffer_at_, this->tx_buffer_size_);
+  this->format_log_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
+                                              &this->tx_buffer_at_, this->tx_buffer_size_);
 
-  // Console output already has null terminator from format_to_buffer_with_terminator_
+  // Console output already has null terminator from format_log_to_buffer_with_terminator_
   if (this->baud_rate_ > 0) {
     this->write_msg_(this->tx_buffer_ + offset);
   }
