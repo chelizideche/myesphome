@@ -50,11 +50,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // Check if logging is disabled
   if (this->baud_rate_ > 0) {
     // Emergency console-only fallback - MUST be stack allocated for thread safety
-    // Use a larger 256-byte buffer for emergency logging
-    char emergency_buffer[256];
+    char emergency_buffer[LOG_MSG_SIZE_WITH_NULL];
     int buffer_at = 0;
 
-    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, 256);
+    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
     // Remove trailing newlines to prevent double empty lines
     while (buffer_at > 0 && emergency_buffer[buffer_at - 1] == '\n') {
@@ -62,30 +61,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     }
 
     // Add null terminator before sending to output
-    if (buffer_at < 256)
+    if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
       emergency_buffer[buffer_at] = '\0';
 
-    // Send the message as text
+    // Send directly to output, skip callbacks
     this->write_msg_(emergency_buffer);
-
-    // Now print the message in hex format (no newlines)
-    char hex_buffer[768];  // Buffer for the full hex output (3x original size)
-    int hex_at = 0;
-
-    // Add prefix
-    hex_at += snprintf(hex_buffer + hex_at, sizeof(hex_buffer) - hex_at, " HEX: ");
-
-    // Convert each byte to hex
-    for (int i = 0; i < buffer_at && hex_at < sizeof(hex_buffer) - 4; i++) {
-      hex_at += snprintf(hex_buffer + hex_at, sizeof(hex_buffer) - hex_at, "%02X ",
-                         static_cast<uint8_t>(emergency_buffer[i]));
-    }
-
-    // Add null terminator
-    hex_buffer[hex_at] = '\0';
-
-    // Print the hex values
-    this->write_msg_(hex_buffer);
   }
   recursion_guard_.store(false, std::memory_order_release);
 }
