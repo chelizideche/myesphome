@@ -95,12 +95,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   // This doesn't include the null terminator
   size_t text_length = (static_cast<size_t>(ret) > LOG_MSG_SIZE) ? LOG_MSG_SIZE : ret;
 
-  // Remove trailing newlines - text_length points to the position after the last character
-  // so text_area[text_length-1] is the last character, not the null terminator
-  while (text_length > 0 && text_area[text_length - 1] == '\n') {
-    text_length--;
-  }
-
   // If we have no text after processing, don't send the message
   if (text_length == 0) {
     return false;

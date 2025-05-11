@@ -55,11 +55,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
     this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
-    // Remove trailing newlines to prevent double empty lines
-    while (buffer_at > 0 && emergency_buffer[buffer_at - 1] == '\n') {
-      buffer_at--;
-    }
-
     // Add null terminator before sending to output
     if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
       emergency_buffer[buffer_at] = '\0';
@@ -120,11 +115,6 @@ inline int HOT Logger::level_for(const char *tag) {
 }
 
 void HOT Logger::log_message_(int level, const char *tag, int offset) {
-  // Remove all trailing newlines to prevent double empty lines
-  while (this->tx_buffer_at_ > 0 && this->tx_buffer_[this->tx_buffer_at_ - 1] == '\n') {
-    this->tx_buffer_at_--;
-  }
-
   // make sure null terminator is present (inlined set_null_terminator_)
   this->tx_buffer_[this->tx_buffer_at_] = '\0';
 

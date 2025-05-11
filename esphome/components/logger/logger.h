@@ -261,8 +261,14 @@ class Logger : public Component {
       return;
     }
 
-    // If ret >= remaining, output was too long and is truncated
-    *buffer_at += (ret >= remaining) ? remaining : ret;
+    // Update buffer_at with the formatted length (handle truncation)
+    int formatted_len = (ret >= remaining) ? remaining : ret;
+    *buffer_at += formatted_len;
+
+    // Remove all trailing newlines right after formatting
+    while (*buffer_at > 0 && buffer[*buffer_at - 1] == '\n') {
+      (*buffer_at)--;
+    }
   }
 
   inline void HOT write_footer_to_buffer_(char *buffer, int *buffer_at, int buffer_size) {
