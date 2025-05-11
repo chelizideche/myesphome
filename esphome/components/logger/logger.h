@@ -135,20 +135,13 @@ class Logger : public Component {
   // It's the caller's responsibility to initialize buffer_at (typically to 0)
   inline void HOT format_log_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
                                                         va_list args, char *buffer, int *buffer_at, int buffer_size) {
-// Format header
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
     this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, this->get_thread_name_());
 #else
     this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, nullptr);
 #endif
-
-    // Format message body
     this->format_body_to_buffer_(format, args, buffer, buffer_at, buffer_size);
-
-    // Format footer
     this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
-
-    // Add null terminator before sending to output
     if (*buffer_at < buffer_size)
       buffer[*buffer_at] = '\0';
   }
