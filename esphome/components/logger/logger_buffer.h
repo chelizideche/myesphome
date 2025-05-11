@@ -45,11 +45,13 @@ class LogBuffer {
 
   // Attempt to reserve space in the ring buffer for a new message
   // Returns buffer to write text to, or nullptr if the buffer is full
-  char *prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, size_t &capacity);
+  // Also returns the acquired item as token to make prepare/commit thread-safe
+  char *prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, size_t &capacity,
+                        void **message_token);
 
-  // Commit the message with the given text length
+  // Commit the message with the given text length and token
   // Must be called after a successful prepare_message
-  void commit_message(size_t text_length);
+  void commit_message(size_t text_length, void *message_token);
 
   // Borrow the next message from the ring buffer along with its text
   // Returns the message metadata and the message text through the out parameters
@@ -62,13 +64,12 @@ class LogBuffer {
 
   // Cancel a prepared message without committing it
   // Call this if you want to abort a message preparation without committing
-  void cancel_prepare();
+  void cancel_prepare(void *message_token);
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
 
-  // For tracking prepare/commit and borrow/release operations
-  void *acquired_item_{nullptr};  // Pointer to currently acquired item (for prepare/commit)
+  // For tracking received items in borrow/release operations
   void *received_item_{nullptr};  // Pointer to currently received item (for borrow/release)
 
   // Return total message size needed for given text length

@@ -23,19 +23,13 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
     return;
   }
 
-  // Initialize tracking pointers
-  acquired_item_ = nullptr;
+  // Initialize tracking pointers for received items
   received_item_ = nullptr;
 }
 
 LogBuffer::~LogBuffer() {
   if (ring_buffer_ != nullptr) {
-    // Check if there are any unreleased items and release them
-    if (acquired_item_ != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, acquired_item_);
-      acquired_item_ = nullptr;
-    }
-
+    // Check if there's a received item and release it
     if (received_item_ != nullptr) {
       xRingbufferReturnItem(ring_buffer_, received_item_);
       received_item_ = nullptr;
@@ -48,28 +42,28 @@ LogBuffer::~LogBuffer() {
 }
 
 char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
-                                 size_t &capacity) {
+                                 size_t &capacity, void **message_token) {
   // Calculate minimum size needed for a usable message
   size_t min_size = message_size_for(MIN_USEFUL_MESSAGE_SIZE);
 
   // Try to acquire space in the ring buffer for a new message
   size_t item_size = 0;
-  acquired_item_ = xRingbufferSendAcquire(ring_buffer_, &item_size, 0);
+  void *acquired_item = xRingbufferSendAcquire(ring_buffer_, &item_size, 0);
 
-  if (acquired_item_ == nullptr || item_size < min_size) {
+  if (acquired_item == nullptr || item_size < min_size) {
     // Not enough space, we'll let the consumer handle discarding old messages
-    if (acquired_item_ != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, acquired_item_);
-      acquired_item_ = nullptr;
+    if (acquired_item != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, acquired_item);
     }
 
     capacity = 0;
+    *message_token = nullptr;
     return nullptr;
   }
 
   // We have successfully acquired space in the ring buffer
   // Set up the message header at the start of the acquired space
-  LogMessage *msg = static_cast<LogMessage *>(acquired_item_);
+  LogMessage *msg = static_cast<LogMessage *>(acquired_item);
   msg->level = level;
   msg->tag = tag;
   msg->line = line;
@@ -84,20 +78,25 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
     capacity = MAX_MESSAGE_TEXT_SIZE;
   }
 
+  // Store the acquired item pointer in the token for later use in commit
+  *message_token = acquired_item;
+
   // Return a pointer to where the text should be written
   return msg->text_data();
 }
 
-void LogBuffer::commit_message(size_t text_length) {
-  // Check if we have an acquired item to commit
-  if (acquired_item_ == nullptr || text_length == 0) {
+void LogBuffer::commit_message(size_t text_length, void *message_token) {
+  // Check if we have a valid message token to commit
+  if (message_token == nullptr || text_length == 0) {
     // Nothing to commit or zero text length, cancel the preparation
-    cancel_prepare();
+    if (message_token != nullptr) {
+      cancel_prepare(message_token);
+    }
     return;
   }
 
-  // Get the message header
-  LogMessage *msg = static_cast<LogMessage *>(acquired_item_);
+  // Get the message header from the token
+  LogMessage *msg = static_cast<LogMessage *>(message_token);
 
   // Calculate available space for text (excluding header and null terminator)
   size_t max_allowed_text = MAX_MESSAGE_TEXT_SIZE;
@@ -114,10 +113,7 @@ void LogBuffer::commit_message(size_t text_length) {
   msg->text_data()[text_length] = '\0';
 
   // Commit the message to the ring buffer
-  xRingbufferSendComplete(ring_buffer_, acquired_item_);
-
-  // Reset the acquired item pointer
-  acquired_item_ = nullptr;
+  xRingbufferSendComplete(ring_buffer_, message_token);
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
@@ -171,12 +167,11 @@ void LogBuffer::release_message() {
   }
 }
 
-void LogBuffer::cancel_prepare() {
-  // Check if we have an acquired item to cancel
-  if (acquired_item_ != nullptr) {
+void LogBuffer::cancel_prepare(void *message_token) {
+  // Check if we have a valid message token to cancel
+  if (message_token != nullptr) {
     // Return the acquired item without committing
-    xRingbufferReturnItem(ring_buffer_, acquired_item_);
-    acquired_item_ = nullptr;
+    xRingbufferReturnItem(ring_buffer_, message_token);
   }
 }
 

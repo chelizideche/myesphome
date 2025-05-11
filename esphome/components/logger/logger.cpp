@@ -36,8 +36,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   // Use the log buffer for messages from non-main tasks
   size_t capacity;
+  void *message_token = nullptr;
   char *buffer = this->log_buffer_->prepare_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                                    thread_name, capacity);
+                                                    thread_name, capacity, &message_token);
   if (buffer != nullptr) {
     // Format the message into the ring buffer
     int ret = vsnprintf(buffer, capacity, format, args);
@@ -48,7 +49,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     // - otherwise: use actual length
     if (ret <= 0) {
       // Empty message or error in vsnprintf, cancel the prepared message
-      this->log_buffer_->cancel_prepare();
+      this->log_buffer_->cancel_prepare(message_token);
       recursion_guard_.store(false, std::memory_order_release);
       return;
     }
@@ -62,10 +63,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
     // Check if we have any text to log after processing
     if (text_length > 0) {
-      this->log_buffer_->commit_message(text_length);
+      this->log_buffer_->commit_message(text_length, message_token);
     } else {
       // No text to log, cancel the prepared message
-      this->log_buffer_->cancel_prepare();
+      this->log_buffer_->cancel_prepare(message_token);
     }
 
     recursion_guard_.store(false, std::memory_order_release);
