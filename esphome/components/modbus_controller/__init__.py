@@ -136,9 +136,7 @@ _LOGGER = logging.getLogger(__name__)
 def validate_address(register_set: set):
     def validator(register: dict):
         address = register[CONF_ADDRESS]
-        register_count = register.get(
-            CONF_REGISTER_COUNT, TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
-        )
+        register_count = TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
         last_address = address + register_count - 1
         try:
             cv.uint16_t(last_address)
