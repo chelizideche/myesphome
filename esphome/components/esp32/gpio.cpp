@@ -2,16 +2,31 @@
 
 #include "gpio.h"
 #include "esphome/core/log.h"
+#include "driver/gpio.h"
+#include "driver/rtc_io.h"
+#include "hal/gpio_hal.h"
+#include "soc/soc_caps.h"
+#include "soc/gpio_periph.h"
 #include <cinttypes>
+
+#if (SOC_RTCIO_PIN_COUNT > 0)
+#include "hal/rtc_io_hal.h"
+#endif
+
+#ifndef SOC_GPIO_SUPPORT_RTC_INDEPENDENT
+#define SOC_GPIO_SUPPORT_RTC_INDEPENDENT 0
+#endif
 
 namespace esphome {
 namespace esp32 {
 
 static const char *const TAG = "esp32";
 
+static gpio_hal_context_t _gpio_hal = {.dev = GPIO_HAL_GET_HW(GPIO_PORT_0)};
+
 bool ESP32InternalGPIOPin::isr_service_installed = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-static gpio_mode_t IRAM_ATTR flags_to_mode(gpio::Flags flags) {
+static gpio_mode_t flags_to_mode(gpio::Flags flags) {
   flags = (gpio::Flags)(flags & ~(gpio::FLAG_PULLUP | gpio::FLAG_PULLDOWN));
   if (flags == gpio::FLAG_INPUT) {
     return GPIO_MODE_INPUT;
@@ -31,13 +46,23 @@ static gpio_mode_t IRAM_ATTR flags_to_mode(gpio::Flags flags) {
 
 struct ISRPinArg {
   gpio_num_t pin;
+  gpio::Flags flags;
   bool inverted;
+#if defined(USE_ESP32_VARIANT_ESP32)
+  bool use_rtc;
+  int rtc_pin;
+#endif
 };
 
 ISRInternalGPIOPin ESP32InternalGPIOPin::to_isr() const {
   auto *arg = new ISRPinArg{};  // NOLINT(cppcoreguidelines-owning-memory)
-  arg->pin = pin_;
+  arg->pin = this->pin_;
+  arg->flags = gpio::FLAG_NONE;
   arg->inverted = inverted_;
+#if defined(USE_ESP32_VARIANT_ESP32)
+  if ((arg->use_rtc = rtc_gpio_is_valid_gpio(this->pin_)))
+    arg->rtc_pin = rtc_io_number_get(this->pin_);
+#endif
   return ISRInternalGPIOPin((void *) arg);
 }
 
@@ -90,6 +115,7 @@ void ESP32InternalGPIOPin::setup() {
   if (flags_ & gpio::FLAG_OUTPUT) {
     gpio_set_drive_capability(pin_, drive_strength_);
   }
+  ESP_LOGD(TAG, "rtc: %d", SOC_GPIO_SUPPORT_RTC_INDEPENDENT);
 }
 
 void ESP32InternalGPIOPin::pin_mode(gpio::Flags flags) {
@@ -115,28 +141,61 @@ void ESP32InternalGPIOPin::detach_interrupt() const { gpio_intr_disable(pin_); }
 using namespace esp32;
 
 bool IRAM_ATTR ISRInternalGPIOPin::digital_read() {
-  auto *arg = reinterpret_cast<ISRPinArg *>(arg_);
-  return bool(gpio_get_level(arg->pin)) != arg->inverted;
+  auto *arg = reinterpret_cast<ISRPinArg *>(this->arg_);
+  return bool(gpio_hal_get_level(&_gpio_hal, arg->pin)) != arg->inverted;
 }
+
 void IRAM_ATTR ISRInternalGPIOPin::digital_write(bool value) {
-  auto *arg = reinterpret_cast<ISRPinArg *>(arg_);
-  gpio_set_level(arg->pin, value != arg->inverted ? 1 : 0);
+  auto *arg = reinterpret_cast<ISRPinArg *>(this->arg_);
+  gpio_hal_set_level(&_gpio_hal, arg->pin, value != arg->inverted);
 }
+
 void IRAM_ATTR ISRInternalGPIOPin::clear_interrupt() {
   // not supported
 }
+
 void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
   auto *arg = reinterpret_cast<ISRPinArg *>(arg_);
-  gpio_set_direction(arg->pin, flags_to_mode(flags));
-  gpio_pull_mode_t pull_mode = GPIO_FLOATING;
-  if ((flags & gpio::FLAG_PULLUP) && (flags & gpio::FLAG_PULLDOWN)) {
-    pull_mode = GPIO_PULLUP_PULLDOWN;
-  } else if (flags & gpio::FLAG_PULLUP) {
-    pull_mode = GPIO_PULLUP_ONLY;
-  } else if (flags & gpio::FLAG_PULLDOWN) {
-    pull_mode = GPIO_PULLDOWN_ONLY;
+  gpio::Flags diff = (gpio::Flags)(flags ^ arg->flags);
+  if (diff & gpio::FLAG_OUTPUT) {
+    if (flags & gpio::FLAG_OUTPUT) {
+      gpio_hal_output_enable(&_gpio_hal, arg->pin);
+      if (flags & gpio::FLAG_OPEN_DRAIN)
+        gpio_hal_od_enable(&_gpio_hal, arg->pin);
+    } else {
+      gpio_hal_output_disable(&_gpio_hal, arg->pin);
+    }
   }
-  gpio_set_pull_mode(arg->pin, pull_mode);
+  if (diff & gpio::FLAG_INPUT) {
+    if (flags & gpio::FLAG_INPUT) {
+      gpio_hal_input_enable(&_gpio_hal, arg->pin);
+#if defined(USE_ESP32_VARIANT_ESP32)
+      if (arg->use_rtc) {
+        if (flags & gpio::FLAG_PULLUP)
+          rtcio_hal_pullup_enable(arg->rtc_pin);
+        else
+          rtcio_hal_pullup_disable(arg->rtc_pin);
+        if (flags & gpio::FLAG_PULLDOWN)
+          rtcio_hal_pulldown_enable(arg->rtc_pin);
+        else
+          rtcio_hal_pulldown_disable(arg->rtc_pin);
+      } else
+#endif
+      {
+        if (flags & gpio::FLAG_PULLUP)
+          gpio_hal_pullup_en(&_gpio_hal, arg->pin);
+        else
+          gpio_hal_pullup_dis(&_gpio_hal, arg->pin);
+        if (flags & gpio::FLAG_PULLDOWN)
+          gpio_hal_pulldown_en(&_gpio_hal, arg->pin);
+        else
+          gpio_hal_pulldown_dis(&_gpio_hal, arg->pin);
+      }
+    } else {
+      gpio_hal_input_disable(&_gpio_hal, arg->pin);
+    }
+  }
+  arg->flags = flags;
 }
 
 }  // namespace esphome
