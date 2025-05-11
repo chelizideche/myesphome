@@ -1971,10 +1971,7 @@ span_constexpr ElementType const & get( nonstd::span<ElementType, Extent> const 
 span_RESTORE_WARNINGS()
 #endif  // span_USES_STD_SPAN
 
+#endif  // NONSTD_SPAN_HPP_INCLUDED
 //NOLINTEND
-namespace esphome {
-using nonstd::span;
-}
 //  clang-format on
 
-#endif  // NONSTD_SPAN_HPP_INCLUDED

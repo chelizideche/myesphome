@@ -150,6 +150,16 @@ template<> constexpr14 int16_t byteswap(int16_t n) { return __builtin_bswap16(n)
 template<> constexpr14 int32_t byteswap(int32_t n) { return __builtin_bswap32(n); }
 template<> constexpr14 int64_t byteswap(int64_t n) { return __builtin_bswap64(n); }
 
+// std::span from C++20
+#if __cpp_lib_span >= 202002L
+using std::span;
+#else
+}  // namespace esphome
+#include "esphome/core/span.h"
+namespace esphome {
+using nonstd::span;
+#endif
+
 ///@}
 
 /// @name Mathematics
