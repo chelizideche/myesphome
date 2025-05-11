@@ -37,7 +37,7 @@ int HOT IRAM_ATTR GPIOOneWireBus::reset_int() {
     delayMicroseconds(2);
   } while (!this->pin_.digital_read());
 
-  bool r;
+  bool r = false;
 
   // Send 480µs LOW TX reset pulse (drive bus low, delay H)
   this->pin_.digital_write(false);
@@ -51,7 +51,8 @@ int HOT IRAM_ATTR GPIOOneWireBus::reset_int() {
 
   while (micros() - start < 300) {
     // sample bus, 0=device(s) present, 1=no device present
-    if ((r = !this->pin_.digital_read()))
+    r = !this->pin_.digital_read();
+    if (r)
       break;
     delayMicroseconds(1);
   }
