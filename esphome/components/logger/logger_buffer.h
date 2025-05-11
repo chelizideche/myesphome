@@ -75,6 +75,10 @@ class LogBuffer {
   // Must be called after processing a message returned by borrow_message
   void release_message();
 
+  // Cancel a prepared message without committing it
+  // Call this if you want to abort a message preparation without committing
+  void cancel_prepare();
+
  private:
   char *buffer_;             // Single ring buffer for all messages and their text
   size_t buffer_size_;       // Total size of the buffer
@@ -95,6 +99,9 @@ class LogBuffer {
     message_prepared_.store(false, std::memory_order_release);
     return nullptr;
   }
+
+  // Public method to release the prepared lock without committing
+  inline void cancel_prepare() { message_prepared_.store(false, std::memory_order_release); }
 };
 
 }  // namespace logger

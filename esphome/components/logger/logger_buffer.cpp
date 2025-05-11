@@ -108,15 +108,10 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
 }
 
 void LogBuffer::commit_message(size_t text_length) {
-  if (!message_prepared_.load(std::memory_order_relaxed) || prepared_pos_ == nullptr) {
-    return;  // No message has been prepared
-  }
-
-  // Ensure text length is not zero
-  if (text_length == 0) {
-    text_length = 1;
-    char *text_data = prepared_pos_->text_data();
-    text_data[0] = ' ';
+  if (!message_prepared_.load(std::memory_order_relaxed) || prepared_pos_ == nullptr || text_length == 0) {
+    // Reset prepared flag and abort if zero text length or no prepared message
+    message_prepared_.store(false, std::memory_order_release);
+    return;
   }
 
   // Limit text length to maximum allowed
@@ -194,6 +189,8 @@ void LogBuffer::release_message() {
   // Increment the read index atomically
   read_index_.fetch_add(1, std::memory_order_release);
 }
+
+void LogBuffer::cancel_prepare() { message_prepared_.store(false, std::memory_order_release); }
 
 }  // namespace logger
 }  // namespace esphome
