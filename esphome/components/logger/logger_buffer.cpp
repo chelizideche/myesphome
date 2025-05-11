@@ -11,6 +11,9 @@ LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_
 
   // Set max message size to accommodate larger messages
   max_message_size_ = header_size + MAX_MESSAGE_TEXT_SIZE + 1;  // +1 for null terminator
+
+  // Ensure minimum buffer size for at least 2 full-size messages
+  // This is critical for proper buffer operation to avoid edge cases
   if (total_buffer_size < max_message_size_ * 2) {
     total_buffer_size = max_message_size_ * 2;
   }
@@ -19,6 +22,9 @@ LogBuffer::LogBuffer(size_t total_buffer_size) : message_prepared_(false), read_
   buffer_size_ = total_buffer_size;
   esphome::RAMAllocator<char> allocator;
   buffer_ = allocator.allocate(buffer_size_);
+
+  // Ensure the buffer is cleanly initialized to avoid any undefined behavior
+  memset(buffer_, 0, buffer_size_);
 
   // Initialize pointers to the beginning of the buffer
   read_pos_ = reinterpret_cast<LogMessage *>(buffer_);
@@ -64,15 +70,17 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
     // Write is ahead of read or at same position
     // First check space to end of buffer
     const size_t space_to_end = buffer_end - write_pos_ptr;
+
     if (space_to_end >= min_space_needed) {
       // Enough space at the end
       available_space = space_to_end;
+      prepared_pos_ = write_pos_;
     } else {
+      // Not enough space at the end for a complete message
       // Check if we can wrap around to beginning
       // Need to leave space before read pointer
       if (read_pos_ptr - buffer_ >= min_space_needed) {
-        // Reset write position to beginning of buffer
-        // since there's not enough space at end
+        // We'll wrap to the beginning - prepared_pos_ will be at buffer start
         prepared_pos_ = reinterpret_cast<LogMessage *>(buffer_);
         available_space = read_pos_ptr - buffer_;
       } else {
@@ -87,10 +95,9 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
       // Not enough space
       return release_lock_and_return_null_();
     }
+    // Use the current write position
+    prepared_pos_ = write_pos_;
   }
-
-  // Now we know we have enough space, set up the message
-  prepared_pos_ = write_pos_;
 
   // Limit capacity to max_message_size_ to prevent excessive memory use
   capacity = std::min(available_space - sizeof(LogMessage) - 1, max_message_size_ - sizeof(LogMessage) - 1);
@@ -111,6 +118,19 @@ void LogBuffer::commit_message(size_t text_length) {
     return;  // No message has been prepared
   }
 
+  // Make sure text length is not zero to avoid empty messages
+  if (text_length == 0) {
+    text_length = 1;  // Ensure at least 1 character
+    char *text_data = prepared_pos_->text_data();
+    text_data[0] = ' ';  // Use a space as minimum content
+  }
+
+  // Ensure we don't exceed buffer capacity
+  const size_t max_allowed_text = max_message_size_ - sizeof(LogMessage) - 1;  // -1 for null terminator
+  if (text_length > max_allowed_text) {
+    text_length = max_allowed_text;
+  }
+
   // Store the text length
   prepared_pos_->text_length = text_length;
 
@@ -121,10 +141,12 @@ void LogBuffer::commit_message(size_t text_length) {
   // Calculate next message position based on this message's size
   // This accounts for variable message sizes
   const char *buffer_end = buffer_ + buffer_size_;
-  char *next_msg_pos = reinterpret_cast<char *>(prepared_pos_) + prepared_pos_->total_size();
+  const size_t total_msg_size = prepared_pos_->total_size();
+  char *next_msg_pos = reinterpret_cast<char *>(prepared_pos_) + total_msg_size;
 
   // Check if we need to wrap to the beginning of the buffer
-  if (next_msg_pos + sizeof(LogMessage) > buffer_end) {
+  // We need space for at least a complete message header
+  if (next_msg_pos + sizeof(LogMessage) >= buffer_end) {
     next_msg_pos = buffer_;
   }
 
@@ -168,10 +190,12 @@ void LogBuffer::release_message() {
 
   // Calculate next read position based on the current message's size
   const char *buffer_end = buffer_ + buffer_size_;
-  char *next_read_pos = reinterpret_cast<char *>(read_pos_) + read_pos_->total_size();
+  size_t msg_size = read_pos_->total_size();
+  char *next_read_pos = reinterpret_cast<char *>(read_pos_) + msg_size;
 
   // Check if we need to wrap around to beginning of buffer
-  if (next_read_pos + sizeof(LogMessage) > buffer_end) {
+  // Use a more conservative test to ensure we don't read past buffer end
+  if (next_read_pos >= buffer_end || next_read_pos + sizeof(LogMessage) > buffer_end) {
     next_read_pos = buffer_;
   }
 
