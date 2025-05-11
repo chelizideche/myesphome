@@ -101,10 +101,8 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
     text_length--;
   }
 
-  // If we have no text after processing, don't send the message
-  if (text_length == 0) {
-    return false;
-  }
+  // Empty messages are valid (like blank lines in log output)
+  // We'll allow them to continue through the normal path
 
   // Wrap message content in markers to help with debugging thread-related issues
   char temp_buffer[LOG_MSG_SIZE];
