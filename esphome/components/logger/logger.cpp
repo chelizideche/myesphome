@@ -217,6 +217,19 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
 void Logger::init_log_buffer(size_t total_buffer_size) {
   this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(total_buffer_size);
 }
+
+void Logger::report_buffer_stats() {
+  if (this->log_buffer_ == nullptr || this->baud_rate_ == 0)
+    return;
+
+  char stats_buf[160];
+  snprintf(stats_buf, sizeof(stats_buf),
+           "LOG-BUFFER STATS: Commit %u/%u success, Borrow %u/%u success (%u null, %u invalid)",
+           this->log_buffer_->get_commit_success(), this->log_buffer_->get_commit_attempts(),
+           this->log_buffer_->get_borrow_success(), this->log_buffer_->get_borrow_attempts(),
+           this->log_buffer_->get_borrow_items_null(), this->log_buffer_->get_borrow_items_invalid());
+  this->write_msg_(stats_buf);
+}
 #endif
 
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
@@ -241,12 +254,15 @@ void Logger::loop() {
   static uint32_t loop_count = 0;
   loop_count++;
 
-  // Occasional diagnostic about loop calls
+  // Occasional diagnostics and buffer stats
   if (loop_count % 1000 == 0) {
-    char dbg_buf[80];
-    snprintf(dbg_buf, sizeof(dbg_buf), "DBGINFO: Logger loop called %u times", loop_count);
     if (this->baud_rate_ > 0) {
+      char dbg_buf[80];
+      snprintf(dbg_buf, sizeof(dbg_buf), "DBGINFO: Logger loop called %u times", loop_count);
       this->write_msg_(dbg_buf);
+
+      // Also report buffer stats
+      this->report_buffer_stats();
     }
   }
 

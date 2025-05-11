@@ -66,8 +66,24 @@ class LogBuffer {
   // 2. Cancel a prepared message without committing
   void release_message(void *token);
 
+  // Get statistics counters
+  uint32_t get_commit_attempts() const { return commit_attempts_; }
+  uint32_t get_commit_success() const { return commit_success_; }
+  uint32_t get_borrow_attempts() const { return borrow_attempts_; }
+  uint32_t get_borrow_success() const { return borrow_success_; }
+  uint32_t get_borrow_items_null() const { return borrow_items_null_; }
+  uint32_t get_borrow_items_invalid() const { return borrow_items_invalid_; }
+
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
+
+  // Statistics counters
+  uint32_t commit_attempts_{0};
+  uint32_t commit_success_{0};
+  uint32_t borrow_attempts_{0};
+  uint32_t borrow_success_{0};
+  uint32_t borrow_items_null_{0};
+  uint32_t borrow_items_invalid_{0};
 
   // Return total message size needed for given text length
   inline size_t message_size_for(size_t text_length) const {

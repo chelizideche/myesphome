@@ -65,10 +65,8 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
 }
 
 void LogBuffer::commit_message(size_t text_length, void *message_token) {
-  // Debug counter for commit operations
-  static uint32_t commit_attempts = 0;
-  static uint32_t commit_success = 0;
-  commit_attempts++;
+  // Update commit operation counters
+  commit_attempts_++;
 
   // Check if we have a valid message token to commit
   if (message_token == nullptr || text_length == 0) {
@@ -99,13 +97,10 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   // Commit the message to the ring buffer
   BaseType_t result = xRingbufferSendComplete(ring_buffer_, message_token);
   if (result == pdTRUE) {
-    commit_success++;
+    commit_success_++;
   }
 
-  // Debug output - less frequent to avoid flooding
-  if (commit_attempts % 100 == 0) {
-    Serial.printf("RINGBUF: Commits %u/%u success\n", commit_success, commit_attempts);
-  }
+  // Save counters for main loop to report - no direct console output here
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
@@ -114,13 +109,8 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
     return false;
   }
 
-  // Debug counters
-  static uint32_t borrow_attempts = 0;
-  static uint32_t borrow_success = 0;
-  static uint32_t borrow_items_null = 0;
-  static uint32_t borrow_items_invalid = 0;
-
-  borrow_attempts++;
+  // Update borrow counters
+  borrow_attempts_++;
 
   // Try to receive an item from the ring buffer
   size_t item_size = 0;
@@ -128,26 +118,14 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
 
   if (received_item == nullptr) {
-    borrow_items_null++;
-
-    // Print debug stats infrequently to avoid flooding
-    if (borrow_attempts % 500 == 0) {
-      Serial.printf("RINGBUF: Borrows %u success %u null %u invalid %u\n", borrow_attempts, borrow_success,
-                    borrow_items_null, borrow_items_invalid);
-    }
-
+    borrow_items_null_++;
     return false;
   }
 
   if (item_size < sizeof(LogMessage)) {
     // Item too small to be valid
-    borrow_items_invalid++;
+    borrow_items_invalid_++;
     vRingbufferReturnItem(ring_buffer_, received_item);
-
-    // Print error immediately
-    Serial.printf("RINGBUF-ERR: Item size too small: %u < %u\n", (unsigned int) item_size,
-                  (unsigned int) sizeof(LogMessage));
-
     return false;
   }
 
@@ -157,13 +135,8 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Validate the message size
   if (item_size < msg->total_size()) {
     // Message is truncated or invalid
-    borrow_items_invalid++;
+    borrow_items_invalid_++;
     vRingbufferReturnItem(ring_buffer_, received_item);
-
-    // Print error immediately
-    Serial.printf("RINGBUF-ERR: Message truncated: item_size %u < total_size %u\n", (unsigned int) item_size,
-                  (unsigned int) msg->total_size());
-
     return false;
   }
 
@@ -173,13 +146,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   *received_token = received_item;
 
   // Update success counter
-  borrow_success++;
-
-  // Print success message very rarely
-  if (borrow_success % 50 == 0) {
-    Serial.printf("RINGBUF: Borrowed msg #%u tag=%s len=%u\n", borrow_success, msg->tag, msg->text_length);
-  }
-
+  borrow_success_++;
   return true;
 }
 
