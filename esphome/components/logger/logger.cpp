@@ -42,7 +42,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     char console_buffer[LOG_MSG_SIZE_WITH_NULL];
 
     // Format to buffer and prepare for output (no need to capture the return value here)
-    this->format_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, LOG_MSG_SIZE_WITH_NULL);
+    int buffer_at = 0;  // Initialize buffer position
+    this->format_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,
+                                            LOG_MSG_SIZE_WITH_NULL);
 
     // Send directly to output
     this->write_msg_(console_buffer);
@@ -86,21 +88,33 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
 
   recursion_guard_ = true;
   this->tx_buffer_at_ = 0;
-  // copy format string
+
+  // Copy format string from progmem
   auto *format_pgm_p = reinterpret_cast<const uint8_t *>(format);
   char ch = '.';
   while (this->tx_buffer_at_ < this->tx_buffer_size_ && ch != '\0') {
     this->tx_buffer_[this->tx_buffer_at_++] = ch = (char) progmem_read_byte(format_pgm_p++);
   }
-  // Buffer full form copying format
+
+  // Buffer full from copying format
   if (this->tx_buffer_at_ >= this->tx_buffer_size_)
     return;
 
-  // length of format string, includes null terminator
+  // Length of format string, includes null terminator
   uint32_t offset = this->tx_buffer_at_;
-  this->format_log_to_buffer_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_, &this->tx_buffer_at_,
-                              this->tx_buffer_size_);
-  this->log_message_(level, tag, offset);
+
+  // Format to tx_buffer and prepare for output
+  this->format_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
+                                          &this->tx_buffer_at_, this->tx_buffer_size_);
+
+  // Console output already has null terminator from format_to_buffer_with_terminator_
+  if (this->baud_rate_ > 0) {
+    this->write_msg_(this->tx_buffer_ + offset);
+  }
+
+  // Send to callbacks via call_log_callbacks_
+  this->call_log_callbacks_(level, tag, this->tx_buffer_ + offset);
+
   recursion_guard_ = false;
 }
 #endif  // USE_STORE_LOG_STR_IN_FLASH
@@ -112,12 +126,7 @@ inline int HOT Logger::level_for(const char *tag) {
   return this->current_level_;
 }
 
-void HOT Logger::log_message_(int level, const char *tag, int offset) {
-  // make sure null terminator is present (inlined set_null_terminator_)
-  this->tx_buffer_[this->tx_buffer_at_] = '\0';
-
-  const char *msg = this->tx_buffer_ + offset;
-
+void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg) {
   // Note: Console output for all messages now happens directly in log_vprintf_
   // This function is now primarily responsible for callbacks
 
@@ -183,6 +192,8 @@ void Logger::loop() {
       if (message->task_handle != nullptr) {
         thread_name = pcTaskGetName(message->task_handle);
       }
+
+      // Rebuild the log message in tx_buffer using the previously stored text and metadata
       this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
                                     this->tx_buffer_size_, thread_name);
       this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
@@ -194,14 +205,8 @@ void Logger::loop() {
 
       // Only send to callbacks, not to console (console output already happened in log_vprintf_)
       const char *msg = this->tx_buffer_;
-#ifdef USE_ESP32
-      // Suppress network-logging if memory constrained to avoid crashes
-      if (xPortGetFreeHeapSize() >= 2048) {
-        this->log_callback_.call(message->level, message->tag, msg);
-      }
-#else
-      this->log_callback_.call(message->level, message->tag, msg);
-#endif
+      // Call the callbacks through our helper which includes the ESP32 memory check
+      this->call_log_callbacks_(message->level, message->tag, msg);
 
       // Use main loop version of release_message that updates the counter tracking
       this->log_buffer_->release_message_main_loop(received_token);

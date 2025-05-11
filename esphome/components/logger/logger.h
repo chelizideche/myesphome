@@ -132,26 +132,23 @@ class Logger : public Component {
   void add_listener(std::function<void(int)> &&callback) { this->level_callback_.add(std::move(callback)); }
 
   // Helper to format a message to a buffer and prepare it for output
-  // This helper always starts at position 0 of the buffer
-  // Returns the buffer position after formatting
-  inline int HOT format_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
-                                                   va_list args, char *buffer, int buffer_size) {
-    int buffer_at = 0;
-    this->format_log_to_buffer_(level, tag, line, format, args, buffer, &buffer_at, buffer_size);
+  // It's the caller's responsibility to initialize buffer_at (typically to 0)
+  inline void HOT format_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
+                                                    va_list args, char *buffer, int *buffer_at, int buffer_size) {
+    this->format_log_to_buffer_(level, tag, line, format, args, buffer, buffer_at, buffer_size);
 
     // Add null terminator before sending to output
-    if (buffer_at < buffer_size)
-      buffer[buffer_at] = '\0';
-
-    return buffer_at;
+    if (*buffer_at < buffer_size)
+      buffer[*buffer_at] = '\0';
   }
 
   // Helper to format and send a log message to both console and callbacks
   inline void HOT log_message_to_buffer_and_send_(int level, const char *tag, int line, const char *format,
                                                   va_list args) {
     // Format to tx_buffer and prepare for output
-    this->tx_buffer_at_ = this->format_to_buffer_with_terminator_(level, tag, line, format, args, this->tx_buffer_,
-                                                                  this->tx_buffer_size_);
+    this->tx_buffer_at_ = 0;  // Initialize buffer position
+    this->format_to_buffer_with_terminator_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
+                                            this->tx_buffer_size_);
 
     // If logging is enabled, write to console
     if (this->baud_rate_ > 0) {
@@ -159,7 +156,7 @@ class Logger : public Component {
     }
 
     // Also send to callbacks
-    this->log_message_(level, tag);
+    this->call_log_callbacks_(level, tag, this->tx_buffer_);
   }
 
   float get_setup_priority() const override;
@@ -170,7 +167,7 @@ class Logger : public Component {
 #endif
 
  protected:
-  void log_message_(int level, const char *tag, int offset = 0);
+  void call_log_callbacks_(int level, const char *tag, const char *msg);
   void write_msg_(const char *msg);
 
   // Write the body of the log message to the buffer
