@@ -180,17 +180,16 @@ def light_schema(
         if default is not cv.UNDEFINED:
             schema[cv.Optional(key, default=default)] = validator
 
-    match type_:
-        case LightType.BINARY:
-            return BINARY_LIGHT_SCHEMA.extend(schema)
-        case LightType.BRIGHTNESS_ONLY:
-            return BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend(schema)
-        case LightType.RGB:
-            return RGB_LIGHT_SCHEMA.extend(schema)
-        case LightType.ADDRESSABLE:
-            return ADDRESSABLE_LIGHT_SCHEMA.extend(schema)
-        case _:
-            raise ValueError(f"Invalid light type: {type_}")
+    if type_ == LightType.BINARY:
+        return BINARY_LIGHT_SCHEMA.extend(schema)
+    if type_ == LightType.BRIGHTNESS_ONLY:
+        return BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend(schema)
+    if type_ == LightType.RGB:
+        return RGB_LIGHT_SCHEMA.extend(schema)
+    if type_ == LightType.ADDRESSABLE:
+        return ADDRESSABLE_LIGHT_SCHEMA.extend(schema)
+
+    raise ValueError(f"Invalid light type: {type_}")
 
 
 def validate_color_temperature_channels(value):
