@@ -16,10 +16,10 @@ void OptolinkTextSensor::setup() {
     case TEXT_SENSOR_TYPE_MAP:
       break;
     case TEXT_SENSOR_TYPE_RAW:
-      set_div_ratio(0);
+      set_div_ratio(DIV_RATIO_RAW);
       break;
     case TEXT_SENSOR_TYPE_DAY_SCHEDULE:
-      set_div_ratio(0);
+      set_div_ratio(DIV_RATIO_DAY_SCHEDULE);
       set_bytes(8);
       set_address(get_address_() + 8 * dow_);
       break;
@@ -43,11 +43,19 @@ void OptolinkTextSensor::update() {
   }
 }
 
-void OptolinkTextSensor::datapoint_value_changed(uint8_t *value, size_t length) {
+void OptolinkTextSensor::datapoint_value_changed(const std::string &value) {
   switch (type_) {
     case TEXT_SENSOR_TYPE_RAW:
-      publish_state(std::string((const char *) value));
+      publish_state(value);
       break;
+    default:
+      unfitting_value_type_();
+      break;
+  }
+}
+
+void OptolinkTextSensor::datapoint_value_changed(uint8_t *value, size_t length) {
+  switch (type_) {
     case TEXT_SENSOR_TYPE_DAY_SCHEDULE:
       if (length == 8) {
         auto schedule = decode_day_schedule(value);
@@ -57,6 +65,7 @@ void OptolinkTextSensor::datapoint_value_changed(uint8_t *value, size_t length) 
         unfitting_value_type_();
       }
       break;
+    case TEXT_SENSOR_TYPE_RAW:
     case TEXT_SENSOR_TYPE_DEVICE_INFO:
     case TEXT_SENSOR_TYPE_STATE_INFO:
     case TEXT_SENSOR_TYPE_MAP:

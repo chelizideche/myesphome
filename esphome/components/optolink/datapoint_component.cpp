@@ -10,7 +10,7 @@ static const char *const TAG = "optolink.datapoint_component";
 
 void DatapointComponent::setup_datapoint_() {
   switch (div_ratio_) {
-    case 0:
+    case DIV_RATIO_DAY_SCHEDULE:
       datapoint_ = new Datapoint<convRaw>(get_component_name().c_str(), "optolink", address_, writeable_);
       datapoint_->setLength(bytes_);
       datapoint_->setCallback([this](const IDatapoint &dp, DPValue dp_value) {
@@ -23,6 +23,18 @@ void DatapointComponent::setup_datapoint_() {
         ESP_LOGI(TAG, "recieved data for datapoint %s: %s", dp.getName(), print_buffer);
 #endif
         datapoint_value_changed((uint8_t *) buffer, bytes_);
+        read_retries_ = 0;
+      });
+      break;
+    case DIV_RATIO_RAW:
+      datapoint_ = new Datapoint<convRaw>(get_component_name().c_str(), "optolink", address_, writeable_);
+      datapoint_->setLength(bytes_);
+      datapoint_->setCallback([this](const IDatapoint &dp, DPValue dp_value) {
+        optolink_->notify_receive();
+        char print_buffer[bytes_ * 2 + 1];
+        dp_value.getString(print_buffer, sizeof(print_buffer));
+        ESP_LOGI(TAG, "recieved data for datapoint %s: %s", dp.getName(), print_buffer);
+        datapoint_value_changed(print_buffer);
         read_retries_ = 0;
       });
       break;

@@ -35,6 +35,7 @@ class OptolinkTextSensor : public DatapointComponent, public esphome::text_senso
   void datapoint_value_changed(uint16_t value) override { publish_state(std::to_string(value)); };
   void datapoint_value_changed(uint32_t value) override;
   void datapoint_value_changed(uint8_t *value, size_t length) override;
+  void datapoint_value_changed(const std::string &value) override;
 
  private:
   TextSensorType type_ = TEXT_SENSOR_TYPE_MAP;

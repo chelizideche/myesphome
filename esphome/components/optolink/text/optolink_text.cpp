@@ -15,7 +15,7 @@ void OptolinkText::setup() {
   switch (type_) {
     case TEXT_TYPE_DAY_SCHEDULE:
       set_writeable(true);
-      set_div_ratio(0);
+      set_div_ratio(DIV_RATIO_DAY_SCHEDULE);
       set_bytes(8);
       set_address(get_address_() + 8 * dow_);
       traits.set_max_length(48);

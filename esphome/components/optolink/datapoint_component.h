@@ -12,6 +12,8 @@ namespace optolink {
 
 class Optolink;
 
+enum DIV_RATIO_SPECIAL { DIV_RATIO_DAY_SCHEDULE = 0, DIV_RATIO_RAW = -1 };
+
 class DatapointComponent : public esphome::PollingComponent {
  public:
   DatapointComponent(Optolink *optolink, bool writeable = false) : dp_value_outstanding_((uint8_t) 0) {
@@ -54,7 +56,7 @@ class DatapointComponent : public esphome::PollingComponent {
   const size_t max_retries_until_reset_ = 10;
   IDatapoint *datapoint_ = nullptr;
   size_t read_retries_ = 0;
-  size_t div_ratio_ = 0;
+  int16_t div_ratio_ = 0;
   size_t bytes_;
   uint32_t address_;
   bool writeable_;
