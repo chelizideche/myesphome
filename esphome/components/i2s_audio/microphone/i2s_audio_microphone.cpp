@@ -396,6 +396,10 @@ void I2SAudioMicrophone::fix_dc_offset_(std::vector<uint8_t> &data) {
   const size_t bytes_per_sample = this->audio_stream_info_.samples_to_bytes(1);
   const uint32_t total_samples = this->audio_stream_info_.bytes_to_samples(data.size());
 
+  if (total_samples == 0) {
+    return;
+  }
+
   int64_t offset_accumulator = 0;
   for (uint32_t sample_index = 0; sample_index < total_samples; ++sample_index) {
     const uint32_t byte_index = sample_index * bytes_per_sample;
