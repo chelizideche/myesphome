@@ -185,7 +185,7 @@ CONFIG_SCHEMA = cv.All(
                 CONF_TASK_LOG_BUFFER_SIZE,
                 esp32=576,  # Default: 576 bytes (~5-6 messages with 70-byte text)
             ): cv.All(
-                cv.only_on(PLATFORM_ESP32),
+                cv.only_on_esp32,
                 cv.Any(
                     cv.int_(0),  # Disabled
                     cv.int_range(
