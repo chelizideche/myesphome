@@ -34,7 +34,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // For non-main tasks: use stack-allocated buffer only for console output
   if (this->baud_rate_ > 0) {  // If logging is enabled, write to console
     // Maximum size for console log messages (includes null terminator)
-    static const size_t MAX_CONSOLE_LOG_MSG_SIZE = 130;
+    static const size_t MAX_CONSOLE_LOG_MSG_SIZE = 144;
     char console_buffer[MAX_CONSOLE_LOG_MSG_SIZE];  // MUST be stack allocated for thread safety
     int buffer_at = 0;                              // Initialize buffer position
     this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,

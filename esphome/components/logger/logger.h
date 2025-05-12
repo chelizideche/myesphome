@@ -150,8 +150,14 @@ class Logger : public Component {
 #endif
     this->format_body_to_buffer_(buffer, buffer_at, buffer_size, format, args);
     this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
-    if (*buffer_at < buffer_size)
-      buffer[*buffer_at] = '\0';
+
+    // Always ensure the buffer has a null terminator, even if we need to
+    // overwrite the last character of the actual content
+    if (*buffer_at >= buffer_size) {
+      buffer[buffer_size - 1] = '\0';  // Truncate and ensure null termination
+    } else {
+      buffer[*buffer_at] = '\0';  // Normal case, append null terminator
+    }
   }
 
   // Helper to format and send a log message to both console and callbacks
