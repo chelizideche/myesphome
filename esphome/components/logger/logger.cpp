@@ -155,10 +155,6 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
 void Logger::init_log_buffer(size_t total_buffer_size) {
   this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(total_buffer_size);
 }
-
-void Logger::report_buffer_stats() {
-  // Debug function removed
-}
 #endif
 
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)

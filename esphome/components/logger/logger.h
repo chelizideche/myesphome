@@ -89,9 +89,6 @@ class Logger : public Component {
   explicit Logger(uint32_t baud_rate, size_t tx_buffer_size);
 #ifdef USE_ESPHOME_LOG_BUFFER
   void init_log_buffer(size_t total_buffer_size);
-
-  // Kept for API compatibility
-  void report_buffer_stats();
 #endif
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
   void loop() override;
