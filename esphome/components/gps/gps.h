@@ -5,7 +5,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
-#include <TinyGPS++.h>
+#include <TinyGPSPlus.h>
 
 #include <vector>
 
