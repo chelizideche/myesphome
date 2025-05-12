@@ -92,17 +92,17 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   if (this->tx_buffer_at_ >= this->tx_buffer_size_)
     return;
 
-  // Length of format string, includes null terminator
-  uint32_t offset = this->tx_buffer_at_;
-
-  // Format to tx_buffer and prepare for output
+  // Save the offset before calling format_log_to_buffer_with_terminator_
+  // since it will increment tx_buffer_at_ to the end of the formatted string
+  uint32_t msg_start = this->tx_buffer_at_;
   this->format_log_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
                                               &this->tx_buffer_at_, this->tx_buffer_size_);
 
+  // No write console and callback starting at the msg_start
   if (this->baud_rate_ > 0) {
-    this->write_msg_(this->tx_buffer_ + offset);
+    this->write_msg_(this->tx_buffer_ + msg_start);
   }
-  this->call_log_callbacks_(level, tag, this->tx_buffer_ + offset);
+  this->call_log_callbacks_(level, tag, this->tx_buffer_ + msg_start);
 
   recursion_guard_ = false;
 }
