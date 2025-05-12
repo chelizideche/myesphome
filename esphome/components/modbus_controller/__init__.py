@@ -132,9 +132,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def validate_address(register_set_key: str):
-    register_set = CORE.data.setdefault(DOMAIN, {}).setdefault(register_set_key, set())
-
     def validator(register: dict):
+        register_set = CORE.data.setdefault(DOMAIN, {}).setdefault(
+            register_set_key, set()
+        )
         address = register[CONF_ADDRESS]
         register_count = TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
         last_address = address + register_count - 1
