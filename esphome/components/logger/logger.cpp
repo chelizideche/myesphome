@@ -18,9 +18,9 @@ namespace logger {
 static const char *const TAG = "logger";
 
 #ifdef USE_ESP32
-// Implementation for multi-core platforms with full atomic support (ESP32)
-// Uses direct logging for the main task for maximum performance
-// Uses lock-free ring buffer with atomic operations for logging from other tasks
+// Implementation for ESP32 (multi-core with atomic support)
+// Main thread: synchronous logging with direct buffer access
+// Other threads: console output with stack buffer, callbacks via async buffer
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_.load(std::memory_order_relaxed))
     return;
