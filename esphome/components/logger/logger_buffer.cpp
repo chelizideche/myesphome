@@ -56,6 +56,18 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
   return true;
 }
 
+void LogBuffer::release_message_main_loop(void *token) {
+  // Check if there's a valid token to release
+  if (token == nullptr) {
+    return;  // Nothing to release
+  }
+  // Return the item to the ring buffer
+  vRingbufferReturnItem(ring_buffer_, token);
+
+  // Update counter to mark all messages as processed
+  last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
+}
+
 bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
                                          const char *format, va_list args) {
   // First, calculate the exact length needed using a null buffer (no actual writing)
@@ -122,18 +134,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   // Message sent successfully, increment the counter
   message_counter_.fetch_add(1, std::memory_order_relaxed);
   return true;
-}
-
-void LogBuffer::release_message_main_loop(void *token) {
-  // Check if there's a valid token to release
-  if (token == nullptr) {
-    return;  // Nothing to release
-  }
-  // Return the item to the ring buffer
-  vRingbufferReturnItem(ring_buffer_, token);
-
-  // Update counter to mark all messages as processed
-  last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
 }
 
 }  // namespace logger
