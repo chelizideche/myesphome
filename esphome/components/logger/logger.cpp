@@ -65,7 +65,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
 #ifndef USE_ESP32
 // Implementation for platforms that do not support atomic operations
-// or have to consider logging in other tasks
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
     return;
