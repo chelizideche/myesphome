@@ -140,7 +140,7 @@ class Logger : public Component {
 #else
     this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, nullptr);
 #endif
-    this->format_body_to_buffer_(format, buffer, buffer_at, buffer_size, args);
+    this->format_body_to_buffer_(buffer, buffer_at, buffer_size, format, args);
     this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
     if (*buffer_at < buffer_size)
       buffer[*buffer_at] = '\0';
@@ -195,7 +195,7 @@ class Logger : public Component {
   inline void printf_to_buffer_(const char *format, char *buffer, int *buffer_at, int buffer_size, ...) {
     va_list arg;
     va_start(arg, buffer_size);
-    this->format_body_to_buffer_(format, buffer, buffer_at, buffer_size, arg);
+    this->format_body_to_buffer_(buffer, buffer_at, buffer_size, format, arg);
     va_end(arg);
   }
 
@@ -271,7 +271,7 @@ class Logger : public Component {
     this->printf_to_buffer_("%s[%s][%s:%03u]: ", buffer, buffer_at, buffer_size, color, letter, tag, line);
   }
 
-  inline void HOT format_body_to_buffer_(const char *format, char *buffer, int *buffer_at, int buffer_size,
+  inline void HOT format_body_to_buffer_(char *buffer, int *buffer_at, int buffer_size, const char *format,
                                          va_list args) {
     // Get remaining capacity in the buffer
     const int remaining = buffer_size - *buffer_at;
