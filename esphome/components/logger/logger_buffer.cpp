@@ -34,20 +34,16 @@ LogBuffer::~LogBuffer() {
 }
 
 bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
-  // Check for valid output parameters
   if (message == nullptr || text == nullptr || received_token == nullptr) {
     return false;
   }
 
-  // Retrieve item from ring buffer without blocking
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
-  // Check if item received successfully
   if (received_item == nullptr) {
     return false;
   }
 
-  // Cast to LogMessage - we know the item is valid because we control the allocation
   LogMessage *msg = static_cast<LogMessage *>(received_item);
   *message = msg;
   *text = msg->text_data();
@@ -57,13 +53,10 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
 }
 
 void LogBuffer::release_message_main_loop(void *token) {
-  // Check if there's a valid token to release
   if (token == nullptr) {
-    return;  // Nothing to release
+    return;
   }
-  // Return the item to the ring buffer
   vRingbufferReturnItem(ring_buffer_, token);
-
   // Update counter to mark all messages as processed
   last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
 }
@@ -76,7 +69,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   int ret = vsnprintf(nullptr, 0, format, args_copy);
   va_end(args_copy);
 
-  // Check for formatting error or empty message
   if (ret <= 0) {
     return false;  // Formatting error or empty message
   }
@@ -92,7 +84,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   void *acquired_memory = nullptr;
   BaseType_t result = xRingbufferSendAcquire(ring_buffer_, &acquired_memory, total_size, 0);
 
-  // Check if memory acquisition failed
   if (result != pdTRUE || acquired_memory == nullptr) {
     return false;  // Failed to acquire memory
   }
@@ -120,13 +111,10 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
     text_length--;
   }
 
-  // Set the final text length in the header
   msg->text_length = text_length;
-
   // Complete the send operation with the acquired memory
   result = xRingbufferSendComplete(ring_buffer_, acquired_memory);
 
-  // Check if sending failed
   if (result != pdTRUE) {
     return false;  // Failed to complete the message send
   }
