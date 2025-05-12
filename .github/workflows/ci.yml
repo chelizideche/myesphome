@@ -342,9 +342,9 @@ jobs:
           PLATFORMIO_LIBDEPS_DIR: ~/.platformio/libdeps
 
       - name: Suggested changes
-        run: script/ci-suggest-changes
+        run: script/ci-suggest-changes ${{ matrix.ignore_errors && '|| true' || '' }}
         # yamllint disable-line rule:line-length
-        if: always() && matrix.ignore_errors != true
+        if: always()
 
   list-components:
     runs-on: ubuntu-24.04
