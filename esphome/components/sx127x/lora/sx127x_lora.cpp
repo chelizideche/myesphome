@@ -12,5 +12,22 @@ void SX127xLoRa::set_frequency(uint32_t frequency) {
   this->parent_->configure();
 }
 
+void SX127xLoRa::set_mode(lora::LoRaMode mode) {
+  switch (mode) {
+    case lora::LoRaMode::SLEEP:
+      this->parent_->set_mode_sleep();
+      break;
+    case lora::LoRaMode::STANDBY:
+      this->parent_->set_mode_standby();
+      break;
+    case lora::LoRaMode::RX:
+      this->parent_->set_mode_rx();
+      break;
+    case lora::LoRaMode::TX:
+      this->parent_->set_mode_tx();
+      break;
+  }
+}
+
 }  // namespace sx127x
 }  // namespace esphome

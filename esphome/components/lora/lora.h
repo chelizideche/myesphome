@@ -1,10 +1,13 @@
 #pragma once
+#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 
 #include <vector>
 
 namespace esphome {
 namespace lora {
+
+enum class LoRaMode { SLEEP, STANDBY, RX, TX };
 
 class LoRaListener {
  public:
@@ -19,9 +22,11 @@ class LoRa : public Component {
 
   // Config setter functions
   void set_platform_name(const char *name) { this->platform_name_ = name; }
-  virtual void set_frequency(uint32_t frequency) = 0;
 
-  // Operational functions
+  // Radio config functions
+  virtual void set_frequency(uint32_t frequency) = 0;
+  virtual void set_mode(LoRaMode mode) = 0;
+  // Radio operational functions
   void packet_received(const std::vector<uint8_t> &packet, float rssi, float snr);
   virtual void send_packet(const std::vector<uint8_t> &buf) const = 0;
 

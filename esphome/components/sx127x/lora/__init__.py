@@ -30,7 +30,7 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    # Call the validate_lora function here as well, config validation is none in the
+    # Call the validate_lora function here as well, config validation is done in the
     # order as defined in config.yaml, so if lora is configured before sx127x, the
     # sx127x mode will not be set yet.
     validate_lora(config)
