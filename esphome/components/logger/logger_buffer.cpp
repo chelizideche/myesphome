@@ -79,10 +79,11 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   }
 
   // Calculate actual text length (capped to maximum size)
-  size_t text_length = (static_cast<size_t>(ret) > LOG_MSG_SIZE) ? LOG_MSG_SIZE : ret;
+  static constexpr size_t MAX_TEXT_SIZE = 255;
+  size_t text_length = (static_cast<size_t>(ret) > MAX_TEXT_SIZE) ? MAX_TEXT_SIZE : ret;
 
-  // Calculate total size needed (header + text)
-  size_t total_size = sizeof(LogMessage) + text_length;
+  // Calculate total size needed (header + text length + null terminator)
+  size_t total_size = sizeof(LogMessage) + text_length + 1;
 
   // Acquire memory directly from the ring buffer
   void *acquired_memory = nullptr;
