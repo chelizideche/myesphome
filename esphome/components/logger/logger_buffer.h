@@ -15,10 +15,10 @@
 namespace esphome {
 namespace logger {
 
-// Size for log message text (power of 2 for efficiency), no null terminator needed
+// Maximum log message text size (power of 2 for efficiency)
 constexpr size_t LOG_MSG_SIZE = 128;
 
-// Size for the text area including temporary null terminator
+// Size for temporary text storage with null terminator
 constexpr size_t LOG_MSG_SIZE_WITH_NULL = LOG_MSG_SIZE + 1;
 
 class LogBuffer {
@@ -31,7 +31,7 @@ class LogBuffer {
     uint16_t line;             // Source code line number
     uint8_t level;             // Log level (0-7)
 
-    // Methods defined inline within the struct
+    // Methods for accessing message contents
     inline char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }
 
     inline const char *text_data() const { return reinterpret_cast<const char *>(this) + sizeof(LogMessage); }
@@ -39,7 +39,7 @@ class LogBuffer {
     inline size_t total_size() const { return sizeof(LogMessage) + text_length; }
   };
 
-  // Buffer size that includes space for LogMessage struct, text content, and temporary null terminator
+  // Total buffer size for complete message storage
   static constexpr size_t LOG_MSG_BUFFER_SIZE = sizeof(LogMessage) + LOG_MSG_SIZE_WITH_NULL;
 
   // Constructor that takes a total buffer size
@@ -70,9 +70,9 @@ class LogBuffer {
   uint8_t *storage_{nullptr};             // Pointer to allocated memory
   size_t size_{0};                        // Size of allocated memory
 
-  // Atomic counter for tracking messages - uint16_t is fine as we only care about changes
-  std::atomic<uint16_t> message_counter_{0};    // Incremented when a message is committed
-  mutable uint16_t last_processed_counter_{0};  // Last processed message counter
+  // Atomic counter for message tracking (only differences matter)
+  std::atomic<uint16_t> message_counter_{0};    // Incremented when messages are committed
+  mutable uint16_t last_processed_counter_{0};  // Tracks last processed message
 };
 
 }  // namespace logger

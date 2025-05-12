@@ -16,8 +16,7 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Allocate memory for the ring buffer using ESPHome's RAM allocator
   RAMAllocator<uint8_t> allocator;
   this->storage_ = allocator.allocate(this->size_);
-  // Create a static ring buffer with the allocated memory
-  // Use RINGBUF_TYPE_NOSPLIT to ensure LogMessage structs don't get split across buffer boundaries
+  // Create a static ring buffer with RINGBUF_TYPE_NOSPLIT for message integrity
   this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_NOSPLIT, this->storage_, &this->structure_);
 }
 
@@ -40,10 +39,10 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
     return false;
   }
 
-  // Try to receive an item from the ring buffer - no timeout to avoid blocking
+  // Retrieve item from ring buffer without blocking
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
-  // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
+  // Check if item received successfully
   if (received_item == nullptr) {
     return false;
   }
@@ -68,8 +67,8 @@ void LogBuffer::cancel_message(void *token) {
 
 bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
                                          const char *format, va_list args) {
-  // Create a buffer for the entire message (header + text + null terminator)
-  // Stack allocation is fine for this size (typically ~150 bytes total)
+  // Stack allocation is required for thread safety
+  // Buffer contains entire message (header + text + null terminator)
   uint8_t buffer[LOG_MSG_BUFFER_SIZE];
 
   // Set up the message header at the start of the buffer
@@ -82,27 +81,22 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
 
   // Format the message text directly after the header
   char *text_area = msg->text_data();
-  // Format into the text area using the size that includes space for null terminator
+  // Format text with space for null terminator
   int ret = vsnprintf(text_area, LOG_MSG_SIZE_WITH_NULL, format, args);
-  // vsnprintf will truncate the string if needed, and always adds a null terminator
-  // We don't need the null terminator in our final message, but let vsnprintf add it temporarily
+  // vsnprintf handles truncation and adds a null terminator (not needed for storage but useful during formatting)
 
   // Check for formatting error or empty message
   if (ret <= 0) {
     return false;  // Formatting error or empty message
   }
 
-  // Calculate actual text length (handle truncation)
-  // This doesn't include the null terminator
+  // Calculate actual text length (excluding null terminator)
   size_t text_length = (static_cast<size_t>(ret) > LOG_MSG_SIZE) ? LOG_MSG_SIZE : ret;
 
   // Remove trailing newlines immediately after formatting
   while (text_length > 0 && text_area[text_length - 1] == '\n') {
     text_length--;
   }
-
-  // Empty messages are valid (like blank lines in log output)
-  // We'll allow them to continue through the normal path
 
   // Set the final text length in the header
   msg->text_length = text_length;
@@ -131,8 +125,7 @@ void LogBuffer::release_message_main_loop(void *token) {
   // Return the item to the ring buffer
   vRingbufferReturnItem(ring_buffer_, token);
 
-  // Update the last processed counter to match the current message counter
-  // This marks all messages as processed up to the current point
+  // Update counter to mark all messages as processed
   last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
 }
 
