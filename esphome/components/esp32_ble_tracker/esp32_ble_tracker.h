@@ -326,6 +326,10 @@ class ESP32BLETracker : public Component,
     uint32_t parse_device_time{0};
     uint32_t parse_device_count{0};
 
+    // Gap scan result stats
+    uint32_t gap_scan_result_time{0};
+    uint32_t gap_scan_result_count{0};
+
     // Logging control
     uint32_t last_log_time{0};
     uint32_t log_interval_ms{30000};  // 30 seconds

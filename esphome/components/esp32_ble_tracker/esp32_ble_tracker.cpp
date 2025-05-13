@@ -17,6 +17,10 @@
 #include <nvs_flash.h>
 #include <cinttypes>
 
+#ifdef USE_BLUETOOTH_PROXY
+#include "esphome/components/bluetooth_proxy/bluetooth_proxy.h"
+#endif
+
 #ifdef USE_OTA
 #include "esphome/components/ota/ota_backend.h"
 #endif
@@ -126,6 +130,13 @@ void ESP32BLETracker::log_timing_stats_() {
              avg_client_time, this->timing_stats_.client_listeners_time);
   }
 
+  // Log gap scan result processing statistics
+  if (this->timing_stats_.gap_scan_result_count > 0) {
+    float avg_gap_time = this->timing_stats_.gap_scan_result_time / (float) this->timing_stats_.gap_scan_result_count;
+    ESP_LOGI(TAG, "  GAP Scan Result Processing: count=%d, avg=%.2fms, total=%dms",
+             this->timing_stats_.gap_scan_result_count, avg_gap_time, this->timing_stats_.gap_scan_result_time);
+  }
+
   // Reset timers for next period
   this->timing_stats_.loop_processing_time = 0;
   this->timing_stats_.loop_processing_count = 0;
@@ -140,6 +151,8 @@ void ESP32BLETracker::log_timing_stats_() {
   this->timing_stats_.parse_adv_count = 0;
   this->timing_stats_.parse_device_time = 0;
   this->timing_stats_.parse_device_count = 0;
+  this->timing_stats_.gap_scan_result_time = 0;
+  this->timing_stats_.gap_scan_result_count = 0;
 }
 
 void ESP32BLETracker::loop() {
@@ -213,8 +226,17 @@ void ESP32BLETracker::loop() {
 
       // Time each listener type separately
       for (auto *listener : this->listeners_) {
-        // Detect if this is the bluetooth_proxy component by name
-        bool is_bluetooth_proxy = (strcmp(listener->get_component_source(), "bluetooth_proxy") == 0);
+        // Check if this is the bluetooth_proxy component
+        bool is_bluetooth_proxy = false;
+
+#ifdef USE_BLUETOOTH_PROXY
+        // Since RTTI is disabled (typeid can't be used), check if the address is the global bluetooth proxy
+        // This is a safe pointer comparison since we're not calling any methods on it
+        if (esphome::bluetooth_proxy::global_bluetooth_proxy != nullptr) {
+          is_bluetooth_proxy =
+              (listener == static_cast<ESPBTDeviceListener *>(esphome::bluetooth_proxy::global_bluetooth_proxy));
+        }
+#endif
 
         uint32_t listener_start = millis();
         listener->parse_devices(this->scan_result_buffer_, this->scan_result_index_);
