@@ -68,7 +68,6 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
     auto &result = advertisements[i];
     uint8_t length = result.adv_data_len + result.scan_rsp_len;
 
-    // Create and insert in one step with emplace_back
     batch_buffer.emplace_back();
     auto &adv = batch_buffer.back();
     adv.address = esp32_ble::ble_addr_to_uint64(result.bda);
@@ -81,6 +80,7 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
   }
 
   // Only send if we've accumulated a good batch size to maximize batching efficiency
+  // https://github.com/esphome/backlog/issues/21
   if (batch_buffer.size() >= MAX_BATCH_SIZE) {
     this->flush_pending_advertisements();
   }
