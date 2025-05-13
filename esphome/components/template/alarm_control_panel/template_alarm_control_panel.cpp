@@ -127,11 +127,11 @@ void TemplateAlarmControlPanel::loop() {
         continue;
       }
       // Skip if bypass armed home
-      if ((this->current_state_ == ACP_STATE_ARMED_HOME) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME)) {
+      if ((this->desired_state_ == ACP_STATE_ARMED_HOME) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME)) {
         continue;
       }
       // Skip if bypass armed night
-      if ((this->current_state_ == ACP_STATE_ARMED_NIGHT) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT)) {
+      if ((this->desired_state_ == ACP_STATE_ARMED_NIGHT) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT)) {
         continue;
       }
 
