@@ -4,6 +4,7 @@
 #include <memory>  // For unique_ptr
 #endif
 
+#include "esphome/core/defines.h"  // For TLS_INDEX_LOGGER_RECURSION_GUARD
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
