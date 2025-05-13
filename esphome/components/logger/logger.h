@@ -226,13 +226,16 @@ class Logger : public Component {
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
 #if defined(USE_ESP32)
-  std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion guard state
-  void *main_task_ = nullptr;                     // Used on ESP32
+  // ESP32: Per-task recursion tracking
+  std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion state
+  void *main_task_ = nullptr;                     // Main task handle used for direct buffer access
 #elif defined(USE_LIBRETINY)
-  void *main_task_ = nullptr;    // Used for thread name lookups only
+  // LibreTiny: Thread names but with global recursion guard
+  void *main_task_ = nullptr;    // Only used for thread name identification
   bool recursion_guard_{false};  // Global recursion guard for thread safety
 #else
-  bool recursion_guard_{false};  // Used for platforms without task handles
+  // Single-threaded platforms (ESP8266, RP2040, Host)
+  bool recursion_guard_{false};  // Simple global recursion guard
 #endif
   CallbackManager<void(int)> level_callback_{};
 
