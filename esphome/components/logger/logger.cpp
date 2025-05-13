@@ -81,7 +81,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#endif  // USE_ESP32
+#endif  // !USE_ESP32
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 // Implementation for ESP8266 with flash string support.
