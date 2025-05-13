@@ -75,7 +75,81 @@ void ESP32BLETracker::setup() {
 #endif
 }
 
+void ESP32BLETracker::log_timing_stats_() {
+  // Only log if we have data to report
+  if (this->timing_stats_.loop_processing_count == 0)
+    return;
+
+  ESP_LOGI(TAG, "BLE Tracker Timing Statistics (last %dms):", this->timing_stats_.log_interval_ms);
+
+  if (this->timing_stats_.loop_processing_count > 0) {
+    float avg_loop_time = this->timing_stats_.loop_processing_time / (float) this->timing_stats_.loop_processing_count;
+    ESP_LOGI(TAG, "  BLE Scan Processing: count=%d, avg=%.2fms, total=%dms", this->timing_stats_.loop_processing_count,
+             avg_loop_time, this->timing_stats_.loop_processing_time);
+
+    // Log scan results processed
+    ESP_LOGI(TAG, "  BLE Scan Results Processed: count=%d", this->timing_stats_.scan_result_count);
+  }
+
+  // Log raw advertisement processing statistics
+  if (this->timing_stats_.raw_adv_count > 0) {
+    float avg_raw_time = this->timing_stats_.raw_adv_time / (float) this->timing_stats_.raw_adv_count;
+    ESP_LOGI(TAG, "  Raw Advertisement Processing: count=%d, avg=%.2fms, total=%dms", this->timing_stats_.raw_adv_count,
+             avg_raw_time, this->timing_stats_.raw_adv_time);
+  }
+
+  // Log parsed advertisement processing statistics
+  if (this->timing_stats_.parse_adv_count > 0) {
+    float avg_parse_time = this->timing_stats_.parse_adv_time / (float) this->timing_stats_.parse_adv_count;
+    ESP_LOGI(TAG, "  Parsed Advertisement Processing: count=%d, avg=%.2fms, total=%dms",
+             this->timing_stats_.parse_adv_count, avg_parse_time, this->timing_stats_.parse_adv_time);
+  }
+
+  // Log individual device parsing statistics
+  if (this->timing_stats_.parse_device_count > 0) {
+    float avg_device_time = this->timing_stats_.parse_device_time / (float) this->timing_stats_.parse_device_count;
+    ESP_LOGI(TAG, "  Device Parsing: count=%d, avg=%.2fms, total=%dms", this->timing_stats_.parse_device_count,
+             avg_device_time, this->timing_stats_.parse_device_time);
+  }
+
+  // Log component-specific timings
+  if (this->timing_stats_.bluetooth_proxy_count > 0) {
+    float avg_proxy_time = this->timing_stats_.bluetooth_proxy_time / (float) this->timing_stats_.bluetooth_proxy_count;
+    ESP_LOGI(TAG, "  Bluetooth Proxy: count=%d, avg=%.2fms, total=%dms", this->timing_stats_.bluetooth_proxy_count,
+             avg_proxy_time, this->timing_stats_.bluetooth_proxy_time);
+  }
+
+  if (this->timing_stats_.client_listeners_count > 0) {
+    float avg_client_time =
+        this->timing_stats_.client_listeners_time / (float) this->timing_stats_.client_listeners_count;
+    ESP_LOGI(TAG, "  Client Listeners: count=%d, avg=%.2fms, total=%dms", this->timing_stats_.client_listeners_count,
+             avg_client_time, this->timing_stats_.client_listeners_time);
+  }
+
+  // Reset timers for next period
+  this->timing_stats_.loop_processing_time = 0;
+  this->timing_stats_.loop_processing_count = 0;
+  this->timing_stats_.bluetooth_proxy_time = 0;
+  this->timing_stats_.bluetooth_proxy_count = 0;
+  this->timing_stats_.client_listeners_time = 0;
+  this->timing_stats_.client_listeners_count = 0;
+  this->timing_stats_.scan_result_count = 0;
+  this->timing_stats_.raw_adv_time = 0;
+  this->timing_stats_.raw_adv_count = 0;
+  this->timing_stats_.parse_adv_time = 0;
+  this->timing_stats_.parse_adv_count = 0;
+  this->timing_stats_.parse_device_time = 0;
+  this->timing_stats_.parse_device_count = 0;
+}
+
 void ESP32BLETracker::loop() {
+  // Check if we need to log stats first
+  uint32_t now = millis();
+  if (now - this->timing_stats_.last_log_time >= this->timing_stats_.log_interval_ms) {
+    this->log_timing_stats_();
+    this->timing_stats_.last_log_time = now;
+  }
+
   if (!this->parent_->is_active()) {
     this->ble_was_disabled_ = true;
     return;
@@ -123,24 +197,65 @@ void ESP32BLETracker::loop() {
   if (this->scanner_state_ == ScannerState::RUNNING &&
       this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
       xSemaphoreTake(this->scan_result_lock_, 5L / portTICK_PERIOD_MS)) {
+    // Start timing the BLE scan processing
+    uint32_t processing_start = millis();
+
     uint32_t index = this->scan_result_index_;
     if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
       ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
     }
 
     if (this->raw_advertisements_) {
+      this->timing_stats_.scan_result_count += this->scan_result_index_;
+
+      // Track overall raw advertisement processing time
+      uint32_t raw_adv_start = millis();
+
+      // Time each listener type separately
       for (auto *listener : this->listeners_) {
+        // Detect if this is the bluetooth_proxy component by name
+        bool is_bluetooth_proxy = (strcmp(listener->get_component_source(), "bluetooth_proxy") == 0);
+
+        uint32_t listener_start = millis();
         listener->parse_devices(this->scan_result_buffer_, this->scan_result_index_);
+        uint32_t listener_time = millis() - listener_start;
+
+        // Track times for specific components
+        if (is_bluetooth_proxy) {
+          this->timing_stats_.bluetooth_proxy_time += listener_time;
+          this->timing_stats_.bluetooth_proxy_count++;
+        }
       }
+
+      // Time the client listeners
+      uint32_t clients_start = millis();
       for (auto *client : this->clients_) {
         client->parse_devices(this->scan_result_buffer_, this->scan_result_index_);
       }
+      uint32_t clients_time = millis() - clients_start;
+      this->timing_stats_.client_listeners_time += clients_time;
+      this->timing_stats_.client_listeners_count++;
+
+      // Calculate total raw advertisement processing time
+      uint32_t raw_adv_time = millis() - raw_adv_start;
+      this->timing_stats_.raw_adv_time += raw_adv_time;
+      this->timing_stats_.raw_adv_count++;
     }
 
     if (this->parse_advertisements_) {
+      // Track overall time for parsed advertisements
+      uint32_t parse_adv_start = millis();
+
       for (size_t i = 0; i < index; i++) {
+        // Time individual device parsing
+        uint32_t device_start = millis();
+
         ESPBTDevice device;
         device.parse_scan_rst(this->scan_result_buffer_[i]);
+
+        uint32_t device_parse_time = millis() - device_start;
+        this->timing_stats_.parse_device_time += device_parse_time;
+        this->timing_stats_.parse_device_count++;
 
         bool found = false;
         for (auto *listener : this->listeners_) {
@@ -161,9 +276,19 @@ void ESP32BLETracker::loop() {
           this->print_bt_device_info(device);
         }
       }
+
+      // Record total time for parsed advertisements processing
+      uint32_t parse_adv_time = millis() - parse_adv_start;
+      this->timing_stats_.parse_adv_time += parse_adv_time;
+      this->timing_stats_.parse_adv_count++;
     }
     this->scan_result_index_ = 0;
     xSemaphoreGive(this->scan_result_lock_);
+
+    // Record timing for the BLE scan processing
+    uint32_t processing_time = millis() - processing_start;
+    this->timing_stats_.loop_processing_time += processing_time;
+    this->timing_stats_.loop_processing_count++;
   }
   if (this->scanner_state_ == ScannerState::STOPPED) {
     this->end_of_scan_();  // Change state to IDLE
@@ -445,6 +570,8 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
 }
 
 void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
+  uint32_t start_time = millis();
+
   ESP_LOGV(TAG, "gap_scan_result - event %d", param.search_evt);
   if (param.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
     if (xSemaphoreTake(this->scan_result_lock_, 0L)) {
@@ -469,6 +596,18 @@ void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_re
       }
     }
     this->set_scanner_state_(ScannerState::STOPPED);
+  }
+
+  // Record timing statistics
+  uint32_t duration = millis() - start_time;
+  this->timing_stats_.gap_scan_result_time += duration;
+  this->timing_stats_.gap_scan_result_count++;
+
+  // Periodically log statistics
+  uint32_t now = millis();
+  if (now - this->timing_stats_.last_log_time >= this->timing_stats_.log_interval_ms) {
+    this->log_timing_stats_();
+    this->timing_stats_.last_log_time = now;
   }
 }
 

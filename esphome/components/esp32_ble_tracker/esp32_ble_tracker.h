@@ -247,6 +247,9 @@ class ESP32BLETracker : public Component,
   }
   ScannerState get_scanner_state() const { return this->scanner_state_; }
 
+  // Logs timing statistics for BLE operations
+  void log_timing_stats_();
+
  protected:
   void stop_scan_();
   /// Start a single scan by setting up the parameters and doing some esp-idf calls.
@@ -299,6 +302,35 @@ class ESP32BLETracker : public Component,
   int discovered_{0};
   int searching_{0};
   int disconnecting_{0};
+
+  // Timing statistics
+  struct {
+    // Loop processing timing
+    uint32_t loop_processing_time{0};
+    uint32_t loop_processing_count{0};
+
+    // Detailed component-level timings
+    uint32_t bluetooth_proxy_time{0};
+    uint32_t bluetooth_proxy_count{0};
+    uint32_t client_listeners_time{0};
+    uint32_t client_listeners_count{0};
+    uint32_t scan_result_count{0};
+
+    // Raw advertisement processing stats
+    uint32_t raw_adv_time{0};
+    uint32_t raw_adv_count{0};
+
+    // Parsed advertisement processing stats
+    uint32_t parse_adv_time{0};
+    uint32_t parse_adv_count{0};
+    uint32_t parse_device_time{0};
+    uint32_t parse_device_count{0};
+
+    // Logging control
+    uint32_t last_log_time{0};
+    uint32_t log_interval_ms{30000};  // 30 seconds
+  } timing_stats_;
+
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
   bool coex_prefer_ble_{false};
 #endif
