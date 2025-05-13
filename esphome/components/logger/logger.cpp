@@ -62,14 +62,14 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   is_recursive_call = false;
 }
 #else
-// Implementation for LibreTiny (multi-task platform with global recursion guard)
+// Implementation for all other platforms
 //
-// LibreTiny uses a global recursion guard instead of the per-task guards used by ESP32.
-// This is safer than using tx_buffer_ directly from multiple tasks (which can corrupt memory
-// and cause API disconnects), but means some logs from non-main tasks may be dropped.
-// Thread names are still correctly reported by get_thread_name_().
+// For multi-tasking platforms like LibreTiny, this implementation uses a global recursion guard.
+// Note: The global recursion guard is NOT atomic so there is still some risk
+// when we have a working ring buffer on LibreTiny we should use the same solution
+// as ESP32. See https://github.com/esphome/esphome/pull/8736 for more details.
 //
-// This approach is used until task log buffer support is added to LibreTiny.
+// For single-task platforms, this implementation provides standard logging behavior.
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
     return;
@@ -81,7 +81,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#endif  // !USE_ESP32
+#endif  // USE_ESP32
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 // Implementation for ESP8266 with flash string support.
