@@ -120,15 +120,9 @@ void ESP32BLETracker::loop() {
   }
   bool promote_to_connecting = discovered && !searching && !connecting;
 
-  static uint32_t last_process_time = 0;
-  uint32_t now = millis();
-
-  // Process scan results to balance batching and responsiveness
   if (this->scanner_state_ == ScannerState::RUNNING &&
       this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
-      (now - last_process_time >= 20 || this->scan_result_index_ >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE / 2) &&
       xSemaphoreTake(this->scan_result_lock_, 0)) {
-    last_process_time = now;
     uint32_t index = this->scan_result_index_;
     if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
       ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
