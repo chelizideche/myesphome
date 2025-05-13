@@ -9,9 +9,12 @@
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32)
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#elif defined(USE_LIBRETINY)
+#include "FreeRTOS.h"
+#include "task.h"
 #endif
 
 namespace esphome {
