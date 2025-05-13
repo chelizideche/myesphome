@@ -29,7 +29,7 @@ ICON_SPEEDOMETER = "mdi:speedometer"
 DEPENDENCIES = ["uart"]
 AUTO_LOAD = ["sensor"]
 
-CODEOWNERS = ["@coogle"]
+CODEOWNERS = ["@coogle", "@ximex"]
 
 gps_ns = cg.esphome_ns.namespace("gps")
 GPS = gps_ns.class_("GPS", cg.Component, uart.UARTDevice)
