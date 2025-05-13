@@ -567,11 +567,6 @@ void BluetoothProxy::unsubscribe_api_connection(api::APIConnection *api_connecti
     return;
   }
 
-  // Flush any pending advertisements before unsubscribing
-  if (this->raw_advertisements_) {
-    this->flush_pending_advertisements();
-  }
-
   this->api_connection_ = nullptr;
   this->raw_advertisements_ = false;
   this->parent_->recalculate_advertisement_parser_types();
