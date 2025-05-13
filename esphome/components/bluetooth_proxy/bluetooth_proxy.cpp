@@ -51,14 +51,19 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
+// Static buffer to store advertisements between batches
+static constexpr size_t MAX_BATCH_SIZE = 64;  // Larger batch size for more efficient transfers
+static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+
 bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
     return false;
 
-  api::BluetoothLERawAdvertisementsResponse resp;
-  // Pre-allocate the advertisements vector to avoid reallocations
-  resp.advertisements.reserve(count);
+  if (batch_buffer.capacity() < MAX_BATCH_SIZE) {
+    batch_buffer.reserve(MAX_BATCH_SIZE);
+  }
 
+  // Add new advertisements to the batch buffer
   for (size_t i = 0; i < count; i++) {
     auto &result = advertisements[i];
     api::BluetoothLERawAdvertisement adv;
@@ -71,14 +76,35 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
     // Use a bulk insert instead of individual push_backs
     adv.data.insert(adv.data.end(), &result.ble_adv[0], &result.ble_adv[length]);
 
-    resp.advertisements.push_back(std::move(adv));
+    batch_buffer.push_back(std::move(adv));
 
-    ESP_LOGV(TAG, "Proxying raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
+    ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
              result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length, result.rssi);
   }
-  ESP_LOGV(TAG, "Proxying %d packets", count);
-  this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
+
+  // Only send if we've accumulated a good batch size to maximize batching efficiency
+  if (batch_buffer.size() >= MAX_BATCH_SIZE) {
+    this->flush_pending_advertisements();
+  }
+
   return true;
+}
+
+void BluetoothProxy::flush_pending_advertisements() {
+  if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
+    return;
+
+  api::BluetoothLERawAdvertisementsResponse resp;
+  resp.advertisements.reserve(batch_buffer.size());
+
+  // Move all advertisements from the buffer to the response
+  for (auto &adv : batch_buffer) {
+    resp.advertisements.push_back(std::move(adv));
+  }
+
+  ESP_LOGV(TAG, "Proxying batch of %d packets", resp.advertisements.size());
+  this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
+  batch_buffer.clear();
 }
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
   api::BluetoothLEAdvertisementResponse resp;
@@ -147,6 +173,18 @@ void BluetoothProxy::loop() {
       }
     }
     return;
+  }
+
+  // Flush any pending BLE advertisements that have been accumulated but not yet sent
+  if (this->raw_advertisements_) {
+    static uint32_t last_flush_time = 0;
+    uint32_t now = millis();
+
+    // Flush accumulated advertisements every 100ms
+    if (now - last_flush_time >= 100) {
+      this->flush_pending_advertisements();
+      last_flush_time = now;
+    }
   }
   for (auto *connection : this->connections_) {
     if (connection->send_service_ == connection->service_count_) {
@@ -526,6 +564,12 @@ void BluetoothProxy::unsubscribe_api_connection(api::APIConnection *api_connecti
     ESP_LOGV(TAG, "API connection is not subscribed");
     return;
   }
+
+  // Flush any pending advertisements before unsubscribing
+  if (this->raw_advertisements_) {
+    this->flush_pending_advertisements();
+  }
+
   this->api_connection_ = nullptr;
   this->raw_advertisements_ = false;
   this->parent_->recalculate_advertisement_parser_types();
