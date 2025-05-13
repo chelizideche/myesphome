@@ -74,8 +74,6 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
     adv.address = esp32_ble::ble_addr_to_uint64(result.bda);
     adv.rssi = result.rssi;
     adv.address_type = result.ble_addr_type;
-
-    // More efficient: assign from raw data directly
     adv.data.assign(&result.ble_adv[0], &result.ble_adv[length]);
 
     ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
