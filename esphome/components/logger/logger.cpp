@@ -30,8 +30,17 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   this->task_recursion_guards_[current_task] = true;  // Set guard for this task
 
-  // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
+  // For main task OR on LibreTiny, use direct buffer method
+#ifdef USE_LIBRETINY
+  // LibreTiny doesn't currently support task log buffer, so use direct buffer for all tasks
+  // to preserve callback behavior. This has lower risk of causing disconnects on LibreTiny
+  // since there is no Bluetooth support, which is the main source of concurrent task logging.
+  // When task log buffer support is implemented for LibreTiny in the future,
+  // this special case can be removed. See https://github.com/esphome/esphome/pull/8736
+  if (true) {
+#else
   if (current_task == main_task_) {
+#endif
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
     this->task_recursion_guards_[current_task] = false;
     return;
