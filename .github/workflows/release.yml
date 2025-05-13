@@ -231,6 +231,7 @@ jobs:
                 content: description
               }
             })
+
   deploy-esphome-schema:
     if: github.repository == 'esphome/esphome' && needs.init.outputs.branch_build == 'false'
     runs-on: ubuntu-latest
