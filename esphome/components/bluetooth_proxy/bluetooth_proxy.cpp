@@ -52,7 +52,7 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 }
 
 // Static buffer to store advertisements between batches
-static constexpr size_t MAX_BATCH_SIZE = 10;  // Smaller batches for more frequent delivery
+static constexpr size_t MAX_BATCH_SIZE = 8;
 static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
 
 bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
@@ -173,8 +173,8 @@ void BluetoothProxy::loop() {
     static uint32_t last_flush_time = 0;
     uint32_t now = millis();
 
-    // Flush accumulated advertisements every 50ms
-    if (now - last_flush_time >= 50) {
+    // Flush accumulated advertisements every 100ms
+    if (now - last_flush_time >= 100) {
       this->flush_pending_advertisements();
       last_flush_time = now;
     }
