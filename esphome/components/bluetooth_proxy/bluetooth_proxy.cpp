@@ -52,7 +52,7 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 }
 
 // Static buffer to store advertisements between batches
-static constexpr size_t MAX_BATCH_SIZE = 64;  // Larger batch size for more efficient transfers
+static constexpr size_t MAX_BATCH_SIZE = 20;  // Optimized batch size based on observed usage of ~18 max
 static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
 
 bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
@@ -94,16 +94,18 @@ void BluetoothProxy::flush_pending_advertisements() {
   if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return;
 
+  ESP_LOGV(TAG, "Proxying batch of %d packets", batch_buffer.size());
+
+  // Create response with direct access to the batch buffer
   api::BluetoothLERawAdvertisementsResponse resp;
-  resp.advertisements.reserve(batch_buffer.size());
 
-  // Move all advertisements from the buffer to the response
-  for (auto &adv : batch_buffer) {
-    resp.advertisements.push_back(std::move(adv));
-  }
+  // Simply swap the vectors to avoid copying - much more efficient
+  resp.advertisements.swap(batch_buffer);
 
-  ESP_LOGV(TAG, "Proxying batch of %d packets", resp.advertisements.size());
+  // Send the response with our data
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
+
+  // Now batch_buffer is empty (due to the swap), but we'll explicitly clear it just to be safe
   batch_buffer.clear();
 }
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
