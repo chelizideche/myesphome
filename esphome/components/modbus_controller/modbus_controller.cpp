@@ -112,18 +112,18 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
            "0x%X.",
            this->address_, function_code, start_address, number_of_registers);
 
-  std::vector<uint16_t> sixteen_bit_response;
+  std::vector<uint8_t> response;
   for (uint16_t current_address = start_address; current_address < start_address + number_of_registers;) {
     bool found = false;
     for (auto *server_register : this->server_registers_) {
       if (server_register->address == current_address) {
-        float value = server_register->read_lambda();
+        server_register->read_lambda(server_register->data);
 
-        ESP_LOGD(TAG, "Matched register. Address: 0x%02X. Value type: %zu. Register count: %u. Value: %0.1f.",
+        ESP_LOGD(TAG,
+                 "Matched register. Address: 0x%02X. Value type: %zu. Register count: %u. First register value: %04x.",
                  server_register->address, static_cast<uint8_t>(server_register->value_type),
-                 server_register->register_count, value);
-        std::vector<uint16_t> payload = float_to_payload(value, server_register->value_type);
-        sixteen_bit_response.insert(sixteen_bit_response.end(), payload.cbegin(), payload.cend());
+                 server_register->register_count, encode_uint16(server_register->data[0], server_register->data[1]));
+        response.insert(response.end(), server_register->data.cbegin(), server_register->data.cend());
         current_address += server_register->register_count;
         found = true;
         break;
@@ -139,13 +139,6 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
       this->send_raw(error_response);
       return;
     }
-  }
-
-  std::vector<uint8_t> response;
-  for (auto v : sixteen_bit_response) {
-    auto decoded_value = decode_value(v);
-    response.push_back(decoded_value[0]);
-    response.push_back(decoded_value[1]);
   }
 
   this->send(function_code, start_address, number_of_registers, response.size(), response.data());
@@ -613,6 +606,63 @@ void number_to_payload(std::vector<uint16_t> &data, int64_t value, SensorValueTy
       break;
     default:
       ESP_LOGE(TAG, "Invalid data type for modbus number to payload conversation: %d",
+               static_cast<uint16_t>(value_type));
+      break;
+  }
+}
+
+void number_to_payload(span<uint8_t> data, int64_t value, SensorValueType value_type) {
+  if (sensor_value_type_size(value_type) > data.size()) {
+    ESP_LOGW(TAG, "Data buffer size %u too small for value_type %hhx size %u", data.size(),
+             static_cast<uint8_t>(value_type), sensor_value_type_size(value_type));
+    return;
+  }
+  switch (value_type) {
+    case SensorValueType::U_WORD:
+    case SensorValueType::S_WORD:
+      data[0] = value >> 8;
+      data[1] = value & 0xFF;
+      break;
+    case SensorValueType::U_DWORD:
+    case SensorValueType::S_DWORD:
+    case SensorValueType::FP32:
+      data[0] = value >> 24;
+      data[1] = value >> 16;
+      data[2] = value >> 8;
+      data[3] = value & 0xFF;
+      break;
+    case SensorValueType::U_DWORD_R:
+    case SensorValueType::S_DWORD_R:
+    case SensorValueType::FP32_R:
+      data[0] = value >> 8;
+      data[1] = value & 0xFF;
+      data[2] = value >> 24;
+      data[3] = value >> 16;
+      break;
+    case SensorValueType::U_QWORD:
+    case SensorValueType::S_QWORD:
+      data[0] = value >> 56;
+      data[1] = value >> 48;
+      data[2] = value >> 40;
+      data[3] = value >> 32;
+      data[4] = value >> 24;
+      data[5] = value >> 16;
+      data[6] = value >> 8;
+      data[7] = value & 0xFF;
+      break;
+    case SensorValueType::U_QWORD_R:
+    case SensorValueType::S_QWORD_R:
+      data[0] = value >> 8;
+      data[1] = value & 0xFF;
+      data[2] = value >> 24;
+      data[3] = value >> 16;
+      data[4] = value >> 40;
+      data[5] = value >> 32;
+      data[6] = value >> 56;
+      data[7] = value >> 48;
+      break;
+    default:
+      ESP_LOGE(TAG, "Invalid data type for modbus number to payload conversaion: %u",
                static_cast<uint16_t>(value_type));
       break;
   }

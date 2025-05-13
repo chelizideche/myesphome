@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_OFFSET,
     CONF_TRIGGER_ID,
 )
+from esphome.cpp_generator import CallExpression, RawExpression, TemplateArguments
 from esphome.cpp_helpers import logging
 
 from .const import (
@@ -34,7 +35,7 @@ from .const import (
     CONF_VALUE_TYPE,
 )
 
-CODEOWNERS = ["@martgras"]
+CODEOWNERS = ["@martgras", "@gotnone"]
 
 AUTO_LOAD = ["modbus"]
 
@@ -110,6 +111,22 @@ TYPE_REGISTER_MAP = {
     "S_QWORD_R": 4,
     "FP32": 2,
     "FP32_R": 2,
+}
+
+READ_TYPE_TYPE_MAP = {
+    "RAW": cg.std_vector.template(cg.uint8).operator("const").operator("ref"),
+    "U_WORD": cg.uint16,
+    "S_WORD": cg.int16,
+    "U_DWORD": cg.uint32,
+    "U_DWORD_R": cg.uint32,
+    "S_DWORD": cg.int32,
+    "S_DWORD_R": cg.int32,
+    "U_QWORD": cg.uint64,
+    "U_QWORD_R": cg.uint64,
+    "S_QWORD": cg.int64,
+    "S_QWORD_R": cg.int64,
+    "FP32": cg.float_,
+    "FP32_R": cg.float_,
 }
 
 ModbusCommandSentTrigger = modbus_controller_ns.class_(
@@ -292,10 +309,20 @@ async def to_code(config):
                         server_register[CONF_ADDRESS],
                         server_register[CONF_VALUE_TYPE],
                         TYPE_REGISTER_MAP[server_register[CONF_VALUE_TYPE]],
-                        await cg.process_lambda(
-                            server_register[CONF_READ_LAMBDA],
-                            [],
-                            return_type=cg.float_,
+                        CallExpression(
+                            RawExpression(
+                                "modbus_controller::ServerRegister::read_lambda_eraser"
+                            ),
+                            TemplateArguments(
+                                SENSOR_VALUE_TYPE[server_register[CONF_VALUE_TYPE]]
+                            ),
+                            await cg.process_lambda(
+                                server_register[CONF_READ_LAMBDA],
+                                [],
+                                return_type=READ_TYPE_TYPE_MAP[
+                                    server_register[CONF_VALUE_TYPE]
+                                ],
+                            ),
                         ),
                     )
                 )

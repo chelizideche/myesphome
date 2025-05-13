@@ -5,6 +5,7 @@
 #include "esphome/components/modbus/modbus.h"
 #include "esphome/core/automation.h"
 
+#include <algorithm>
 #include <list>
 #include <queue>
 #include <set>
@@ -62,6 +63,50 @@ enum class SensorValueType : uint8_t {
   FP32 = 0xC,
   FP32_R = 0xD
 };
+
+template<SensorValueType V> struct SensorValueTypeMap {
+  using T = SensorValueType;
+  using type = typename std::conditional<
+      V == T::S_WORD, int16_t,
+      typename std::conditional<
+          V == T::S_DWORD || V == T::S_DWORD_R, int32_t,
+          typename std::conditional<
+              V == T::S_QWORD || V == T::S_QWORD_R, int64_t,
+              typename std::conditional<
+                  V == T::FP32 || V == T::FP32_R, float,
+                  typename std::conditional<V == T::U_QWORD || V == T::U_QWORD_R, uint64_t,
+                                            typename std::conditional<V == T::U_DWORD || V == T::U_DWORD_R, uint32_t,
+                                                                      uint16_t>::type>::type>::type>::type>::type>::
+      type;
+};
+
+template<SensorValueType V> using SensorValueTypeMap_t = typename SensorValueTypeMap<V>::type;
+
+constexpr14 uint8_t sensor_value_type_size(SensorValueType v) {
+  switch (v) {
+    case esphome::modbus_controller::SensorValueType::U_DWORD:
+    case esphome::modbus_controller::SensorValueType::U_DWORD_R:
+    case esphome::modbus_controller::SensorValueType::S_DWORD:
+    case esphome::modbus_controller::SensorValueType::S_DWORD_R:
+    case esphome::modbus_controller::SensorValueType::FP32:
+    case esphome::modbus_controller::SensorValueType::FP32_R:
+      return sizeof(SensorValueTypeMap_t<SensorValueType::U_DWORD>);
+      break;
+    case esphome::modbus_controller::SensorValueType::U_QWORD:
+    case esphome::modbus_controller::SensorValueType::U_QWORD_R:
+    case esphome::modbus_controller::SensorValueType::S_QWORD:
+    case esphome::modbus_controller::SensorValueType::S_QWORD_R:
+      return sizeof(SensorValueTypeMap_t<SensorValueType::U_QWORD>);
+      break;
+    case esphome::modbus_controller::SensorValueType::U_WORD:
+    case esphome::modbus_controller::SensorValueType::S_WORD:
+    case esphome::modbus_controller::SensorValueType::RAW:
+    case esphome::modbus_controller::SensorValueType::BIT:
+    default:
+      return sizeof(SensorValueTypeMap_t<SensorValueType::U_WORD>);
+      break;
+  }
+}
 
 inline ModbusFunctionCode modbus_register_read_function(ModbusRegisterType reg_type) {
   switch (reg_type) {
@@ -214,6 +259,13 @@ template<typename N> N mask_and_shift_by_rightbit(N data, uint32_t mask) {
  */
 void number_to_payload(std::vector<uint16_t> &data, int64_t value, SensorValueType value_type);
 
+/** Convert int64_t value to span<uint8_t> suitable for sending
+ * @param data target for payload
+ * @param value int64_t value to convert
+ * @param value_type defines the underlying representation of data in int64_t
+ */
+void number_to_payload(span<uint8_t> data, int64_t value, SensorValueType value_type);
+
 /** Convert vector<uint8_t> response payload to number.
  * @param data payload with the data to convert
  * @param sensor_value_type defines if 16/32/64 bits or FP32 is used
@@ -253,18 +305,45 @@ class SensorItem {
 };
 
 class ServerRegister {
+  using data_t = std::vector<uint8_t>;
+  using read_lambda_t = std::function<void(span<uint8_t>)>;
+
  public:
-  ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count,
-                 std::function<float()> read_lambda) {
+  ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count, read_lambda_t read_lambda) {
     this->address = address;
     this->value_type = value_type;
     this->register_count = register_count;
+    this->data = data_t(register_count * 2);
     this->read_lambda = std::move(read_lambda);
+  }
+  template<SensorValueType V, typename T, enable_if_t<V == SensorValueType::RAW> * = nullptr>
+  static read_lambda_t read_lambda_eraser(T callable) {
+    return [=](span<uint8_t> data) -> void {
+      auto result = callable();
+      std::copy_n(result.data(), std::min(result.data.size(), data.size()), data.begin());
+    };
+  }
+  template<SensorValueType V, typename T, typename M = SensorValueTypeMap_t<V>,
+           enable_if_t<std::is_same<M, float>::value> * = nullptr>
+  static read_lambda_t read_lambda_eraser(T callable) {
+    return [=](span<uint8_t> data) -> void {
+      auto result = callable();
+      number_to_payload(data, static_cast<int64_t>(bit_cast<uint32_t>(result)), V);
+    };
+  }
+  template<SensorValueType V, typename T, typename M = SensorValueTypeMap_t<V>,
+           enable_if_t<(V != SensorValueType::RAW) && !std::is_same<M, float>::value, bool> * = nullptr>
+  static read_lambda_t read_lambda_eraser(T callable) {
+    return [=](span<uint8_t> data) -> void {
+      auto result = callable();
+      number_to_payload(data, static_cast<int64_t>(result), V);
+    };
   }
   uint16_t address{0};
   SensorValueType value_type{SensorValueType::RAW};
   uint8_t register_count{0};
-  std::function<float()> read_lambda;
+  data_t data{};
+  read_lambda_t read_lambda;
 };
 
 // ModbusController::create_register_ranges_ tries to optimize register range
