@@ -98,6 +98,7 @@ void BluetoothProxy::flush_pending_advertisements() {
   resp.advertisements.swap(batch_buffer);
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
 }
+
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
   api::BluetoothLEAdvertisementResponse resp;
   resp.address = device.address_uint64();
