@@ -4,15 +4,9 @@
 #include <memory>  // For unique_ptr
 #endif
 
-#include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
-
-#if defined(USE_ESP32)
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#endif
 
 namespace esphome {
 namespace logger {

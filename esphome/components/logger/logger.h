@@ -11,9 +11,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-// Temporary: Define TLS indices in logger.h for testing
-// This will later be moved to core/defines.h
-
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "task_log_buffer.h"
 #endif

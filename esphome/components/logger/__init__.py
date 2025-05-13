@@ -258,6 +258,7 @@ async def to_code(config):
         if task_log_buffer_size > 0:
             cg.add_define("USE_ESPHOME_TASK_LOG_BUFFER")
             cg.add(log.init_log_buffer(task_log_buffer_size))
+
     cg.add(log.set_log_level(initial_level))
     if CONF_HARDWARE_UART in config:
         cg.add(

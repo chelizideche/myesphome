@@ -7,9 +7,6 @@
 
 #include "esphome/core/macros.h"
 
-// Task Local Storage (TLS) indices for FreeRTOS
-// TLS indices now defined in logger.h
-
 // Informative flags
 #define ESPHOME_BOARD "dummy_board"
 #define ESPHOME_PROJECT_NAME "dummy project"
