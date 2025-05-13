@@ -66,17 +66,17 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
   // Add new advertisements to the batch buffer
   for (size_t i = 0; i < count; i++) {
     auto &result = advertisements[i];
-    api::BluetoothLERawAdvertisement adv;
+    uint8_t length = result.adv_data_len + result.scan_rsp_len;
+
+    // Create and insert in one step with emplace_back
+    batch_buffer.emplace_back();
+    auto &adv = batch_buffer.back();
     adv.address = esp32_ble::ble_addr_to_uint64(result.bda);
     adv.rssi = result.rssi;
     adv.address_type = result.ble_addr_type;
 
-    uint8_t length = result.adv_data_len + result.scan_rsp_len;
-    adv.data.reserve(length);
-    // Use a bulk insert instead of individual push_backs
-    adv.data.insert(adv.data.end(), &result.ble_adv[0], &result.ble_adv[length]);
-
-    batch_buffer.push_back(std::move(adv));
+    // More efficient: assign from raw data directly
+    adv.data.assign(&result.ble_adv[0], &result.ble_adv[length]);
 
     ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
              result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length, result.rssi);
@@ -95,18 +95,9 @@ void BluetoothProxy::flush_pending_advertisements() {
     return;
 
   ESP_LOGV(TAG, "Proxying batch of %d packets", batch_buffer.size());
-
-  // Create response with direct access to the batch buffer
   api::BluetoothLERawAdvertisementsResponse resp;
-
-  // Simply swap the vectors to avoid copying - much more efficient
   resp.advertisements.swap(batch_buffer);
-
-  // Send the response with our data
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
-
-  // Now batch_buffer is empty (due to the swap), but we'll explicitly clear it just to be safe
-  batch_buffer.clear();
 }
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
   api::BluetoothLEAdvertisementResponse resp;
