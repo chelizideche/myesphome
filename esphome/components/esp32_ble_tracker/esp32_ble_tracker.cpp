@@ -123,10 +123,10 @@ void ESP32BLETracker::loop() {
   static uint32_t last_process_time = 0;
   uint32_t now = millis();
 
-  // Process scan results less frequently to allow more batching - process every 50ms
+  // Process scan results to balance batching and responsiveness
   if (this->scanner_state_ == ScannerState::RUNNING &&
       this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
-      (now - last_process_time >= 50 || this->scan_result_index_ >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE / 2) &&
+      (now - last_process_time >= 20 || this->scan_result_index_ >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE / 2) &&
       xSemaphoreTake(this->scan_result_lock_, 5L / portTICK_PERIOD_MS)) {
     last_process_time = now;
     uint32_t index = this->scan_result_index_;
