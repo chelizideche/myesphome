@@ -228,9 +228,7 @@ class Logger : public Component {
   bool recursion_guard_{false};  // Used for platforms without task handles
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion guard state
-#endif
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-  void *main_task_ = nullptr;  // Only used on FreeRTOS platforms
+  void *main_task_ = nullptr;                     // Only used on FreeRTOS platforms
 #endif
   CallbackManager<void(int)> level_callback_{};
 
