@@ -22,13 +22,6 @@ enum ESPHomeTLSIndices {
   TLS_INDEX_LOGGER_RECURSION_GUARD = 1,  // Index for task-specific logger recursion guards
   TLS_INDEX_MAX
 };
-
-/* Sanity check to ensure that the number of FreeRTOS TLSPs is at least 2
- * (index 0 for pthread, index 1 for our logger recursion guard)
- */
-#if (CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS < 2)
-#error "CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS must be at least 2 (one for pthread, one for logger)"
-#endif  // CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS < 2
 #endif  // defined(USE_ESP32)
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
