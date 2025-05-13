@@ -225,7 +225,7 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
-#if defined(USE_ESP32)
+#ifdef USE_ESP32
   std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion state
 #else
   bool recursion_guard_{false};  // Simple global recursion guard
