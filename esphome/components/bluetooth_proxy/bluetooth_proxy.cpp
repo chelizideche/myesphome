@@ -557,7 +557,6 @@ void BluetoothProxy::unsubscribe_api_connection(api::APIConnection *api_connecti
     ESP_LOGV(TAG, "API connection is not subscribed");
     return;
   }
-
   this->api_connection_ = nullptr;
   this->raw_advertisements_ = false;
   this->parent_->recalculate_advertisement_parser_types();
