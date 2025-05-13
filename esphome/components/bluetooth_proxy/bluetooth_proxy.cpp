@@ -94,7 +94,6 @@ void BluetoothProxy::flush_pending_advertisements() {
   if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return;
 
-  ESP_LOGV(TAG, "Proxying batch of %d packets", batch_buffer.size());
   api::BluetoothLERawAdvertisementsResponse resp;
   resp.advertisements.swap(batch_buffer);
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
