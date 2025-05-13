@@ -23,12 +23,13 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
-  auto it = this->task_recursion_guards_.find(current_task);
-  if (it != this->task_recursion_guards_.end() && it->second) {
+  // Find task in recursion guards map (or insert with default false value if not found)
+  auto &is_recursive_call = this->task_recursion_guards_[current_task];
+  if (is_recursive_call) {
     return;  // Guard already set - recursion detected
   }
 
-  this->task_recursion_guards_[current_task] = true;  // Set guard for this task
+  is_recursive_call = true;  // Set guard for this task
 
   // For main task OR on LibreTiny, use direct buffer method
 #ifdef USE_LIBRETINY
@@ -37,14 +38,16 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // since there is no Bluetooth support, which is the main source of concurrent task logging.
   // When task log buffer support is implemented for LibreTiny in the future,
   // this special case can be removed. See https://github.com/esphome/esphome/pull/8736
-  if (true) {
+  this->log_message_to_buffer_and_send_(level, tag, line, format, args);
+  is_recursive_call = false;
+  return;
 #else
   if (current_task == main_task_) {
-#endif
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    this->task_recursion_guards_[current_task] = false;
+    is_recursive_call = false;
     return;
   }
+#endif
 
   // For non-main tasks: use stack-allocated buffer only for console output
   if (this->baud_rate_ > 0) {  // If logging is enabled, write to console
@@ -66,7 +69,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
 
-  this->task_recursion_guards_[current_task] = false;
+  is_recursive_call = false;
 }
 #else   // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
 // Implementation for platforms that don't use task-specific recursion guards
