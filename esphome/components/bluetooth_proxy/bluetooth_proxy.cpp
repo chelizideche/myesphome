@@ -182,8 +182,8 @@ void BluetoothProxy::loop() {
     static uint32_t last_flush_time = 0;
     uint32_t now = millis();
 
-    // Flush accumulated advertisements every 100ms
-    if (now - last_flush_time >= 100) {
+    // Flush accumulated advertisements every 50ms
+    if (now - last_flush_time >= 50) {
       this->flush_pending_advertisements();
       last_flush_time = now;
     }
