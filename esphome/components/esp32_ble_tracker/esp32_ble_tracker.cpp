@@ -127,7 +127,7 @@ void ESP32BLETracker::loop() {
   if (this->scanner_state_ == ScannerState::RUNNING &&
       this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
       (now - last_process_time >= 20 || this->scan_result_index_ >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE / 2) &&
-      xSemaphoreTake(this->scan_result_lock_, 5L / portTICK_PERIOD_MS)) {
+      xSemaphoreTake(this->scan_result_lock_, 0)) {
     last_process_time = now;
     uint32_t index = this->scan_result_index_;
     if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
@@ -453,7 +453,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
 void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
   ESP_LOGV(TAG, "gap_scan_result - event %d", param.search_evt);
   if (param.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
-    if (xSemaphoreTake(this->scan_result_lock_, 0L)) {
+    if (xSemaphoreTake(this->scan_result_lock_, 0)) {
       if (this->scan_result_index_ < ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
         this->scan_result_buffer_[this->scan_result_index_++] = param;
       }
