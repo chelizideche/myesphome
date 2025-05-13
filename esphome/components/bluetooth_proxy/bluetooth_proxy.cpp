@@ -59,8 +59,10 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
     return false;
 
-  if (batch_buffer.capacity() < MAX_BATCH_SIZE) {
-    batch_buffer.reserve(MAX_BATCH_SIZE);
+  // Reserve additional capacity if needed
+  size_t new_size = batch_buffer.size() + count;
+  if (batch_buffer.capacity() < new_size) {
+    batch_buffer.reserve(new_size);
   }
 
   // Add new advertisements to the batch buffer
@@ -107,28 +109,28 @@ void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &devi
   // Pre-allocate vectors based on known sizes
   auto service_uuids = device.get_service_uuids();
   resp.service_uuids.reserve(service_uuids.size());
-  for (auto uuid : service_uuids) {
-    resp.service_uuids.push_back(uuid.to_string());
+  for (auto &uuid : service_uuids) {
+    resp.service_uuids.emplace_back(uuid.to_string());
   }
 
   // Pre-allocate service data vector
   auto service_datas = device.get_service_datas();
   resp.service_data.reserve(service_datas.size());
   for (auto &data : service_datas) {
-    api::BluetoothServiceData service_data;
+    resp.service_data.emplace_back();
+    auto &service_data = resp.service_data.back();
     service_data.uuid = data.uuid.to_string();
     service_data.data.assign(data.data.begin(), data.data.end());
-    resp.service_data.push_back(std::move(service_data));
   }
 
   // Pre-allocate manufacturer data vector
   auto manufacturer_datas = device.get_manufacturer_datas();
   resp.manufacturer_data.reserve(manufacturer_datas.size());
   for (auto &data : manufacturer_datas) {
-    api::BluetoothServiceData manufacturer_data;
+    resp.manufacturer_data.emplace_back();
+    auto &manufacturer_data = resp.manufacturer_data.back();
     manufacturer_data.uuid = data.uuid.to_string();
     manufacturer_data.data.assign(data.data.begin(), data.data.end());
-    resp.manufacturer_data.push_back(std::move(manufacturer_data));
   }
 
   this->api_connection_->send_bluetooth_le_advertisement(resp);
