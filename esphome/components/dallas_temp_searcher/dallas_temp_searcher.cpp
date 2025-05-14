@@ -2,7 +2,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/application.h"
-#include <string.h>
+#include <cstring>
 
 namespace esphome {
 namespace dallas_temp_searcher {
@@ -18,27 +18,27 @@ void DallasTemperatureSearcher::setup() {
   this->sensors_params_.reserve(addresses.size());
   this->sensors_.reserve(addresses.size());
 
-  char string_buff[32];
+  const size_t string_buffer_size = 32;
+  char string_buff[string_buffer_size];
 
-  for (size_t i = 0; i < addresses.size(); i++) {
-    auto sensor = new dallas_temp::DallasTemperatureSensor();
+  for (const uint64_t &address : addresses) {
+    auto *sensor = new dallas_temp::DallasTemperatureSensor();
     EntityBaseInfo entity_base_info;
     sensor->set_one_wire_bus(bus_);
 
-    const uint64_t &address = addresses[i];
     std::string address_str = format_hex(address);
 
     strcpy(string_buff, "Temp Sensor 0x");
-    strcat(string_buff, address_str.c_str());
+    strlcat(string_buff, address_str.c_str(), string_buffer_size);
     entity_base_info.name = string_buff;
 
     strcpy(string_buff, "ts_0x");
-    strcat(string_buff, address_str.c_str());
+    strlcat(string_buff, address_str.c_str(), string_buffer_size);
     entity_base_info.object_id = string_buff;
 
     sensor->set_name(entity_base_info.name.c_str());
     sensor->set_object_id(entity_base_info.object_id.c_str());
-    sensor->set_address(addresses[i]);
+    sensor->set_address(address);
     set_default_parameters_(sensor);
 
     this->sensors_.push_back(sensor);
@@ -52,7 +52,7 @@ void DallasTemperatureSearcher::setup() {
 void DallasTemperatureSearcher::dump_config() {
   ESP_LOGCONFIG(TAG, "Dallas sensor searcher:");
   for (dallas_temp::DallasTemperatureSensor *sensor : this->sensors_) {
-    ESP_LOGCONFIG(TAG, "  Added %s", sensor->get_name());
+    ESP_LOGCONFIG(TAG, "  Added %s", sensor->get_name().c_str());
   }
 }
 

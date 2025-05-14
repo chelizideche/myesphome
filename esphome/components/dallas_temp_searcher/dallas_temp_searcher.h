@@ -7,6 +7,7 @@
 namespace esphome {
 namespace dallas_temp_searcher {
 
+// Class for dynamic creation DallasTemperatureSensor for sensors connected to onewire bus
 class DallasTemperatureSearcher : public Component, public one_wire::OneWireDevice {
  public:
   void setup() override;
@@ -19,10 +20,12 @@ class DallasTemperatureSearcher : public Component, public one_wire::OneWireDevi
 
   void dump_config() override;
 
-  uint16_t sensors_size() { return sensors_.size(); }
+  uint16_t sensors_size() { return this->sensors_.size(); }
 
   dallas_temp::DallasTemperatureSensor *sensor(uint16_t index) {
-    return index < sensors_.size() ? sensors_[index] : nullptr;
+    if (index >= this->sensors_.size())
+      return nullptr;
+    return this->sensors_[index];
   }
 
  protected:
