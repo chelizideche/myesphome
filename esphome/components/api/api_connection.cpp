@@ -873,7 +873,7 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
   return this->send_state_with_value_(text, &APIConnection::try_send_text_state_, &APIConnection::try_send_text_state_,
-                                      state);
+                                      std::move(state));
 }
 void APIConnection::send_text_info(text::Text *text) {
   this->send_info_(static_cast<EntityBase *>(text),
@@ -912,7 +912,7 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 #ifdef USE_SELECT
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
   return this->send_state_with_value_(select, &APIConnection::try_send_select_state_,
-                                      &APIConnection::try_send_select_state_, state);
+                                      &APIConnection::try_send_select_state_, std::move(state));
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->send_info_(static_cast<EntityBase *>(select),
