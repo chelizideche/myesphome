@@ -51,13 +51,18 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
-// Static buffer to store advertisements between batches
-static constexpr size_t MAX_BATCH_SIZE = 8;
-static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+static constexpr size_t FLUSH_BATCH_SIZE = 8;
+static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
+  static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+  return batch_buffer;
+}
 
 bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
     return false;
+
+  // Get the batch buffer reference
+  auto &batch_buffer = get_batch_buffer();
 
   // Reserve additional capacity if needed
   size_t new_size = batch_buffer.size() + count;
@@ -83,7 +88,7 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
 
   // Only send if we've accumulated a good batch size to maximize batching efficiency
   // https://github.com/esphome/backlog/issues/21
-  if (batch_buffer.size() >= MAX_BATCH_SIZE) {
+  if (batch_buffer.size() >= FLUSH_BATCH_SIZE) {
     this->flush_pending_advertisements();
   }
 
@@ -91,6 +96,7 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
 }
 
 void BluetoothProxy::flush_pending_advertisements() {
+  auto &batch_buffer = get_batch_buffer();
   if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return;
 
