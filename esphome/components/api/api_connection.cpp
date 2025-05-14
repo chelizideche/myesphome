@@ -1553,7 +1553,7 @@ bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   if (log_out_of_space) {
     ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
   }
-  delay(0);
+  delay(0);  // Not sure this makes sense, but it is in the original code
   return false;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
