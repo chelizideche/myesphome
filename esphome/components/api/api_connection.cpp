@@ -242,7 +242,7 @@ void APIConnection::loop() {
 
   // Section: Process Queue
   start_time = millis();
-  if (this->helper_->can_write_without_blocking()) {
+  if (!this->deferred_message_queue_.empty() && this->helper_->can_write_without_blocking()) {
     this->deferred_message_queue_.process_queue();
   }
   duration = millis() - start_time;

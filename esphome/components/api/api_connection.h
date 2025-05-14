@@ -57,6 +57,7 @@ class DeferredMessageQueue {
   DeferredMessageQueue(APIConnection *api_connection) : api_connection_(api_connection) {}
   void process_queue();
   void defer(void *source, send_message_t send_message);
+  bool empty() const { return deferred_queue_.empty(); }
 };
 
 class APIConnection : public APIServerConnection {
