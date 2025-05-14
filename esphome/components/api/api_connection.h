@@ -486,18 +486,16 @@ class APIConnection : public APIServerConnection {
   }
 
   /**
-   * Generic template for generating entity info response messages.
+   * Generic function for generating entity info response messages.
    * This is used to reduce duplication in the try_send_*_info functions.
    *
-   * @tparam EntityT The entity type
-   * @tparam ResponseT The protobuf list entities response type
    * @param entity The entity to generate info for
-   * @param response The pre-populated response object with entity-specific fields
-   * @param send_response_func Function to send the response
+   * @param response The response object
+   * @param send_response_func Function pointer to send the response
    * @return True if the message was sent successfully
    */
-  template<typename EntityT, typename ResponseT>
-  bool try_send_entity_info_(EntityT *entity, ResponseT &response,
+  template<typename ResponseT>
+  bool try_send_entity_info_(esphome::EntityBase *entity, ResponseT &response,
                              bool (APIServerConnectionBase::*send_response_func)(const ResponseT &)) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
