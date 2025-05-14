@@ -949,7 +949,7 @@ def parse_args(argv):
     )
     parser_dashboard.add_argument(
         "--port",
-        help="The HTTP port to open connections on. Defaults to 6052.",
+        help="The HTTP(S) port to open connections on. Defaults to 6052.",
         type=int,
         default=6052,
     )
@@ -958,6 +958,24 @@ def parse_args(argv):
         help="The address to bind to.",
         type=str,
         default="0.0.0.0",
+    )
+    parser_dashboard.add_argument(
+        "--cert-crt",
+        help="The optional SSL certificate file name for the web server. This option requires the option `--cert-key` This option will enable HTTPS on the web server.",
+        type=str,
+        default="",
+    )
+    parser_dashboard.add_argument(
+        "--cert-key",
+        help="The optional SSL key file name for the web server. This option requires the option `--cert-crt`.",
+        type=str,
+        default="",
+    )
+    parser_dashboard.add_argument(
+        "--cert-pass",
+        help="The optional SSL key file password for the web server. This option requires the option `--cert-crt`",
+        type=str,
+        default="",
     )
     parser_dashboard.add_argument(
         "--username",

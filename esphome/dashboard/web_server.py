@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import secrets
 import shutil
+import ssl
 import subprocess
 import threading
 import time
@@ -1234,6 +1235,9 @@ def start_web_server(
     address: str | None,
     port: int | None,
     config_dir: str,
+    cert_crt: str | None,
+    cert_key: str | None,
+    cert_pass: str | None,
 ) -> None:
     """Start the web server listener."""
 
@@ -1243,14 +1247,21 @@ def start_web_server(
         archive_path = archive_storage_path()
         shutil.move(trash_path, archive_path)
 
+    ssl_context: ssl.SSLContext = None
+    if cert_crt is not None and len(cert_crt) > 0 and os.path.exists(cert_crt):
+        if cert_key is not None and len(cert_key) > 0 and os.path.exists(cert_key):
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(cert_crt, cert_key, cert_pass)
+
     if socket is None:
         _LOGGER.info(
-            "Starting dashboard web server on http://%s:%s and configuration dir %s...",
+            "Starting dashboard web server on http%s://%s:%s and configuration dir %s...",
+            ("" if ssl_context is None else "s"),
             address,
             port,
             config_dir,
         )
-        app.listen(port, address)
+        app.listen(port, address, ssl_options=ssl_context)
         return
 
     _LOGGER.info(
@@ -1258,6 +1269,6 @@ def start_web_server(
         socket,
         config_dir,
     )
-    server = tornado.httpserver.HTTPServer(app)
+    server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_context)
     socket = tornado.netutil.bind_unix_socket(socket, mode=0o666)
     server.add_socket(socket)

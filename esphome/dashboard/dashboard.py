@@ -139,7 +139,16 @@ async def async_start(args) -> None:
     address: str | None = args.address
     port: int | None = args.port
 
-    start_web_server(make_app(args.verbose), sock, address, port, settings.config_dir)
+    start_web_server(
+        make_app(args.verbose),
+        sock,
+        address,
+        port,
+        settings.config_dir,
+        args.cert_crt,
+        args.cert_key,
+        args.cert_pass,
+    )
 
     if args.open_ui:
         import webbrowser
