@@ -29,10 +29,6 @@ class EntityBase {
   // Get the unique Object ID of this Entity
   uint32_t get_object_id_hash();
 
-  // Get the unique ID for this entity, can be overridden by entities
-  // that need custom unique IDs
-  virtual std::string unique_id() { return ""; }
-
   // Get/set whether this Entity should be hidden from outside of ESPHome
   bool is_internal() const;
   void set_internal(bool internal);

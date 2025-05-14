@@ -143,7 +143,7 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
    *
    * @deprecated Do not use for new sensors, a suitable unique ID is automatically generated (2023.4).
    */
-  std::string unique_id() override;
+  virtual std::string unique_id();
 
   void internal_send_state_to_frontend(float state);
 
