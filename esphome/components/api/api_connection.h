@@ -12,11 +12,7 @@
 #include <vector>
 
 namespace esphome {
-class EntityBase;
 namespace api {
-
-// Forward declaration
-std::string get_default_unique_id(const std::string &component_type, EntityBase *entity);
 
 // Function signature for deferred message handlers
 using send_message_t = bool (APIConnection::*)(void *);
