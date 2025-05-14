@@ -159,6 +159,9 @@ APIConnection::~APIConnection() {
 }
 
 void APIConnection::loop() {
+  // Measure total time for entire loop function
+  const uint32_t loop_start_time = millis();
+
   if (this->remove_)
     return;
 
@@ -350,6 +353,15 @@ void APIConnection::loop() {
       this->reset_section_stats_();
       this->next_stats_log_ = now + this->stats_log_interval_;
     }
+  }
+
+  // Record total loop execution time
+  const uint32_t total_loop_duration = millis() - loop_start_time;
+  this->section_stats_["total_loop"].record_time(total_loop_duration);
+
+  // Log a warning if the loop takes longer than 30ms
+  if (total_loop_duration > 30) {
+    ESP_LOGW(STATS_TAG, "API loop took %ums, which exceeds the recommended 30ms limit", total_loop_duration);
   }
 }
 
@@ -2045,9 +2057,19 @@ void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistant
   state_subs_at_ = 0;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
+  // Track send_buffer time
+  const uint32_t start_time = millis();
+
   if (this->remove_)
     return false;
-  if (!this->helper_->can_write_without_blocking()) {
+
+  uint32_t check_block_start = millis();
+  bool can_write = this->helper_->can_write_without_blocking();
+  uint32_t check_block_duration = millis() - check_block_start;
+  this->section_stats_["check_write_block"].record_time(check_block_duration);
+
+  if (!can_write) {
+    uint32_t wait_start = millis();
     delay(0);
     APIError err = this->helper_->loop();
     if (err != APIError::OK) {
@@ -2056,7 +2078,13 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) 
                api_error_to_str(err), errno);
       return false;
     }
-    if (!this->helper_->can_write_without_blocking()) {
+
+    uint32_t recheck_start = millis();
+    can_write = this->helper_->can_write_without_blocking();
+    uint32_t recheck_duration = millis() - recheck_start;
+    this->section_stats_["recheck_write_block"].record_time(recheck_duration);
+
+    if (!can_write) {
       // SubscribeLogsResponse
       if (message_type != 29) {
         ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
@@ -2064,9 +2092,16 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) 
       delay(0);
       return false;
     }
+
+    uint32_t wait_duration = millis() - wait_start;
+    this->section_stats_["wait_to_write"].record_time(wait_duration);
   }
 
+  uint32_t write_start = millis();
   APIError err = this->helper_->write_packet(message_type, buffer.get_buffer()->data(), buffer.get_buffer()->size());
+  uint32_t write_duration = millis() - write_start;
+  this->section_stats_["write_packet"].record_time(write_duration);
+
   if (err == APIError::WOULD_BLOCK)
     return false;
   if (err != APIError::OK) {
@@ -2079,6 +2114,17 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) 
     }
     return false;
   }
+
+  // Measure total send_buffer function time
+  uint32_t total_duration = millis() - start_time;
+  this->section_stats_["send_buffer_total"].record_time(total_duration);
+
+  // Log a warning if send_buffer takes longer than 15ms
+  if (total_duration > 15) {
+    ESP_LOGW(STATS_TAG, "send_buffer took %ums (message_type=%u, size=%u)", total_duration, message_type,
+             buffer.get_buffer()->size());
+  }
+
   // Do not set last_traffic_ on send
   return true;
 }
