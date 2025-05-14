@@ -506,13 +506,6 @@ class APIConnection : public APIServerConnection {
     if (entity->has_own_name())
       response.name = entity->get_name();
 
-    // Get the unique_id - try the entity's implementation first
-    // This is safe because EntityBase has a default implementation that returns an empty string
-    response.unique_id = entity->unique_id();
-    // Fall back to default if empty
-    if (response.unique_id.empty())
-      response.unique_id = get_default_unique_id(component_type, entity);
-
     // Set common EntityBase properties
     response.icon = entity->get_icon();
     response.disabled_by_default = entity->is_disabled_by_default();
