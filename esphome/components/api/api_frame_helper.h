@@ -176,10 +176,17 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
     return APIFrameHelper::write_raw_(iov, iovcnt, socket_.get(), tx_buf_, info_, state_, State::FAILED);
   }
 
+ protected:
+  // Helper method to handle socket read results consistently
+  APIError handle_socket_read_result_(ssize_t received);
+
   std::unique_ptr<socket::Socket> socket_;
 
   std::string info_;
-  std::vector<uint8_t> rx_header_buf_;
+  // Fixed-size header buffer - max we need is indicator byte (1) + max 2 varints (10 bytes each for uint64)
+  // In practice, for small packets this is much smaller
+  uint8_t rx_header_buf_[21];
+  size_t rx_header_buf_size_ = 0;
   bool rx_header_parsed_ = false;
   uint32_t rx_header_parsed_type_ = 0;
   uint32_t rx_header_parsed_len_ = 0;

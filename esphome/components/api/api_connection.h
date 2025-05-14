@@ -86,6 +86,11 @@ class APIConnection : public APIServerConnection {
       this->total_time_ms_ += duration_ms;
       if (duration_ms > this->total_max_time_ms_)
         this->total_max_time_ms_ = duration_ms;
+
+      // Log if this is the first record in this period
+      if (this->period_count_ == 1) {
+        ESP_LOGV("api.stats", "First time recording stats for this section: %u ms", duration_ms);
+      }
     }
 
     void reset_period_stats() {
@@ -433,6 +438,9 @@ class APIConnection : public APIServerConnection {
   bool stats_enabled_{true};
   void log_section_stats_();
   void reset_section_stats_();
+
+  // Method to enable/disable section stats
+  void set_stats_enabled(bool enabled) { this->stats_enabled_ = enabled; }
 };
 
 }  // namespace api

@@ -63,6 +63,11 @@ APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *pa
     : parent_(parent), deferred_message_queue_(this), initial_state_iterator_(this), list_entities_iterator_(this) {
   this->proto_write_buffer_.reserve(64);
 
+  // Explicitly initialize stats
+  this->stats_enabled_ = true;
+  this->next_stats_log_ = 0;
+  ESP_LOGD(STATS_TAG, "API Connection created with stats_enabled_=true");
+
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
   auto noise_ctx = parent->get_noise_ctx();
   if (noise_ctx->has_psk()) {
@@ -96,6 +101,11 @@ void APIConnection::start() {
 void APIConnection::log_section_stats_() {
   ESP_LOGI(STATS_TAG, "API Connection Section Runtime Statistics");
   ESP_LOGI(STATS_TAG, "Period stats (last %" PRIu32 "ms):", this->stats_log_interval_);
+
+  if (this->section_stats_.empty()) {
+    ESP_LOGW(STATS_TAG, "No section stats collected yet");
+    return;
+  }
 
   // First collect stats we want to display
   std::vector<std::pair<std::string, const APISectionStats *>> stats_to_display;
@@ -140,6 +150,7 @@ void APIConnection::log_section_stats_() {
 }
 
 void APIConnection::reset_section_stats_() {
+  ESP_LOGD(STATS_TAG, "Resetting API section stats, sections count: %u", this->section_stats_.size());
   for (auto &it : this->section_stats_) {
     it.second.reset_period_stats();
   }
@@ -348,10 +359,24 @@ void APIConnection::loop() {
     // If next_stats_log_ is 0, initialize it
     if (this->next_stats_log_ == 0) {
       this->next_stats_log_ = now + this->stats_log_interval_;
+      ESP_LOGI(STATS_TAG, "API section stats logging enabled, next log at %u", this->next_stats_log_);
     } else if (now >= this->next_stats_log_) {
+      ESP_LOGI(STATS_TAG, "Logging API section stats now (current time: %u, scheduled time: %u)", now,
+               this->next_stats_log_);
+      // Force logging even if no stats are collected yet
+      ESP_LOGI(STATS_TAG, "Stats collection status: enabled=%d, sections=%u", this->stats_enabled_,
+               this->section_stats_.size());
+
+      // Explicitly log some stats we know should exist
+      ESP_LOGI(STATS_TAG, "Record count for key sections: helper_loop=%u, read_packet=%u, total_loop=%u",
+               this->section_stats_["helper_loop"].get_period_count(),
+               this->section_stats_["read_packet"].get_period_count(),
+               this->section_stats_["total_loop"].get_period_count());
+
       this->log_section_stats_();
       this->reset_section_stats_();
       this->next_stats_log_ = now + this->stats_log_interval_;
+      ESP_LOGI(STATS_TAG, "Next API section stats log scheduled for %u", this->next_stats_log_);
     }
   }
 
