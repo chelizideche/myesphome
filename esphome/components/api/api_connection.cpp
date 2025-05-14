@@ -26,6 +26,7 @@ namespace esphome {
 namespace api {
 
 static const char *const TAG = "api.connection";
+static const char *const STATS_TAG = "api.stats";
 static const int ESP32_CAMERA_STOP_STREAM = 5000;
 
 // helper for allowing only unique entries in the queue
@@ -92,6 +93,58 @@ void APIConnection::start() {
   this->helper_->set_log_info(this->client_info_);
 }
 
+void APIConnection::log_section_stats_() {
+  ESP_LOGI(STATS_TAG, "API Connection Section Runtime Statistics");
+  ESP_LOGI(STATS_TAG, "Period stats (last %" PRIu32 "ms):", this->stats_log_interval_);
+
+  // First collect stats we want to display
+  std::vector<std::pair<std::string, const APISectionStats *>> stats_to_display;
+
+  for (const auto &it : this->section_stats_) {
+    const APISectionStats &stats = it.second;
+    if (stats.get_period_count() > 0) {
+      stats_to_display.push_back({it.first, &stats});
+    }
+  }
+
+  // Sort by period runtime (descending)
+  std::sort(stats_to_display.begin(), stats_to_display.end(), [](const auto &a, const auto &b) {
+    return a.second->get_period_time_ms() > b.second->get_period_time_ms();
+  });
+
+  // Log top components by period runtime
+  for (const auto &it : stats_to_display) {
+    const std::string &section = it.first;
+    const APISectionStats *stats = it.second;
+
+    ESP_LOGI(STATS_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", section.c_str(),
+             stats->get_period_count(), stats->get_period_avg_time_ms(), stats->get_period_max_time_ms(),
+             stats->get_period_time_ms());
+  }
+
+  // Log total stats since boot
+  ESP_LOGI(STATS_TAG, "Total stats (since boot):");
+
+  // Re-sort by total runtime for all-time stats
+  std::sort(stats_to_display.begin(), stats_to_display.end(),
+            [](const auto &a, const auto &b) { return a.second->get_total_time_ms() > b.second->get_total_time_ms(); });
+
+  for (const auto &it : stats_to_display) {
+    const std::string &section = it.first;
+    const APISectionStats *stats = it.second;
+
+    ESP_LOGI(STATS_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", section.c_str(),
+             stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
+             stats->get_total_time_ms());
+  }
+}
+
+void APIConnection::reset_section_stats_() {
+  for (auto &it : this->section_stats_) {
+    it.second.reset_period_stats();
+  }
+}
+
 APIConnection::~APIConnection() {
 #ifdef USE_BLUETOOTH_PROXY
   if (bluetooth_proxy::global_bluetooth_proxy->get_api_connection() == this) {
@@ -123,15 +176,30 @@ void APIConnection::loop() {
     return;
   }
 
+  const uint32_t now = millis();
+  uint32_t start_time;
+  uint32_t duration;
+
+  // Section: Helper Loop
+  start_time = millis();
   APIError err = this->helper_->loop();
+  duration = millis() - start_time;
+  this->section_stats_["helper_loop"].record_time(duration);
+
   if (err != APIError::OK) {
     on_fatal_error();
     ESP_LOGW(TAG, "%s: Socket operation failed: %s errno=%d", this->client_combined_info_.c_str(),
              api_error_to_str(err), errno);
     return;
   }
+
+  // Section: Read Packet
+  start_time = millis();
   ReadPacketBuffer buffer;
   err = this->helper_->read_packet(&buffer);
+  duration = millis() - start_time;
+  this->section_stats_["read_packet"].record_time(duration);
+
   if (err == APIError::WOULD_BLOCK) {
     // pass
   } else if (err != APIError::OK) {
@@ -146,24 +214,39 @@ void APIConnection::loop() {
     }
     return;
   } else {
-    this->last_traffic_ = millis();
-    // read a packet
+    this->last_traffic_ = now;
+
+    // Section: Process Message
+    start_time = millis();
     this->read_message(buffer.data_len, buffer.type, &buffer.container[buffer.data_offset]);
+    duration = millis() - start_time;
+    this->section_stats_["process_message"].record_time(duration);
+
     if (this->remove_)
       return;
   }
 
+  // Section: Process Queue
+  start_time = millis();
   this->deferred_message_queue_.process_queue();
+  duration = millis() - start_time;
+  this->section_stats_["process_queue"].record_time(duration);
 
+  // Section: Iterator Advance
+  start_time = millis();
   if (!this->list_entities_iterator_.completed())
     this->list_entities_iterator_.advance();
   if (!this->initial_state_iterator_.completed() && this->list_entities_iterator_.completed())
     this->initial_state_iterator_.advance();
+  duration = millis() - start_time;
+  this->section_stats_["iterator_advance"].record_time(duration);
 
+  // Section: Keepalive
+  start_time = millis();
   static uint32_t keepalive = 60000;
   static uint8_t max_ping_retries = 60;
   static uint16_t ping_retry_interval = 1000;
-  const uint32_t now = millis();
+
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
     if (now - this->last_traffic_ > (keepalive * 5) / 2) {
@@ -189,8 +272,12 @@ void APIConnection::loop() {
       }
     }
   }
+  duration = millis() - start_time;
+  this->section_stats_["keepalive"].record_time(duration);
 
 #ifdef USE_ESP32_CAMERA
+  // Section: Camera
+  start_time = millis();
   if (this->image_reader_.available() && this->helper_->can_write_without_blocking()) {
     // Message will use 8 more bytes than the minimum size, and typical
     // MTU is 1500. Sometimes users will see as low as 1460 MTU.
@@ -229,8 +316,12 @@ void APIConnection::loop() {
       this->image_reader_.return_image();
     }
   }
+  duration = millis() - start_time;
+  this->section_stats_["camera"].record_time(duration);
 #endif
 
+  // Section: State Subscriptions
+  start_time = millis();
   if (state_subs_at_ != -1) {
     const auto &subs = this->parent_->get_state_subs();
     if (state_subs_at_ >= (int) subs.size()) {
@@ -244,6 +335,20 @@ void APIConnection::loop() {
       if (this->send_subscribe_home_assistant_state_response(resp)) {
         state_subs_at_++;
       }
+    }
+  }
+  duration = millis() - start_time;
+  this->section_stats_["state_subs"].record_time(duration);
+
+  // Log stats periodically
+  if (this->stats_enabled_) {
+    // If next_stats_log_ is 0, initialize it
+    if (this->next_stats_log_ == 0) {
+      this->next_stats_log_ = now + this->stats_log_interval_;
+    } else if (now >= this->next_stats_log_) {
+      this->log_section_stats_();
+      this->reset_section_stats_();
+      this->next_stats_log_ = now + this->stats_log_interval_;
     }
   }
 }

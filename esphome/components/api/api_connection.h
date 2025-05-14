@@ -10,6 +10,10 @@
 #include "esphome/core/component.h"
 
 #include <vector>
+#include <map>
+#include <string>
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace api {
@@ -58,6 +62,65 @@ class APIConnection : public APIServerConnection {
  public:
   APIConnection(std::unique_ptr<socket::Socket> socket, APIServer *parent);
   virtual ~APIConnection();
+
+  // Performance statistics class for API loop sections
+  class APISectionStats {
+   public:
+    APISectionStats()
+        : period_count_(0),
+          total_count_(0),
+          period_time_ms_(0),
+          total_time_ms_(0),
+          period_max_time_ms_(0),
+          total_max_time_ms_(0) {}
+
+    void record_time(uint32_t duration_ms) {
+      // Update period counters
+      this->period_count_++;
+      this->period_time_ms_ += duration_ms;
+      if (duration_ms > this->period_max_time_ms_)
+        this->period_max_time_ms_ = duration_ms;
+
+      // Update total counters
+      this->total_count_++;
+      this->total_time_ms_ += duration_ms;
+      if (duration_ms > this->total_max_time_ms_)
+        this->total_max_time_ms_ = duration_ms;
+    }
+
+    void reset_period_stats() {
+      this->period_count_ = 0;
+      this->period_time_ms_ = 0;
+      this->period_max_time_ms_ = 0;
+    }
+
+    // Period stats (reset each logging interval)
+    uint32_t get_period_count() const { return this->period_count_; }
+    uint32_t get_period_time_ms() const { return this->period_time_ms_; }
+    uint32_t get_period_max_time_ms() const { return this->period_max_time_ms_; }
+    float get_period_avg_time_ms() const {
+      return this->period_count_ > 0 ? this->period_time_ms_ / static_cast<float>(this->period_count_) : 0.0f;
+    }
+
+    // Total stats (persistent until reboot)
+    uint32_t get_total_count() const { return this->total_count_; }
+    uint32_t get_total_time_ms() const { return this->total_time_ms_; }
+    uint32_t get_total_max_time_ms() const { return this->total_max_time_ms_; }
+    float get_total_avg_time_ms() const {
+      return this->total_count_ > 0 ? this->total_time_ms_ / static_cast<float>(this->total_count_) : 0.0f;
+    }
+
+   protected:
+    // Period stats (reset each logging interval)
+    uint32_t period_count_;
+    uint32_t period_time_ms_;
+    uint32_t period_max_time_ms_;
+
+    // Total stats (persistent until reboot)
+    uint32_t total_count_;
+    uint32_t total_time_ms_;
+    uint32_t total_max_time_ms_;
+  };
 
   void start();
   void loop();
@@ -362,6 +425,14 @@ class APIConnection : public APIServerConnection {
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
+
+  // API loop section performance statistics
+  std::map<std::string, APISectionStats> section_stats_;
+  uint32_t stats_log_interval_{60000};  // 60 seconds default
+  uint32_t next_stats_log_{0};
+  bool stats_enabled_{true};
+  void log_section_stats_();
+  void reset_section_stats_();
 };
 
 }  // namespace api
