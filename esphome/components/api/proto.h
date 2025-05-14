@@ -34,10 +34,12 @@ class ProtoVarInt {
     }
 
     // General case for multi-byte varints
-    uint64_t result = 0;
-    uint8_t bitpos = 0;
+    // Since we know buffer[0]'s high bit is set, initialize with its value
+    uint64_t result = buffer[0] & 0x7F;
+    uint8_t bitpos = 7;
 
-    for (uint32_t i = 0; i < len; i++) {
+    // Start from the second byte since we've already processed the first
+    for (uint32_t i = 1; i < len; i++) {
       uint8_t val = buffer[i];
       result |= uint64_t(val & 0x7F) << uint64_t(bitpos);
       bitpos += 7;
