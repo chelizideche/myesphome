@@ -320,7 +320,7 @@ class ServerRegister {
   static read_lambda_t read_lambda_eraser(T callable) {
     return [=](span<uint8_t> data) -> void {
       auto result = callable();
-      std::copy_n(result.data(), std::min(result.data.size(), data.size()), data.begin());
+      std::copy_n(result.data(), std::min(result.size(), data.size()), data.begin());
     };
   }
   template<SensorValueType V, typename T, typename M = SensorValueTypeMap_t<V>,

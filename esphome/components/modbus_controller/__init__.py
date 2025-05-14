@@ -114,7 +114,7 @@ TYPE_REGISTER_MAP = {
 }
 
 READ_TYPE_TYPE_MAP = {
-    "RAW": cg.std_vector.template(cg.uint8).operator("const").operator("ref"),
+    "RAW": cg.std_vector.template(cg.uint8),
     "U_WORD": cg.uint16,
     "S_WORD": cg.int16,
     "U_DWORD": cg.uint32,

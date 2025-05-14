@@ -618,6 +618,7 @@ void number_to_payload(span<uint8_t> data, int64_t value, SensorValueType value_
     return;
   }
   switch (value_type) {
+    case SensorValueType::RAW:
     case SensorValueType::U_WORD:
     case SensorValueType::S_WORD:
       data[0] = value >> 8;
