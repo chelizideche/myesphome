@@ -8,6 +8,7 @@
 #include "api_server.h"
 #include "esphome/core/application.h"
 #include "esphome/core/component.h"
+#include "esphome/core/entity_base.h"
 
 #include <vector>
 
