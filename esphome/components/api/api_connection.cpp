@@ -1538,23 +1538,25 @@ void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistant
 bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   if (this->remove_)
     return false;
-  if (!this->helper_->can_write_without_blocking()) {
+  if (this->helper_->can_write_without_blocking()) {
     delay(0);
-    APIError err = this->helper_->loop();
-    if (err != APIError::OK) {
-      on_fatal_error();
-      ESP_LOGW(TAG, "%s: Socket operation failed: %s errno=%d", this->client_combined_info_.c_str(),
-               api_error_to_str(err), errno);
-      return false;
-    }
-    if (!this->helper_->can_write_without_blocking()) {
-      if (log_out_of_space) {
-        ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
-      }
-      delay(0);
-      return false;
-    }
+    return true;
   }
+  APIError err = this->helper_->loop();
+  if (err != APIError::OK) {
+    on_fatal_error();
+    ESP_LOGW(TAG, "%s: Socket operation failed: %s errno=%d", this->client_combined_info_.c_str(),
+             api_error_to_str(err), errno);
+    return false;
+  }
+  if (this->helper_->can_write_without_blocking()) {
+    return true;
+  }
+  if (log_out_of_space) {
+    ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
+  }
+  delay(0);
+  return false;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
   if (!this->try_to_clear_buffer(message_type != 29)) {  // SubscribeLogsResponse
