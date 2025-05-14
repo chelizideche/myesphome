@@ -411,7 +411,7 @@ class APIConnection : public APIServerConnection {
     this->proto_write_buffer_.reserve(reserve_size);
     return {&this->proto_write_buffer_};
   }
-  bool try_to_send_buffer(bool log_out_of_space);
+  bool try_to_clear_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) override;
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
@@ -434,7 +434,7 @@ class APIConnection : public APIServerConnection {
   template<typename EntityT> bool send_state_(EntityT *entity, bool (APIConnection::*try_send_func)(EntityT *)) {
     if (!this->state_subscription_)
       return false;
-    if (this->try_to_send_buffer() && (this->*try_send_func)(entity)) {
+    if (this->try_to_clear_buffer() && (this->*try_send_func)(entity)) {
       return true;
     }
     this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_func));
@@ -464,7 +464,7 @@ class APIConnection : public APIServerConnection {
                               Args... args) {
     if (!this->state_subscription_)
       return false;
-    if (this->try_to_send_buffer() && (this->*try_send_state_func)(entity, state, args...)) {
+    if (this->try_to_clear_buffer() && (this->*try_send_state_func)(entity, state, args...)) {
       return true;
     }
     this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_entity_func));
@@ -479,7 +479,7 @@ class APIConnection : public APIServerConnection {
    * @param try_send_func The function that tries to send the info
    */
   template<typename EntityT> void send_info_(EntityT *entity, bool (APIConnection::*try_send_func)(EntityT *)) {
-    if (this->try_to_send_buffer() && (this->*try_send_func)(entity)) {
+    if (this->try_to_clear_buffer() && (this->*try_send_func)(entity)) {
       return;
     }
     this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_func));
