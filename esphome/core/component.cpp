@@ -243,8 +243,6 @@ void PollingComponent::set_update_interval(uint32_t update_interval) { this->upd
 WarnIfComponentBlockingGuard::WarnIfComponentBlockingGuard(Component *component, uint32_t start_time)
     : started_(start_time), component_(component) {}
 uint32_t WarnIfComponentBlockingGuard::finish() {
-  // Use millis() to get the most accurate blocking time
-  // This is intentionally using millis() directly rather than the cached time
   uint32_t curr_time = millis();
 
   uint32_t blocking_time = curr_time - this->started_;
