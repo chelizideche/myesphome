@@ -281,13 +281,9 @@ APIError APINoiseFrameHelper::loop() {
     return APIError::OK;
   if (err != APIError::OK)
     return err;
-  if (!this->tx_buf_.empty() && state_ != State::CLOSED) {
-    err = try_send_tx_buf_();
-    if (err != APIError::OK) {
-      return err;
-    }
-  }
-  return APIError::OK;
+  if (this->tx_buf_.empty())
+    return APIError::OK;
+  return try_send_tx_buf_();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
@@ -804,14 +800,9 @@ APIError APIPlaintextFrameHelper::loop() {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
-  // try send pending TX data
-  if (!this->tx_buf_.empty() && state_ != State::CLOSED) {
-    APIError err = try_send_tx_buf_();
-    if (err != APIError::OK) {
-      return err;
-    }
-  }
-  return APIError::OK;
+  if (this->tx_buf_.empty())
+    return APIError::OK;
+  return try_send_tx_buf_();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
