@@ -83,49 +83,33 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     total_write_len += iov[i].iov_len;
   }
 
-  // Try to send any existing buffered data first
+  // Try to send any existing buffered data first if there is any
   if (!this->tx_buf_.empty()) {
-    // Get the first buffer in the queue
-    SendBuffer &front_buffer = this->tx_buf_.front();
+    APIError send_result = try_send_tx_buf_();
 
-    // Try to send the remaining data in this buffer
-    ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
+    // If real error occurred (not just WOULD_BLOCK), return it
+    if (send_result != APIError::OK && send_result != APIError::WOULD_BLOCK) {
+      return send_result;
+    }
+    // At this point, either we succeeded in sending all buffers (tx_buf_ is now empty),
+    // or we got WOULD_BLOCK (some buffers remain). In either case, we need to check
+    // if the buffer is empty before proceeding to direct sending.
 
-    if (sent == -1) {
-      if (errno != EWOULDBLOCK && errno != EAGAIN) {
-        // Real socket error (not just would block)
-        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
-        this->state_ = State::FAILED;
-        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+    // If there is still data in the buffer, we can't send, buffer
+    // the new data and return
+    if (!this->tx_buf_.empty()) {
+      // Add new data to the buffer queue
+      SendBuffer buffer;
+      buffer.data.reserve(total_write_len);
+
+      for (int i = 0; i < iovcnt; i++) {
+        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
+        buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
       }
-      // Socket would block, we'll try again later and continue execution to append new data to the buffer
-    } else if (sent > 0 && static_cast<size_t>(sent) < front_buffer.remaining()) {
-      // Partially sent, update offset
-      front_buffer.offset += sent;
-    } else if (sent > 0) {
-      // Buffer completely sent, remove it from the queue
-      this->tx_buf_.pop_front();
+
+      this->tx_buf_.push_back(std::move(buffer));
+      return APIError::OK;  // Success, data buffered
     }
-  }
-
-  // If we still have pending data, append the new data to the queue
-  if (!this->tx_buf_.empty()) {
-    // Add new data as a new buffer
-    SendBuffer buffer;
-
-    // Calculate total size needed
-    buffer.data.reserve(total_write_len);
-
-    // Copy all iov segments to the buffer
-    for (int i = 0; i < iovcnt; i++) {
-      const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
-      buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
-    }
-
-    // Add to the queue
-    this->tx_buf_.push_back(std::move(buffer));
-
-    return APIError::OK;  // Success, data buffered
   }
 
   // Try to send directly if no buffered data
@@ -178,9 +162,11 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
 }
 
 // Common implementation for trying to send buffered data
+// IMPORTANT: Caller MUST ensure tx_buf_ is not empty before calling this method
 APIError APIFrameHelper::try_send_tx_buf_() {
-  // Try to send from tx_buf
-  while (state_ != State::CLOSED && !this->tx_buf_.empty()) {
+  // Try to send from tx_buf - we assume it's not empty as it's the caller's responsibility to check
+  bool tx_buf_empty = false;
+  while (!tx_buf_empty) {
     // Get the first buffer in the queue
     SendBuffer &front_buffer = this->tx_buf_.front();
 
@@ -188,27 +174,31 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
     if (sent == -1) {
-      if (errno == EWOULDBLOCK || errno == EAGAIN) {
-        // Socket would block, try again later
-        break;
+      if (errno != EWOULDBLOCK && errno != EAGAIN) {
+        // Real socket error (not just would block)
+        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+        this->state_ = State::FAILED;
+        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
       }
-      // Socket error
-      state_ = State::FAILED;
-      ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
-      return APIError::SOCKET_WRITE_FAILED;
+      // Socket would block, we'll try again later
+      return APIError::WOULD_BLOCK;
     } else if (sent == 0) {
-      // No data sent but not an error, try again later
-      break;
+      // Nothing sent but not an error
+      return APIError::WOULD_BLOCK;
     } else if (static_cast<size_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
       front_buffer.offset += sent;
+      return APIError::WOULD_BLOCK;  // Stop processing more buffers if we couldn't send a complete buffer
     } else {
       // Buffer completely sent, remove it from the queue
       this->tx_buf_.pop_front();
+      // Update empty status for the loop condition
+      tx_buf_empty = this->tx_buf_.empty();
+      // Continue loop to try sending the next buffer
     }
   }
 
-  return APIError::OK;
+  return APIError::OK;  // All buffers sent successfully
 }
 
 #define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->info_.c_str(), ##__VA_ARGS__)
@@ -291,13 +281,9 @@ APIError APINoiseFrameHelper::loop() {
     return APIError::OK;
   if (err != APIError::OK)
     return err;
-  if (!this->tx_buf_.empty()) {
-    err = try_send_tx_buf_();
-    if (err != APIError::OK) {
-      return err;
-    }
-  }
-  return APIError::OK;
+  if (this->tx_buf_.empty())
+    return APIError::OK;
+  return try_send_tx_buf_();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
@@ -814,14 +800,9 @@ APIError APIPlaintextFrameHelper::loop() {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
-  // try send pending TX data
-  if (!this->tx_buf_.empty()) {
-    APIError err = try_send_tx_buf_();
-    if (err != APIError::OK) {
-      return err;
-    }
-  }
-  return APIError::OK;
+  if (this->tx_buf_.empty())
+    return APIError::OK;
+  return try_send_tx_buf_();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
