@@ -165,6 +165,9 @@ class APIFrameHelper {
 
   // Try to send data from the tx buffer
   APIError try_send_tx_buf_();
+
+  // Helper method to buffer data from IOVs
+  void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, size_t total_write_len);
 };
 
 #ifdef USE_API_NOISE
