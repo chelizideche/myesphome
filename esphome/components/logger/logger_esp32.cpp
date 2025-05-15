@@ -209,8 +209,6 @@ const char *const UART_SELECTIONS[] = {
 
 const char *Logger::get_uart_selection_() { return UART_SELECTIONS[this->uart_]; }
 
-void Logger::create_pthread_key() { pthread_key_create(&LOG_RECURSION_KEY, nullptr); }
-
 }  // namespace logger
 }  // namespace esphome
 #endif
