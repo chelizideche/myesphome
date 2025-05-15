@@ -60,65 +60,138 @@ const char *api_error_to_str(APIError err);
 
 class APIFrameHelper {
  public:
+  APIFrameHelper() = default;
+  explicit APIFrameHelper(std::unique_ptr<socket::Socket> socket) : socket_owned_(std::move(socket)) {
+    socket_ = socket_owned_.get();
+  }
   virtual ~APIFrameHelper() = default;
   virtual APIError init() = 0;
   virtual APIError loop() = 0;
   virtual APIError read_packet(ReadPacketBuffer *buffer) = 0;
-  virtual bool can_write_without_blocking() = 0;
+  bool can_write_without_blocking() {
+    // First check if we're in the DATA state
+    if (state_ != State::DATA) {
+      return false;
+    }
+
+    // Empty buffer can always accept more data
+    if (tx_buf_.empty()) {
+      return true;
+    }
+
+    // Optimization: Allow writing even with a small buffer backlog to reduce delays in message processing.
+    // This improves throughput for real-time data like sensor readings and prevents high-priority
+    // messages from being unnecessarily delayed by a small queue backlog.
+    // The 256-byte threshold is small enough to not impact memory usage significantly
+    // but large enough to improve overall system responsiveness.
+    if (tx_buf_.size() == 1 && tx_buf_.front().remaining() < 256) {
+      return true;
+    }
+
+    return false;
+  }
   virtual APIError write_packet(uint16_t type, const uint8_t *data, size_t len) = 0;
-  virtual std::string getpeername() = 0;
-  virtual int getpeername(struct sockaddr *addr, socklen_t *addrlen) = 0;
-  virtual APIError close() = 0;
-  virtual APIError shutdown(int how) = 0;
+  std::string getpeername() { return socket_->getpeername(); }
+  int getpeername(struct sockaddr *addr, socklen_t *addrlen) { return socket_->getpeername(addr, addrlen); }
+  APIError close() {
+    state_ = State::CLOSED;
+    int err = this->socket_->close();
+    if (err == -1)
+      return APIError::CLOSE_FAILED;
+    return APIError::OK;
+  }
+  APIError shutdown(int how) {
+    int err = this->socket_->shutdown(how);
+    if (err == -1)
+      return APIError::SHUTDOWN_FAILED;
+    if (how == SHUT_RDWR) {
+      state_ = State::CLOSED;
+    }
+    return APIError::OK;
+  }
   // Give this helper a name for logging
-  virtual void set_log_info(std::string info) = 0;
+  void set_log_info(std::string info) { info_ = std::move(info); }
 
  protected:
+  // Struct for holding parsed frame data
+  struct ParsedFrame {
+    std::vector<uint8_t> msg;
+  };
+
+  // Buffer containing data to be sent
+  struct SendBuffer {
+    std::vector<uint8_t> data;
+    size_t offset{0};  // Current offset within the buffer
+
+    size_t remaining() const { return data.size() - offset; }
+    const uint8_t *current_data() const { return data.data() + offset; }
+  };
+
+  // Queue of data buffers to be sent
+  std::deque<SendBuffer> tx_buf_;
+
+  // Common state enum for all frame helpers
+  // Note: Not all states are used by all implementations
+  // - INITIALIZE: Used by both Noise and Plaintext
+  // - CLIENT_HELLO, SERVER_HELLO, HANDSHAKE: Only used by Noise protocol
+  // - DATA: Used by both Noise and Plaintext
+  // - CLOSED: Used by both Noise and Plaintext
+  // - FAILED: Used by both Noise and Plaintext
+  // - EXPLICIT_REJECT: Only used by Noise protocol
+  enum class State {
+    INITIALIZE = 1,
+    CLIENT_HELLO = 2,  // Noise only
+    SERVER_HELLO = 3,  // Noise only
+    HANDSHAKE = 4,     // Noise only
+    DATA = 5,
+    CLOSED = 6,
+    FAILED = 7,
+    EXPLICIT_REJECT = 8,  // Noise only
+  };
+
+  // Current state of the frame helper
+  State state_{State::INITIALIZE};
+
+  // Helper name for logging
+  std::string info_;
+
+  // Socket for communication
+  socket::Socket *socket_{nullptr};
+  std::unique_ptr<socket::Socket> socket_owned_;
+
   // Common implementation for writing raw data to socket
-  template<typename StateEnum>
-  APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf,
-                      const std::string &info, StateEnum &state, StateEnum failed_state);
+  APIError write_raw_(const struct iovec *iov, int iovcnt);
+
+  // Try to send data from the tx buffer
+  APIError try_send_tx_buf_();
+
+  // Check if the socket would block based on return value
+  inline bool is_would_block(ssize_t ret) const {
+    if (ret == -1) {
+      return errno == EWOULDBLOCK || errno == EAGAIN;
+    }
+    return ret == 0;
+  }
 };
 
 #ifdef USE_API_NOISE
 class APINoiseFrameHelper : public APIFrameHelper {
  public:
   APINoiseFrameHelper(std::unique_ptr<socket::Socket> socket, std::shared_ptr<APINoiseContext> ctx)
-      : socket_(std::move(socket)), ctx_(std::move(std::move(ctx))) {}
+      : APIFrameHelper(std::move(socket)), ctx_(std::move(ctx)) {}
   ~APINoiseFrameHelper() override;
   APIError init() override;
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
-  bool can_write_without_blocking() override;
   APIError write_packet(uint16_t type, const uint8_t *payload, size_t len) override;
-  std::string getpeername() override { return this->socket_->getpeername(); }
-  int getpeername(struct sockaddr *addr, socklen_t *addrlen) override {
-    return this->socket_->getpeername(addr, addrlen);
-  }
-  APIError close() override;
-  APIError shutdown(int how) override;
-  // Give this helper a name for logging
-  void set_log_info(std::string info) override { info_ = std::move(info); }
 
  protected:
-  struct ParsedFrame {
-    std::vector<uint8_t> msg;
-  };
-
   APIError state_action_();
   APIError try_read_frame_(ParsedFrame *frame);
-  APIError try_send_tx_buf_();
   APIError write_frame_(const uint8_t *data, size_t len);
-  inline APIError write_raw_(const struct iovec *iov, int iovcnt) {
-    return APIFrameHelper::write_raw_(iov, iovcnt, socket_.get(), tx_buf_, info_, state_, State::FAILED);
-  }
   APIError init_handshake_();
   APIError check_handshake_finished_();
   void send_explicit_handshake_reject_(const std::string &reason);
-
-  std::unique_ptr<socket::Socket> socket_;
-
-  std::string info_;
   // Fixed-size header buffer for noise protocol:
   // 1 byte for indicator + 2 bytes for message size (16-bit value, not varint)
   // Note: Maximum message size is 65535, with a limit of 128 bytes during handshake phase
@@ -127,7 +200,6 @@ class APINoiseFrameHelper : public APIFrameHelper {
   std::vector<uint8_t> rx_buf_;
   size_t rx_buf_len_ = 0;
 
-  std::vector<uint8_t> tx_buf_;
   std::vector<uint8_t> prologue_;
 
   std::shared_ptr<APINoiseContext> ctx_;
@@ -135,53 +207,21 @@ class APINoiseFrameHelper : public APIFrameHelper {
   NoiseCipherState *send_cipher_{nullptr};
   NoiseCipherState *recv_cipher_{nullptr};
   NoiseProtocolId nid_;
-
-  enum class State {
-    INITIALIZE = 1,
-    CLIENT_HELLO = 2,
-    SERVER_HELLO = 3,
-    HANDSHAKE = 4,
-    DATA = 5,
-    CLOSED = 6,
-    FAILED = 7,
-    EXPLICIT_REJECT = 8,
-  } state_ = State::INITIALIZE;
 };
 #endif  // USE_API_NOISE
 
 #ifdef USE_API_PLAINTEXT
 class APIPlaintextFrameHelper : public APIFrameHelper {
  public:
-  APIPlaintextFrameHelper(std::unique_ptr<socket::Socket> socket) : socket_(std::move(socket)) {}
+  APIPlaintextFrameHelper(std::unique_ptr<socket::Socket> socket) : APIFrameHelper(std::move(socket)) {}
   ~APIPlaintextFrameHelper() override = default;
   APIError init() override;
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
-  bool can_write_without_blocking() override;
   APIError write_packet(uint16_t type, const uint8_t *payload, size_t len) override;
-  std::string getpeername() override { return this->socket_->getpeername(); }
-  int getpeername(struct sockaddr *addr, socklen_t *addrlen) override {
-    return this->socket_->getpeername(addr, addrlen);
-  }
-  APIError close() override;
-  APIError shutdown(int how) override;
-  // Give this helper a name for logging
-  void set_log_info(std::string info) override { info_ = std::move(info); }
 
  protected:
-  struct ParsedFrame {
-    std::vector<uint8_t> msg;
-  };
-
   APIError try_read_frame_(ParsedFrame *frame);
-  APIError try_send_tx_buf_();
-  inline APIError write_raw_(const struct iovec *iov, int iovcnt) {
-    return APIFrameHelper::write_raw_(iov, iovcnt, socket_.get(), tx_buf_, info_, state_, State::FAILED);
-  }
-
-  std::unique_ptr<socket::Socket> socket_;
-
-  std::string info_;
   // Fixed-size header buffer for plaintext protocol:
   // We only need space for the two varints since we validate the indicator byte separately.
   // To match noise protocol's maximum message size (65535), we need:
@@ -198,15 +238,6 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
 
   std::vector<uint8_t> rx_buf_;
   size_t rx_buf_len_ = 0;
-
-  std::vector<uint8_t> tx_buf_;
-
-  enum class State {
-    INITIALIZE = 1,
-    DATA = 2,
-    CLOSED = 3,
-    FAILED = 4,
-  } state_ = State::INITIALIZE;
 };
 #endif
 

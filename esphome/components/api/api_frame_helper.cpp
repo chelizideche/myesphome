@@ -13,14 +13,6 @@ namespace api {
 
 static const char *const TAG = "api.socket";
 
-/// Is the given return value (from write syscalls) a wouldblock error?
-bool is_would_block(ssize_t ret) {
-  if (ret == -1) {
-    return errno == EWOULDBLOCK || errno == EAGAIN;
-  }
-  return ret == 0;
-}
-
 const char *api_error_to_str(APIError err) {
   // not using switch to ensure compiler doesn't try to build a big table out of it
   if (err == APIError::OK) {
@@ -74,13 +66,10 @@ const char *api_error_to_str(APIError err) {
 }
 
 // Common implementation for writing raw data to socket
-template<typename StateEnum>
-APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket,
-                                    std::vector<uint8_t> &tx_buf, const std::string &info, StateEnum &state,
-                                    StateEnum failed_state) {
+APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   // This method writes data to socket or buffers it
   // Returns APIError::OK if successful (or would block, but data has been buffered)
-  // Returns APIError::SOCKET_WRITE_FAILED if socket write failed, and sets state to failed_state
+  // Returns APIError::SOCKET_WRITE_FAILED if socket write failed, and sets state to FAILED
 
   if (iovcnt == 0)
     return APIError::OK;  // Nothing to do, success
@@ -94,71 +83,131 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
     total_write_len += iov[i].iov_len;
   }
 
-  if (!tx_buf.empty()) {
-    // try to empty tx_buf first
-    while (!tx_buf.empty()) {
-      ssize_t sent = socket->write(tx_buf.data(), tx_buf.size());
-      if (is_would_block(sent)) {
-        break;
-      } else if (sent == -1) {
-        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", info.c_str(), errno);
-        state = failed_state;
-        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
-      }
-      // TODO: inefficient if multiple packets in txbuf
-      // replace with deque of buffers
-      tx_buf.erase(tx_buf.begin(), tx_buf.begin() + sent);
+  // Try to send any existing buffered data first
+  if (!this->tx_buf_.empty()) {
+    // Get the first buffer in the queue
+    SendBuffer &front_buffer = this->tx_buf_.front();
+
+    // Try to send the remaining data in this buffer
+    ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
+
+    if (this->is_would_block(sent)) {
+      // Socket would block, we'll try again later
+    } else if (sent == -1) {
+      ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+      this->state_ = State::FAILED;
+      return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+    } else if (sent > 0 && static_cast<size_t>(sent) < front_buffer.remaining()) {
+      // Partially sent, update offset
+      front_buffer.offset += sent;
+    } else if (sent > 0) {
+      // Buffer completely sent, remove it from the queue
+      this->tx_buf_.pop_front();
     }
   }
 
-  if (!tx_buf.empty()) {
-    // tx buf not empty, can't write now because then stream would be inconsistent
-    // Reserve space upfront to avoid multiple reallocations
-    tx_buf.reserve(tx_buf.size() + total_write_len);
+  // If we still have pending data, append the new data to the queue
+  if (!this->tx_buf_.empty()) {
+    // Add new data as a new buffer
+    SendBuffer buffer;
+
+    // Calculate total size needed
+    buffer.data.reserve(total_write_len);
+
+    // Copy all iov segments to the buffer
     for (int i = 0; i < iovcnt; i++) {
-      tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
-                    reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+      const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
+      buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
     }
+
+    // Add to the queue
+    this->tx_buf_.push_back(std::move(buffer));
+
     return APIError::OK;  // Success, data buffered
   }
 
-  ssize_t sent = socket->writev(iov, iovcnt);
-  if (is_would_block(sent)) {
-    // operation would block, add buffer to tx_buf
-    // Reserve space upfront to avoid multiple reallocations
-    tx_buf.reserve(tx_buf.size() + total_write_len);
+  // Try to send directly if no buffered data
+  ssize_t sent = this->socket_->writev(iov, iovcnt);
+
+  if (this->is_would_block(sent)) {
+    // Socket would block, buffer the data
+    SendBuffer buffer;
+    buffer.data.reserve(total_write_len);
+
     for (int i = 0; i < iovcnt; i++) {
-      tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
-                    reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+      const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
+      buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
     }
+
+    this->tx_buf_.push_back(std::move(buffer));
     return APIError::OK;  // Success, data buffered
   } else if (sent == -1) {
-    // an error occurred
-    ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", info.c_str(), errno);
-    state = failed_state;
+    // Socket error
+    ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+    this->state_ = State::FAILED;
     return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
-  } else if ((size_t) sent != total_write_len) {
-    // partially sent, add end to tx_buf
-    size_t remaining = total_write_len - sent;
-    // Reserve space upfront to avoid multiple reallocations
-    tx_buf.reserve(tx_buf.size() + remaining);
-
+  } else if (static_cast<size_t>(sent) < total_write_len) {
+    // Partially sent, buffer the remaining data
+    SendBuffer buffer;
     size_t to_consume = sent;
+    size_t remaining = total_write_len - sent;
+
+    buffer.data.reserve(remaining);
+
     for (int i = 0; i < iovcnt; i++) {
       if (to_consume >= iov[i].iov_len) {
+        // This segment was fully sent
         to_consume -= iov[i].iov_len;
       } else {
-        tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume,
-                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+        // This segment was partially sent or not sent at all
+        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume;
+        size_t len = iov[i].iov_len - to_consume;
+        buffer.data.insert(buffer.data.end(), data, data + len);
         to_consume = 0;
       }
     }
-    return APIError::OK;  // Success, data buffered
+
+    this->tx_buf_.push_back(std::move(buffer));
+    return APIError::OK;  // Success, remaining data buffered
   }
+
   return APIError::OK;  // Success, all data sent
 }
 
-#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, info_.c_str(), ##__VA_ARGS__)
+// Common implementation for trying to send buffered data
+APIError APIFrameHelper::try_send_tx_buf_() {
+  // Try to send from tx_buf
+  while (state_ != State::CLOSED && !this->tx_buf_.empty()) {
+    // Get the first buffer in the queue
+    SendBuffer &front_buffer = this->tx_buf_.front();
+
+    // Try to send the remaining data in this buffer
+    ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
+
+    if (this->is_would_block(sent)) {
+      // Socket would block, try again later
+      break;
+    } else if (sent == -1) {
+      // Socket error
+      state_ = State::FAILED;
+      ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+      return APIError::SOCKET_WRITE_FAILED;
+    } else if (sent == 0) {
+      // No data sent but not an error, try again later
+      break;
+    } else if (static_cast<size_t>(sent) < front_buffer.remaining()) {
+      // Partially sent, update offset
+      front_buffer.offset += sent;
+    } else {
+      // Buffer completely sent, remove it from the queue
+      this->tx_buf_.pop_front();
+    }
+  }
+
+  return APIError::OK;
+}
+
+#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->info_.c_str(), ##__VA_ARGS__)
 // uncomment to log raw packets
 //#define HELPER_LOG_PACKETS
 
@@ -206,11 +255,11 @@ std::string noise_err_to_str(int err) {
 
 /// Initialize the frame helper, returns OK if successful.
 APIError APINoiseFrameHelper::init() {
-  if (state_ != State::INITIALIZE || socket_ == nullptr) {
+  if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
     HELPER_LOG("Bad state for init %d", (int) state_);
     return APIError::BAD_STATE;
   }
-  int err = socket_->setblocking(false);
+  int err = this->socket_->setblocking(false);
   if (err != 0) {
     state_ = State::FAILED;
     HELPER_LOG("Setting nonblocking failed with errno %d", errno);
@@ -218,7 +267,7 @@ APIError APINoiseFrameHelper::init() {
   }
 
   int enable = 1;
-  err = socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
+  err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
   if (err != 0) {
     state_ = State::FAILED;
     HELPER_LOG("Setting nodelay failed with errno %d", errno);
@@ -238,7 +287,7 @@ APIError APINoiseFrameHelper::loop() {
     return APIError::OK;
   if (err != APIError::OK)
     return err;
-  if (!tx_buf_.empty()) {
+  if (!this->tx_buf_.empty()) {
     err = try_send_tx_buf_();
     if (err != APIError::OK) {
       return err;
@@ -271,7 +320,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
   if (rx_header_buf_len_ < 3) {
     // no header information yet
     size_t to_read = 3 - rx_header_buf_len_;
-    ssize_t received = socket_->read(&rx_header_buf_[rx_header_buf_len_], to_read);
+    ssize_t received = this->socket_->read(&rx_header_buf_[rx_header_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         return APIError::WOULD_BLOCK;
@@ -318,7 +367,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
   if (rx_buf_len_ < msg_size) {
     // more data to read
     size_t to_read = msg_size - rx_buf_len_;
-    ssize_t received = socket_->read(&rx_buf_[rx_buf_len_], to_read);
+    ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         return APIError::WOULD_BLOCK;
@@ -556,7 +605,6 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   buffer->type = type;
   return APIError::OK;
 }
-bool APINoiseFrameHelper::can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
 APIError APINoiseFrameHelper::write_packet(uint16_t type, const uint8_t *payload, size_t payload_len) {
   int err;
   APIError aerr;
@@ -610,27 +658,7 @@ APIError APINoiseFrameHelper::write_packet(uint16_t type, const uint8_t *payload
   iov.iov_len = total_len;
 
   // write raw to not have two packets sent if NAGLE disabled
-  return write_raw_(&iov, 1);
-}
-APIError APINoiseFrameHelper::try_send_tx_buf_() {
-  // try send from tx_buf
-  while (state_ != State::CLOSED && !tx_buf_.empty()) {
-    ssize_t sent = socket_->write(tx_buf_.data(), tx_buf_.size());
-    if (sent == -1) {
-      if (errno == EWOULDBLOCK || errno == EAGAIN)
-        break;
-      state_ = State::FAILED;
-      HELPER_LOG("Socket write failed with errno %d", errno);
-      return APIError::SOCKET_WRITE_FAILED;
-    } else if (sent == 0) {
-      break;
-    }
-    // TODO: inefficient if multiple packets in txbuf
-    // replace with deque of buffers
-    tx_buf_.erase(tx_buf_.begin(), tx_buf_.begin() + sent);
-  }
-
-  return APIError::OK;
+  return APIFrameHelper::write_raw_(&iov, 1);
 }
 APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, size_t len) {
   uint8_t header[3];
@@ -642,12 +670,12 @@ APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, size_t len) {
   iov[0].iov_base = header;
   iov[0].iov_len = 3;
   if (len == 0) {
-    return write_raw_(iov, 1);
+    return APIFrameHelper::write_raw_(iov, 1);
   }
   iov[1].iov_base = const_cast<uint8_t *>(data);
   iov[1].iov_len = len;
 
-  return write_raw_(iov, 2);
+  return APIFrameHelper::write_raw_(iov, 2);
 }
 
 /** Initiate the data structures for the handshake.
@@ -740,22 +768,6 @@ APINoiseFrameHelper::~APINoiseFrameHelper() {
   }
 }
 
-APIError APINoiseFrameHelper::close() {
-  state_ = State::CLOSED;
-  int err = socket_->close();
-  if (err == -1)
-    return APIError::CLOSE_FAILED;
-  return APIError::OK;
-}
-APIError APINoiseFrameHelper::shutdown(int how) {
-  int err = socket_->shutdown(how);
-  if (err == -1)
-    return APIError::SHUTDOWN_FAILED;
-  if (how == SHUT_RDWR) {
-    state_ = State::CLOSED;
-  }
-  return APIError::OK;
-}
 extern "C" {
 // declare how noise generates random bytes (here with a good HWRNG based on the RF system)
 void noise_rand_bytes(void *output, size_t len) {
@@ -766,28 +778,24 @@ void noise_rand_bytes(void *output, size_t len) {
 }
 }
 
-// Explicit template instantiation for Noise
-template APIError APIFrameHelper::write_raw_<APINoiseFrameHelper::State>(
-    const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf_, const std::string &info,
-    APINoiseFrameHelper::State &state, APINoiseFrameHelper::State failed_state);
 #endif  // USE_API_NOISE
 
 #ifdef USE_API_PLAINTEXT
 
 /// Initialize the frame helper, returns OK if successful.
 APIError APIPlaintextFrameHelper::init() {
-  if (state_ != State::INITIALIZE || socket_ == nullptr) {
+  if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
     HELPER_LOG("Bad state for init %d", (int) state_);
     return APIError::BAD_STATE;
   }
-  int err = socket_->setblocking(false);
+  int err = this->socket_->setblocking(false);
   if (err != 0) {
     state_ = State::FAILED;
     HELPER_LOG("Setting nonblocking failed with errno %d", errno);
     return APIError::TCP_NONBLOCKING_FAILED;
   }
   int enable = 1;
-  err = socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
+  err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
   if (err != 0) {
     state_ = State::FAILED;
     HELPER_LOG("Setting nodelay failed with errno %d", errno);
@@ -803,7 +811,7 @@ APIError APIPlaintextFrameHelper::loop() {
     return APIError::BAD_STATE;
   }
   // try send pending TX data
-  if (!tx_buf_.empty()) {
+  if (!this->tx_buf_.empty()) {
     APIError err = try_send_tx_buf_();
     if (err != APIError::OK) {
       return err;
@@ -834,7 +842,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
     // there is no data on the wire (which is the common case).
     // This results in faster failure detection compared to
     // attempting to read multiple bytes at once.
-    ssize_t received = socket_->read(&data, 1);
+    ssize_t received = this->socket_->read(&data, 1);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         return APIError::WOULD_BLOCK;
@@ -918,7 +926,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   if (rx_buf_len_ < rx_header_parsed_len_) {
     // more data to read
     size_t to_read = rx_header_parsed_len_ - rx_buf_len_;
-    ssize_t received = socket_->read(&rx_buf_[rx_buf_len_], to_read);
+    ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         return APIError::WOULD_BLOCK;
@@ -978,7 +986,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
                          "Bad indicator byte";
       iov[0].iov_base = (void *) msg;
       iov[0].iov_len = 19;
-      write_raw_(iov, 1);
+      APIFrameHelper::write_raw_(iov, 1);
     }
     return aerr;
   }
@@ -989,7 +997,6 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   buffer->type = rx_header_parsed_type_;
   return APIError::OK;
 }
-bool APIPlaintextFrameHelper::can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
 APIError APIPlaintextFrameHelper::write_packet(uint16_t type, const uint8_t *payload, size_t payload_len) {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
@@ -1006,53 +1013,14 @@ APIError APIPlaintextFrameHelper::write_packet(uint16_t type, const uint8_t *pay
   iov[0].iov_base = &header[0];
   iov[0].iov_len = header.size();
   if (payload_len == 0) {
-    return write_raw_(iov, 1);
+    return APIFrameHelper::write_raw_(iov, 1);
   }
   iov[1].iov_base = const_cast<uint8_t *>(payload);
   iov[1].iov_len = payload_len;
 
-  return write_raw_(iov, 2);
-}
-APIError APIPlaintextFrameHelper::try_send_tx_buf_() {
-  // try send from tx_buf
-  while (state_ != State::CLOSED && !tx_buf_.empty()) {
-    ssize_t sent = socket_->write(tx_buf_.data(), tx_buf_.size());
-    if (is_would_block(sent)) {
-      break;
-    } else if (sent == -1) {
-      state_ = State::FAILED;
-      HELPER_LOG("Socket write failed with errno %d", errno);
-      return APIError::SOCKET_WRITE_FAILED;
-    }
-    // TODO: inefficient if multiple packets in txbuf
-    // replace with deque of buffers
-    tx_buf_.erase(tx_buf_.begin(), tx_buf_.begin() + sent);
-  }
-
-  return APIError::OK;
+  return APIFrameHelper::write_raw_(iov, 2);
 }
 
-APIError APIPlaintextFrameHelper::close() {
-  state_ = State::CLOSED;
-  int err = socket_->close();
-  if (err == -1)
-    return APIError::CLOSE_FAILED;
-  return APIError::OK;
-}
-APIError APIPlaintextFrameHelper::shutdown(int how) {
-  int err = socket_->shutdown(how);
-  if (err == -1)
-    return APIError::SHUTDOWN_FAILED;
-  if (how == SHUT_RDWR) {
-    state_ = State::CLOSED;
-  }
-  return APIError::OK;
-}
-
-// Explicit template instantiation for Plaintext
-template APIError APIFrameHelper::write_raw_<APIPlaintextFrameHelper::State>(
-    const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf_, const std::string &info,
-    APIPlaintextFrameHelper::State &state, APIPlaintextFrameHelper::State failed_state);
 #endif  // USE_API_PLAINTEXT
 
 }  // namespace api
