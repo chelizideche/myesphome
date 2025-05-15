@@ -5,28 +5,37 @@
 namespace esphome {
 namespace sx127x {
 
+using namespace esphome::lora;
+
 static const char *const TAG = "sx127x_lora";
 
-void SX127xLoRa::set_frequency(uint32_t frequency) {
+LoRaCommandResponse SX127xLoRa::set_frequency(uint32_t frequency) {
   this->parent_->set_frequency(frequency);
   this->parent_->configure();
+  return LoRaCommandResponse::OK;
 }
 
-void SX127xLoRa::set_mode(lora::LoRaMode mode) {
+LoRaCommandResponse SX127xLoRa::set_mode(LoRaMode mode) {
   switch (mode) {
-    case lora::LoRaMode::SLEEP:
+    case LoRaMode::INIT:
+      this->parent_->configure();
+      break;
+    case LoRaMode::WAKEUP:
+      return LoRaCommandResponse::UNSUPPORTED_FEATURE;
+    case LoRaMode::SLEEP:
       this->parent_->set_mode_sleep();
       break;
-    case lora::LoRaMode::STANDBY:
+    case LoRaMode::STANDBY:
       this->parent_->set_mode_standby();
       break;
-    case lora::LoRaMode::RX:
+    case LoRaMode::RX:
       this->parent_->set_mode_rx();
       break;
-    case lora::LoRaMode::TX:
+    case LoRaMode::TX:
       this->parent_->set_mode_tx();
       break;
   }
+  return LoRaCommandResponse::OK;
 }
 
 }  // namespace sx127x

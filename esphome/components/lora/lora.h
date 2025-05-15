@@ -7,7 +7,9 @@
 namespace esphome {
 namespace lora {
 
-enum class LoRaMode { SLEEP, STANDBY, RX, TX };
+enum class LoRaCommandResponse { OK, UNSUPPORTED_FEATURE, UNKNOWN_VALUE, ERROR };
+
+enum class LoRaMode { INIT, WAKEUP, SLEEP, STANDBY, RX, TX };
 
 class LoRaListener {
  public:
@@ -24,8 +26,10 @@ class LoRa : public Component {
   void set_platform_name(const char *name) { this->platform_name_ = name; }
 
   // Radio config functions
-  virtual void set_frequency(uint32_t frequency) = 0;
-  virtual void set_mode(LoRaMode mode) = 0;
+  virtual LoRaCommandResponse set_frequency(uint32_t frequency) = 0;
+  virtual LoRaCommandResponse set_mode(LoRaMode mode) = 0;
+
+  // Radio information
   virtual size_t get_max_packet_size() = 0;
 
   // Radio operational functions
