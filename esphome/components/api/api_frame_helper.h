@@ -164,14 +164,6 @@ class APIFrameHelper {
 
   // Try to send data from the tx buffer
   APIError try_send_tx_buf_();
-
-  // Check if the socket would block based on return value
-  inline bool is_would_block(ssize_t ret) const {
-    if (ret == -1) {
-      return errno == EWOULDBLOCK || errno == EAGAIN;
-    }
-    return ret == 0;
-  }
 };
 
 #ifdef USE_API_NOISE

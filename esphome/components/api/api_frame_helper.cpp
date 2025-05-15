@@ -91,12 +91,14 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     // Try to send the remaining data in this buffer
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
-    if (this->is_would_block(sent)) {
-      // Socket would block, we'll try again later
-    } else if (sent == -1) {
-      ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
-      this->state_ = State::FAILED;
-      return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+    if (sent == -1) {
+      if (errno != EWOULDBLOCK && errno != EAGAIN) {
+        // Real socket error (not just would block)
+        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+        this->state_ = State::FAILED;
+        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+      }
+      // Socket would block, we'll try again later and continue execution to append new data to the buffer
     } else if (sent > 0 && static_cast<size_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
       front_buffer.offset += sent;
@@ -129,19 +131,20 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   // Try to send directly if no buffered data
   ssize_t sent = this->socket_->writev(iov, iovcnt);
 
-  if (this->is_would_block(sent)) {
-    // Socket would block, buffer the data
-    SendBuffer buffer;
-    buffer.data.reserve(total_write_len);
+  if (sent == -1) {
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      // Socket would block, buffer the data
+      SendBuffer buffer;
+      buffer.data.reserve(total_write_len);
 
-    for (int i = 0; i < iovcnt; i++) {
-      const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
-      buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
+      for (int i = 0; i < iovcnt; i++) {
+        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
+        buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
+      }
+
+      this->tx_buf_.push_back(std::move(buffer));
+      return APIError::OK;  // Success, data buffered
     }
-
-    this->tx_buf_.push_back(std::move(buffer));
-    return APIError::OK;  // Success, data buffered
-  } else if (sent == -1) {
     // Socket error
     ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
     this->state_ = State::FAILED;
@@ -184,10 +187,11 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     // Try to send the remaining data in this buffer
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
-    if (this->is_would_block(sent)) {
-      // Socket would block, try again later
-      break;
-    } else if (sent == -1) {
+    if (sent == -1) {
+      if (errno == EWOULDBLOCK || errno == EAGAIN) {
+        // Socket would block, try again later
+        break;
+      }
       // Socket error
       state_ = State::FAILED;
       ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
