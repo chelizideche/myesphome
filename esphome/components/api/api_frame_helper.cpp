@@ -94,7 +94,6 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     if (sent == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         // Socket would block, we'll try again later
-        return APIError::OK;  // Return early, buffer remains for next attempt
       } else {
         ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
         this->state_ = State::FAILED;
