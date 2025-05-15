@@ -185,9 +185,10 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     } else if (sent == 0) {
       // Nothing sent but not an error
       return APIError::WOULD_BLOCK;
-    } else if (static_cast<size_t>(sent) < front_buffer.remaining()) {
+    } else if (static_cast<uint16_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
-      front_buffer.offset += sent;
+      // Cast to ensure no overflow issues with uint16_t
+      front_buffer.offset += static_cast<uint16_t>(sent);
       return APIError::WOULD_BLOCK;  // Stop processing more buffers if we couldn't send a complete buffer
     } else {
       // Buffer completely sent, remove it from the queue
