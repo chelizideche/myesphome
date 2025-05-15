@@ -248,7 +248,7 @@ class Logger : public Component {
 #ifdef USE_ESP32
   // Task-specific recursion guards:
   // - Main task uses a dedicated member variable for efficiency
-  // - Other tasks use pthread TLS with key 1 (requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2)
+  // - Other tasks use pthread TLS with a dynamically created key via pthread_key_create
   bool main_task_recursion_guard_{false};
   pthread_key_t log_recursion_key_;
 #else
