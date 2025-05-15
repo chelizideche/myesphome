@@ -14,25 +14,47 @@ namespace logger {
 static const char *const TAG = "logger";
 
 #ifdef USE_ESP32
-// Implementation for ESP32 (multi-core with atomic support)
-// Main thread: synchronous logging with direct buffer access
-// Other threads: console output with stack buffer, callbacks via async buffer
+// Implementation for ESP32 (multi-task platform with task-specific tracking)
+// Main task always uses direct buffer access for console output and callbacks
+//
+// For non-main tasks:
+//  - WITH task log buffer: Prefer sending to ring buffer for async processing
+//    - Avoids allocating stack memory for console output in normal operation
+//    - Prevents console corruption from concurrent writes by multiple tasks
+//    - Messages are serialized through main loop for proper console output
+//    - Fallback to emergency console logging only if ring buffer is full
+//  - WITHOUT task log buffer: Only emergency console output, no callbacks
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_.load(std::memory_order_relaxed))
+  if (level > this->level_for(tag))
     return;
-  recursion_guard_.store(true, std::memory_order_relaxed);
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+  bool is_main_task = (current_task == main_task_);
 
-  // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
-  if (current_task == main_task_) {
+  // Check and set recursion guard - uses pthread TLS for per-task state
+  if (this->check_and_set_task_log_recursion_(is_main_task)) {
+    return;  // Recursion detected
+  }
+
+  // Main task uses the shared buffer for efficiency
+  if (is_main_task) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    recursion_guard_.store(false, std::memory_order_release);
+    this->reset_task_log_recursion_(is_main_task);
     return;
   }
 
-  // For non-main tasks: use stack-allocated buffer only for console output
-  if (this->baud_rate_ > 0) {  // If logging is enabled, write to console
+  bool message_sent = false;
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
+  // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
+  message_sent = this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag,
+                                                             static_cast<uint16_t>(line), current_task, format, args);
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER
+
+  // Emergency console logging for non-main tasks when ring buffer is full or disabled
+  // This is a fallback mechanism to ensure critical log messages are visible
+  // Note: This may cause interleaved/corrupted console output if multiple tasks
+  // log simultaneously, but it's better than losing important messages entirely
+  if (!message_sent && this->baud_rate_ > 0) {  // If logging is enabled, write to console
     // Maximum size for console log messages (includes null terminator)
     static const size_t MAX_CONSOLE_LOG_MSG_SIZE = 144;
     char console_buffer[MAX_CONSOLE_LOG_MSG_SIZE];  // MUST be stack allocated for thread safety
@@ -42,32 +64,21 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     this->write_msg_(console_buffer);
   }
 
-#ifdef USE_ESPHOME_TASK_LOG_BUFFER
-  // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
-  if (this->log_callback_.size() > 0) {
-    // This will be processed in the main loop
-    this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                                current_task, format, args);
-  }
-#endif  // USE_ESPHOME_TASK_LOG_BUFFER
-
-  recursion_guard_.store(false, std::memory_order_release);
+  // Reset the recursion guard for this task
+  this->reset_task_log_recursion_(is_main_task);
 }
-#endif  // USE_ESP32
-
-#ifndef USE_ESP32
-// Implementation for platforms that do not support atomic operations
-// or have to consider logging in other tasks
+#else
+// Implementation for all other platforms
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
+  if (level > this->level_for(tag) || global_recursion_guard_)
     return;
 
-  recursion_guard_ = true;
+  global_recursion_guard_ = true;
 
   // Format and send to both console and callbacks
   this->log_message_to_buffer_and_send_(level, tag, line, format, args);
 
-  recursion_guard_ = false;
+  global_recursion_guard_ = false;
 }
 #endif  // !USE_ESP32
 
@@ -76,10 +87,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 // Note: USE_STORE_LOG_STR_IN_FLASH is only defined for ESP8266.
 void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format,
                           va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
+  if (level > this->level_for(tag) || global_recursion_guard_)
     return;
 
-  recursion_guard_ = true;
+  global_recursion_guard_ = true;
   this->tx_buffer_at_ = 0;
 
   // Copy format string from progmem
@@ -91,7 +102,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
 
   // Buffer full from copying format
   if (this->tx_buffer_at_ >= this->tx_buffer_size_) {
-    recursion_guard_ = false;  // Make sure to reset the recursion guard before returning
+    global_recursion_guard_ = false;  // Make sure to reset the recursion guard before returning
     return;
   }
 
@@ -107,7 +118,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   }
   this->call_log_callbacks_(level, tag, this->tx_buffer_ + msg_start);
 
-  recursion_guard_ = false;
+  global_recursion_guard_ = false;
 }
 #endif  // USE_STORE_LOG_STR_IN_FLASH
 
@@ -179,7 +190,17 @@ void Logger::loop() {
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
       this->tx_buffer_[this->tx_buffer_at_] = '\0';
       this->call_log_callbacks_(message->level, message->tag, this->tx_buffer_);
+      // At this point all the data we need from message has been transferred to the tx_buffer
+      // so we can release the message to allow other tasks to use it as soon as possible.
       this->log_buffer_->release_message_main_loop(received_token);
+
+      // Write to console from the main loop to prevent corruption from concurrent writes
+      // This ensures all log messages appear on the console in a clean, serialized manner
+      // Note: Messages may appear slightly out of order due to async processing, but
+      // this is preferred over corrupted/interleaved console output
+      if (this->baud_rate_ > 0) {
+        this->write_msg_(this->tx_buffer_);
+      }
     }
   }
 #endif
