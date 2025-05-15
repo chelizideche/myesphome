@@ -283,7 +283,10 @@ APIError APINoiseFrameHelper::loop() {
     return err;
   if (this->tx_buf_.empty())
     return APIError::OK;
-  return try_send_tx_buf_();
+  err = try_send_tx_buf_();
+  if (err == APIError::WOULD_BLOCK)
+    return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
+  return err;
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
@@ -802,7 +805,10 @@ APIError APIPlaintextFrameHelper::loop() {
   }
   if (this->tx_buf_.empty())
     return APIError::OK;
-  return try_send_tx_buf_();
+  APIError err = try_send_tx_buf_();
+  if (err == APIError::WOULD_BLOCK)
+    return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
+  return err;
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
