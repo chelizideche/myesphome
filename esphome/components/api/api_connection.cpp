@@ -60,8 +60,6 @@ void DeferredMessageQueue::defer(void *source, send_message_t send_message) {
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), deferred_message_queue_(this), initial_state_iterator_(this), list_entities_iterator_(this) {
-  this->proto_write_buffer_.reserve(64);
-
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
   auto noise_ctx = parent->get_noise_ctx();
   if (noise_ctx->has_psk()) {
