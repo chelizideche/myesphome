@@ -65,9 +65,19 @@ const char *api_error_to_str(APIError err) {
   return "UNKNOWN";
 }
 
-// Common implementation for writing raw data to socket
+// Helper method to buffer data from IOVs
+void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, size_t total_write_len) {
+  SendBuffer buffer;
+  buffer.data.reserve(total_write_len);
+  for (int i = 0; i < iovcnt; i++) {
+    const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
+    buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
+  }
+  this->tx_buf_.push_back(std::move(buffer));
+}
+
+// This method writes data to socket or buffers it
 APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
-  // This method writes data to socket or buffers it
   // Returns APIError::OK if successful (or would block, but data has been buffered)
   // Returns APIError::SOCKET_WRITE_FAILED if socket write failed, and sets state to FAILED
 
@@ -86,28 +96,15 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   // Try to send any existing buffered data first if there is any
   if (!this->tx_buf_.empty()) {
     APIError send_result = try_send_tx_buf_();
-
     // If real error occurred (not just WOULD_BLOCK), return it
     if (send_result != APIError::OK && send_result != APIError::WOULD_BLOCK) {
       return send_result;
     }
-    // At this point, either we succeeded in sending all buffers (tx_buf_ is now empty),
-    // or we got WOULD_BLOCK (some buffers remain). In either case, we need to check
-    // if the buffer is empty before proceeding to direct sending.
 
     // If there is still data in the buffer, we can't send, buffer
     // the new data and return
     if (!this->tx_buf_.empty()) {
-      // Add new data to the buffer queue
-      SendBuffer buffer;
-      buffer.data.reserve(total_write_len);
-
-      for (int i = 0; i < iovcnt; i++) {
-        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
-        buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
-      }
-
-      this->tx_buf_.push_back(std::move(buffer));
+      this->buffer_data_from_iov_(iov, iovcnt, total_write_len);
       return APIError::OK;  // Success, data buffered
     }
   }
@@ -118,15 +115,7 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   if (sent == -1) {
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
       // Socket would block, buffer the data
-      SendBuffer buffer;
-      buffer.data.reserve(total_write_len);
-
-      for (int i = 0; i < iovcnt; i++) {
-        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
-        buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
-      }
-
-      this->tx_buf_.push_back(std::move(buffer));
+      this->buffer_data_from_iov_(iov, iovcnt, total_write_len);
       return APIError::OK;  // Success, data buffered
     }
     // Socket error
@@ -155,10 +144,9 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     }
 
     this->tx_buf_.push_back(std::move(buffer));
-    return APIError::OK;  // Success, remaining data buffered
   }
 
-  return APIError::OK;  // Success, all data sent
+  return APIError::OK;  // Success, all data sent or buffered
 }
 
 // Common implementation for trying to send buffered data
