@@ -388,9 +388,7 @@ class LWIPRawImpl : public Socket {
 
     // Check if we have data in the receive buffer
     if (rx_buf_ != nullptr) {
-      size_t pb_len = rx_buf_->len;
-      size_t pb_left = pb_len - rx_buf_offset_;
-      return pb_left;
+      return rx_buf_->len - rx_buf_offset_;
     }
 
     // No data in buffer
