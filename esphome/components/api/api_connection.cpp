@@ -1773,27 +1773,12 @@ bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
     ESP_LOGW(TAG, "%s: Socket operation failed: %s errno=%d", this->client_combined_info_.c_str(),
              api_error_to_str(err), errno);
     return false;
-<<<<<<< HEAD
-=======
   }
   if (this->helper_->can_write_without_blocking())
     return true;
   if (log_out_of_space) {
     ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
   }
-  return false;
-}
-bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
-  if (!this->try_to_clear_buffer(message_type != 29)) {  // SubscribeLogsResponse
-    return false;
->>>>>>> upstream/dev
-  }
-  if (this->helper_->can_write_without_blocking())
-    return true;
-  if (log_out_of_space) {
-    ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
-  }
-  delay(0);  // Not sure this makes sense, but it is in the original code
   return false;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
