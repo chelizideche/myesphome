@@ -121,9 +121,10 @@ class APIFrameHelper {
   // Buffer containing data to be sent
   struct SendBuffer {
     std::vector<uint8_t> data;
-    size_t offset{0};  // Current offset within the buffer
+    uint16_t offset{0};  // Current offset within the buffer (uint16_t to reduce memory usage)
 
-    size_t remaining() const { return data.size() - offset; }
+    // Using uint16_t reduces memory usage since ESPHome API messages are limited to 64KB max
+    uint16_t remaining() const { return static_cast<uint16_t>(data.size()) - offset; }
     const uint8_t *current_data() const { return data.data() + offset; }
   };
 
