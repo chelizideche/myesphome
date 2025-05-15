@@ -249,6 +249,7 @@ class Logger : public Component {
   // - Main task uses a dedicated member variable for efficiency
   // - Other tasks use pthread TLS with key 1 (requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2)
   bool main_task_recursion_guard_{false};
+  pthread_key_t log_recursion_key_;
 #else
   bool global_recursion_guard_{false};  // Simple global recursion guard for single-task platforms
 #endif
@@ -271,8 +272,6 @@ class Logger : public Component {
 #endif
 
 #ifdef USE_ESP32
-  static pthread_key_t log_recursion_key_;
-
   inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {
     if (is_main_task) {
       const bool was_recursive = main_task_recursion_guard_;
