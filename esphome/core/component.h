@@ -348,7 +348,6 @@ class WarnIfComponentBlockingGuard {
 
  protected:
   uint32_t started_;
-  uint32_t end_time_{0};
   Component *component_;
 };
 
