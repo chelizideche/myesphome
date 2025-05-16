@@ -12,7 +12,7 @@ from esphome.const import (
     CONF_WAKEUP_PIN,
     CONF_TRANSFORM,
     CONF_MIRROR_X,
-    CONF_MIRROR_Y
+    CONF_MIRROR_Y,
 )
 
 DEPENDENCIES = ["i2c", "esp32"]
@@ -65,11 +65,11 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(Inkplate6),
             cv.Optional(CONF_GREYSCALE, default=False): cv.boolean,
             cv.Optional(CONF_TRANSFORM): cv.Schema(
-                    {
-                        cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
-                        cv.Optional(CONF_MIRROR_Y, default=False): cv.boolean,
-                    }
-                ),
+                {
+                    cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
+                    cv.Optional(CONF_MIRROR_Y, default=False): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_PARTIAL_UPDATING, default=True): cv.boolean,
             cv.Optional(CONF_FULL_UPDATE_EVERY, default=10): cv.uint32_t,
             cv.Optional(CONF_MODEL, default="inkplate_6"): cv.enum(
