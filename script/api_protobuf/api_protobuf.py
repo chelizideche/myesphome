@@ -904,12 +904,11 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
 
     # Check if this message has a pre-calculated fixed size
-    if fixed_size >= 0:
+    if fixed_size > 0:
         # For messages with no variable length or repeated fields, use pre-calculated size
-        if fixed_size == 0:
-            o += ""  # No size calculation needed - empty message
-        else:
-            o += f"\n  total_size += {fixed_size};  // Pre-calculated maximum size\n"
+        o += f"\n  total_size += {fixed_size};  // Pre-calculated maximum size\n"
+    # Add a check for empty/default objects to short-circuit the calculation
+    # Only add this optimization if we have fields to check
     elif size_calc:
         # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
