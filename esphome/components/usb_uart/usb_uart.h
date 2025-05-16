@@ -63,8 +63,8 @@ class RingBuffer {
  protected:
   uint16_t insert_pos_ = 0;
   uint16_t read_pos_ = 0;
-  uint16_t buffer_size_{256};
-  uint8_t *buffer_{};
+  uint16_t buffer_size_;
+  uint8_t *buffer_;
 };
 
 class USBUartChannel : public uart::UARTComponent, public Parented<USBUartComponent> {
