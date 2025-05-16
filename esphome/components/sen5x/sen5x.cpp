@@ -25,8 +25,8 @@ static const uint16_t SEN5X_CMD_TEMPERATURE_COMPENSATION = 0x60B2;
 static const uint16_t SEN5X_CMD_VOC_ALGORITHM_STATE = 0x6181;
 static const uint16_t SEN5X_CMD_VOC_ALGORITHM_TUNING = 0x60D0;
 
-static const uint16_t SEN5X_MAX_INDEX_VALUE = 500;
-static const uint8_t SEN5X_MIN_INDEX_VALUE = 1;
+static const int16_t SEN5X_MAX_INDEX_VALUE = 500;
+static const int8_t SEN5X_MIN_INDEX_VALUE = 1;
 
 void SEN5XComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up sen5x...");
@@ -341,46 +341,36 @@ void SEN5XComponent::update() {
       ESP_LOGD(TAG, "read data error (%d)", this->last_error_);
       return;
     }
+
     ESP_LOGVV(TAG, "pm_1_0 = 0x%.4x", measurements[0]);
-    float pm_1_0 = measurements[0] / 10.0;
-    if (measurements[0] == UINT16_MAX) {
-      pm_1_0 = NAN;
-    }
+    float pm_1_0 = measurements[0] == UINT16_MAX ? NAN : measurements[0] / 10.0;
+
     ESP_LOGVV(TAG, "pm_2_5 = 0x%.4x", measurements[1]);
-    float pm_2_5 = measurements[1] / 10.0;
-    if (measurements[1] == UINT16_MAX) {
-      pm_2_5 = NAN;
-    }
+    float pm_2_5 = measurements[1] == UINT16_MAX ? NAN : measurements[1] / 10.0;
+
     ESP_LOGVV(TAG, "pm_4_0 = 0x%.4x", measurements[2]);
-    float pm_4_0 = measurements[2] / 10.0;
-    if (measurements[2] == UINT16_MAX) {
-      pm_4_0 = NAN;
-    }
+    float pm_4_0 = measurements[2] == UINT16_MAX ? NAN : measurements[2] / 10.0;
+
     ESP_LOGVV(TAG, "pm_10_0 = 0x%.4x", measurements[3]);
-    float pm_10_0 = measurements[3] / 10.0;
-    if (measurements[3] == UINT16_MAX) {
-      pm_10_0 = NAN;
-    }
+    float pm_10_0 = measurements[3] == UINT16_MAX ? NAN : measurements[3] / 10.0;
+
     ESP_LOGVV(TAG, "humidity = 0x%.4x", measurements[4]);
-    float humidity = static_cast<int16_t>(measurements[4]) / 100.0;
-    if (measurements[4] == INT16_MAX) {
-      humidity = NAN;
-    }
+    float humidity = measurements[4] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[4]) / 100.0;
+
     ESP_LOGVV(TAG, "temperature = 0x%.4x", measurements[5]);
-    float temperature = static_cast<int16_t>(measurements[5]) / 200.0;
-    if (measurements[5] == INT16_MAX) {
-      temperature = NAN;
-    }
+    float temperature = measurements[5] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[5]) / 200.0;
+
     ESP_LOGVV(TAG, "voc = 0x%.4x", measurements[6]);
-    float voc = static_cast<int16_t>(measurements[6]) / 10.0;
-    if (voc < SEN5X_MIN_INDEX_VALUE || voc > SEN5X_MAX_INDEX_VALUE) {
-      voc = NAN;
-    }
+    int16_t voc_idx = static_cast<int16_t>(measurements[6]);
+    float voc = (voc_idx < SEN5X_MIN_INDEX_VALUE * 10 || voc_idx > SEN5X_MAX_INDEX_VALUE * 10)
+                    ? NAN
+                    : static_cast<float>(voc_idx) / 10.0f;
+
     ESP_LOGVV(TAG, "nox = 0x%.4x", measurements[7]);
-    float nox = static_cast<int16_t>(measurements[7]) / 10.0;
-    if (nox < SEN5X_MIN_INDEX_VALUE || nox > SEN5X_MAX_INDEX_VALUE) {
-      nox = NAN;
-    }
+    int16_t nox_idx = static_cast<int16_t>(measurements[7]);
+    float nox = (nox_idx < SEN5X_MIN_INDEX_VALUE * 10 || nox_idx > SEN5X_MAX_INDEX_VALUE * 10)
+                    ? NAN
+                    : static_cast<float>(nox_idx) / 10.0f;
 
     if (this->pm_1_0_sensor_ != nullptr) {
       this->pm_1_0_sensor_->publish_state(pm_1_0);
