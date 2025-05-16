@@ -797,6 +797,9 @@ def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
             return -1  # Can't be fixed size
 
         max_data_size = PROTOBUF_TYPE_SIZES[field.type]
+        if max_data_size == -1:
+            return -1
+
         ti = TYPE_INFO[field.type]
 
         # Get field ID size
