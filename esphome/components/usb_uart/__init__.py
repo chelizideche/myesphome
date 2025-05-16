@@ -65,15 +65,6 @@ uart_types = (
 )
 
 
-def max_length(length):
-    def validator(value):
-        if len(value) > length:
-            raise cv.Invalid(f"Too many list entries: {len(value)} > {length}")
-        return value
-
-    return validator
-
-
 def channel_schema(channels, baud_rate_required):
     return cv.Schema(
         {
@@ -106,7 +97,7 @@ def channel_schema(channels, baud_rate_required):
                         }
                     )
                 ),
-                max_length(channels),
+                cv.Length(channels),
             )
         }
     )
