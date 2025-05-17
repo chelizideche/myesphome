@@ -33,7 +33,10 @@ void BinarySensor::send_state_internal(bool state) {
   }
   this->has_state_ = true;
   this->state = state;
-  if (!is_initial || this->publish_initial_state_) {
+  if (is_initial && !this->publish_initial_state_) {
+    // ignore initial state, but ensure the next publish is not de-duped.
+    this->publish_dedup_.reset();
+  } else {
     this->state_callback_.call(state);
   }
 }

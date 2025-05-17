@@ -529,6 +529,9 @@ template<typename T> class Deduplicator {
   /// Returns whether this deduplicator has processed any items so far.
   bool has_value() const { return this->has_value_; }
 
+  /// Resets the deduplicator to initial state
+  void reset() { this->has_value_ = false; }
+
  protected:
   bool has_value_{false};
   T last_value_{};
