@@ -335,7 +335,7 @@ Hex: 01 00 0E 00 08 00 06 12 04 08 96 42 10 B4 46
 ### Plaintext Protocol Example
 Same temperature reading:
 ```
-Hex: 00 0B 08 06 12 04 08 96 42 10
+Hex: 00 06 08 12 04 08 96 42 10
 ```
 - `00`: Plaintext indicator
 - `06`: Payload size (6 bytes, varint unsigned)
