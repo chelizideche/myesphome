@@ -83,6 +83,23 @@ class ProtoVarInt {
       return static_cast<int64_t>(this->value_ >> 1);
     }
   }
+  void encode_to_buffer(uint8_t *buffer, size_t len) {
+    uint64_t val = this->value_;
+    if (val <= 0x7F) {
+      buffer[0] = val;
+      return;
+    }
+    size_t i = 0;
+    while (val && i < len) {
+      uint8_t temp = val & 0x7F;
+      val >>= 7;
+      if (val) {
+        buffer[i++] = temp | 0x80;
+      } else {
+        buffer[i++] = temp;
+      }
+    }
+  }
   void encode(std::vector<uint8_t> &out) {
     uint64_t val = this->value_;
     if (val <= 0x7F) {
