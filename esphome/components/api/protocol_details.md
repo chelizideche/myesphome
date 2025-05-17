@@ -87,21 +87,21 @@ stateDiagram-v2
     HANDSHAKE --> DATA: handshake complete
     HANDSHAKE --> EXPLICIT_REJECT: auth failed
     EXPLICIT_REJECT --> FAILED: after sending reject
-    
+
     INITIALIZE --> FAILED: tcp setup
     CLIENT_HELLO --> FAILED: socket error
     SERVER_HELLO --> FAILED: socket error
     HANDSHAKE --> FAILED: handshake failed
     DATA --> FAILED: decrypt failed
-    
+
     DATA --> CLOSED: close()
     FAILED --> CLOSED: close()
-    
+
     note right of EXPLICIT_REJECT
         Temporary state for
         sending error message
     end note
-    
+
     note right of DATA
         Encrypted data
         exchange
@@ -140,7 +140,7 @@ Hex: 01 00 1C 01 65 73 70 68 6F 6D 65 00 31 32 3A 33 34 3A 35 36 3A 37 38 3A 39 
 
 This decodes to:
 - Frame indicator: 0x01
-- Frame size: 0x001C (28 bytes) 
+- Frame size: 0x001C (28 bytes)
 - Protocol: 0x01 (always)
 - Node name: "esphome" (null-terminated)
 - MAC: "12:34:56:78:9A:BC" (null-terminated)
@@ -205,12 +205,12 @@ stateDiagram-v2
     [*] --> INITIALIZE
     INITIALIZE --> DATA: init()
     DATA --> CLOSED: close
-    
+
     INITIALIZE --> FAILED: tcp setup
     DATA --> FAILED: read/write error
-    
+
     FAILED --> CLOSED: close
-    
+
     note right of DATA
         No handshake required
         Direct data exchange
@@ -227,8 +227,8 @@ No handshake is required for the plaintext protocol - it transitions directly to
 
 ### Frame Structure
 ```
-[Indicator][Frame Size VarInt][Message Type VarInt][Data Length VarInt][Payload]
-    1 byte      1-5 bytes           1-3 bytes           1-5 bytes       Variable
+[Indicator][Payload Size VarInt][Message Type VarInt][Payload]
+    1 byte       1-3 bytes           1-2 bytes       Variable
 ```
 
 ### Buffer Layout
@@ -271,7 +271,7 @@ The plaintext protocol dynamically calculates the optimal header position to min
 
 1. **Frame Size Computation**: The frame size includes all components after the indicator byte:
    - Message type varint (1-3 bytes)
-   - Data length varint (1-5 bytes)  
+   - Data length varint (1-5 bytes)
    - Actual payload data
 
 2. **VarInt Length Determination**: Based on the value being encoded:
@@ -342,7 +342,7 @@ Same temperature reading:
 ```
 Hex: 00 0B 08 06 12 04 08 96 42 10
 ```
-- `00`: Plaintext indicator  
+- `00`: Plaintext indicator
 - `0B`: Frame size (11 bytes, varint unsigned)
 - `08`: Message type 8 (varint unsigned)
 - `06`: Data length 6 (varint unsigned)
@@ -365,13 +365,13 @@ Hex: 00 0B 08 06 12 04 08 96 42 10
 ## Implementation Notes
 
 1. **Integer Types**: All size and type fields are unsigned integers
-2. **Endianness**: 
+2. **Endianness**:
    - Noise protocol: All multi-byte values use big-endian encoding
    - Plaintext protocol: Uses [VarInt encoding](https://protobuf.dev/programming-guides/encoding/) (Protocol Buffers standard)
 3. **Buffer Alignment**: Both protocols ensure payload data starts at predictable offsets for efficient processing
-4. **Error Handling**: 
+4. **Error Handling**:
    - Invalid frame indicators or sizes should immediately close the connection
    - For Noise protocol specific errors (handshake failures, decryption errors, etc.), see the [Noise Protocol](#noise-protocol) section above
-5. **Maximum Sizes**: 
+5. **Maximum Sizes**:
    - Message types: 0-65,535 (16-bit unsigned)
    - Frame/data sizes: up to 2^32-1 bytes (varint can encode up to 64-bit values, but practically limited by memory)
