@@ -314,9 +314,8 @@ This dynamic positioning maximizes buffer efficiency while maintaining a fixed p
 | Field | Type | Size | Encoding | Notes |
 |-------|------|------|----------|-------|
 | Indicator | uint8 | 1 byte | - | Always 0x00 |
-| Frame Size | varint | 1-5 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
-| Message Type | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
-| Data Length | varint | 1-5 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
+| Payload Size | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
+| Message Type | varint | 1-2 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
 | Data | bytes | Variable | - | Protocol buffer payload |
 
 
