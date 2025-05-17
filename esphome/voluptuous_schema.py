@@ -16,7 +16,7 @@ def ensure_multiple_invalid(err):
     if isinstance(err, vol.MultipleInvalid):
         return err
     if isinstance(err, list):
-        return vol.MultipleInvalid(err)    
+        return vol.MultipleInvalid(err)
     return vol.MultipleInvalid([err])
 
 
