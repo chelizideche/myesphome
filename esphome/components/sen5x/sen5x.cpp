@@ -25,8 +25,9 @@ static const uint16_t SEN5X_CMD_TEMPERATURE_COMPENSATION = 0x60B2;
 static const uint16_t SEN5X_CMD_VOC_ALGORITHM_STATE = 0x6181;
 static const uint16_t SEN5X_CMD_VOC_ALGORITHM_TUNING = 0x60D0;
 
-static const int16_t SEN5X_MAX_INDEX_VALUE = 500;
-static const int8_t SEN5X_MIN_INDEX_VALUE = 1;
+static const int8_t SEN5X_INDEX_SCALE_FACTOR = 10;                            // used for VOC and NOx index values
+static const int8_t SEN5X_MIN_INDEX_VALUE = 1 * SEN5X_INDEX_SCALE_FACTOR;     // must be adjusted by the scale factor
+static const int16_t SEN5X_MAX_INDEX_VALUE = 500 * SEN5X_INDEX_SCALE_FACTOR;  // must be adjusted by the scale factor
 
 void SEN5XComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up sen5x...");
@@ -362,13 +363,13 @@ void SEN5XComponent::update() {
 
     ESP_LOGVV(TAG, "voc = 0x%.4x", measurements[6]);
     int16_t voc_idx = static_cast<int16_t>(measurements[6]);
-    float voc = (voc_idx < SEN5X_MIN_INDEX_VALUE * 10 || voc_idx > SEN5X_MAX_INDEX_VALUE * 10)
+    float voc = (voc_idx < SEN5X_MIN_INDEX_VALUE || voc_idx > SEN5X_MAX_INDEX_VALUE)
                     ? NAN
                     : static_cast<float>(voc_idx) / 10.0f;
 
     ESP_LOGVV(TAG, "nox = 0x%.4x", measurements[7]);
     int16_t nox_idx = static_cast<int16_t>(measurements[7]);
-    float nox = (nox_idx < SEN5X_MIN_INDEX_VALUE * 10 || nox_idx > SEN5X_MAX_INDEX_VALUE * 10)
+    float nox = (nox_idx < SEN5X_MIN_INDEX_VALUE || nox_idx > SEN5X_MAX_INDEX_VALUE)
                     ? NAN
                     : static_cast<float>(nox_idx) / 10.0f;
 
