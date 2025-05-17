@@ -53,7 +53,7 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
   void dump_config() override;
   void update() override;
 
-  enum Sen5xType { SEN50, SEN54, SEN55, UNKNOWN };
+  enum Sen5xType { SEN50, SEN54, SEN55, SEN66, UNKNOWN };
 
   void set_pm_1_0_sensor(sensor::Sensor *pm_1_0) { pm_1_0_sensor_ = pm_1_0; }
   void set_pm_2_5_sensor(sensor::Sensor *pm_2_5) { pm_2_5_sensor_ = pm_2_5; }
@@ -62,6 +62,7 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
 
   void set_voc_sensor(sensor::Sensor *voc_sensor) { voc_sensor_ = voc_sensor; }
   void set_nox_sensor(sensor::Sensor *nox_sensor) { nox_sensor_ = nox_sensor; }
+  void set_co2_sensor(sensor::Sensor *co2_sensor) { co2_sensor_ = co2_sensor; }
   void set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
   void set_store_baseline(bool store_baseline) { store_baseline_ = store_baseline; }
@@ -113,8 +114,9 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
   sensor::Sensor *voc_sensor_{nullptr};
-  // SEN55 only
+  // SEN55 and SEN66 only
   sensor::Sensor *nox_sensor_{nullptr};
+  sensor::Sensor *co2_sensor_{nullptr};
 
   std::string product_name_;
   uint8_t serial_number_[4];

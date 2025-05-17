@@ -28,6 +28,9 @@ sensor:
       name: PM <10µm Weight concentration
       id: pm_10_0
       accuracy_decimals: 1
+    # co2:
+    #   name: CO2
+    #   accuracy_decimals: 1 //for sen66
     nox:
       name: NOx
     voc:
@@ -47,3 +50,4 @@ sensor:
     acceleration_mode: low
     store_baseline: true
     address: 0x69
+    # address: 0x6b //for sen66
