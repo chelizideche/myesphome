@@ -135,15 +135,13 @@ void Lc709203f::update() {
           this->state_ = LC709203F_STATE_NORMAL;
         }
       }
-    } else {
+    } else if (this->set_register_(LC709203F_STATUS_BIT, 0x0000) == i2c::NO_ERROR) {
       // The device expects to get updates to the temperature in this mode.
       //  I am not doing that now. The temperature register defaults to 25C.
       //  In theory, we could have another temperature sensor and have ESPHome
       //  send updated temperature to the device occasionally, but I have no idea
       //  how to make that happen.
-      if (this->set_register_(LC709203F_STATUS_BIT, 0x0000) == i2c::NO_ERROR) {
-        this->state_ = LC709203F_STATE_NORMAL;
-      }
+      this->state_ = LC709203F_STATE_NORMAL;
     }
   }
 }
