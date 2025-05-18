@@ -61,13 +61,21 @@ void Lc709203f::setup() {
   //  does not record power usage. If there is significant power consumption during sleep mode,
   //  the pack RSOC will likely no longer be correct. Because of that, I do not implement
   //  sleep mode on this device.
-  if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) == i2c::NO_ERROR) {
-    if (this->set_register_(LC709203F_APA, this->apa_) == i2c::NO_ERROR) {
-      if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) == i2c::NO_ERROR) {
-        this->state_ = LC709203F_STATE_RSOC;
-      }
-    }
+  
+  // Initialize device registers. If any of these fail, retry during the update() function.
+  if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) != i2c::NO_ERROR) {
+    return;
   }
+  
+  if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
+     return;
+  }
+  
+  if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
+     return;
+  }
+
+  this->state_ = LC709203F_STATE_RSOC;
   // Note: Initialization continues in the update() function.
 }
 
@@ -101,15 +109,23 @@ void Lc709203f::update() {
       }
     }
   } else if (this->state_ == LC709203F_STATE_INIT) {
-    // We should only get here if the init sequence failed during the setup() function.
-    //  This would likely occur because of a repeated failure on the I2C bus.
-    if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) == i2c::NO_ERROR) {
-      if (this->set_register_(LC709203F_APA, this->apa_) == i2c::NO_ERROR) {
-        if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) == i2c::NO_ERROR) {
-          this->state_ = LC709203F_STATE_RSOC;
-        }
-      }
+    // Retry initializing the device registers. We should only get here if the init sequence
+    //  failed during the setup() function. This would likely occur because of a repeated failures
+    //  on the I2C bus. If any of these fail, retry the next time the update() function is called.
+    if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) != i2c::NO_ERROR) {
+      return;
     }
+    
+    if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
+       return;
+    }
+    
+    if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
+       return;
+    }
+
+    this->state_ = LC709203F_STATE_RSOC;
+
   } else if (this->state_ == LC709203F_STATE_RSOC) {
     // We implement a delay here to send the initial RSOC command.
     //  This should run once on the first update() after initialization.
