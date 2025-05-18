@@ -31,11 +31,6 @@ static const uint8_t LC709203F_NUMBER_OF_THE_PARAMETER = 0x1A;
 static const uint8_t LC709203F_POWER_MODE_ON = 0x0001;
 static const uint8_t LC709203F_POWER_MODE_SLEEP = 0x0002;
 
-static const uint8_t LC709203F_STATE_INIT = 0x01;
-static const uint8_t LC709203F_STATE_RSOC = 0x02;
-static const uint8_t LC709203F_STATE_TEMP_SETUP = 0x03;
-static const uint8_t LC709203F_STATE_NORMAL = 0x00;
-
 // The number of times to retry an I2C transaction before giving up. In my experience,
 //  10 is a good number here that will take care of most bus issues that require retry.
 static const uint8_t LC709203F_I2C_RETRY_COUNT = 10;
@@ -56,7 +51,6 @@ void Lc709203f::setup() {
   //  call to update().
   ESP_LOGCONFIG(TAG, "Setting up LC709203F...");
 
-  this->state_ = LC709203F_STATE_INIT;
   // Set power mode to on. Note that, unlike some other similar devices, in sleep mode the IC
   //  does not record power usage. If there is significant power consumption during sleep mode,
   //  the pack RSOC will likely no longer be correct. Because of that, I do not implement
