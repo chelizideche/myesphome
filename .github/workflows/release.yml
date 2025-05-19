@@ -18,7 +18,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       branch_build: ${{ steps.tag.outputs.branch_build }}
-      environment: ${{ steps.tag.outputs.environment }}
+      deploy_env: ${{ steps.tag.outputs.environment }}
     steps:
       - uses: actions/checkout@v4.1.7
       - name: Get tag
@@ -49,7 +49,7 @@ jobs:
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "branch_build=${BRANCH_BUILD}" >> $GITHUB_OUTPUT
-          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
+          echo "deploy_env=${ENVIRONMENT}" >> $GITHUB_OUTPUT
         # yamllint enable rule:line-length
 
   deploy-pypi:
@@ -265,7 +265,7 @@ jobs:
     if: github.repository == 'esphome/esphome' && needs.init.outputs.branch_build == 'false'
     runs-on: ubuntu-latest
     needs: [init]
-    environment: ${{ needs.init.outputs.environment }}
+    environment: ${{ needs.init.outputs.deploy_env }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4.1.7
@@ -278,8 +278,8 @@ jobs:
       - name: Generate docs
         uses: mattnotmitt/doxygen-action@v1.12.0
 
-      - name: Deploy to netlify ${{ needs.init.outputs.environment }}
-        if: needs.init.outputs.environment != 'production'
+      - name: Deploy to netlify ${{ needs.init.outputs.deploy_env }}
+        if: needs.init.outputs.deploy_env != 'production'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
@@ -287,11 +287,11 @@ jobs:
           npx netlify-cli deploy \
             --dir api-docs \
             --no-build \
-            --alias ${{ needs.init.outputs.environment }} \
+            --alias ${{ needs.init.outputs.deploy_env }} \
             --message "Deploy API docs for ${{ needs.init.outputs.tag }}"
 
       - name: Deploy to netlify production
-        if: needs.init.outputs.environment == 'production'
+        if: needs.init.outputs.deploy_env == 'production'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
