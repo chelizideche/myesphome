@@ -493,9 +493,12 @@ void APINoiseFrameHelper::send_explicit_handshake_reject_(const std::string &rea
   std::vector<uint8_t> data;
   data.resize(reason.length() + 1);
   data[0] = 0x01;  // failure
-  for (size_t i = 0; i < reason.length(); i++) {
-    data[i + 1] = (uint8_t) reason[i];
+
+  // Copy error message in bulk
+  if (!reason.empty()) {
+    std::memcpy(data.data() + 1, reason.c_str(), reason.length());
   }
+
   // temporarily remove failed state
   auto orig_state = state_;
   state_ = State::EXPLICIT_REJECT;
@@ -557,7 +560,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   return APIError::OK;
 }
 bool APINoiseFrameHelper::can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
-APIError APINoiseFrameHelper::write_packet(uint16_t type, const uint8_t *payload, size_t payload_len) {
+APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) {
   int err;
   APIError aerr;
   aerr = state_action_();
@@ -569,31 +572,36 @@ APIError APINoiseFrameHelper::write_packet(uint16_t type, const uint8_t *payload
     return APIError::WOULD_BLOCK;
   }
 
+  std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
+  // Message data starts after padding
+  size_t payload_len = raw_buffer->size() - frame_header_padding_;
   size_t padding = 0;
   size_t msg_len = 4 + payload_len + padding;
-  size_t frame_len = 3 + msg_len + noise_cipherstate_get_mac_length(send_cipher_);
-  auto tmpbuf = std::unique_ptr<uint8_t[]>{new (std::nothrow) uint8_t[frame_len]};
-  if (tmpbuf == nullptr) {
-    HELPER_LOG("Could not allocate for writing packet");
-    return APIError::OUT_OF_MEMORY;
-  }
 
-  tmpbuf[0] = 0x01;  // indicator
-  // tmpbuf[1], tmpbuf[2] to be set later
+  // We need to resize to include MAC space, but we already reserved it in create_buffer
+  raw_buffer->resize(raw_buffer->size() + frame_footer_size_);
+
+  // Write the noise header in the padded area
+  // Buffer layout:
+  // [0]    - 0x01 indicator byte
+  // [1-2]  - Size of encrypted payload (filled after encryption)
+  // [3-4]  - Message type (encrypted)
+  // [5-6]  - Payload length (encrypted)
+  // [7...] - Actual payload data (encrypted)
+  uint8_t *buf_start = raw_buffer->data();
+  buf_start[0] = 0x01;  // indicator
+  // buf_start[1], buf_start[2] to be set later after encryption
   const uint8_t msg_offset = 3;
-  const uint8_t payload_offset = msg_offset + 4;
-  tmpbuf[msg_offset + 0] = (uint8_t) (type >> 8);  // type
-  tmpbuf[msg_offset + 1] = (uint8_t) type;
-  tmpbuf[msg_offset + 2] = (uint8_t) (payload_len >> 8);  // data_len
-  tmpbuf[msg_offset + 3] = (uint8_t) payload_len;
-  // copy data
-  std::copy(payload, payload + payload_len, &tmpbuf[payload_offset]);
-  // fill padding with zeros
-  std::fill(&tmpbuf[payload_offset + payload_len], &tmpbuf[frame_len], 0);
+  buf_start[msg_offset + 0] = (uint8_t) (type >> 8);         // type high byte
+  buf_start[msg_offset + 1] = (uint8_t) type;                // type low byte
+  buf_start[msg_offset + 2] = (uint8_t) (payload_len >> 8);  // data_len high byte
+  buf_start[msg_offset + 3] = (uint8_t) payload_len;         // data_len low byte
+  // payload data is already in the buffer starting at position 7
 
   NoiseBuffer mbuf;
   noise_buffer_init(mbuf);
-  noise_buffer_set_inout(mbuf, &tmpbuf[msg_offset], msg_len, frame_len - msg_offset);
+  // The capacity parameter should be msg_len + frame_footer_size_ (MAC length) to allow space for encryption
+  noise_buffer_set_inout(mbuf, buf_start + msg_offset, msg_len, msg_len + frame_footer_size_);
   err = noise_cipherstate_encrypt(send_cipher_, &mbuf);
   if (err != 0) {
     state_ = State::FAILED;
@@ -602,11 +610,13 @@ APIError APINoiseFrameHelper::write_packet(uint16_t type, const uint8_t *payload
   }
 
   size_t total_len = 3 + mbuf.size;
-  tmpbuf[1] = (uint8_t) (mbuf.size >> 8);
-  tmpbuf[2] = (uint8_t) mbuf.size;
+  buf_start[1] = (uint8_t) (mbuf.size >> 8);
+  buf_start[2] = (uint8_t) mbuf.size;
 
   struct iovec iov;
-  iov.iov_base = &tmpbuf[0];
+  // Point iov_base to the beginning of the buffer (no unused padding in Noise)
+  // We send the entire frame: indicator + size + encrypted(type + data_len + payload + MAC)
+  iov.iov_base = buf_start;
   iov.iov_len = total_len;
 
   // write raw to not have two packets sent if NAGLE disabled
@@ -717,6 +727,8 @@ APIError APINoiseFrameHelper::check_handshake_finished_() {
     HELPER_LOG("noise_handshakestate_split failed: %s", noise_err_to_str(err).c_str());
     return APIError::HANDSHAKESTATE_SPLIT_FAILED;
   }
+
+  frame_footer_size_ = noise_cipherstate_get_mac_length(send_cipher_);
 
   HELPER_LOG("Handshake complete!");
   noise_handshakestate_free(handshake_);
@@ -830,6 +842,10 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   // read header
   while (!rx_header_parsed_) {
     uint8_t data;
+    // Reading one byte at a time is fastest in practice for ESP32 when
+    // there is no data on the wire (which is the common case).
+    // This results in faster failure detection compared to
+    // attempting to read multiple bytes at once.
     ssize_t received = socket_->read(&data, 1);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -843,27 +859,60 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       HELPER_LOG("Connection closed");
       return APIError::CONNECTION_CLOSED;
     }
-    rx_header_buf_.push_back(data);
 
-    // try parse header
-    if (rx_header_buf_[0] != 0x00) {
-      state_ = State::FAILED;
-      HELPER_LOG("Bad indicator byte %u", rx_header_buf_[0]);
-      return APIError::BAD_INDICATOR;
+    // Successfully read a byte
+
+    // Process byte according to current buffer position
+    if (rx_header_buf_pos_ == 0) {  // Case 1: First byte (indicator byte)
+      if (data != 0x00) {
+        state_ = State::FAILED;
+        HELPER_LOG("Bad indicator byte %u", data);
+        return APIError::BAD_INDICATOR;
+      }
+      // We don't store the indicator byte, just increment position
+      rx_header_buf_pos_ = 1;  // Set to 1 directly
+      continue;                // Need more bytes before we can parse
     }
 
-    size_t i = 1;
+    // Check buffer overflow before storing
+    if (rx_header_buf_pos_ == 5) {  // Case 2: Buffer would overflow (5 bytes is max allowed)
+      state_ = State::FAILED;
+      HELPER_LOG("Header buffer overflow");
+      return APIError::BAD_DATA_PACKET;
+    }
+
+    // Store byte in buffer (adjust index to account for skipped indicator byte)
+    rx_header_buf_[rx_header_buf_pos_ - 1] = data;
+
+    // Increment position after storing
+    rx_header_buf_pos_++;
+
+    // Case 3: If we only have one varint byte, we need more
+    if (rx_header_buf_pos_ == 2) {  // Have read indicator + 1 byte
+      continue;                     // Need more bytes before we can parse
+    }
+
+    // At this point, we have at least 3 bytes total:
+    //   - Validated indicator byte (0x00) but not stored
+    //   - At least 2 bytes in the buffer for the varints
+    // Buffer layout:
+    //   First 1-3 bytes: Message size varint (variable length)
+    //     - 2 bytes would only allow up to 16383, which is less than noise's 65535
+    //     - 3 bytes allows up to 2097151, ensuring we support at least as much as noise
+    //   Remaining 1-2 bytes: Message type varint (variable length)
+    // We now attempt to parse both varints. If either is incomplete,
+    // we'll continue reading more bytes.
+
     uint32_t consumed = 0;
-    auto msg_size_varint = ProtoVarInt::parse(&rx_header_buf_[i], rx_header_buf_.size() - i, &consumed);
+    auto msg_size_varint = ProtoVarInt::parse(&rx_header_buf_[0], rx_header_buf_pos_ - 1, &consumed);
     if (!msg_size_varint.has_value()) {
       // not enough data there yet
       continue;
     }
 
-    i += consumed;
     rx_header_parsed_len_ = msg_size_varint->as_uint32();
 
-    auto msg_type_varint = ProtoVarInt::parse(&rx_header_buf_[i], rx_header_buf_.size() - i, &consumed);
+    auto msg_type_varint = ProtoVarInt::parse(&rx_header_buf_[consumed], rx_header_buf_pos_ - 1 - consumed, &consumed);
     if (!msg_type_varint.has_value()) {
       // not enough data there yet
       continue;
@@ -909,7 +958,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   // consume msg
   rx_buf_ = {};
   rx_buf_len_ = 0;
-  rx_header_buf_.clear();
+  rx_header_buf_pos_ = 0;
   rx_header_parsed_ = false;
   return APIError::OK;
 }
@@ -953,28 +1002,66 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   return APIError::OK;
 }
 bool APIPlaintextFrameHelper::can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
-APIError APIPlaintextFrameHelper::write_packet(uint16_t type, const uint8_t *payload, size_t payload_len) {
+APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
 
-  std::vector<uint8_t> header;
-  header.reserve(1 + api::ProtoSize::varint(static_cast<uint32_t>(payload_len)) +
-                 api::ProtoSize::varint(static_cast<uint32_t>(type)));
-  header.push_back(0x00);
-  ProtoVarInt(payload_len).encode(header);
-  ProtoVarInt(type).encode(header);
+  std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
+  // Message data starts after padding (frame_header_padding_ = 6)
+  size_t payload_len = raw_buffer->size() - frame_header_padding_;
 
-  struct iovec iov[2];
-  iov[0].iov_base = &header[0];
-  iov[0].iov_len = header.size();
-  if (payload_len == 0) {
-    return write_raw_(iov, 1);
+  // Calculate varint sizes for header components
+  size_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));
+  size_t type_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(type));
+  size_t total_header_len = 1 + size_varint_len + type_varint_len;
+
+  if (total_header_len > frame_header_padding_) {
+    // Header is too large to fit in the padding
+    return APIError::BAD_ARG;
   }
-  iov[1].iov_base = const_cast<uint8_t *>(payload);
-  iov[1].iov_len = payload_len;
 
-  return write_raw_(iov, 2);
+  // Calculate where to start writing the header
+  // The header starts at the latest possible position to minimize unused padding
+  //
+  // Example 1 (small values): total_header_len = 3, header_offset = 6 - 3 = 3
+  // [0-2]  - Unused padding
+  // [3]    - 0x00 indicator byte
+  // [4]    - Payload size varint (1 byte, for sizes 0-127)
+  // [5]    - Message type varint (1 byte, for types 0-127)
+  // [6...] - Actual payload data
+  //
+  // Example 2 (medium values): total_header_len = 4, header_offset = 6 - 4 = 2
+  // [0-1]  - Unused padding
+  // [2]    - 0x00 indicator byte
+  // [3-4]  - Payload size varint (2 bytes, for sizes 128-16383)
+  // [5]    - Message type varint (1 byte, for types 0-127)
+  // [6...] - Actual payload data
+  //
+  // Example 3 (large values): total_header_len = 6, header_offset = 6 - 6 = 0
+  // [0]    - 0x00 indicator byte
+  // [1-3]  - Payload size varint (3 bytes, for sizes 16384-2097151)
+  // [4-5]  - Message type varint (2 bytes, for types 128-32767)
+  // [6...] - Actual payload data
+  uint8_t *buf_start = raw_buffer->data();
+  size_t header_offset = frame_header_padding_ - total_header_len;
+
+  // Write the plaintext header
+  buf_start[header_offset] = 0x00;  // indicator
+
+  // Encode size varint directly into buffer
+  ProtoVarInt(payload_len).encode_to_buffer_unchecked(buf_start + header_offset + 1, size_varint_len);
+
+  // Encode type varint directly into buffer
+  ProtoVarInt(type).encode_to_buffer_unchecked(buf_start + header_offset + 1 + size_varint_len, type_varint_len);
+
+  struct iovec iov;
+  // Point iov_base to the beginning of our header (skip unused padding)
+  // This ensures we only send the actual header and payload, not the empty padding bytes
+  iov.iov_base = buf_start + header_offset;
+  iov.iov_len = total_header_len + payload_len;
+
+  return write_raw_(&iov, 1);
 }
 APIError APIPlaintextFrameHelper::try_send_tx_buf_() {
   // try send from tx_buf

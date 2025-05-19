@@ -20,16 +20,26 @@ class ProtoVarInt {
   explicit ProtoVarInt(uint64_t value) : value_(value) {}
 
   static optional<ProtoVarInt> parse(const uint8_t *buffer, uint32_t len, uint32_t *consumed) {
-    if (consumed != nullptr)
-      *consumed = 0;
-
-    if (len == 0)
+    if (len == 0) {
+      if (consumed != nullptr)
+        *consumed = 0;
       return {};
+    }
 
-    uint64_t result = 0;
-    uint8_t bitpos = 0;
+    // Most common case: single-byte varint (values 0-127)
+    if ((buffer[0] & 0x80) == 0) {
+      if (consumed != nullptr)
+        *consumed = 1;
+      return ProtoVarInt(buffer[0]);
+    }
 
-    for (uint32_t i = 0; i < len; i++) {
+    // General case for multi-byte varints
+    // Since we know buffer[0]'s high bit is set, initialize with its value
+    uint64_t result = buffer[0] & 0x7F;
+    uint8_t bitpos = 7;
+
+    // Start from the second byte since we've already processed the first
+    for (uint32_t i = 1; i < len; i++) {
       uint8_t val = buffer[i];
       result |= uint64_t(val & 0x7F) << uint64_t(bitpos);
       bitpos += 7;
@@ -40,7 +50,9 @@ class ProtoVarInt {
       }
     }
 
-    return {};
+    if (consumed != nullptr)
+      *consumed = 0;
+    return {};  // Incomplete or invalid varint
   }
 
   uint32_t as_uint32() const { return this->value_; }
@@ -69,6 +81,34 @@ class ProtoVarInt {
       return static_cast<int64_t>(~(this->value_ >> 1));
     } else {
       return static_cast<int64_t>(this->value_ >> 1);
+    }
+  }
+  /**
+   * Encode the varint value to a pre-allocated buffer without bounds checking.
+   *
+   * @param buffer The pre-allocated buffer to write the encoded varint to
+   * @param len The size of the buffer in bytes
+   *
+   * @note The caller is responsible for ensuring the buffer is large enough
+   *       to hold the encoded value. Use ProtoSize::varint() to calculate
+   *       the exact size needed before calling this method.
+   * @note No bounds checking is performed for performance reasons.
+   */
+  void encode_to_buffer_unchecked(uint8_t *buffer, size_t len) {
+    uint64_t val = this->value_;
+    if (val <= 0x7F) {
+      buffer[0] = val;
+      return;
+    }
+    size_t i = 0;
+    while (val && i < len) {
+      uint8_t temp = val & 0x7F;
+      val >>= 7;
+      if (val) {
+        buffer[i++] = temp | 0x80;
+      } else {
+        buffer[i++] = temp;
+      }
     }
   }
   void encode(std::vector<uint8_t> &out) {
