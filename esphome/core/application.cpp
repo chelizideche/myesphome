@@ -44,7 +44,11 @@ void Application::setup() {
       last_components_size = this->components_.size();
     }
 
+    // Take current component
     Component *component = this->components_[i];
+
+    // Update loop_component_start_time_ before calling each component during setup
+    this->loop_component_start_time_ = millis();
     component->call();
     this->scheduler.process_to_add();
     this->feed_wdt();
@@ -60,6 +64,8 @@ void Application::setup() {
       this->scheduler.call();
       this->feed_wdt();
       for (uint32_t j = 0; j <= i; j++) {
+        // Update loop_component_start_time_ right before calling each component
+        this->loop_component_start_time_ = millis();
         this->components_[j]->call();
         new_app_state |= this->components_[j]->get_component_state();
         this->app_state_ |= new_app_state;
