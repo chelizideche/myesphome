@@ -8,6 +8,7 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/version.h"
+#include "esphome/core/application.h"
 
 #ifdef USE_DEEP_SLEEP
 #include "esphome/components/deep_sleep/deep_sleep_component.h"
@@ -78,7 +79,11 @@ APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *pa
 #endif
 }
 void APIConnection::start() {
-  this->last_traffic_ = millis();
+  this->last_traffic_ = App.get_loop_component_start_time();
+
+  // Set next_ping_retry_ to prevent immediate ping
+  // This ensures the first ping happens after the keepalive period
+  this->next_ping_retry_ = this->last_traffic_ + KEEPALIVE_TIMEOUT_MS;
 
   APIError err = this->helper_->init();
   if (err != APIError::OK) {
@@ -146,7 +151,7 @@ void APIConnection::loop() {
     }
     return;
   } else {
-    this->last_traffic_ = millis();
+    this->last_traffic_ = App.get_loop_component_start_time();
     // read a packet
     this->read_message(buffer.data_len, buffer.type, &buffer.container[buffer.data_offset]);
     if (this->remove_)
@@ -162,17 +167,16 @@ void APIConnection::loop() {
   if (!this->initial_state_iterator_.completed() && this->list_entities_iterator_.completed())
     this->initial_state_iterator_.advance();
 
-  static uint32_t keepalive = 60000;
   static uint8_t max_ping_retries = 60;
   static uint16_t ping_retry_interval = 1000;
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
-    if (now - this->last_traffic_ > (keepalive * 5) / 2) {
+    if (now - this->last_traffic_ > (KEEPALIVE_TIMEOUT_MS * 5) / 2) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s didn't respond to ping request in time. Disconnecting...", this->client_combined_info_.c_str());
     }
-  } else if (now - this->last_traffic_ > keepalive && now > this->next_ping_retry_) {
+  } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && now > this->next_ping_retry_) {
     ESP_LOGVV(TAG, "Sending keepalive PING...");
     this->sent_ping_ = this->send_ping_request(PingRequest());
     if (!this->sent_ping_) {
@@ -1644,7 +1648,7 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) 
     return false;
   }
 
-  APIError err = this->helper_->write_packet(message_type, buffer.get_buffer()->data(), buffer.get_buffer()->size());
+  APIError err = this->helper_->write_protobuf_packet(message_type, buffer);
   if (err == APIError::WOULD_BLOCK)
     return false;
   if (err != APIError::OK) {
