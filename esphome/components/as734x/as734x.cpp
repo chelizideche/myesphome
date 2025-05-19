@@ -52,25 +52,29 @@ void AS734XComponent::setup_model(Model model) {
   this->model_ = model;
 
   switch (this->model_) {
-    case Model::AS7341:
 #ifdef USE_AS7341
+    case Model::AS7341:
       this->device_ = new AS7341(this);
-#endif
       break;
-    case Model::AS7343:
+#endif
 #ifdef USE_AS7343
+    case Model::AS7343:
       this->device_ = new AS7343(this);
-#endif
       break;
+#endif
     default:
       ESP_LOGE(TAG, "Unknown model");
+      this->device_ = nullptr;
       this->mark_failed();
       return;
   }
-
+// the code below is unreacheable during clang-tidy execution since defines are not set.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunreachable-code"
   this->number_of_channels_ = this->device_->get_number_of_channels();
   this->set_channel_correction(this->device_->get_default_correction());
   this->dark_current_offset_.fill(0.0f);
+#pragma clang diagnostic pop
 }
 
 void AS734XComponent::setup() {
