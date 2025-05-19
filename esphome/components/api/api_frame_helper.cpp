@@ -275,16 +275,16 @@ APIError APINoiseFrameHelper::init() {
 /// Run through handshake messages (if in that phase)
 APIError APINoiseFrameHelper::loop() {
   APIError err = state_action_();
-  if (err == APIError::WOULD_BLOCK)
-    return APIError::OK;
-  if (err != APIError::OK)
+  if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
     return err;
-  if (this->tx_buf_.empty())
-    return APIError::OK;
-  err = try_send_tx_buf_();
-  if (err == APIError::WOULD_BLOCK)
-    return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
-  return err;
+  }
+  if (!this->tx_buf_.empty()) {
+    err = try_send_tx_buf_();
+    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
+      return err;
+    }
+  }
+  return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
@@ -805,12 +805,13 @@ APIError APIPlaintextFrameHelper::loop() {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
-  if (this->tx_buf_.empty())
-    return APIError::OK;
-  APIError err = try_send_tx_buf_();
-  if (err == APIError::WOULD_BLOCK)
-    return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
-  return err;
+  if (!this->tx_buf_.empty()) {
+    APIError err = try_send_tx_buf_();
+    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
+      return err;
+    }
+  }
+  return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
