@@ -1,5 +1,5 @@
 async_timeout==5.0.1; python_version <= "3.10"
-cryptography==44.0.2
+cryptography==45.0.1
 voluptuous==0.15.2
 PyYAML==6.0.2
 paho-mqtt==1.6.1
@@ -19,7 +19,7 @@ puremagic==1.29
 ruamel.yaml==0.18.10 # dashboard_import
 esphome-glyphsets==0.2.0
 pillow==10.4.0
-cairosvg==2.8.1
+cairosvg==2.8.2
 freetype-py==2.5.1
 
 # esp-idf requires this, but doesn't bundle it by default
