@@ -48,7 +48,7 @@ SELECT_OPERATION_OPTIONS = {
 }
 
 
-SELECT_SCHEMA = (
+_SELECT_SCHEMA = (
     cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
     .extend(cv.MQTT_COMMAND_COMPONENT_SCHEMA)
     .extend(
@@ -66,25 +66,26 @@ SELECT_SCHEMA = (
 
 
 def select_schema(
-    class_: MockObjClass = cv.UNDEFINED,
+    class_: MockObjClass,
     *,
     entity_category: str = cv.UNDEFINED,
     icon: str = cv.UNDEFINED,
 ):
-    schema = cv.Schema({})
-    if class_ is not cv.UNDEFINED:
-        schema = schema.extend({cv.GenerateID(): cv.declare_id(class_)})
-    if entity_category is not cv.UNDEFINED:
-        schema = schema.extend(
-            {
-                cv.Optional(
-                    CONF_ENTITY_CATEGORY, default=entity_category
-                ): cv.entity_category
-            }
-        )
-    if icon is not cv.UNDEFINED:
-        schema = schema.extend({cv.Optional(CONF_ICON, default=icon): cv.icon})
-    return SELECT_SCHEMA.extend(schema)
+    schema = {cv.GenerateID(): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _SELECT_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+SELECT_SCHEMA = select_schema(Select)
+SELECT_SCHEMA.add_extra(cv.deprecated_schema_constant("select"))
 
 
 async def setup_select_core_(var, config, *, options: list[str]):
