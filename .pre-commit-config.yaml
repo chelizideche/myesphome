@@ -31,7 +31,7 @@ repos:
     rev: v3.15.2
     hooks:
       - id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
