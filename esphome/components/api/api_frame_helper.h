@@ -25,13 +25,6 @@ struct ReadPacketBuffer {
   size_t data_len;
 };
 
-struct PacketBuffer {
-  const std::vector<uint8_t> container;
-  uint16_t type;
-  uint8_t data_offset;
-  uint8_t data_len;
-};
-
 enum class APIError : int {
   OK = 0,
   WOULD_BLOCK = 1001,
