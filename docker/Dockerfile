@@ -13,8 +13,7 @@ RUN git config --system --add safe.directory "*"
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install --no-cache-dir -U pip \
-    && pip install --no-cache-dir uv==0.6.14
+RUN pip install --no-cache-dir -U pip uv==0.6.14
 
 COPY requirements.txt /
 
