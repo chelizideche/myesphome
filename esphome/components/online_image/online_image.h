@@ -63,6 +63,8 @@ class OnlineImage : public PollingComponent,
     if (this->validate_url_(url)) {
       this->url_ = url;
     }
+    this->etag_ = "";
+    this->last_modified_ = "";
   }
 
   /**
