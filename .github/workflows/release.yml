@@ -29,9 +29,9 @@ jobs:
             TAG="${{ github.event.release.tag_name}}"
             BRANCH_BUILD="false"
             if [[ "${{ github.event.release.prerelease }}" = "true" ]]; then
-              echo "environment=beta" >> $GITHUB_OUTPUT
+              ENVIRONMENT="beta"
             else
-              echo "environment=production" >> $GITHUB_OUTPUT
+              ENVIRONMENT="production"
             fi
           else
             TAG=$(cat esphome/const.py | sed -n -E "s/^__version__\s+=\s+\"(.+)\"$/\1/p")
@@ -41,14 +41,15 @@ jobs:
             if [[ "$BRANCH" != "dev" ]]; then
               TAG="${TAG}-${BRANCH}"
               BRANCH_BUILD="true"
-              echo "environment=" >> $GITHUB_OUTPUT
+              ENVIRONMENT=""
             else
               BRANCH_BUILD="false"
-              echo "environment=dev" >> $GITHUB_OUTPUT
+              ENVIRONMENT="dev"
             fi
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "branch_build=${BRANCH_BUILD}" >> $GITHUB_OUTPUT
+          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
         # yamllint enable rule:line-length
 
   deploy-pypi:
