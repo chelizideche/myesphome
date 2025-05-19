@@ -32,20 +32,22 @@ void Application::setup() {
     return a->get_actual_setup_priority() > b->get_actual_setup_priority();
   });
 
-  for (uint32_t i = 0; i < this->components_.size(); i++) {
-    Component *component = this->components_[i];
+  size_t last_components_size = this->components_.size();
 
-    size_t last_components_size = this->components_.size();
+  for (uint32_t i = 0; i < this->components_.size(); i++) {
+    // if previous component dynamically added other components in its call setup or loop, resorting of components is
+    // needed
+    if (this->components_.size() != last_components_size) {
+      std::stable_sort(this->components_.begin() + i, this->components_.end(), [](Component *a, Component *b) {
+        return a->get_actual_setup_priority() > b->get_actual_setup_priority();
+      });
+      last_components_size = this->components_.size();
+    }
+
+    Component *component = this->components_[i];
     component->call();
     this->scheduler.process_to_add();
     this->feed_wdt();
-
-    // if current component dynamically added other components in its call setup, sorting of next components is needed
-    if (this->components_.size() != last_components_size) {
-      std::stable_sort(this->components_.begin() + i + 1, this->components_.end(), [](Component *a, Component *b) {
-        return a->get_actual_setup_priority() > b->get_actual_setup_priority();
-      });
-    }
 
     if (component->can_proceed())
       continue;
