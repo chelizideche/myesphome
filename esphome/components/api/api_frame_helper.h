@@ -21,8 +21,8 @@ class ProtoWriteBuffer;
 struct ReadPacketBuffer {
   std::vector<uint8_t> container;
   uint16_t type;
-  size_t data_offset;
-  size_t data_len;
+  uint16_t data_offset;
+  uint16_t data_len;
 };
 
 enum class APIError : int {
@@ -155,7 +155,7 @@ class APIFrameHelper {
 
   // Receive buffer for reading frame data
   std::vector<uint8_t> rx_buf_;
-  size_t rx_buf_len_ = 0;
+  uint16_t rx_buf_len_ = 0;
 
   // Common initialization for both plaintext and noise protocols
   APIError init_common_();
@@ -194,7 +194,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
   // 1 byte for indicator + 2 bytes for message size (16-bit value, not varint)
   // Note: Maximum message size is 65535, with a limit of 128 bytes during handshake phase
   uint8_t rx_header_buf_[3];
-  size_t rx_header_buf_len_ = 0;
+  uint8_t rx_header_buf_len_ = 0;
 
   std::vector<uint8_t> prologue_;
 
@@ -239,8 +239,8 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   uint8_t rx_header_buf_[5];  // 5 bytes for varints (3 for size + 2 for type)
   uint8_t rx_header_buf_pos_ = 0;
   bool rx_header_parsed_ = false;
-  uint32_t rx_header_parsed_type_ = 0;
-  uint32_t rx_header_parsed_len_ = 0;
+  uint16_t rx_header_parsed_type_ = 0;
+  uint16_t rx_header_parsed_len_ = 0;
 };
 #endif
 

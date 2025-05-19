@@ -7,6 +7,7 @@
 #include "proto.h"
 #include "api_pb2_size.h"
 #include <cstring>
+#include <cinttypes>
 
 namespace esphome {
 namespace api {
@@ -309,7 +310,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
   // read header
   if (rx_header_buf_len_ < 3) {
     // no header information yet
-    size_t to_read = 3 - rx_header_buf_len_;
+    uint8_t to_read = 3 - rx_header_buf_len_;
     ssize_t received = this->socket_->read(&rx_header_buf_[rx_header_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -323,8 +324,8 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
       HELPER_LOG("Connection closed");
       return APIError::CONNECTION_CLOSED;
     }
-    rx_header_buf_len_ += received;
-    if ((size_t) received != to_read) {
+    rx_header_buf_len_ += static_cast<uint8_t>(received);
+    if (static_cast<uint8_t>(received) != to_read) {
       // not a full read
       return APIError::WOULD_BLOCK;
     }
@@ -370,7 +371,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
       HELPER_LOG("Connection closed");
       return APIError::CONNECTION_CLOSED;
     }
-    rx_buf_len_ += received;
+    rx_buf_len_ += static_cast<uint16_t>(received);
     if ((size_t) received != to_read) {
       // not all read
       return APIError::WOULD_BLOCK;
@@ -420,6 +421,8 @@ APIError APINoiseFrameHelper::state_action_() {
     if (aerr != APIError::OK)
       return aerr;
     // ignore contents, may be used in future for flags
+    // Reserve space for: existing prologue + 2 size bytes + frame data
+    prologue_.reserve(prologue_.size() + 2 + frame.msg.size());
     prologue_.push_back((uint8_t) (frame.msg.size() >> 8));
     prologue_.push_back((uint8_t) frame.msg.size());
     prologue_.insert(prologue_.end(), frame.msg.begin(), frame.msg.end());
@@ -428,16 +431,20 @@ APIError APINoiseFrameHelper::state_action_() {
   }
   if (state_ == State::SERVER_HELLO) {
     // send server hello
+    const std::string &name = App.get_name();
+    const std::string &mac = get_mac_address();
+
     std::vector<uint8_t> msg;
+    // Reserve space for: 1 byte proto + name + null + mac + null
+    msg.reserve(1 + name.size() + 1 + mac.size() + 1);
+
     // chosen proto
     msg.push_back(0x01);
 
     // node name, terminated by null byte
-    const std::string &name = App.get_name();
     const uint8_t *name_ptr = reinterpret_cast<const uint8_t *>(name.c_str());
     msg.insert(msg.end(), name_ptr, name_ptr + name.size() + 1);
     // node mac, terminated by null byte
-    const std::string &mac = get_mac_address();
     const uint8_t *mac_ptr = reinterpret_cast<const uint8_t *>(mac.c_str());
     msg.insert(msg.end(), mac_ptr, mac_ptr + mac.size() + 1);
 
@@ -892,14 +899,24 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       continue;
     }
 
-    rx_header_parsed_len_ = msg_size_varint->as_uint32();
+    if (msg_size_varint->as_uint32() > 65535) {
+      state_ = State::FAILED;
+      HELPER_LOG("Bad packet: message size %" PRIu32 " exceeds maximum 65535", msg_size_varint->as_uint32());
+      return APIError::BAD_DATA_PACKET;
+    }
+    rx_header_parsed_len_ = msg_size_varint->as_uint16();
 
     auto msg_type_varint = ProtoVarInt::parse(&rx_header_buf_[consumed], rx_header_buf_pos_ - 1 - consumed, &consumed);
     if (!msg_type_varint.has_value()) {
       // not enough data there yet
       continue;
     }
-    rx_header_parsed_type_ = msg_type_varint->as_uint32();
+    if (msg_type_varint->as_uint32() > 65535) {
+      state_ = State::FAILED;
+      HELPER_LOG("Bad packet: message type %" PRIu32 " exceeds maximum 65535", msg_type_varint->as_uint32());
+      return APIError::BAD_DATA_PACKET;
+    }
+    rx_header_parsed_type_ = msg_type_varint->as_uint16();
     rx_header_parsed_ = true;
   }
   // header reading done
@@ -925,7 +942,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       HELPER_LOG("Connection closed");
       return APIError::CONNECTION_CLOSED;
     }
-    rx_buf_len_ += received;
+    rx_buf_len_ += static_cast<uint16_t>(received);
     if ((size_t) received != to_read) {
       // not all read
       return APIError::WOULD_BLOCK;
