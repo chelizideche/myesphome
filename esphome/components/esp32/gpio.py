@@ -107,6 +107,10 @@ _esp32_validations = {
         pin_validation=esp32_h2_validate_gpio_pin,
         usage_validation=esp32_h2_validate_supports,
     ),
+    VARIANT_ESP32P4: ESP32ValidationFunctions(
+        pin_validation=esp32_p4_validate_gpio_pin,
+        usage_validation=esp32_p4_validate_supports,
+    ),
     VARIANT_ESP32S2: ESP32ValidationFunctions(
         pin_validation=esp32_s2_validate_gpio_pin,
         usage_validation=esp32_s2_validate_supports,
@@ -114,10 +118,6 @@ _esp32_validations = {
     VARIANT_ESP32S3: ESP32ValidationFunctions(
         pin_validation=esp32_s3_validate_gpio_pin,
         usage_validation=esp32_s3_validate_supports,
-    ),
-    VARIANT_ESP32P4: ESP32ValidationFunctions(
-        pin_validation=esp32_p4_validate_gpio_pin,
-        usage_validation=esp32_p4_validate_supports,
     ),
 }
 
