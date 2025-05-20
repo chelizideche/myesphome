@@ -42,7 +42,7 @@ void MQTTJSONLightComponent::send_discovery(JsonObject root, mqtt::SendDiscovery
   auto traits = this->state_->get_traits();
 
   root[MQTT_COLOR_MODE] = true;
-  JsonArray color_modes = root.createNestedArray("supported_color_modes");
+  JsonArray color_modes = root["supported_color_modes"].to<JsonArray>();
   if (traits.supports_color_mode(ColorMode::ON_OFF))
     color_modes.add("onoff");
   if (traits.supports_color_mode(ColorMode::BRIGHTNESS))
@@ -67,7 +67,7 @@ void MQTTJSONLightComponent::send_discovery(JsonObject root, mqtt::SendDiscovery
 
   if (this->state_->supports_effects()) {
     root["effect"] = true;
-    JsonArray effect_list = root.createNestedArray(MQTT_EFFECT_LIST);
+    JsonArray effect_list = root[MQTT_EFFECT_LIST].to<JsonArray>();
     for (auto *effect : this->state_->get_effects())
       effect_list.add(effect->get_name());
     effect_list.add("None");

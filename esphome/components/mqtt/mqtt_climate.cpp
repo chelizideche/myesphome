@@ -28,7 +28,7 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
   // mode_state_topic
   root[MQTT_MODE_STATE_TOPIC] = this->get_mode_state_topic();
   // modes
-  JsonArray modes = root.createNestedArray(MQTT_MODES);
+  JsonArray modes = root[MQTT_MODES].to<JsonArray>();
   // sort array for nice UI in HA
   if (traits.supports_mode(CLIMATE_MODE_AUTO))
     modes.add("auto");
@@ -89,7 +89,7 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
     // preset_mode_state_topic
     root[MQTT_PRESET_MODE_STATE_TOPIC] = this->get_preset_state_topic();
     // presets
-    JsonArray presets = root.createNestedArray("preset_modes");
+    JsonArray presets = root["preset_modes"].to<JsonArray>();
     if (traits.supports_preset(CLIMATE_PRESET_HOME))
       presets.add("home");
     if (traits.supports_preset(CLIMATE_PRESET_AWAY))
@@ -119,7 +119,7 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
     // fan_mode_state_topic
     root[MQTT_FAN_MODE_STATE_TOPIC] = this->get_fan_mode_state_topic();
     // fan_modes
-    JsonArray fan_modes = root.createNestedArray("fan_modes");
+    JsonArray fan_modes = root["fan_modes"].to<JsonArray>();
     if (traits.supports_fan_mode(CLIMATE_FAN_ON))
       fan_modes.add("on");
     if (traits.supports_fan_mode(CLIMATE_FAN_OFF))
@@ -150,7 +150,7 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
     // swing_mode_state_topic
     root[MQTT_SWING_MODE_STATE_TOPIC] = this->get_swing_mode_state_topic();
     // swing_modes
-    JsonArray swing_modes = root.createNestedArray("swing_modes");
+    JsonArray swing_modes = root["swing_modes"].to<JsonArray>();
     if (traits.supports_swing_mode(CLIMATE_SWING_OFF))
       swing_modes.add("off");
     if (traits.supports_swing_mode(CLIMATE_SWING_BOTH))

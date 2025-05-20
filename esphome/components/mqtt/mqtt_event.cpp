@@ -16,7 +16,7 @@ using namespace esphome::event;
 MQTTEventComponent::MQTTEventComponent(event::Event *event) : event_(event) {}
 
 void MQTTEventComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
-  JsonArray event_types = root.createNestedArray(MQTT_EVENT_TYPES);
+  JsonArray event_types = root[MQTT_EVENT_TYPES].to<JsonArray>();
   for (const auto &event_type : this->event_->get_event_types())
     event_types.add(event_type);
 
