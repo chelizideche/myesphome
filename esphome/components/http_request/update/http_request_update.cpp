@@ -98,7 +98,7 @@ void HttpRequestUpdate::update_task(void *params) {
             ESP_LOGE(TAG, "Manifest does not contain required fields");
             return false;
           }
-          auto ota = build["ota"];
+          JsonObject ota = build["ota"].as<JsonObject>();
           if (!ota["path"].is<JsonVariant>() || !ota["md5"].is<JsonVariant>()) {
             ESP_LOGE(TAG, "Manifest does not contain required fields");
             return false;
