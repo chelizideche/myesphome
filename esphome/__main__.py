@@ -599,9 +599,14 @@ def command_update_all(args):
         safe_print(f"Updating {color(AnsiFore.CYAN, f)}")
         safe_print("-" * twidth)
         safe_print()
-        rc = run_external_process(
-            "esphome", "--dashboard", "run", f, "--no-logs", "--device", "OTA"
-        )
+        if CORE.dashboard:
+            rc = run_external_process(
+                "esphome", "--dashboard", "run", f, "--no-logs", "--device", "OTA"
+            )
+        else:
+            rc = run_external_process(
+                "esphome", "run", f, "--no-logs", "--device", "OTA"
+            )
         if rc == 0:
             print_bar(f"[{color(AnsiFore.BOLD_GREEN, 'SUCCESS')}] {f}")
             success[f] = True
