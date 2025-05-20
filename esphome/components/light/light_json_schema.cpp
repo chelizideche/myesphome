@@ -52,7 +52,7 @@ void LightJSONSchema::dump_json(LightState &state, JsonObject root) {
   if (values.get_color_mode() & ColorCapability::BRIGHTNESS)
     root["brightness"] = uint8_t(values.get_brightness() * 255);
 
-  JsonObject color = root.createNestedObject("color");
+  JsonObject color = root["color"].to<JsonObject>();
   if (values.get_color_mode() & ColorCapability::RGB) {
     color["r"] = uint8_t(values.get_color_brightness() * values.get_red() * 255);
     color["g"] = uint8_t(values.get_color_brightness() * values.get_green() * 255);
