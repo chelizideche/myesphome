@@ -20,13 +20,13 @@ MQTTDateComponent::MQTTDateComponent(DateEntity *date) : date_(date) {}
 void MQTTDateComponent::setup() {
   this->subscribe_json(this->get_command_topic_(), [this](const std::string &topic, JsonObject root) {
     auto call = this->date_->make_call();
-    if (root.containsKey("year")) {
+    if (root["year"].is<JsonVariant>()) {
       call.set_year(root["year"]);
     }
-    if (root.containsKey("month")) {
+    if (root["month"].is<JsonVariant>()) {
       call.set_month(root["month"]);
     }
-    if (root.containsKey("day")) {
+    if (root["day"].is<JsonVariant>()) {
       call.set_day(root["day"]);
     }
     call.perform();

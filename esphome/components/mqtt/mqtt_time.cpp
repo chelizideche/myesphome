@@ -20,13 +20,13 @@ MQTTTimeComponent::MQTTTimeComponent(TimeEntity *time) : time_(time) {}
 void MQTTTimeComponent::setup() {
   this->subscribe_json(this->get_command_topic_(), [this](const std::string &topic, JsonObject root) {
     auto call = this->time_->make_call();
-    if (root.containsKey("hour")) {
+    if (root["hour"].is<JsonVariant>()) {
       call.set_hour(root["hour"]);
     }
-    if (root.containsKey("minute")) {
+    if (root["minute"].is<JsonVariant>()) {
       call.set_minute(root["minute"]);
     }
-    if (root.containsKey("second")) {
+    if (root["second"].is<JsonVariant>()) {
       call.set_second(root["second"]);
     }
     call.perform();
