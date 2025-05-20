@@ -1,6 +1,8 @@
 #include "json_util.h"
 #include "esphome/core/log.h"
 
+#include <ArduinoJson/Memory/Allocator.hpp>
+
 namespace esphome {
 namespace json {
 
@@ -11,13 +13,15 @@ static auto ALLOCATOR = RAMAllocator<uint8_t>(
 
 // Build an allocator for the JSON Library using the RAMAllocator class
 struct SpiRamAllocator : ArduinoJson::Allocator {
-  void *allocate(size_t size) { return ALLOCATOR.allocate(size); }
+  void *allocate(size_t size) override { return ALLOCATOR.allocate(size); }
 
-  void deallocate(void *pointer) {
+  void deallocate(void *pointer) override {
     free(pointer);  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
   }
 
-  void *reallocate(void *ptr, size_t new_size) { return ALLOCATOR.reallocate(static_cast<uint8_t *>(ptr), new_size); }
+  void *reallocate(void *ptr, size_t new_size) override {
+    return ALLOCATOR.reallocate(static_cast<uint8_t *>(ptr), new_size);
+  }
 };
 
 static auto DOC_ALLOCATOR = SpiRamAllocator();
