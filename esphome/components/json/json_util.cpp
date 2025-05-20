@@ -39,8 +39,6 @@ std::string build_json(const json_build_t &f) {
       ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
       return "{}";
     }
-    json_document.shrinkToFit();
-    ESP_LOGV(TAG, "Size after shrink %zu bytes", json_document.capacity());
     std::string output;
     serializeJson(json_document, output);
     return output;
