@@ -85,8 +85,7 @@ CAN_SPEEDS = {
 def validate_bit_rate(value):
     variant = get_esp32_variant()
     if variant not in CAN_SPEEDS:
-        raise cv.Invalid(
-            f"{variant} is not supported by component {esp32_can_ns}")
+        raise cv.Invalid(f"{variant} is not supported by component {esp32_can_ns}")
     value = value.upper()
     if value not in CAN_SPEEDS[variant]:
         raise cv.Invalid(f"Bit rate {value} is not supported on {variant}")
@@ -146,11 +145,13 @@ def final_validate_(config):
 
     if can_controller_count > count:
         raise cv.Invalid(
-            f"Only {can_controller_count} CAN bus controllers available. {count} requested")
+            f"Only {can_controller_count} CAN bus controllers available. {count} requested"
+        )
 
     if count > 1 and not config.get(CONF_USE_V2):
         raise cv.Invalid(
-            f"Multiple CAN bus controllers available since version 5.2 of platform, but {platform_version} used")
+            f"Multiple CAN bus controllers available since version 5.2 of platform, but {platform_version} used"
+        )
 
     return config
 
@@ -187,7 +188,6 @@ async def to_code(config):
     if CONF_TX_ENQUEUE_TIMEOUT in config:
         tx_enqueue_timeout_ms = config[CONF_TX_ENQUEUE_TIMEOUT].total_milliseconds
     else:
-        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(
-            config[CONF_BIT_RATE])
+        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(config[CONF_BIT_RATE])
 
     cg.add(var.set_tx_enqueue_timeout_ms(tx_enqueue_timeout_ms))
