@@ -57,6 +57,7 @@ class ESP32Can : public canbus::Canbus {
 
   twai_handle_t twai_handle_{};
   twai_state_t twai_last_state_ = static_cast<twai_state_t>(-1);
+  optional<twai_status_info_t> prev_status_;
 };
 
 }  // namespace esp32_can

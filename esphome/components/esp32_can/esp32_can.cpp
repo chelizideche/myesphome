@@ -177,33 +177,41 @@ void ESP32Can::loop() {
     ESP_LOGE(TAG, "Failed to get status info: %s", esp_err_to_name(err));
   } else {
 #ifdef USE_SENSOR
-    if (this->msgs_to_tx_sensor_) {
+    if (this->msgs_to_tx_sensor_ && (!this->prev_status_ || this->prev_status_->msgs_to_tx != status.msgs_to_tx)) {
       this->msgs_to_tx_sensor_->publish_state(status.msgs_to_tx);
     }
-    if (this->msgs_to_rx_sensor_) {
+    if (this->msgs_to_rx_sensor_ && (!this->prev_status_ || this->prev_status_->msgs_to_rx != status.msgs_to_rx)) {
       this->msgs_to_rx_sensor_->publish_state(status.msgs_to_rx);
     }
-    if (this->tx_error_counter_sensor_) {
+    if (this->tx_error_counter_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->tx_error_counter != status.tx_error_counter)) {
       this->tx_error_counter_sensor_->publish_state(status.tx_error_counter);
     }
-    if (this->rx_error_counter_sensor_) {
+    if (this->rx_error_counter_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->rx_error_counter != status.rx_error_counter)) {
       this->rx_error_counter_sensor_->publish_state(status.rx_error_counter);
     }
-    if (this->tx_failed_count_sensor_) {
+    if (this->tx_failed_count_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->tx_failed_count != status.tx_failed_count)) {
       this->tx_failed_count_sensor_->publish_state(status.tx_failed_count);
     }
-    if (this->rx_missed_count_sensor_) {
+    if (this->rx_missed_count_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->rx_missed_count != status.rx_missed_count)) {
       this->rx_missed_count_sensor_->publish_state(status.rx_missed_count);
     }
-    if (this->rx_overrun_count_sensor_) {
+    if (this->rx_overrun_count_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->rx_overrun_count != status.rx_overrun_count)) {
       this->rx_overrun_count_sensor_->publish_state(status.rx_overrun_count);
     }
-    if (this->arb_lost_count_sensor_) {
+    if (this->arb_lost_count_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->arb_lost_count != status.arb_lost_count)) {
       this->arb_lost_count_sensor_->publish_state(status.arb_lost_count);
     }
-    if (this->bus_error_count_sensor_) {
+    if (this->bus_error_count_sensor_ &&
+        (!this->prev_status_ || this->prev_status_->bus_error_count != status.bus_error_count)) {
       this->bus_error_count_sensor_->publish_state(status.bus_error_count);
     }
+    this->prev_status_ = status;
 #endif  // USE_SENSOR
 #ifdef USE_TEXT_SENSOR
     if (this->state_text_sensor_ && twai_last_state_ != status.state) {
