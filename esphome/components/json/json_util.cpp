@@ -31,8 +31,8 @@ std::string build_json(const json_build_t &f) {
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
   while (true) {
-    auto DOC_ALLOCATOR = SpiRamAllocator();
-    JsonDocument json_document(&DOC_ALLOCATOR);
+    auto doc_allocator = SpiRamAllocator();
+    JsonDocument json_document(&doc_allocator);
     if (json_document.overflowed()) {
       ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
       return "{}";
@@ -55,8 +55,8 @@ bool parse_json(const std::string &data, const json_parse_t &f) {
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
   while (true) {
-    auto DOC_ALLOCATOR = SpiRamAllocator();
-    JsonDocument json_document(&DOC_ALLOCATOR);
+    auto doc_allocator = SpiRamAllocator();
+    JsonDocument json_document(&doc_allocator);
     if (json_document.overflowed()) {
       ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
       return false;
