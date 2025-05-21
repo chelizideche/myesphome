@@ -20,7 +20,12 @@ namespace wifi {
 
 static const char *const TAG = "wifi_pico_w";
 
+#ifdef USE_RP2040_ESPHOST
+static bool s_sta_connecting = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+#endif
+
 bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
+#ifndef USE_RP2040_ESPHOST
   if (sta.has_value()) {
     if (sta.value()) {
       cyw43_wifi_set_up(&cyw43_state, CYW43_ITF_STA, true, CYW43_COUNTRY_WORLDWIDE);
@@ -32,9 +37,27 @@ bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
     }
   }
   return true;
+#else
+  uint8_t current_mode = WiFi.getMode();
+  bool current_sta = current_mode & WIFI_STA;
+  bool current_ap = current_mode & WIFI_AP;
+  bool enable_sta = sta.value_or(current_sta);
+  bool enable_ap = ap.value_or(current_ap);
+  if (current_sta == enable_sta && current_ap == enable_ap)
+    return true;
+
+  uint8_t mode = 0;
+  if (enable_sta)
+    mode |= WIFI_STA;
+  if (enable_ap)
+    mode |= WIFI_AP;
+  WiFi.mode(static_cast<WiFiMode_t>(mode));
+  return true;
+#endif
 }
 
 bool WiFiComponent::wifi_apply_power_save_() {
+#ifndef USE_RP2040_ESPHOST
   uint32_t pm;
   switch (this->power_save_) {
     case WIFI_POWER_SAVE_NONE:
@@ -49,6 +72,9 @@ bool WiFiComponent::wifi_apply_power_save_() {
   }
   int ret = cyw43_wifi_pm(&cyw43_state, pm);
   return ret == 0;
+#else
+  return false;
+#endif
 }
 
 // TODO: The driver doesnt seem to have an API for this
@@ -96,6 +122,7 @@ const char *get_disconnect_reason_str(uint8_t reason) {
 }
 
 WiFiSTAConnectStatus WiFiComponent::wifi_sta_connect_status_() {
+#ifndef USE_RP2040_ESPHOST
   int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
   switch (status) {
     case CYW43_LINK_JOIN:
@@ -110,8 +137,22 @@ WiFiSTAConnectStatus WiFiComponent::wifi_sta_connect_status_() {
       return WiFiSTAConnectStatus::ERROR_NETWORK_NOT_FOUND;
   }
   return WiFiSTAConnectStatus::IDLE;
+#else
+  auto status = WiFi.status();
+  if (status == WL_CONNECTED) {
+    return WiFiSTAConnectStatus::CONNECTED;
+  } else if (status == WL_CONNECT_FAILED || status == WL_CONNECTION_LOST) {
+    return WiFiSTAConnectStatus::ERROR_CONNECT_FAILED;
+  } else if (status == WL_NO_SSID_AVAIL) {
+    return WiFiSTAConnectStatus::ERROR_NETWORK_NOT_FOUND;
+  } else if (s_sta_connecting) {
+    return WiFiSTAConnectStatus::CONNECTING;
+  }
+  return WiFiSTAConnectStatus::IDLE;
+#endif
 }
 
+#ifndef USE_RP2040_ESPHOST
 int WiFiComponent::s_wifi_scan_result(void *env, const cyw43_ev_scan_result_t *result) {
   global_wifi_component->wifi_scan_result(env, result);
   return 0;
@@ -139,6 +180,32 @@ bool WiFiComponent::wifi_scan_start_(bool passive) {
   return err == 0;
   return true;
 }
+#else
+bool WiFiComponent::wifi_scan_start_(bool passive) {
+  this->scan_result_.clear();
+
+  int16_t num = WiFi.scanNetworks(false);
+  if (num < 0)
+    return false;
+
+  this->scan_result_.reserve(static_cast<unsigned int>(num));
+  for (int i = 0; i < num; i++) {
+    String ssid = WiFi.SSID(i);
+    uint8_t authmode = WiFi.encryptionType(i);
+    int32_t rssi = WiFi.RSSI(i);
+    uint8_t bssid[6];
+    WiFi.BSSID(i, bssid);
+    int32_t channel = WiFi.channel(i);
+
+    WiFiScanResult scan({bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]}, std::string(ssid.c_str()),
+                        channel, rssi, authmode != WIFI_AUTH_OPEN, ssid.length() == 0);
+    this->scan_result_.push_back(scan);
+  }
+  WiFi.scanDelete();
+  this->scan_done_ = true;
+  return true;
+}
+#endif
 
 #ifdef USE_WIFI_AP
 bool WiFiComponent::wifi_ap_ip_config_(optional<ManualIP> manual_ip) {
@@ -175,8 +242,12 @@ network::IPAddress WiFiComponent::wifi_soft_ap_ip() { return {(const ip_addr_t *
 #endif  // USE_WIFI_AP
 
 bool WiFiComponent::wifi_disconnect_() {
+#ifndef USE_RP2040_ESPHOST
   int err = cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
   return err == 0;
+#else
+  return WiFi.disconnect() == WL_DISCONNECTED;
+#endif
 }
 
 bssid_t WiFiComponent::wifi_bssid() {
@@ -207,10 +278,12 @@ network::IPAddress WiFiComponent::wifi_dns_ip_(int num) {
 }
 
 void WiFiComponent::wifi_loop_() {
+#ifndef USE_RP2040_ESPHOST
   if (this->state_ == WIFI_COMPONENT_STATE_STA_SCANNING && !cyw43_wifi_scan_active(&cyw43_state)) {
     this->scan_done_ = true;
     ESP_LOGV(TAG, "Scan done!");
   }
+#endif
 }
 
 void WiFiComponent::wifi_pre_setup_() {}

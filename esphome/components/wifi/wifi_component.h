@@ -40,11 +40,13 @@ extern "C" {
 #endif
 
 #ifdef USE_RP2040
+#ifndef USE_RP2040_ESPHOST
 extern "C" {
 #include "cyw43.h"
 #include "cyw43_country.h"
 #include "pico/cyw43_arch.h"
 }
+#endif
 
 #include <WiFi.h>
 #endif
@@ -372,7 +374,7 @@ class WiFiComponent : public Component {
   void wifi_process_event_(IDFWiFiEvent *data);
 #endif
 
-#ifdef USE_RP2040
+#if defined(USE_RP2040) && !defined(USE_RP2040_ESPHOST)
   static int s_wifi_scan_result(void *env, const cyw43_ev_scan_result_t *result);
   void wifi_scan_result(void *env, const cyw43_ev_scan_result_t *result);
 #endif
