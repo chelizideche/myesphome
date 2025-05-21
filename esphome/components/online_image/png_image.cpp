@@ -34,7 +34,7 @@ static void init_callback(pngle_t *pngle, uint32_t w, uint32_t h) {
  * @param h The height of the rectangle to draw.
  * @param rgba The color to paint the rectangle in.
  */
-static void draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4]) {
+static void draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint8_t rgba[4]) {
   PngDecoder *decoder = (PngDecoder *) pngle_get_user_data(pngle);
   Color color(rgba[0], rgba[1], rgba[2], rgba[3]);
   decoder->draw(x, y, w, h, color);
