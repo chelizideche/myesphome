@@ -114,7 +114,6 @@ def final_validate_(config):
     platform_type = framework_conf[CONF_TYPE]
     if platform_type == "arduino":
         config[CONF_USE_V2] = CONF_USE_V2_FIND_OUT
-        pass
     elif platform_type == "esp-idf":
         platform_version = framework_conf.get(CONF_VERSION)
         if not platform_version:
