@@ -40,7 +40,7 @@ class ESP32Can : public canbus::Canbus {
   void set_tx_enqueue_timeout_ms(uint32_t tx_enqueue_timeout_ms) {
     this->tx_enqueue_timeout_ticks_ = pdMS_TO_TICKS(tx_enqueue_timeout_ms);
   }
-  ESP32Can(){}
+  ESP32Can() {}
 
   void loop() override;
 

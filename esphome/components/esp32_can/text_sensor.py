@@ -3,20 +3,19 @@ import esphome.config_validation as cv
 from esphome.components import text_sensor
 from esphome.const import (
     ENTITY_CATEGORY_DIAGNOSTIC,
+    CONF_STATE,
 )
 from esphome.components.canbus import (
-    CONF_CANBUS_ID
+    CONF_CANBUS_ID,
 )
 from . import ESP32Can
 
 DEPENDENCIES = ["canbus"]
 
-CONF_STATE = "state"
-
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_CANBUS_ID): cv.use_id(ESP32Can),
     cv.Optional(CONF_STATE): text_sensor.text_sensor_schema(
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC
+        entity_category=ENTITY_CATEGORY_DIAGNOSTICF
     ),
 }
 
