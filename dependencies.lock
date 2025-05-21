@@ -61,6 +61,6 @@ direct_dependencies:
 - esp32_camera
 - esp_modem
 - mdns
-manifest_hash: eaf0d216c95b6ba0581fbe4afcf60ebbcc574ff622e780d5a07bb08f59c814f7
+manifest_hash: 5a2d46dbd960c80c3fec044d26b6205ed55c71fd7c52a2f2904a591be37d2e93
 target: esp32
 version: 2.0.0
