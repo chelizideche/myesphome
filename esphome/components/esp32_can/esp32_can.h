@@ -1,11 +1,14 @@
 #pragma once
 #include "esphome/core/defines.h"
 #ifdef USE_ESP32
+
+#ifdef ESP32_CAN_V2_FIND_OUT
 #include "esp_idf_version.h"
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #define ESP32_CAN_V2_SUPPORTED
 #endif
+#endif  // ESP32_CAN_V2_FIND_OUT
 
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/core/component.h"

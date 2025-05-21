@@ -15,6 +15,7 @@ CONF_REMOTE_TRANSMISSION_REQUEST = "remote_transmission_request"
 CONF_CANBUS_ID = "canbus_id"
 CONF_BIT_RATE = "bit_rate"
 CONF_ON_FRAME = "on_frame"
+CONF_CANBUS = "canbus"
 
 
 def validate_id(config):
