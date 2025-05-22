@@ -20,8 +20,8 @@ permissions:
   contents: read
 
 env:
-  DEFAULT_PYTHON: "3.9"
-  PYUPGRADE_TARGET: "--py39-plus"
+  DEFAULT_PYTHON: "3.10"
+  PYUPGRADE_TARGET: "--py310-plus"
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -173,10 +173,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
         os:
           - ubuntu-latest
           - macOS-latest
@@ -185,17 +185,17 @@ jobs:
           # Minimize CI resource usage
           # by only running the Python version
           # version used for docker images on Windows and macOS
+          - python-version: "3.13"
+            os: windows-latest
           - python-version: "3.12"
             os: windows-latest
           - python-version: "3.10"
             os: windows-latest
-          - python-version: "3.9"
-            os: windows-latest
+          - python-version: "3.13"
+            os: macOS-latest
           - python-version: "3.12"
             os: macOS-latest
           - python-version: "3.10"
-            os: macOS-latest
-          - python-version: "3.9"
             os: macOS-latest
     runs-on: ${{ matrix.os }}
     needs:
@@ -221,7 +221,7 @@ jobs:
           . venv/bin/activate
           pytest -vv --cov-report=xml --tb=native tests
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.4.2
+        uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
