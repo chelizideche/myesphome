@@ -1,0 +1,11 @@
+i2c:
+  - id: i2c_s300
+    scl: ${scl_pin}
+    sda: ${sda_pin}
+
+sensor:
+  - platform: s300
+    co2:
+      name: S300 CO2
+    address: 0x31
+    update_interval: 30s
