@@ -364,6 +364,7 @@ class SubDeviceInfo : public ProtoMessage {
   std::string name{};
   std::string suggested_area{};
   void encode(ProtoWriteBuffer buffer) const override;
+  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif

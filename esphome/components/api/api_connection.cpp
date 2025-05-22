@@ -298,8 +298,8 @@ bool APIConnection::try_send_binary_sensor_info_(binary_sensor::BinarySensor *bi
   msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
   return this->try_send_entity_info_(static_cast<EntityBase *>(binary_sensor), msg,
                                      &APIConnection::send_list_entities_binary_sensor_response);
-} 
-#endif  
+}
+#endif
 
 #ifdef USE_COVER
 bool APIConnection::send_cover_state(cover::Cover *cover) {

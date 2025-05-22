@@ -848,6 +848,11 @@ void SubDeviceInfo::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->name);
   buffer.encode_string(3, this->suggested_area);
 }
+void SubDeviceInfo::calculate_size(uint32_t &total_size) const {
+  ProtoSize::add_uint32_field(total_size, 1, this->uid, false);
+  ProtoSize::add_string_field(total_size, 1, this->name, false);
+  ProtoSize::add_string_field(total_size, 1, this->suggested_area, false);
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubDeviceInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -1003,6 +1008,7 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 2, this->suggested_area, false);
   ProtoSize::add_string_field(total_size, 2, this->bluetooth_mac_address, false);
   ProtoSize::add_bool_field(total_size, 2, this->api_encryption_supported, false);
+  ProtoSize::add_repeated_message(total_size, 2, this->sub_devices);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -1192,6 +1198,7 @@ void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) cons
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
@@ -1392,6 +1399,7 @@ void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_stop, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCoverResponse::dump_to(std::string &out) const {
@@ -1737,6 +1745,7 @@ void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
       ProtoSize::add_string_field(total_size, 1, it, true);
     }
   }
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesFanResponse::dump_to(std::string &out) const {
@@ -2189,6 +2198,7 @@ void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 2, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLightResponse::dump_to(std::string &out) const {
@@ -2850,6 +2860,7 @@ void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_last_reset_type), false);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSensorResponse::dump_to(std::string &out) const {
@@ -3050,6 +3061,7 @@ void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
@@ -3259,6 +3271,7 @@ void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const 
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
@@ -4130,6 +4143,7 @@ void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
@@ -4478,6 +4492,7 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 2, this->supports_target_humidity, false);
   ProtoSize::add_fixed_field<4>(total_size, 2, this->visual_min_humidity != 0.0f, false);
   ProtoSize::add_fixed_field<4>(total_size, 2, this->visual_max_humidity != 0.0f, false);
+  ProtoSize::add_uint32_field(total_size, 2, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesClimateResponse::dump_to(std::string &out) const {
@@ -5161,6 +5176,7 @@ void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
@@ -5401,6 +5417,7 @@ void ListEntitiesSelectResponse::calculate_size(uint32_t &total_size) const {
   }
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSelectResponse::dump_to(std::string &out) const {
@@ -5943,6 +5960,7 @@ void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->supports_open, false);
   ProtoSize::add_bool_field(total_size, 1, this->requires_code, false);
   ProtoSize::add_string_field(total_size, 1, this->code_format, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
@@ -6186,6 +6204,7 @@ void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
@@ -6413,6 +6432,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_pause, false);
   ProtoSize::add_repeated_message(total_size, 1, this->supported_formats);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
@@ -8841,6 +8861,7 @@ void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size)
   ProtoSize::add_uint32_field(total_size, 1, this->supported_features, false);
   ProtoSize::add_bool_field(total_size, 1, this->requires_code, false);
   ProtoSize::add_bool_field(total_size, 1, this->requires_code_to_arm, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
@@ -9089,6 +9110,7 @@ void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->max_length, false);
   ProtoSize::add_string_field(total_size, 1, this->pattern, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextResponse::dump_to(std::string &out) const {
@@ -9318,6 +9340,7 @@ void ListEntitiesDateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateResponse::dump_to(std::string &out) const {
@@ -9569,6 +9592,7 @@ void ListEntitiesTimeResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTimeResponse::dump_to(std::string &out) const {
@@ -9838,6 +9862,7 @@ void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
       ProtoSize::add_string_field(total_size, 1, it, true);
     }
   }
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesEventResponse::dump_to(std::string &out) const {
@@ -10024,6 +10049,7 @@ void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->assumed_state, false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_position, false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_stop, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesValveResponse::dump_to(std::string &out) const {
@@ -10267,6 +10293,7 @@ void ListEntitiesDateTimeResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
@@ -10474,6 +10501,7 @@ void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_uid, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
