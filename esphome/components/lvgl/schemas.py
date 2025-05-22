@@ -36,30 +36,35 @@ from .types import (
 # this will be populated later, in __init__.py to avoid circular imports.
 WIDGET_TYPES: dict = {}
 
+TIME_TEXT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_TIME_FORMAT): cv.string,
+        cv.GenerateID(CONF_TIME): cv.templatable(cv.use_id(RealTimeClock)),
+    }
+)
+
+PRINTF_TEXT_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.Required(CONF_FORMAT): cv.string,
+            cv.Optional(CONF_ARGS, default=list): cv.ensure_list(cv.lambda_),
+        },
+    ),
+    validate_printf,
+)
+
 
 def _validate_text(value):
     """
     Do some sanity checking of the format to get better error messages
     than using cv.Any
     """
+    if value is None:
+        raise cv.Invalid("No text specified")
     if isinstance(value, dict):
         if CONF_TIME_FORMAT in value:
-            return cv.Schema(
-                {
-                    cv.Required(CONF_TIME_FORMAT): cv.string,
-                    cv.GenerateID(CONF_TIME): cv.templatable(cv.use_id(RealTimeClock)),
-                }
-            )(value)
-
-        return cv.All(
-            cv.Schema(
-                {
-                    cv.Required(CONF_FORMAT): cv.string,
-                    cv.Optional(CONF_ARGS, default=list): cv.ensure_list(cv.lambda_),
-                },
-            ),
-            validate_printf,
-        )(value)
+            return TIME_TEXT_SCHEMA(value)
+        return PRINTF_TEXT_SCHEMA(value)
 
     return cv.templatable(cv.string)(value)
 
