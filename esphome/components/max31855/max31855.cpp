@@ -65,6 +65,7 @@ void MAX31855Sensor::update() {
     this->status_set_warning();
     return;
   }
+  #ifdef DO_NOT_IGNORE_FAULTS
   if (mem & 0x00000002) {
     ESP_LOGW(TAG, "Thermocouple short circuit to ground fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
@@ -83,6 +84,7 @@ void MAX31855Sensor::update() {
     this->status_set_warning();
     return;
   }
+  #endif
 
   // Decode thermocouple temperature
   int16_t val = (mem & 0xFFFC0000) >> 18;
