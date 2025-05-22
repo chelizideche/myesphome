@@ -435,7 +435,7 @@ void LvglComponent::setup() {
   auto *display = this->displays_[0];
   auto width = display->get_width();
   auto height = display->get_height();
-  auto frac = buffer_frac_;
+  auto frac = this->buffer_frac_;
   if (frac == 0)
     frac = 1;
   size_t buffer_pixels = width * height / frac;
