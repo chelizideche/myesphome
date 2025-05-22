@@ -20,8 +20,8 @@ permissions:
   contents: read
 
 env:
-  DEFAULT_PYTHON: "3.9"
-  PYUPGRADE_TARGET: "--py39-plus"
+  DEFAULT_PYTHON: "3.10"
+  PYUPGRADE_TARGET: "--py310-plus"
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v4.1.7
       - name: Generate cache-key
         id: cache-key
-        run: echo key="${{ hashFiles('requirements.txt', 'requirements_optional.txt', 'requirements_test.txt') }}" >> $GITHUB_OUTPUT
+        run: echo key="${{ hashFiles('requirements.txt', 'requirements_test.txt') }}" >> $GITHUB_OUTPUT
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5.6.0
@@ -58,7 +58,7 @@ jobs:
           python -m venv venv
           . venv/bin/activate
           python --version
-          pip install -r requirements.txt -r requirements_optional.txt -r requirements_test.txt
+          pip install -r requirements.txt -r requirements_test.txt
           pip install -e .
 
   ruff:
@@ -173,10 +173,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
         os:
           - ubuntu-latest
           - macOS-latest
@@ -185,17 +185,17 @@ jobs:
           # Minimize CI resource usage
           # by only running the Python version
           # version used for docker images on Windows and macOS
+          - python-version: "3.13"
+            os: windows-latest
           - python-version: "3.12"
             os: windows-latest
           - python-version: "3.10"
             os: windows-latest
-          - python-version: "3.9"
-            os: windows-latest
+          - python-version: "3.13"
+            os: macOS-latest
           - python-version: "3.12"
             os: macOS-latest
           - python-version: "3.10"
-            os: macOS-latest
-          - python-version: "3.9"
             os: macOS-latest
     runs-on: ${{ matrix.os }}
     needs:
@@ -221,7 +221,7 @@ jobs:
           . venv/bin/activate
           pytest -vv --cov-report=xml --tb=native tests
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.4.2
+        uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -292,6 +292,11 @@ jobs:
             name: Run script/clang-tidy for ESP32 IDF
             options: --environment esp32-idf-tidy --grep USE_ESP_IDF
             pio_cache_key: tidyesp32-idf
+          - id: clang-tidy
+            name: Run script/clang-tidy for ZEPHYR
+            options: --environment nrf52-tidy --grep USE_ZEPHYR
+            pio_cache_key: tidy-zephyr
+            ignore_errors: true
 
     steps:
       - name: Check out code from GitHub
@@ -331,13 +336,13 @@ jobs:
       - name: Run clang-tidy
         run: |
           . venv/bin/activate
-          script/clang-tidy --all-headers --fix ${{ matrix.options }}
+          script/clang-tidy --all-headers --fix ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
         env:
           # Also cache libdeps, store them in a ~/.platformio subfolder
           PLATFORMIO_LIBDEPS_DIR: ~/.platformio/libdeps
 
       - name: Suggested changes
-        run: script/ci-suggest-changes
+        run: script/ci-suggest-changes ${{ matrix.ignore_errors && '|| true' || '' }}
         # yamllint disable-line rule:line-length
         if: always()
 
