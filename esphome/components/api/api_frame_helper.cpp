@@ -8,7 +8,6 @@
 #include "api_pb2_size.h"
 #include <cstring>
 #include <cinttypes>
-#include <limits>
 
 namespace esphome {
 namespace api {
