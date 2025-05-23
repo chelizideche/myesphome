@@ -22,12 +22,19 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void set_gain(HX711Gain gain) { gain_ = gain; }
   void set_settling_time(uint16_t settling_time_ms) { this->settling_time_ms_ = settling_time_ms; }
   void set_settle_on_boot(bool settle_on_boot) { this->settle_on_boot_ = settle_on_boot; }
+  void set_power_down_after_reading(bool power_down_after_reading) {
+    this->power_down_after_reading_ = power_down_after_reading;
+  }
 
   void call_setup() override;
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override;
   void update() override;
+
+  void power_up();
+  void power_down();
+
   /// @brief Returns whether the HX711 ADC has reached a stable state.
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
   bool is_settled() const { return this->settled_; }
@@ -61,11 +68,39 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   bool settled_{false};
   /// @brief Flag to indicate whether the settling has to be done at startup.
   bool settle_on_boot_;
+  /// @brief Flag to indicate whether to power down the sensor after reading.
+  bool power_down_after_reading_;
 
   GPIOPin *dout_pin_;
   GPIOPin *sck_pin_;
   /// Gain to set after new measurement.
   HX711Gain gain_{HX711_GAIN_128};
+};
+
+template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {
+ public:
+  void set_parent(HX711Sensor *parent) { this->parent_ = parent; }
+
+ protected:
+  HX711Sensor *parent_;
+};
+
+template<typename... Ts> class PowerUpAction : public HX711SensorActionBase<Ts...> {
+ public:
+  void play(Ts... x) override {
+    if (!this->parent_->is_ready())
+      return;
+    this->parent_->power_up();
+  }
+};
+
+template<typename... Ts> class PowerDownAction : public HX711SensorActionBase<Ts...> {
+ public:
+  void play(Ts... x) override {
+    if (!this->parent_->is_ready())
+      return;
+    this->parent_->power_down();
+  }
 };
 
 }  // namespace hx711
