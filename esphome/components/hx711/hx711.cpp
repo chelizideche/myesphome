@@ -11,10 +11,9 @@ static const char *const TAG = "hx711";
 /// @param[in] gain HX711 gain setting as an enum.
 /// @return Numeric gain value (128, 64, 32, or 0 if invalid).
 constexpr uint8_t hx711_gain_to_linear_gain(const HX711Gain gain) {
-  return (gain == HX711Gain::HX711_GAIN_128)  ? 128U
-         : (gain == HX711Gain::HX711_GAIN_64) ? 64U
-         : (gain == HX711Gain::HX711_GAIN_32) ? 32U
-                                              : 0U;
+  return (gain == HX711Gain::HX711_GAIN_128) ? 128U :
+         (gain == HX711Gain::HX711_GAIN_64) ? 64U :
+         (gain == HX711Gain::HX711_GAIN_32) ? 32U : 0U;
 }
 
 /// @brief Calculates the elapsed time in milliseconds from a given timestamp.
