@@ -23,6 +23,8 @@ void HX711Sensor::call_setup() {
   if (this->settle_on_boot_) {
     this->start_settle_timeoout();
   } else {
+    // Assume the sensor is already settled
+    this->settled_ = true;
     this->start_poller();
   }
 }
@@ -33,7 +35,7 @@ void HX711Sensor::setup() {
   this->dout_pin_->setup();
   this->sck_pin_->digital_write(false);
 
-  // Force read sensor to set the gain
+  // Force read sensor once without publishing to set the gain
   this->read_sensor_(nullptr, true);
 }
 

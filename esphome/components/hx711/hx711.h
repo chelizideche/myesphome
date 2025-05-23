@@ -58,7 +58,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   uint16_t settling_time_ms_;
 
   /// @brief Flag to indicate whether the ADC has reached a stable state.
-  bool settled_;
+  bool settled_{false};
   /// @brief Flag to indicate whether the settling has to be done at startup.
   bool settle_on_boot_;
 
