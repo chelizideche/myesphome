@@ -69,14 +69,14 @@ void Lc709203f::setup() {
     return;
   }
 
-  this->state_ = LC709203F_STATE_RSOC;
+  this->state_ = STATE_RSOC;
   // Note: Initialization continues in the update() function.
 }
 
 void Lc709203f::update() {
   uint16_t buffer;
 
-  if (this->state_ == LC709203F_STATE_NORMAL) {
+  if (this->state_ == STATE_NORMAL) {
     // Note: If we fail to read from the data registers, we do not report any sensor reading.
     if (this->voltage_sensor_ != nullptr) {
       if (this->get_register_(LC709203F_CELL_VOLTAGE, &buffer) == i2c::NO_ERROR) {
@@ -102,7 +102,7 @@ void Lc709203f::update() {
         this->status_clear_warning();
       }
     }
-  } else if (this->state_ == LC709203F_STATE_INIT) {
+  } else if (this->state_ == STATE_INIT) {
     // Retry initializing the device registers. We should only get here if the init sequence
     //  failed during the setup() function. This would likely occur because of a repeated failures
     //  on the I2C bus. If any of these fail, retry the next time the update() function is called.
@@ -118,21 +118,21 @@ void Lc709203f::update() {
       return;
     }
 
-    this->state_ = LC709203F_STATE_RSOC;
+    this->state_ = STATE_RSOC;
 
-  } else if (this->state_ == LC709203F_STATE_RSOC) {
+  } else if (this->state_ == STATE_RSOC) {
     // We implement a delay here to send the initial RSOC command.
     //  This should run once on the first update() after initialization.
     if (this->set_register_(LC709203F_INITIAL_RSOC, 0xAA55) == i2c::NO_ERROR) {
-      this->state_ = LC709203F_STATE_TEMP_SETUP;
+      this->state_ = STATE_TEMP_SETUP;
     }
-  } else if (this->state_ == LC709203F_STATE_TEMP_SETUP) {
+  } else if (this->state_ == STATE_TEMP_SETUP) {
     // This should run once on the second update() after initialization.
     if (this->temperature_sensor_ != nullptr) {
       // This assumes that a thermistor is attached to the device as shown in the datahseet.
       if (this->set_register_(LC709203F_STATUS_BIT, 0x0001) == i2c::NO_ERROR) {
         if (this->set_register_(LC709203F_THERMISTOR_B, this->b_constant_) == i2c::NO_ERROR) {
-          this->state_ = LC709203F_STATE_NORMAL;
+          this->state_ = STATE_NORMAL;
         }
       }
     } else if (this->set_register_(LC709203F_STATUS_BIT, 0x0000) == i2c::NO_ERROR) {
@@ -141,7 +141,7 @@ void Lc709203f::update() {
       //  In theory, we could have another temperature sensor and have ESPHome
       //  send updated temperature to the device occasionally, but I have no idea
       //  how to make that happen.
-      this->state_ = LC709203F_STATE_NORMAL;
+      this->state_ = STATE_NORMAL;
     }
   }
 }

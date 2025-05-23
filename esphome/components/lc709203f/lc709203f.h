@@ -7,10 +7,12 @@
 namespace esphome {
 namespace lc709203f {
 
-static const uint8_t LC709203F_STATE_INIT = 0x01;
-static const uint8_t LC709203F_STATE_RSOC = 0x02;
-static const uint8_t LC709203F_STATE_TEMP_SETUP = 0x03;
-static const uint8_t LC709203F_STATE_NORMAL = 0x00;
+enum LC709203F_STATE {
+  STATE_INIT,
+  STATE_RSOC,
+  STATE_TEMP_SETUP,
+  STATE_NORMAL
+};
 
 /// Enum listing allowable voltage settings for the LC709203F.
 enum LC709203FBatteryVoltage {
@@ -45,7 +47,8 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   uint16_t pack_size_;
   uint16_t apa_;
   uint16_t b_constant_;
-  uint8_t state_ = LC709203F_STATE_INIT;
+  LC709203F_STATE state_ = STATE_INIT;
+  //uint8_t state_ = LC709203F_STATE_INIT;
   uint16_t pack_voltage_;
 
   // A buffer to store error code messages. We put this here so as to not have to
