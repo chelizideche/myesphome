@@ -187,8 +187,9 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
   }
 
   if (last_gain != this->gain_) {
+    ESP_LOGD(TAG, "HX711 gain changed from x%u to x%u", hx711_gain_to_linear_gain(last_gain),
+             hx711_gain_to_linear_gain(this->gain_));
     last_gain = this->gain_;
-    ESP_LOGD(TAG, "HX711 gain changed from x%u to x%u", last_gain, hx711_gain_to_linear_gain(this->gain_));
 
     // If powering down after reading is not enabled, start the settling timeout sequence
     // Force reading will force the settling timeout sequence
