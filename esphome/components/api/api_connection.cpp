@@ -88,6 +88,9 @@ void APIConnection::start() {
   // This ensures the first ping happens after the keepalive period
   this->next_ping_retry_ = this->last_traffic_ + KEEPALIVE_TIMEOUT_MS;
 
+  // Pass stats collection to the helper for detailed timing
+  this->helper_->set_section_stats(&this->section_stats_);
+
   APIError err = this->helper_->init();
   if (err != APIError::OK) {
     on_fatal_error();
