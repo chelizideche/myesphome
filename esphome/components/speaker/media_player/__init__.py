@@ -47,6 +47,7 @@ CONF_ON_MUTE = "on_mute"
 CONF_ON_UNMUTE = "on_unmute"
 CONF_ON_VOLUME = "on_volume"
 CONF_STREAM = "stream"
+CONF_VOLUME_FIRST_BOOT = "volume_first_boot"
 CONF_VOLUME_INCREMENT = "volume_increment"
 CONF_VOLUME_MIN = "volume_min"
 CONF_VOLUME_MAX = "volume_max"
@@ -281,6 +282,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CODEC_SUPPORT_ENABLED, default=True): cv.boolean,
             cv.Optional(CONF_FILES): cv.ensure_list(MEDIA_FILE_TYPE_SCHEMA),
             cv.Optional(CONF_TASK_STACK_IN_PSRAM, default=False): cv.boolean,
+            cv.Optional(CONF_VOLUME_FIRST_BOOT, default=0.5): cv.percentage,
             cv.Optional(CONF_VOLUME_INCREMENT, default=0.05): cv.percentage,
             cv.Optional(CONF_VOLUME_MAX, default=1.0): cv.percentage,
             cv.Optional(CONF_VOLUME_MIN, default=0.0): cv.percentage,
@@ -355,9 +357,11 @@ async def to_code(config):
             "CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY", True
         )
 
+    cg.add(var.set_volume_first_boot(config[CONF_VOLUME_FIRST_BOOT]))
     cg.add(var.set_volume_increment(config[CONF_VOLUME_INCREMENT]))
     cg.add(var.set_volume_max(config[CONF_VOLUME_MAX]))
     cg.add(var.set_volume_min(config[CONF_VOLUME_MIN]))
+
 
     announcement_pipeline_config = config[CONF_ANNOUNCEMENT_PIPELINE]
     spkr = await cg.get_variable(announcement_pipeline_config[CONF_SPEAKER])
