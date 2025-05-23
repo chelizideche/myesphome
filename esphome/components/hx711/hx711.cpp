@@ -70,7 +70,7 @@ void HX711Sensor::update() {
   // No need to log warnings here, they're already logged in read_sensor_ everywhere where it returns false
 }
 
-bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
+bool HX711Sensor::read_sensor_(uint32_t *result, bool force) {
   if (this->dout_pin_->digital_read()) {
     ESP_LOGW(TAG, "HX711 is not ready for new measurements yet!");
     this->status_set_warning();

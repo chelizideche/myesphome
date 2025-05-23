@@ -32,7 +32,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @param[out] result Pointer to store the read value.
   /// @param[in] force Force reading even if settling time has not elapsed.
   /// @return True if data was successfully read, false otherwise.
-  bool read_sensor_(uint32_t *result, bool force = false);
+  bool read_sensor_(uint32_t *result, const bool force = false);
 
   /// Settling time in milliseconds.
   /// Taken from the datasheet: "Settling time refers to the time from power up,
