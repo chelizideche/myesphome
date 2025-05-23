@@ -1,3 +1,9 @@
+esphome:
+  on_loop:
+    then:
+      - hx711.power_down
+      - hx711.power_up
+
 sensor:
   - platform: hx711
     name: HX711 Value
