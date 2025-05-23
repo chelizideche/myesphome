@@ -27,11 +27,11 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   void set_pack_size(uint16_t pack_size);
   void set_thermistor_b_constant(uint16_t b_constant);
   void set_pack_voltage(LC709203FBatteryVoltage pack_voltage);
-  void set_voltage_sensor(sensor::Sensor *voltage_sensor) { voltage_sensor_ = voltage_sensor; }
+  void set_voltage_sensor(sensor::Sensor *voltage_sensor) { this->voltage_sensor_ = voltage_sensor; }
   void set_battery_remaining_sensor(sensor::Sensor *battery_remaining_sensor) {
-    battery_remaining_sensor_ = battery_remaining_sensor;
+    this->battery_remaining_sensor_ = battery_remaining_sensor;
   }
-  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
+  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
 
  private:
   uint8_t get_register_(uint8_t register_to_read, uint16_t *register_value);
