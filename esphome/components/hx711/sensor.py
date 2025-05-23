@@ -8,6 +8,8 @@ hx711_ns = cg.esphome_ns.namespace("hx711")
 HX711Sensor = hx711_ns.class_("HX711Sensor", sensor.Sensor, cg.PollingComponent)
 
 CONF_DOUT_PIN = "dout_pin"
+CONF_SETTLING_TIME = "settling_time"
+CONF_SETTLE_ON_BOOT = "settle_on_boot"
 
 HX711Gain = hx711_ns.enum("HX711Gain")
 GAINS = {
@@ -28,6 +30,11 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_DOUT_PIN): pins.gpio_input_pin_schema,
             cv.Required(CONF_CLK_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_GAIN, default=128): cv.enum(GAINS, int=True),
+            cv.Optional(CONF_SETTLING_TIME, default="400ms"): cv.All(
+                cv.positive_time_period_milliseconds,
+                cv.Range(max=cv.TimePeriod(milliseconds=65535)),
+            ),
+            cv.Optional(CONF_SETTLE_ON_BOOT, default=True): cv.boolean,
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -43,3 +50,5 @@ async def to_code(config):
     sck_pin = await cg.gpio_pin_expression(config[CONF_CLK_PIN])
     cg.add(var.set_sck_pin(sck_pin))
     cg.add(var.set_gain(config[CONF_GAIN]))
+    cg.add(var.set_settling_time(config[CONF_SETTLING_TIME]))
+    cg.add(var.set_settle_on_boot(config[CONF_SETTLE_ON_BOOT]))
