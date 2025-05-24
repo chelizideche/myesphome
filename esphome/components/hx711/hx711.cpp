@@ -84,14 +84,19 @@ bool HX711Sensor::is_powered_down() const {
 
 void HX711Sensor::power_down(const bool stop_poller) {
   if (this->is_powered_down()) {
-    ESP_LOGW(TAG, "Already powered down.");
-    return;
+    if (!this->power_down_after_reading_) {
+      ESP_LOGW(TAG, "HX711 already powered down.");
+      return;
+    } else {
+      ESP_LOGD(TAG, "Disabling wakeup from automatic power-down");
+    }
   }
 
-  ESP_LOGI(TAG, "Powering down.");
+  ESP_LOGI(TAG, "Powering down and canceling timeouts");
   this->cancel_timeout("settling");
   this->cancel_retry("gain_set");
   if (stop_poller) {
+    ESP_LOGW(TAG, "Stopping update poller");
     this->stop_poller();
   }
   this->power_down_internal_();
