@@ -8,6 +8,9 @@
 namespace esphome {
 namespace cm1106 {
 
+enum CM1106ABCLogic { CM1106_ABC_NONE = 0, CM1106_ABC_ENABLED, CM1106_ABC_DISABLED };
+
+
 class CM1106Component : public PollingComponent, public uart::UARTDevice {
  public:
   float get_setup_priority() const override { return esphome::setup_priority::DATA; }
@@ -17,13 +20,22 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
 
   void calibrate_zero(uint16_t ppm);
+  void abc_enable();
+  void abc_disable();
 
   void set_co2_sensor(sensor::Sensor *co2_sensor) { this->co2_sensor_ = co2_sensor; }
+  void set_abc_enabled(bool abc_enabled) { abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED; }
+
 
  protected:
   sensor::Sensor *co2_sensor_{nullptr};
 
   bool cm1106_write_command_(const uint8_t *command, size_t command_len, uint8_t *response, size_t response_len);
+
+  CM1106ABCLogic abc_boot_logic_{CM1106_ABC_NONE};
+
+ private:
+  void send_abc_command(uint8_t flag);
 };
 
 template<typename... Ts> class CM1106CalibrateZeroAction : public Action<Ts...> {
@@ -31,6 +43,26 @@ template<typename... Ts> class CM1106CalibrateZeroAction : public Action<Ts...> 
   CM1106CalibrateZeroAction(CM1106Component *cm1106) : cm1106_(cm1106) {}
 
   void play(Ts... x) override { this->cm1106_->calibrate_zero(400); }
+
+ protected:
+  CM1106Component *cm1106_;
+};
+
+template<typename... Ts> class CM1106ABCEnableAction : public Action<Ts...> {
+ public:
+  CM1106ABCEnableAction(CM1106Component *cm1106) : cm1106_(cm1106) {}
+
+  void play(Ts... x) override { this->cm1106_->abc_enable(); }
+
+ protected:
+  CM1106Component *cm1106_;
+};
+
+template<typename... Ts> class CM1106ABCDisableAction : public Action<Ts...> {
+ public:
+  CM1106ABCDisableAction(CM1106Component *cm1106) : cm1106_(cm1106) {}
+
+  void play(Ts... x) override { this->cm1106_->abc_disable(); }
 
  protected:
   CM1106Component *cm1106_;
