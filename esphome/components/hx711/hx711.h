@@ -24,14 +24,17 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void set_power_down_after_reading(bool power_down_after_reading) {
     this->power_down_after_reading_ = power_down_after_reading;
   }
+#ifdef USE_HX711_CHANNEL_B_SENSOR
+  void set_channel_b_sensor(sensor::Sensor *channel_b_sensor) { this->channel_b_sensor_ = channel_b_sensor; }
+#endif
 
   void call_setup() override { this->setup(); };
   void setup() override;
   void dump_config() override;
-  float get_setup_priority() const override { return setup_priority::DATA; };
+  float get_setup_priority() const override { return setup_priority::DATA; }
   void update() override;
-  void on_safe_shutdown() override { this->power_down(); };
-  void on_shutdown() override { this->power_down_internal_(); };
+  void on_safe_shutdown() override { this->power_down(); }
+  void on_shutdown() override { this->power_down_internal_(); }
 
   /// @brief Logs the new gain setting and sets internal gain variable
   ///
@@ -84,9 +87,19 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   /// @brief Read sensor data from HX711.
   /// @param[out] result Pointer to store the read value.
-  /// @param[in] force Force reading even if settling time has not elapsed.
+  /// @param[in] start_settle_timeout If true calls start_settle_timeout_() after gain change.
+  /// @param[in] force Force reading even if settling time has not elapsed. start_settle_timeout_() will also be called.
   /// @return True if data was successfully read, false otherwise.
-  bool read_sensor_(uint32_t *result, bool force = false);
+  bool read_sensor_(uint32_t *result, bool start_settle_timeout, bool force = false);
+
+#ifdef USE_HX711_CHANNEL_B_SENSOR
+  /// @brief Logs the value for channel B sensor and publishes it.
+  ///
+  /// Helper function to reduce flash usage.
+  ///
+  /// @param[in] value Channel B sensor value.
+  void log_and_publish_channel_b_value_(int32_t value);
+#endif
 
   /// @brief Settling time in milliseconds.
   ///
@@ -101,6 +114,22 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   bool settled_{false};
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
+
+  /// @brief Flag to indicate whether the update() should be called after settling
+  bool automatic_power_up_update_call_pending_{false};
+
+#ifdef USE_HX711_CHANNEL_B_SENSOR
+  /// @brief Flag to indicate whether the channel B reading is pending.
+  ///
+  /// If this is true, that means that poller is stopped and that settling timeout
+  /// should read the channel b sensor and publish its value before starting the poller again.
+  ///
+  /// @note This flag must be reset before starting the poller.
+  bool channel_b_sensor_read_pending_{false};
+
+  /// @brief Sensor for additional channel B readings
+  sensor::Sensor *channel_b_sensor_{nullptr};
+#endif
 
   GPIOPin *dout_pin_;
   GPIOPin *sck_pin_;

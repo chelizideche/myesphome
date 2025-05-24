@@ -89,6 +89,7 @@ async def to_code(config):
     cg.add(var.set_settling_time(config[CONF_SETTLING_TIME]))
     cg.add(var.set_power_down_after_reading(config[CONF_POWER_DOWN_AFTER_READING]))
     if channel_b_config := config.get(CONF_CHANNEL_B):
+        cg.add_define("USE_HX711_CHANNEL_B_SENSOR")
         sens = await sensor.new_sensor(channel_b_config)
         cg.add(var.set_channel_b_sensor(sens))
 
