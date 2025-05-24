@@ -7,7 +7,7 @@
 namespace esphome {
 namespace lc709203f {
 
-enum LC709203F_STATE { STATE_INIT, STATE_RSOC, STATE_TEMP_SETUP, STATE_NORMAL };
+enum LC709203FState { STATE_INIT, STATE_RSOC, STATE_TEMP_SETUP, STATE_NORMAL };
 
 /// Enum listing allowable voltage settings for the LC709203F.
 enum LC709203FBatteryVoltage {
@@ -42,7 +42,7 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   uint16_t pack_size_;
   uint16_t apa_;
   uint16_t b_constant_;
-  LC709203F_STATE state_ = STATE_INIT;
+  LC709203FState state_ = STATE_INIT;
   uint16_t pack_voltage_;
 
 };
