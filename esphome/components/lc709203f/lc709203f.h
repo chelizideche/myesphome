@@ -7,7 +7,12 @@
 namespace esphome {
 namespace lc709203f {
 
-enum LC709203FState { STATE_INIT, STATE_RSOC, STATE_TEMP_SETUP, STATE_NORMAL };
+enum LC709203FState {
+  STATE_INIT,
+  STATE_RSOC,
+  STATE_TEMP_SETUP,
+  STATE_NORMAL,
+};
 
 /// Enum listing allowable voltage settings for the LC709203F.
 enum LC709203FBatteryVoltage {
