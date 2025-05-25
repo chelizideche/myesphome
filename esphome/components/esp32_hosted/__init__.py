@@ -27,13 +27,13 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.Required(CONF_VARIANT): cv.one_of(*esp32.VARIANTS, upper=True),
             cv.Optional(CONF_ACTIVE_HIGH, default=True): cv.boolean,
-            cv.Optional(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_D0_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_D1_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_D2_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_D3_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_D0_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_D1_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_D2_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_D3_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_SLOT, default=1): cv.int_range(min=0, max=1),
         }
     ),
@@ -43,68 +43,62 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
 
-    os.environ["ESP_IDF_VERSION"] = f"{framework_ver.major}.{framework_ver.minor}"
-
-    esp32.add_idf_sdkconfig_option(
-        f"CONFIG_SLAVE_IDF_TARGET_{config[CONF_VARIANT]}",  # NOLINT
-        True,
-    )
-
     if config[CONF_ACTIVE_HIGH]:
         esp32.add_idf_sdkconfig_option("CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_HIGH", True)
     else:
         esp32.add_idf_sdkconfig_option("CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_LOW", True)
 
     esp32.add_idf_sdkconfig_option(
+        f"CONFIG_SLAVE_IDF_TARGET_{config[CONF_VARIANT]}",  # NOLINT
+        True,
+    )
+
+    esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_SDIO_SLOT_{config[CONF_SLOT]}", True
     )
 
-    if CONF_CLK_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_{config[CONF_SLOT]}",
-            config[CONF_CLK_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_{config[CONF_SLOT]}",
+        config[CONF_CLK_PIN],
+    )
 
-    if CONF_CMD_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_{config[CONF_SLOT]}",
-            config[CONF_CMD_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_{config[CONF_SLOT]}",
+        config[CONF_CMD_PIN],
+    )
 
-    if CONF_D0_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_{config[CONF_SLOT]}",
-            config[CONF_D0_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_{config[CONF_SLOT]}",
+        config[CONF_D0_PIN],
+    )
 
-    if CONF_D1_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
-            config[CONF_D1_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
+        config[CONF_D1_PIN],
+    )
 
-    if CONF_D2_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
-            config[CONF_D2_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
+        config[CONF_D2_PIN],
+    )
 
-    if CONF_D3_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
-            config[CONF_D3_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
+        config[CONF_D3_PIN],
+    )
 
-    if CONF_RESET_PIN in config:
-        esp32.add_idf_sdkconfig_option(
-            "CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE",  # NOLINT
-            config[CONF_RESET_PIN],
-        )
+    esp32.add_idf_sdkconfig_option(
+        "CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE",  # NOLINT
+        config[CONF_RESET_PIN],
+    )
+
+    os.environ["ESP_IDF_VERSION"] = f"{framework_ver.major}.{framework_ver.minor}"
 
     esp32.add_idf_component(
         name="esp_wifi_remote",
         repo="https://github.com/espressif/esp-wifi-remote.git",
         path="components/esp_wifi_remote",
+        ref="wifi_remote-v0.10.2",
     )
 
     esp32.add_extra_script(

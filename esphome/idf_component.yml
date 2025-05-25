@@ -11,3 +11,10 @@ dependencies:
     path: components/mdns
     rules:
       - if: "idf_version >=5.0"
+  esp_wifi_remote:
+    git: https://github.com/espressif/esp-wifi-remote.git
+    version: wifi_remote-v0.10.2
+    path: components/esp_wifi_remote
+    rules:
+      - if: "idf_version >=5.0"
+      - if: "target in [esp32h2, esp32p4]"
