@@ -55,7 +55,8 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// (without publishing) to set the configured gain and trigger the settling process.
   ///
   /// If the sensor is already powered up, a warning is logged and no further action is taken.
-  void power_up();
+  /// UPDATE COMMENT
+  bool power_up(bool should_start_poller = false);
   /// @brief Powers down the HX711 sensor if it is currently powered up.
   ///
   /// This function cancels any active settling timeout and stops the polling process
@@ -65,11 +66,13 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// If the sensor is already powered down, a warning is logged and no action is taken.
   ///
   /// @param[in] stop_poller Whether to stop the polling process. Defaults to true.
-  void power_down(bool stop_poller = true);
+  /// UPDATE COMMENT
+  bool power_down(bool stop_poller = true);
 
   /// @brief Returns whether the HX711 ADC has reached a stable state.
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
   bool is_settled() const { return this->settled_; }
+  bool is_poller_stopped() const { return this->poller_stopped_; }
   /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
   /// @return True if the HX711 ADC is powered down, false otherwise.
   bool is_powered_down() const;
@@ -125,6 +128,9 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   uint16_t measurement_ready_timeout_ms_;
 
+  bool should_start_poller_{false};
+  bool poller_stopped_{true};
+
   /// @brief Flag to indicate whether the ADC has reached a stable state.
   bool settled_{false};
   /// @brief Flag to indicate whether to power down the sensor after reading.
@@ -177,18 +183,24 @@ template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {
 template<typename... Ts> class PowerUpAction : public HX711SensorActionBase<Ts...> {
  public:
   void play(Ts... x) override {
-    if (!this->parent_->is_ready())
+    if (!this->parent_->is_ready()) {
       return;
-    this->parent_->power_up();
+    }
+    
+    // Start poller after settling
+    this->parent_->power_up(true);
   }
 };
 
 template<typename... Ts> class PowerDownAction : public HX711SensorActionBase<Ts...> {
  public:
   void play(Ts... x) override {
-    if (!this->parent_->is_ready())
+    if (!this->parent_->is_ready()) {
       return;
-    this->parent_->power_down();
+    }
+
+    // This stops the poller also
+    this->parent_->power_down(true);
   }
 };
 
@@ -197,8 +209,9 @@ template<typename... Ts> class SetGainAction : public HX711SensorActionBase<Ts..
   TEMPLATABLE_VALUE(HX711Gain, gain)
 
   void play(Ts... x) override {
-    if (!this->parent_->is_ready())
+    if (!this->parent_->is_ready()) {
       return;
+    }
     this->parent_->set_new_gain(this->gain_.value(x...));
   }
 };
