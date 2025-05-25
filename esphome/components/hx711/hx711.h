@@ -20,6 +20,9 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void set_dout_pin(GPIOPin *dout_pin) { this->dout_pin_ = dout_pin; }
   void set_sck_pin(GPIOPin *sck_pin) { this->sck_pin_ = sck_pin; }
   void set_gain(HX711Gain gain) { this->gain_ = gain; }
+  void set_measurement_ready_timeout(uint16_t measurement_ready_timeout_ms) {
+    this->measurement_ready_timeout_ms_ = measurement_ready_timeout_ms;
+  }
   void set_settling_time(uint16_t settling_time_ms) { this->settling_time_ms_ = settling_time_ms; }
   void set_power_down_after_reading(bool power_down_after_reading) {
     this->power_down_after_reading_ = power_down_after_reading;
@@ -30,6 +33,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   void call_setup() override { this->setup(); };
   void setup() override;
+  void loop() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
   void update() override;
@@ -69,8 +73,16 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
   /// @return True if the HX711 ADC is powered down, false otherwise.
   bool is_powered_down() const;
+  /// @brief Returns whether the HX711 ADC measurement is ready to be read. (DOUT pin is low).
+  /// @return True if the HX711 ADC conversion is done, false otherwise.
+  bool is_measurement_ready();
 
  protected:
+  void mark_failed_internal_(const char *message);
+  // returns true if timeout is started, false if its already running
+  bool start_measurement_ready_timeout_();
+  void update_internal_();
+
   /// @brief Starts the settling timeout sequence for the HX711 sensor.
   ///
   /// Stops the poller and resets the settled state, then initiates a timeout
@@ -110,13 +122,26 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///       after the start (400ms at 10 Hz) are usually containing errors and must be discarded.
   uint16_t settling_time_ms_;
 
+
+  uint16_t measurement_ready_timeout_ms_;
+
   /// @brief Flag to indicate whether the ADC has reached a stable state.
   bool settled_{false};
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
 
-  /// @brief Flag to indicate whether the update() should be called after settling
-  bool automatic_power_up_update_call_pending_{false};
+  /// @brief Flag to indicate whether the update process is not complete yet.
+  ///
+  /// Gets set in update(), reset in loop()
+  bool update_in_progress_{false};
+  /// @brief Flag to indicate whether the power up process is not complete yet.
+  ///
+  /// Gets set in power_up(), reset in loop().
+  bool power_up_sequence_running_{false};
+  /// @brief Flag to indicate whether the timeout for conversion complete is running.
+  ///
+  /// Gets set when timeout is set, reset in loop()
+  bool measurement_ready_timeout_running_{false};
 
 #ifdef USE_HX711_CHANNEL_B_SENSOR
   /// @brief Flag to indicate whether the channel B reading is pending.
