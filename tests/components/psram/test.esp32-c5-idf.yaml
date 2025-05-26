@@ -8,4 +8,4 @@ esp32:
 psram:
   mode: quad
   speed: 40MHz
-  enable_ecc: true
+  enable_ecc: false
