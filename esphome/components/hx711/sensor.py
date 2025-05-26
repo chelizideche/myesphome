@@ -47,7 +47,7 @@ HX711_SET_GAIN_ACTION_SCHEMA = cv.Schema(
 ).extend(HX711_ACTION_BASE_SCHEMA)
 
 
-POSITIVE_TIME_PERIOD_MILISECONDS_UINT16_VALIDATOR = cv.All(
+positive_time_period_milliseconds_uint16_validator = cv.All(
     cv.positive_time_period_milliseconds,
     cv.Range(max=cv.TimePeriod(milliseconds=65535)),
 )
@@ -68,10 +68,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_GAIN, default=128): cv.enum(GAINS, int=True),
             cv.Optional(
                 CONF_MEASUREMENT_READY_TIMEOUT, default="2000ms"
-            ): POSITIVE_TIME_PERIOD_MILISECONDS_UINT16_VALIDATOR,
+            ): positive_time_period_milliseconds_uint16_validator,
             cv.Optional(
                 CONF_SETTLING_TIME, default="400ms"
-            ): POSITIVE_TIME_PERIOD_MILISECONDS_UINT16_VALIDATOR,
+            ): positive_time_period_milliseconds_uint16_validator,
             cv.Optional(CONF_POWER_DOWN_AFTER_READING, default=False): cv.boolean,
             cv.Optional(CONF_CHANNEL_B): sensor.sensor_schema(
                 icon=ICON_SCALE,
