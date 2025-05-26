@@ -131,7 +131,7 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   // The amount to change the volume on volume up/down commands
   float volume_increment_;
 
-  // The initial volume used by Setup for first boot when not previous volume was saved
+  // The initial volume used by Setup when no previous volume was saved
   float volume_initial_;
 
   float volume_max_;
