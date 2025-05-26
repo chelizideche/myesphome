@@ -64,7 +64,7 @@ void SpeakerMediaPlayer::setup() {
     this->set_volume_(volume_restore_state.volume);
     this->set_mute_state_(volume_restore_state.is_muted);
   } else {
-    this->set_volume_(this->volume_first_boot_);
+    this->set_volume_(this->volume_initial_);
     this->set_mute_state_(false);
   }
 
