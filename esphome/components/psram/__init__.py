@@ -10,8 +10,8 @@ from esphome.components.esp32 import (
     only_on_variant,
 )
 from esphome.components.esp32.const import (
-    VARIANT_ESP32S2, 
-    VARIANT_ESP32S3, 
+    VARIANT_ESP32S2,
+    VARIANT_ESP32S3,
     VARIANT_ESP32C5,
 )
 import esphome.config_validation as cv
