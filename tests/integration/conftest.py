@@ -166,11 +166,16 @@ async def create_api_client(
     address: str = LOCALHOST,
     port: int = DEFAULT_API_PORT,
     password: str = "",
+    noise_psk: str | None = None,
     client_info: str = "integration-test",
 ) -> AsyncGenerator[APIClient]:
     """Create an API client context manager."""
     client = APIClient(
-        address=address, port=port, password=password, client_info=client_info
+        address=address,
+        port=port,
+        password=password,
+        noise_psk=noise_psk,
+        client_info=client_info,
     )
     try:
         yield client
@@ -188,12 +193,14 @@ async def api_client_factory(
         address: str = LOCALHOST,
         port: int | None = None,
         password: str = "",
+        noise_psk: str | None = None,
         client_info: str = "integration-test",
     ) -> AbstractAsyncContextManager[APIClient]:
         return create_api_client(
             address=address,
             port=port if port is not None else unused_tcp_port,
             password=password,
+            noise_psk=noise_psk,
             client_info=client_info,
         )
 
@@ -205,12 +212,17 @@ async def wait_and_connect_api_client(
     address: str = LOCALHOST,
     port: int = DEFAULT_API_PORT,
     password: str = "",
+    noise_psk: str | None = None,
     client_info: str = "integration-test",
     timeout: float = API_CONNECTION_TIMEOUT,
 ) -> AsyncGenerator[APIClient]:
     """Wait for API to be available and connect."""
     client = APIClient(
-        address=address, port=port, password=password, client_info=client_info
+        address=address,
+        port=port,
+        password=password,
+        noise_psk=noise_psk,
+        client_info=client_info,
     )
 
     # Create a future to signal when connected
@@ -271,6 +283,7 @@ async def api_client_connected(
         address: str = LOCALHOST,
         port: int | None = None,
         password: str = "",
+        noise_psk: str | None = None,
         client_info: str = "integration-test",
         timeout: float = API_CONNECTION_TIMEOUT,
     ) -> AbstractAsyncContextManager[APIClient]:
@@ -278,6 +291,7 @@ async def api_client_connected(
             address=address,
             port=port if port is not None else unused_tcp_port,
             password=password,
+            noise_psk=noise_psk,
             client_info=client_info,
             timeout=timeout,
         )
@@ -289,9 +303,10 @@ async def wait_for_port_open(
     host: str, port: int, timeout: float = PORT_WAIT_TIMEOUT
 ) -> None:
     """Wait for a TCP port to be open and accepting connections."""
-    start_time = asyncio.get_running_loop().time()
+    loop = asyncio.get_running_loop()
+    start_time = loop.time()
 
-    while asyncio.get_running_loop().time() - start_time < timeout:
+    while loop.time() - start_time < timeout:
         try:
             # Try to connect to the port
             _, writer = await asyncio.open_connection(host, port)

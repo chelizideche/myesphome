@@ -27,6 +27,7 @@ class APIClientFactory(Protocol):
         address: str = "localhost",
         port: int | None = None,
         password: str = "",
+        noise_psk: str | None = None,
         client_info: str = "integration-test",
     ) -> AbstractAsyncContextManager[APIClient]: ...
 
@@ -39,6 +40,7 @@ class APIClientConnectedFactory(Protocol):
         address: str = "localhost",
         port: int | None = None,
         password: str = "",
+        noise_psk: str | None = None,
         client_info: str = "integration-test",
         timeout: float = 30,
     ) -> AbstractAsyncContextManager[APIClient]: ...
