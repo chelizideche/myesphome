@@ -8,8 +8,18 @@
 #endif
 
 #ifdef FD_SETSIZE
-#include <sys/select.h>
 #include <cerrno>
+#ifdef USE_ESP32
+#include <sys/select.h>
+#elif defined(USE_ESP8266)
+#include <sys/time.h>
+#include <sys/types.h>
+extern "C" {
+#include <lwip/sockets.h>
+}
+#else
+#include <sys/select.h>
+#endif
 #endif
 
 namespace esphome {
@@ -136,12 +146,14 @@ void Application::loop() {
       tv.tv_usec = (delay_time % 1000) * 1000;
 
       // Call select with timeout
-      int ret = select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+      int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
 
       if (ret < 0 && errno != EINTR) {
         // Log error but continue - fall back to delay
         ESP_LOGW(TAG, "select() failed with errno %d", errno);
         delay(delay_time);
+      } else if (ret > 0) {
+        ESP_LOGVV(TAG, "select() returned %d ready socket(s)", ret);
       }
       // If ret == 0, timeout occurred (normal)
       // If ret > 0, socket(s) ready for reading (will be handled in component loops)
@@ -223,6 +235,8 @@ void Application::register_socket_fd(int fd) {
   if (fd > this->max_fd_) {
     this->max_fd_ = fd;
   }
+
+  ESP_LOGD(TAG, "Registered socket fd %d (total: %zu)", fd, this->socket_fds_.size());
 }
 
 void Application::unregister_socket_fd(int fd) {
@@ -238,6 +252,8 @@ void Application::unregister_socket_fd(int fd) {
   } else if (this->socket_fds_.empty()) {
     this->max_fd_ = -1;
   }
+
+  ESP_LOGD(TAG, "Unregistered socket fd %d (remaining: %zu)", fd, this->socket_fds_.size());
 }
 
 bool Application::is_socket_ready(int fd) const {
