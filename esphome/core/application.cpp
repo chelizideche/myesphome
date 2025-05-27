@@ -158,7 +158,7 @@ void Application::loop() {
       // Convert delay_time (milliseconds) to timeval
       struct timeval tv;
       tv.tv_sec = delay_time / 1000;
-      tv.tv_usec = (delay_time % 1000) * 1000;
+      tv.tv_usec = (delay_time - tv.tv_sec * 1000) * 1000;
 
       // Call select with timeout
 #if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || (defined(USE_ESP32) && defined(USE_SOCKET_IMPL_BSD_SOCKETS))
