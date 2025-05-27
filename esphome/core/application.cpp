@@ -17,6 +17,8 @@
 extern "C" {
 #include <lwip/sockets.h>
 }
+#elif defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
+#include <lwip/sockets.h>
 #else
 #include <sys/select.h>
 #endif
@@ -146,7 +148,13 @@ void Application::loop() {
       tv.tv_usec = (delay_time % 1000) * 1000;
 
       // Call select with timeout
+#if defined(USE_ESP8266) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
+      // Use lwip_select() on platforms with lwIP - it's faster
+      int ret = lwip_select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+#else
+      // Use standard select() on other platforms
       int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+#endif
 
       if (ret < 0) {
         if (errno == EINTR) {
