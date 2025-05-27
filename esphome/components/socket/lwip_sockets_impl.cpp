@@ -48,17 +48,21 @@ class LwIPSocketImpl : public Socket {
   }
   int connect(const struct sockaddr *addr, socklen_t addrlen) override { return lwip_connect(fd_, addr, addrlen); }
   std::unique_ptr<Socket> accept(struct sockaddr *addr, socklen_t *addrlen) override {
-    int fd = lwip_accept(fd_, addr, addrlen);
-    if (fd == -1)
-      return {};
-    return make_unique<LwIPSocketImpl>(fd);  // Default: not monitored
+    return accept_impl(addr, addrlen, false);
   }
   std::unique_ptr<Socket> accept_loop_monitored(struct sockaddr *addr, socklen_t *addrlen) override {
+    return accept_impl(addr, addrlen, true);
+  }
+
+ private:
+  std::unique_ptr<Socket> accept_impl(struct sockaddr *addr, socklen_t *addrlen, bool loop_monitored) {
     int fd = lwip_accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
-    return make_unique<LwIPSocketImpl>(fd, true);  // Monitored for incoming data
+    return make_unique<LwIPSocketImpl>(fd, loop_monitored);
   }
+
+ public:
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return lwip_bind(fd_, addr, addrlen); }
   int close() override {
     if (!closed_) {
@@ -125,18 +129,20 @@ class LwIPSocketImpl : public Socket {
   bool closed_ = false;
 };
 
-std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
+// Helper to create a socket with optional monitoring
+static std::unique_ptr<Socket> create_socket(int domain, int type, int protocol, bool loop_monitored = false) {
   int ret = lwip_socket(domain, type, protocol);
   if (ret == -1)
     return nullptr;
-  return std::unique_ptr<Socket>{new LwIPSocketImpl(ret)};
+  return std::unique_ptr<Socket>{new LwIPSocketImpl(ret, loop_monitored)};
+}
+
+std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
+  return create_socket(domain, type, protocol, false);
 }
 
 std::unique_ptr<Socket> socket_loop_monitored(int domain, int type, int protocol) {
-  int ret = lwip_socket(domain, type, protocol);
-  if (ret == -1)
-    return nullptr;
-  return std::unique_ptr<Socket>{new LwIPSocketImpl(ret, true)};
+  return create_socket(domain, type, protocol, true);
 }
 
 }  // namespace socket

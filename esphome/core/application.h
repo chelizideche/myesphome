@@ -573,7 +573,6 @@ class Application {
   uint32_t loop_component_start_time_{0};
 
   // Socket select management
-  // WARNING: These variables are NOT protected by locks and must only be modified from the main loop
   std::set<int> socket_fds_;        // Set of all monitored socket file descriptors
   bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
   int max_fd_{-1};                  // Highest file descriptor number for select()
