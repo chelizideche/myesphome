@@ -3,3 +3,7 @@ substitutions:
   sda_pin: GPIO21
 
 <<: !include common.yaml
+
+sensor:
+  - platform: a02yyuw
+    uart_id: wk2132_i2c_id
