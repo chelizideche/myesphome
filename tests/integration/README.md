@@ -66,6 +66,9 @@ script/integration_test
 
 # Run a specific test
 pytest -vv tests/integration/test_host_mode_basic.py
+
+# Debug compilation errors or see ESPHome output
+pytest -s tests/integration/test_host_mode_basic.py
 ```
 
 ## Implementation Details
