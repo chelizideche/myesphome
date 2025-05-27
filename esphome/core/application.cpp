@@ -153,7 +153,9 @@ void Application::loop() {
         ESP_LOGW(TAG, "select() failed with errno %d", errno);
         delay(delay_time);
       } else if (ret > 0) {
-        ESP_LOGVV(TAG, "select() returned %d ready socket(s)", ret);
+        ESP_LOGVV(TAG, "select() woke early: %d socket(s) ready (saved up to %ums)", ret, delay_time);
+      } else if (ret == 0) {
+        ESP_LOGVV(TAG, "select() timeout after %ums (no sockets ready)", delay_time);
       }
       // If ret == 0, timeout occurred (normal)
       // If ret > 0, socket(s) ready for reading (will be handled in component loops)
