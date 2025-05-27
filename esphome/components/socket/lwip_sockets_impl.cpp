@@ -5,6 +5,7 @@
 #ifdef USE_SOCKET_IMPL_LWIP_SOCKETS
 
 #include <cstring>
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace socket {
@@ -33,7 +34,12 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 
 class LwIPSocketImpl : public Socket {
  public:
-  LwIPSocketImpl(int fd) : fd_(fd) {}
+  LwIPSocketImpl(int fd) : fd_(fd) {
+    // Register new socket with the application for select()
+    if (fd_ >= 0) {
+      App.register_socket_fd(fd_);
+    }
+  }
   ~LwIPSocketImpl() override {
     if (!closed_) {
       close();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
@@ -48,9 +54,14 @@ class LwIPSocketImpl : public Socket {
   }
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return lwip_bind(fd_, addr, addrlen); }
   int close() override {
-    int ret = lwip_close(fd_);
-    closed_ = true;
-    return ret;
+    if (!closed_) {
+      // Unregister from select() before closing
+      App.unregister_socket_fd(fd_);
+      int ret = lwip_close(fd_);
+      closed_ = true;
+      return ret;
+    }
+    return 0;
   }
   int shutdown(int how) override { return lwip_shutdown(fd_, how); }
 
@@ -97,6 +108,8 @@ class LwIPSocketImpl : public Socket {
     lwip_fcntl(fd_, F_SETFL, fl);
     return 0;
   }
+
+  int get_fd() const override { return fd_; }
 
  protected:
   int fd_;

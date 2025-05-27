@@ -7,6 +7,11 @@
 #include "esphome/components/status_led/status_led.h"
 #endif
 
+#ifdef FD_SETSIZE
+#include <sys/select.h>
+#include <cerrno>
+#endif
+
 namespace esphome {
 
 static const char *const TAG = "app";
@@ -106,7 +111,48 @@ void Application::loop() {
     // otherwise interval=0 schedules result in constant looping with almost no sleep
     next_schedule = std::max(next_schedule, delay_time / 2);
     delay_time = std::min(next_schedule, delay_time);
+
+#ifdef FD_SETSIZE
+    if (!this->socket_fds_.empty()) {
+      // Use select() with timeout when we have sockets to monitor
+
+      // Update fd_set if socket list has changed
+      if (this->socket_fds_changed_) {
+        FD_ZERO(&this->base_read_fds_);
+        for (int fd : this->socket_fds_) {
+          if (fd >= 0 && fd < FD_SETSIZE) {
+            FD_SET(fd, &this->base_read_fds_);
+          }
+        }
+        this->socket_fds_changed_ = false;
+      }
+
+      // Copy base fd_set before each select
+      this->read_fds_ = this->base_read_fds_;
+
+      // Convert delay_time (milliseconds) to timeval
+      struct timeval tv;
+      tv.tv_sec = delay_time / 1000;
+      tv.tv_usec = (delay_time % 1000) * 1000;
+
+      // Call select with timeout
+      int ret = select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+
+      if (ret < 0 && errno != EINTR) {
+        // Log error but continue - fall back to delay
+        ESP_LOGW(TAG, "select() failed with errno %d", errno);
+        delay(delay_time);
+      }
+      // If ret == 0, timeout occurred (normal)
+      // If ret > 0, socket(s) ready for reading (will be handled in component loops)
+    } else {
+      // No sockets registered, use regular delay
+      delay(delay_time);
+    }
+#else
+    // No select support, use regular delay
     delay(delay_time);
+#endif
   }
   this->last_loop_ = last_op_end_time;
 
@@ -165,6 +211,44 @@ void Application::calculate_looping_components_() {
     if (obj->has_overridden_loop())
       this->looping_components_.push_back(obj);
   }
+}
+
+void Application::register_socket_fd(int fd) {
+  if (fd < 0)
+    return;
+
+  this->socket_fds_.insert(fd);
+  this->socket_fds_changed_ = true;
+
+  if (fd > this->max_fd_) {
+    this->max_fd_ = fd;
+  }
+}
+
+void Application::unregister_socket_fd(int fd) {
+  if (fd < 0)
+    return;
+
+  this->socket_fds_.erase(fd);
+  this->socket_fds_changed_ = true;
+
+  // Recalculate max_fd if necessary
+  if (fd == this->max_fd_ && !this->socket_fds_.empty()) {
+    this->max_fd_ = *this->socket_fds_.rbegin();
+  } else if (this->socket_fds_.empty()) {
+    this->max_fd_ = -1;
+  }
+}
+
+bool Application::is_socket_ready(int fd) const {
+#ifdef FD_SETSIZE
+  if (fd < 0 || fd >= FD_SETSIZE)
+    return false;
+  return FD_ISSET(fd, &this->read_fds_);
+#else
+  // If we don't have select support, assume socket is always ready
+  return true;
+#endif
 }
 
 Application App;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

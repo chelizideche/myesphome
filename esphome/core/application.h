@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
@@ -71,6 +72,12 @@
 #endif
 #ifdef USE_UPDATE
 #include "esphome/components/update/update_entity.h"
+#endif
+
+#ifdef USE_BSD_SOCKETS
+#include <sys/select.h>
+#elif defined(USE_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
+#include "lwip/sockets.h"
 #endif
 
 namespace esphome {
@@ -467,6 +474,13 @@ class Application {
 
   Scheduler scheduler;
 
+  /// Register a socket file descriptor to be monitored for read events
+  void register_socket_fd(int fd);
+  /// Unregister a socket file descriptor
+  void unregister_socket_fd(int fd);
+  /// Check if there's data available on a socket without blocking
+  bool is_socket_ready(int fd) const;
+
  protected:
   friend Component;
 
@@ -555,6 +569,15 @@ class Application {
   uint32_t app_state_{0};
   Component *current_component_{nullptr};
   uint32_t loop_component_start_time_{0};
+
+  // Socket select management
+  std::set<int> socket_fds_;
+  bool socket_fds_changed_{false};
+  int max_fd_{-1};
+#ifdef FD_SETSIZE
+  fd_set base_read_fds_{};
+  fd_set read_fds_{};
+#endif
 };
 
 /// Global storage of Application pointer - only one Application can exist.

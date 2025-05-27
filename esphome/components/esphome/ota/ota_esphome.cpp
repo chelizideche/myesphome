@@ -100,9 +100,13 @@ void ESPHomeOTAComponent::handle_() {
 #endif
 
   if (client_ == nullptr) {
-    struct sockaddr_storage source_addr;
-    socklen_t addr_len = sizeof(source_addr);
-    client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
+    // Check if the server socket is ready before accepting
+    int server_fd = this->server_->get_fd();
+    if (server_fd >= 0 && App.is_socket_ready(server_fd)) {
+      struct sockaddr_storage source_addr;
+      socklen_t addr_len = sizeof(source_addr);
+      client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
+    }
   }
   if (client_ == nullptr)
     return;

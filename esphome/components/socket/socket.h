@@ -44,6 +44,9 @@ class Socket {
 
   virtual int setblocking(bool blocking) = 0;
   virtual int loop() { return 0; };
+
+  /// Get the underlying file descriptor (returns -1 if not supported)
+  virtual int get_fd() const { return -1; }
 };
 
 /// Create a socket of the given domain, type and protocol.

@@ -5,6 +5,7 @@
 #ifdef USE_SOCKET_IMPL_BSD_SOCKETS
 
 #include <cstring>
+#include "esphome/core/application.h"
 
 #ifdef USE_ESP32
 #include <esp_idf_version.h>
@@ -40,7 +41,12 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 
 class BSDSocketImpl : public Socket {
  public:
-  BSDSocketImpl(int fd) : fd_(fd) {}
+  BSDSocketImpl(int fd) : fd_(fd) {
+    // Register new socket with the application for select()
+    if (fd_ >= 0) {
+      App.register_socket_fd(fd_);
+    }
+  }
   ~BSDSocketImpl() override {
     if (!closed_) {
       close();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
@@ -55,9 +61,14 @@ class BSDSocketImpl : public Socket {
   }
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return ::bind(fd_, addr, addrlen); }
   int close() override {
-    int ret = ::close(fd_);
-    closed_ = true;
-    return ret;
+    if (!closed_) {
+      // Unregister from select() before closing
+      App.unregister_socket_fd(fd_);
+      int ret = ::close(fd_);
+      closed_ = true;
+      return ret;
+    }
+    return 0;
   }
   int shutdown(int how) override { return ::shutdown(fd_, how); }
 
@@ -125,6 +136,8 @@ class BSDSocketImpl : public Socket {
     ::fcntl(fd_, F_SETFL, fl);
     return 0;
   }
+
+  int get_fd() const override { return fd_; }
 
  protected:
   int fd_;
