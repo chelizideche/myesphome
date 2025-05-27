@@ -2,8 +2,10 @@ from .const import (
     VARIANT_ESP32,
     VARIANT_ESP32C2,
     VARIANT_ESP32C3,
+    VARIANT_ESP32C5,
     VARIANT_ESP32C6,
     VARIANT_ESP32H2,
+    VARIANT_ESP32P4,
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
 )
@@ -1592,6 +1594,10 @@ BOARDS = {
         "name": "Ai-Thinker ESP-C3-M1-I-Kit",
         "variant": VARIANT_ESP32C3,
     },
+    "esp32-c5-devkitc-1": {
+        "name": "Espressif ESP32-C5-DevKitC-1",
+        "variant": VARIANT_ESP32C5,
+    },
     "esp32-c6-devkitc-1": {
         "name": "Espressif ESP32-C6-DevKitC-1",
         "variant": VARIANT_ESP32C6,
@@ -1631,6 +1637,14 @@ BOARDS = {
     "esp32-h2-devkitm-1": {
         "name": "Espressif ESP32-H2-DevKit",
         "variant": VARIANT_ESP32H2,
+    },
+    "esp32-p4": {
+        "name": "Espressif ESP32-P4 generic",
+        "variant": VARIANT_ESP32P4,
+    },
+    "esp32-p4-evboard": {
+        "name": "Espressif ESP32-P4 Function EV Board",
+        "variant": VARIANT_ESP32P4,
     },
     "esp32-pico-devkitm-2": {
         "name": "Espressif ESP32-PICO-DevKitM-2",
