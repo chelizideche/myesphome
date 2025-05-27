@@ -308,8 +308,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
   }
 
   // Check if socket has data available before attempting to read
-  int fd = this->socket_->get_fd();
-  if (fd >= 0 && !App.is_socket_ready(fd)) {
+  if (!this->is_socket_ready_for_read_()) {
     return APIError::WOULD_BLOCK;
   }
 
@@ -836,8 +835,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   }
 
   // Check if socket has data available before attempting to read
-  int fd = this->socket_->get_fd();
-  if (fd >= 0 && !App.is_socket_ready(fd)) {
+  if (!this->is_socket_ready_for_read_()) {
     return APIError::WOULD_BLOCK;
   }
 

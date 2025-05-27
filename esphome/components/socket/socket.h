@@ -58,14 +58,16 @@ class Socket {
 std::unique_ptr<Socket> socket(int domain, int type, int protocol);
 
 /// Create a socket and monitor it for data in the main loop
-/// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
+/// WARNING: This function is NOT thread-safe. It must only be called from the main loop
+/// as it registers the socket file descriptor with the global Application instance.
 std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol);
 
 /// Create a socket in the newest available IP domain (IPv6 or IPv4) of the given type and protocol.
 std::unique_ptr<Socket> socket_ip(int type, int protocol);
 
 /// Create a socket in the newest available IP domain and monitor it for data in the main loop
-/// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
+/// WARNING: This function is NOT thread-safe. It must only be called from the main loop
+/// as it registers the socket file descriptor with the global Application instance.
 std::unique_ptr<Socket> socket_ip_monitored(int type, int protocol);
 
 /// Set a sockaddr to the specified address and port for the IP version used by socket_ip().

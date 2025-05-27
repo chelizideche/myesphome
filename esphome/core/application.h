@@ -475,10 +475,13 @@ class Application {
   Scheduler scheduler;
 
   /// Register a socket file descriptor to be monitored for read events
+  /// WARNING: This function is NOT thread-safe. It must only be called from the main loop.
   void register_socket_fd(int fd);
   /// Unregister a socket file descriptor
+  /// WARNING: This function is NOT thread-safe. It must only be called from the main loop.
   void unregister_socket_fd(int fd);
   /// Check if there's data available on a socket without blocking
+  /// This function is thread-safe for reading, but should be called after select() has run
   bool is_socket_ready(int fd) const;
 
  protected:
@@ -571,12 +574,13 @@ class Application {
   uint32_t loop_component_start_time_{0};
 
   // Socket select management
-  std::set<int> socket_fds_;
-  bool socket_fds_changed_{false};
-  int max_fd_{-1};
+  // WARNING: These variables are NOT protected by locks and must only be modified from the main loop
+  std::set<int> socket_fds_;        // Set of all monitored socket file descriptors
+  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
+  int max_fd_{-1};                  // Highest file descriptor number for select()
 #ifdef FD_SETSIZE
-  fd_set base_read_fds_{};
-  fd_set read_fds_{};
+  fd_set base_read_fds_{};  // Cached fd_set rebuilt only when socket_fds_ changes
+  fd_set read_fds_{};       // Working fd_set for select(), copied from base_read_fds_
 #endif
 };
 

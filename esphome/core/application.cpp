@@ -228,6 +228,8 @@ void Application::calculate_looping_components_() {
 }
 
 void Application::register_socket_fd(int fd) {
+  // WARNING: This function is NOT thread-safe and must only be called from the main loop
+  // It modifies socket_fds_ and related variables without locking
   if (fd < 0)
     return;
 
@@ -242,6 +244,8 @@ void Application::register_socket_fd(int fd) {
 }
 
 void Application::unregister_socket_fd(int fd) {
+  // WARNING: This function is NOT thread-safe and must only be called from the main loop
+  // It modifies socket_fds_ and related variables without locking
   if (fd < 0)
     return;
 
@@ -259,6 +263,9 @@ void Application::unregister_socket_fd(int fd) {
 }
 
 bool Application::is_socket_ready(int fd) const {
+  // This function is thread-safe for reading the result of select()
+  // However, it should only be called after select() has been executed in the main loop
+  // The read_fds_ is only modified by select() in the main loop
 #ifdef FD_SETSIZE
   if (fd < 0 || fd >= FD_SETSIZE)
     return false;
