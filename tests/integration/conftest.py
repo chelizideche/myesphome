@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import AsyncGenerator, Generator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
+import platform
 import signal
 import socket
 import tempfile
@@ -13,6 +14,12 @@ import tempfile
 from aioesphomeapi import APIClient, APIConnectionError, ReconnectLogic
 import pytest
 import pytest_asyncio
+
+# Skip all integration tests on Windows
+if platform.system() == "Windows":
+    pytest.skip(
+        "Integration tests are not supported on Windows", allow_module_level=True
+    )
 
 from .const import (
     API_CONNECTION_TIMEOUT,
