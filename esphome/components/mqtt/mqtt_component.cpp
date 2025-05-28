@@ -155,7 +155,7 @@ bool MQTTComponent::send_discovery_() {
         }
         const std::string &node_area = App.get_area();
 
-        JsonObject device_info = root.createNestedObject(MQTT_DEVICE);
+        JsonObject device_info = root[MQTT_DEVICE].to<JsonObject>();
         const auto mac = get_mac_address();
         device_info[MQTT_DEVICE_IDENTIFIERS] = mac;
         device_info[MQTT_DEVICE_NAME] = node_friendly_name;

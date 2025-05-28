@@ -20,22 +20,22 @@ MQTTDateTimeComponent::MQTTDateTimeComponent(DateTimeEntity *datetime) : datetim
 void MQTTDateTimeComponent::setup() {
   this->subscribe_json(this->get_command_topic_(), [this](const std::string &topic, JsonObject root) {
     auto call = this->datetime_->make_call();
-    if (root.containsKey("year")) {
+    if (root["year"].is<JsonVariant>()) {
       call.set_year(root["year"]);
     }
-    if (root.containsKey("month")) {
+    if (root["month"].is<JsonVariant>()) {
       call.set_month(root["month"]);
     }
-    if (root.containsKey("day")) {
+    if (root["day"].is<JsonVariant>()) {
       call.set_day(root["day"]);
     }
-    if (root.containsKey("hour")) {
+    if (root["hour"].is<JsonVariant>()) {
       call.set_hour(root["hour"]);
     }
-    if (root.containsKey("minute")) {
+    if (root["minute"].is<JsonVariant>()) {
       call.set_minute(root["minute"]);
     }
-    if (root.containsKey("second")) {
+    if (root["second"].is<JsonVariant>()) {
       call.set_second(root["second"]);
     }
     call.perform();
