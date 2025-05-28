@@ -52,7 +52,7 @@ LEGACY = CalibrationMode.LEGACY
 NATIVE = CalibrationMode.NATIVE
 
 CALIBRATION_MODES = {
-    "auto": AUTO,      # Automatically choose based on ESP-IDF version
+    "auto": AUTO,  # Automatically choose based on ESP-IDF version
     "legacy": LEGACY,  # Use pre-ESP-IDF 5.0 calibration
     "native": NATIVE,  # Use ESP-IDF 5.0+ native calibration
 }

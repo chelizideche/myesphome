@@ -160,25 +160,4 @@ async def to_code(config):
             and pin_num in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]
         ):
             chan = ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant][pin_num]
-            cg.add(var.set_channel2(chan))CALIBRATION_MODE, "auto")
-
-        # Only define USE_ADC_LEGACY_CALIBRATION if legacy mode is explicitly requested
-        if calibration_mode == "legacy":
-            cg.add_define("USE_ADC_LEGACY_CALIBRATION")
-
-        cg.add(var.set_calibration_mode(calibration_mode))
-
-        variant = get_esp32_variant()
-        pin_num = config[CONF_PIN][CONF_NUMBER]
-        if (
-            variant in ESP32_VARIANT_ADC1_PIN_TO_CHANNEL
-            and pin_num in ESP32_VARIANT_ADC1_PIN_TO_CHANNEL[variant]
-        ):
-            chan = ESP32_VARIANT_ADC1_PIN_TO_CHANNEL[variant][pin_num]
-            cg.add(var.set_channel1(chan))
-        elif (
-            variant in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL
-            and pin_num in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]
-        ):
-            chan = ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant][pin_num]
             cg.add(var.set_channel2(chan))
