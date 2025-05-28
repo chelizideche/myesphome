@@ -32,25 +32,31 @@ CaptureAction = microphone_ns.class_(
 StopCaptureAction = microphone_ns.class_(
     "StopCaptureAction", automation.Action, cg.Parented.template(Microphone)
 )
+MuteAction = microphone_ns.class_(
+    "MuteAction", automation.Action, cg.Parented.template(Microphone)
+)
+UnmuteAction = microphone_ns.class_(
+    "UnmuteAction", automation.Action, cg.Parented.template(Microphone)
+)
 
 
 DataTrigger = microphone_ns.class_(
     "DataTrigger",
-    automation.Trigger.template(cg.std_vector.template(cg.int16).operator("ref")),
+    automation.Trigger.template(cg.std_vector.template(cg.uint8).operator("ref")),
 )
 
 IsCapturingCondition = microphone_ns.class_(
     "IsCapturingCondition", automation.Condition
 )
+IsMutedCondition = microphone_ns.class_("IsMutedCondition", automation.Condition)
 
 
 async def setup_microphone_core_(var, config):
     for conf in config.get(CONF_ON_DATA, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        # Future PR will change the vector type to uint8
         await automation.build_automation(
             trigger,
-            [(cg.std_vector.template(cg.int16).operator("ref").operator("const"), "x")],
+            [(cg.std_vector.template(cg.uint8).operator("ref").operator("const"), "x")],
             conf,
         )
 
@@ -98,10 +104,11 @@ def microphone_source_schema(
         return config
 
     return cv.All(
-        cv.maybe_simple_value(
+        automation.maybe_conf(
+            CONF_MICROPHONE,
             {
                 cv.GenerateID(CONF_ID): cv.declare_id(MicrophoneSource),
-                cv.Required(CONF_MICROPHONE): cv.use_id(Microphone),
+                cv.GenerateID(CONF_MICROPHONE): cv.use_id(Microphone),
                 cv.Optional(CONF_BITS_PER_SAMPLE, default=16): cv.int_range(
                     min_bits_per_sample, max_bits_per_sample
                 ),
@@ -112,16 +119,12 @@ def microphone_source_schema(
                 ),
                 cv.Optional(CONF_GAIN_FACTOR, default="1"): cv.int_range(1, 64),
             },
-            key=CONF_MICROPHONE,
         ),
     )
 
 
-_UNDEF = object()
-
-
 def final_validate_microphone_source_schema(
-    component_name: str, sample_rate: int = _UNDEF
+    component_name: str, sample_rate: int = cv.UNDEFINED
 ):
     """Validates that the microphone source can provide audio in the correct format. In particular it validates the sample rate and the enabled channels.
 
@@ -135,7 +138,7 @@ def final_validate_microphone_source_schema(
     """
 
     def _validate_audio_compatability(config):
-        if sample_rate is not _UNDEF:
+        if sample_rate is not cv.UNDEFINED:
             # Issues require changing the microphone configuration
             #  - Verifies sample rates match
             audio.final_validate_audio_schema(
@@ -159,13 +162,22 @@ def final_validate_microphone_source_schema(
     return _validate_audio_compatability
 
 
-async def microphone_source_to_code(config):
+async def microphone_source_to_code(config, passive=False):
+    """Creates a MicrophoneSource variable for codegen.
+
+    Setting passive to true makes the MicrophoneSource never start/stop the microphone, but only receives audio when another component has actively started the Microphone. If false, then the microphone needs to be explicitly started/stopped.
+
+    Args:
+        config (Schema): Created with `microphone_source_schema` specifying bits per sample, channels, and gain factor
+        passive (bool): Enable passive mode for the MicrophoneSource
+    """
     mic = await cg.get_variable(config[CONF_MICROPHONE])
     mic_source = cg.new_Pvariable(
         config[CONF_ID],
         mic,
         config[CONF_BITS_PER_SAMPLE],
         config[CONF_GAIN_FACTOR],
+        passive,
     )
     for channel in config[CONF_CHANNELS]:
         cg.add(mic_source.add_channel(channel))
@@ -186,8 +198,18 @@ automation.register_action(
     "microphone.stop_capture", StopCaptureAction, MICROPHONE_ACTION_SCHEMA
 )(microphone_action)
 
+automation.register_action("microphone.mute", MuteAction, MICROPHONE_ACTION_SCHEMA)(
+    microphone_action
+)
+automation.register_action("microphone.unmute", UnmuteAction, MICROPHONE_ACTION_SCHEMA)(
+    microphone_action
+)
+
 automation.register_condition(
     "microphone.is_capturing", IsCapturingCondition, MICROPHONE_ACTION_SCHEMA
+)(microphone_action)
+automation.register_condition(
+    "microphone.is_muted", IsMutedCondition, MICROPHONE_ACTION_SCHEMA
 )(microphone_action)
 
 
