@@ -264,8 +264,6 @@ def _format_framework_arduino_version(ver: cv.Version, for_platformio: bool) -> 
     # a PIO platformio/framework-arduinoespressif32 value
     # List of package versions: https://api.registry.platformio.org/v3/packages/platformio/tool/framework-arduinoespressif32
     if for_platformio:
-        if ver <= cv.Version(1, 0, 3):
-            return f"platformio/framework-arduinoespressif32@~2.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
         return f"platformio/framework-arduinoespressif32@~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
     return f"pioarduino/framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/{str(ver)}/esp32-{str(ver)}.zip"
 
