@@ -7,7 +7,6 @@ namespace mcp3221 {
 
 static const char *const TAG = "mcp3221";
 
-
 float MCP3221Sensor::get_setup_priority() const { return setup_priority::DATA; }
 
 float MCP3221Sensor::sample() {
