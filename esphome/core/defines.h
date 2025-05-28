@@ -95,6 +95,7 @@
 
 // Feature flags which do not work for zephyr
 #ifndef USE_ZEPHYR
+#define USE_AUDIO_DAC
 #define USE_AUDIO_FLAC_SUPPORT
 #define USE_AUDIO_MP3_SUPPORT
 #define USE_API
@@ -160,7 +161,8 @@
 #if defined(USE_ESP32_VARIANT_ESP32S2)
 #define USE_LOGGER_USB_CDC
 #elif defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C3) || \
-    defined(USE_ESP32_VARIANT_ESP32C6) || defined(USE_ESP32_VARIANT_ESP32H2) || defined(USE_ESP32_VARIANT_ESP32P4)
+    defined(USE_ESP32_VARIANT_ESP32C5) || defined(USE_ESP32_VARIANT_ESP32C6) || defined(USE_ESP32_VARIANT_ESP32H2) || \
+    defined(USE_ESP32_VARIANT_ESP32P4)
 #define USE_LOGGER_USB_CDC
 #define USE_LOGGER_USB_SERIAL_JTAG
 #endif
