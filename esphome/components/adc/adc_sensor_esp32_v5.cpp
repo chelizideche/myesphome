@@ -102,66 +102,51 @@ void ADCSensor::setup() {
     this->config_complete_ = true;
   }
 
-  // Only initialize native calibration if we're using native mode
-  if (this->calibration_mode_ == NATIVE || this->calibration_mode_ == AUTO) {
-    // Initialize ADC calibration if not already done
-    if (this->calibration_handle_ == nullptr) {
-      adc_cali_handle_t handle = nullptr;
-      adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
-      esp_err_t err;
+  // Initialize ADC calibration
+  if (this->calibration_handle_ == nullptr) {
+    adc_cali_handle_t handle = nullptr;
+    adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
+    esp_err_t err;
 
 #if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32S3 || USE_ESP32_VARIANT_ESP32H2
-      // RISC-V variants and S3 use curve fitting calibration
-      adc_cali_curve_fitting_config_t cali_config = {};  // Zero initialize first
+    // RISC-V variants and S3 use curve fitting calibration
+    adc_cali_curve_fitting_config_t cali_config = {};  // Zero initialize first
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-      cali_config.chan = this->channel_;
+    cali_config.chan = this->channel_;
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-      cali_config.unit_id = unit_id;
-      cali_config.atten = this->attenuation_;
-      cali_config.bitwidth = ADC_BITWIDTH_DEFAULT;
+    cali_config.unit_id = unit_id;
+    cali_config.atten = this->attenuation_;
+    cali_config.bitwidth = ADC_BITWIDTH_DEFAULT;
 
-      err = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
-      if (err == ESP_OK) {
-        this->calibration_handle_ = handle;
-        this->calibration_complete_ = true;
-        ESP_LOGV(TAG, "Using curve fitting calibration");
-      } else {
-        ESP_LOGW(TAG, "Curve fitting calibration failed with error %d, will use uncalibrated readings", err);
-        this->calibration_complete_ = false;
-      }
+    err = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+    if (err == ESP_OK) {
+      this->calibration_handle_ = handle;
+      this->calibration_complete_ = true;
+      ESP_LOGV(TAG, "Using curve fitting calibration");
+    } else {
+      ESP_LOGW(TAG, "Curve fitting calibration failed with error %d, will use uncalibrated readings", err);
+      this->calibration_complete_ = false;
+    }
 #else  // Other ESP32 variants use line fitting calibration
-      adc_cali_line_fitting_config_t cali_config = {
+    adc_cali_line_fitting_config_t cali_config = {
         .unit_id = unit_id,
         .atten = this->attenuation_,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
 #if !defined(USE_ESP32_VARIANT_ESP32S2)
         .default_vref = 1100,  // Default reference voltage in mV
 #endif  // !defined(USE_ESP32_VARIANT_ESP32S2)
-      };
-      err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
-      if (err == ESP_OK) {
-        this->calibration_handle_ = handle;
-        this->calibration_complete_ = true;
-        ESP_LOGV(TAG, "Using line fitting calibration");
-      } else {
-        ESP_LOGW(TAG, "Line fitting calibration failed with error %d, will use uncalibrated readings", err);
-        this->calibration_complete_ = false;
-      }
-#endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
+    };
+    err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
+    if (err == ESP_OK) {
+      this->calibration_handle_ = handle;
+      this->calibration_complete_ = true;
+      ESP_LOGV(TAG, "Using line fitting calibration");
+    } else {
+      ESP_LOGW(TAG, "Line fitting calibration failed with error %d, will use uncalibrated readings", err);
+      this->calibration_complete_ = false;
     }
+#endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
   }
-#ifdef HAS_ESP_ADC_CAL
-  else if (this->calibration_mode_ == LEGACY) {
-    // Initialize legacy calibration characteristics
-    adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
-
-    esp_adc_cal_characterize(unit_id, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, 1100, &this->legacy_cal_characteristics_[0]);
-    esp_adc_cal_characterize(unit_id, ADC_ATTEN_DB_2_5, ADC_WIDTH_BIT_12, 1100, &this->legacy_cal_characteristics_[1]);
-    esp_adc_cal_characterize(unit_id, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, &this->legacy_cal_characteristics_[2]);
-    esp_adc_cal_characterize(unit_id, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &this->legacy_cal_characteristics_[3]);
-    this->calibration_complete_ = true;
-  }
-#endif  // HAS_ESP_ADC_CAL
 
   this->init_complete_ = true;
   this->do_setup_ = false;
@@ -176,23 +161,6 @@ void ADCSensor::dump_config() {
   ESP_LOGCONFIG(TAG, "    Config:       %s", this->config_complete_ ? "OK" : "FAILED");
   ESP_LOGCONFIG(TAG, "    Calibration:  %s", this->calibration_complete_ ? "OK" : "FAILED");
   ESP_LOGCONFIG(TAG, "    Overall Init: %s", this->init_complete_ ? "OK" : "FAILED");
-
-  // Add calibration mode info
-  switch (this->calibration_mode_) {
-    case AUTO:
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Auto");
-      break;
-    case LEGACY:
-#ifdef HAS_ESP_ADC_CAL
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy");
-#else
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (not available, using Native)");
-#endif  // HAS_ESP_ADC_CAL
-      break;
-    case NATIVE:
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Native");
-      break;
-  }
 
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
@@ -220,15 +188,6 @@ void ADCSensor::dump_config() {
 }
 
 float ADCSensor::sample() {
-#ifdef HAS_ESP_ADC_CAL
-  if (this->calibration_mode_ == LEGACY) {
-    return this->legacy_sample();
-  }
-#endif  // HAS_ESP_ADC_CAL
-  return this->native_sample();
-}
-
-float ADCSensor::native_sample() {
   if (!this->autorange_) {
     auto aggr = Aggregator(this->sampling_mode_);
 
@@ -329,11 +288,11 @@ float ADCSensor::native_sample() {
       err = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
 #else
       adc_cali_line_fitting_config_t cali_config = {
-        .unit_id = unit_id,
-        .atten = atten,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
+          .unit_id = unit_id,
+          .atten = atten,
+          .bitwidth = ADC_BITWIDTH_DEFAULT,
 #if !defined(USE_ESP32_VARIANT_ESP32S2)
-        .default_vref = 1100,
+          .default_vref = 1100,
 #endif
       };
       err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
@@ -426,131 +385,6 @@ float ADCSensor::native_sample() {
     return (mv12 * c12 + mv6 * c6 + mv2 * c2 + mv0 * c0) / csum;
   }
 }
-
-#ifdef HAS_ESP_ADC_CAL
-float ADCSensor::legacy_sample() {
-  static const int ADC_MAX = 4095;  // 12-bit ADC
-  static const int ADC_HALF = 2048;
-
-  if (!this->autorange_) {
-    // Single attenuation mode
-    auto aggr = Aggregator(this->sampling_mode_);
-
-    for (uint8_t sample = 0; sample < this->sample_count_; sample++) {
-      int raw;
-      esp_err_t err;
-
-      // Read the ADC using the new API but process like the old code
-      if (this->is_adc1_) {
-        err = adc_oneshot_read(this->adc1_handle_, this->channel_, &raw);
-      } else {
-        err = adc_oneshot_read(this->adc2_handle_, this->channel_, &raw);
-      }
-
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Legacy ADC read failed with error %d", err);
-        continue;
-      }
-
-      if (raw == -1) {
-        continue;
-      }
-
-      aggr.add_sample(raw);
-    }
-
-    uint32_t final_value = aggr.aggregate();
-
-    if (this->output_raw_) {
-      return final_value;
-    }
-
-    // Use legacy calibration method
-    uint32_t mv = esp_adc_cal_raw_to_voltage(final_value,
-                                             &this->legacy_cal_characteristics_[static_cast<int>(this->attenuation_)]);
-    return mv / 1000.0f;
-  }
-
-  // Auto-range mode with legacy calibration
-  auto read_with_attenuation = [this](adc_atten_t atten) -> int {
-    adc_oneshot_chan_cfg_t config = {
-        .atten = atten,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
-    };
-
-    esp_err_t err;
-    if (this->is_adc1_) {
-      err = adc_oneshot_config_channel(this->adc1_handle_, this->channel_, &config);
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Error configuring ADC1 channel for legacy autorange: %d", err);
-        return -1;
-      }
-      int raw;
-      err = adc_oneshot_read(this->adc1_handle_, this->channel_, &raw);
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "ADC1 read failed in legacy autorange with error %d", err);
-        return -1;
-      }
-      return raw;
-    } else {
-      err = adc_oneshot_config_channel(this->adc2_handle_, this->channel_, &config);
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Error configuring ADC2 channel for legacy autorange: %d", err);
-        return -1;
-      }
-      int raw;
-      err = adc_oneshot_read(this->adc2_handle_, this->channel_, &raw);
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "ADC2 read failed in legacy autorange with error %d", err);
-        return -1;
-      }
-      return raw;
-    }
-  };
-
-  // Read with all attenuation levels
-  int raw12 = read_with_attenuation(ADC_ATTEN_DB_12);
-  int raw6 = ADC_MAX, raw2 = ADC_MAX, raw0 = ADC_MAX;
-
-  if (raw12 < ADC_MAX && raw12 != -1) {
-    raw6 = read_with_attenuation(ADC_ATTEN_DB_6);
-
-    if (raw6 < ADC_MAX && raw6 != -1) {
-      raw2 = read_with_attenuation(ADC_ATTEN_DB_2_5);
-
-      if (raw2 < ADC_MAX && raw2 != -1) {
-        raw0 = read_with_attenuation(ADC_ATTEN_DB_0);
-      }
-    }
-  }
-
-  if (raw0 == -1 || raw2 == -1 || raw6 == -1 || raw12 == -1) {
-    return NAN;
-  }
-
-  // Calculate voltages using legacy calibration
-  uint32_t mv12 = esp_adc_cal_raw_to_voltage(raw12, &this->legacy_cal_characteristics_[3]);  // ADC_ATTEN_DB_12
-  uint32_t mv6 = esp_adc_cal_raw_to_voltage(raw6, &this->legacy_cal_characteristics_[2]);    // ADC_ATTEN_DB_6
-  uint32_t mv2 = esp_adc_cal_raw_to_voltage(raw2, &this->legacy_cal_characteristics_[1]);    // ADC_ATTEN_DB_2_5
-  uint32_t mv0 = esp_adc_cal_raw_to_voltage(raw0, &this->legacy_cal_characteristics_[0]);    // ADC_ATTEN_DB_0
-
-  // Contribution of each value (weighting algorithm from legacy code)
-  uint32_t c12 = std::min(raw12, ADC_HALF);
-  uint32_t c6 = ADC_HALF - std::abs(raw6 - ADC_HALF);
-  uint32_t c2 = ADC_HALF - std::abs(raw2 - ADC_HALF);
-  uint32_t c0 = std::min(ADC_MAX - raw0, ADC_HALF);
-  uint32_t csum = c12 + c6 + c2 + c0;
-
-  if (csum == 0) {
-    ESP_LOGE(TAG, "Invalid weight sum in legacy autorange calculation");
-    return NAN;
-  }
-
-  // Calculate weighted average voltage
-  uint32_t mv_scaled = (mv12 * c12) + (mv6 * c6) + (mv2 * c2) + (mv0 * c0);
-  return mv_scaled / (float) (csum * 1000U);
-}
-#endif  // HAS_ESP_ADC_CAL
 
 }  // namespace adc
 }  // namespace esphome

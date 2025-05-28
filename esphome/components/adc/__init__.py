@@ -44,24 +44,6 @@ SAMPLING_MODES = {
     "max": sampling_mode.MAX,
 }
 
-CalibrationMode = adc_ns.enum("CalibrationMode")
-
-# Export the enum values for use in sensor.py
-AUTO = CalibrationMode.AUTO
-LEGACY = CalibrationMode.LEGACY
-NATIVE = CalibrationMode.NATIVE
-
-CALIBRATION_MODES = {
-    "auto": AUTO,  # Automatically choose based on ESP-IDF version
-    "legacy": LEGACY,  # Use pre-ESP-IDF 5.0 calibration
-    "native": NATIVE,  # Use ESP-IDF 5.0+ native calibration
-}
-
-# Also export the enum values to the namespace for backward compatibility
-AUTO = CalibrationMode.AUTO
-LEGACY = CalibrationMode.LEGACY
-NATIVE = CalibrationMode.NATIVE
-
 adc1_channel_t = cg.global_ns.enum("adc1_channel_t")
 adc2_channel_t = cg.global_ns.enum("adc2_channel_t")
 

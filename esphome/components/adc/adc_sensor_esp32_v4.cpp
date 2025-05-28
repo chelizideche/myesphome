@@ -60,19 +60,6 @@ void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
 
-  // Add calibration mode info
-  switch (this->calibration_mode_) {
-    case AUTO:
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (only option on ESP-IDF 4.x)");
-      break;
-    case LEGACY:
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy");
-      break;
-    case NATIVE:
-      ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (Native not available on ESP-IDF 4.x)");
-      break;
-  }
-
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
   } else {
