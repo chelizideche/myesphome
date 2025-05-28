@@ -11,7 +11,6 @@ from pathlib import Path
 import platform
 import signal
 import socket
-import subprocess
 import sys
 import tempfile
 from typing import TextIO
@@ -41,21 +40,13 @@ from .types import (
     RunCompiledFunction,
 )
 
-# Platform detection
-IS_WINDOWS = platform.system() == "Windows"
-
-# pty is Unix-only, import conditionally
-if not IS_WINDOWS:
-    import pty
-else:
-    pty = None
-
-
 # Skip all integration tests on Windows
 if platform.system() == "Windows":
     pytest.skip(
         "Integration tests are not supported on Windows", allow_module_level=True
     )
+
+import pty  # not available on Windows
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -374,47 +365,32 @@ async def run_binary_and_wait_for_port(
     timeout: float = PORT_WAIT_TIMEOUT,
 ) -> AsyncGenerator[None]:
     """Run a binary, wait for it to open a port, and clean up on exit."""
-    if IS_WINDOWS:
-        # On Windows, we can't use PTY, so just use pipes
-        process = await asyncio.create_subprocess_exec(
-            str(binary_path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            stdin=asyncio.subprocess.DEVNULL,
-            # creationflags for Windows to create new process group
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
+    # Create a pseudo-terminal to make the binary think it's running interactively
+    # This is needed because the ESPHome host logger checks isatty()
+    controller_fd, device_fd = pty.openpty()
 
-        # Set up output reader
-        output_reader = process.stdout
-        controller_transport = None
-    else:
-        # Create a pseudo-terminal to make the binary think it's running interactively
-        # This is needed because the ESPHome host logger checks isatty()
-        controller_fd, device_fd = pty.openpty()
+    # Run the compiled binary with PTY
+    process = await asyncio.create_subprocess_exec(
+        str(binary_path),
+        stdout=device_fd,
+        stderr=device_fd,
+        stdin=asyncio.subprocess.DEVNULL,
+        # Start in a new process group to isolate signal handling
+        start_new_session=True,
+        pass_fds=(device_fd,),
+    )
 
-        # Run the compiled binary with PTY
-        process = await asyncio.create_subprocess_exec(
-            str(binary_path),
-            stdout=device_fd,
-            stderr=device_fd,
-            stdin=asyncio.subprocess.DEVNULL,
-            # Start in a new process group to isolate signal handling
-            start_new_session=True,
-            pass_fds=(device_fd,),
-        )
+    # Close the device end in the parent process
+    os.close(device_fd)
 
-        # Close the device end in the parent process
-        os.close(device_fd)
-
-        # Convert controller_fd to async streams for reading
-        loop = asyncio.get_running_loop()
-        controller_reader = asyncio.StreamReader()
-        controller_protocol = asyncio.StreamReaderProtocol(controller_reader)
-        controller_transport, _ = await loop.connect_read_pipe(
-            lambda: controller_protocol, os.fdopen(controller_fd, "rb", 0)
-        )
-        output_reader = controller_reader
+    # Convert controller_fd to async streams for reading
+    loop = asyncio.get_running_loop()
+    controller_reader = asyncio.StreamReader()
+    controller_protocol = asyncio.StreamReaderProtocol(controller_reader)
+    controller_transport, _ = await loop.connect_read_pipe(
+        lambda: controller_protocol, os.fdopen(controller_fd, "rb", 0)
+    )
+    output_reader = controller_reader
 
     assert process.returncode is None, "Process died immediately"
 
@@ -487,29 +463,19 @@ async def run_binary_and_wait_for_port(
 
         # Cleanup: terminate the process gracefully
         if process.returncode is None:
-            if IS_WINDOWS:
-                # On Windows, just terminate the process
+            # Send SIGINT (Ctrl+C) for graceful shutdown
+            process.send_signal(signal.SIGINT)
+            try:
+                await asyncio.wait_for(process.wait(), timeout=SIGINT_TIMEOUT)
+            except asyncio.TimeoutError:
+                # If SIGINT didn't work, try SIGTERM
                 process.terminate()
                 try:
                     await asyncio.wait_for(process.wait(), timeout=SIGTERM_TIMEOUT)
                 except asyncio.TimeoutError:
-                    # Force kill if needed
+                    # Last resort: SIGKILL
                     process.kill()
                     await process.wait()
-            else:
-                # Send SIGINT (Ctrl+C) for graceful shutdown
-                process.send_signal(signal.SIGINT)
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=SIGINT_TIMEOUT)
-                except asyncio.TimeoutError:
-                    # If SIGINT didn't work, try SIGTERM
-                    process.terminate()
-                    try:
-                        await asyncio.wait_for(process.wait(), timeout=SIGTERM_TIMEOUT)
-                    except asyncio.TimeoutError:
-                        # Last resort: SIGKILL
-                        process.kill()
-                        await process.wait()
 
 
 @asynccontextmanager
