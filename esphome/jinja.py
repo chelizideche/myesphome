@@ -1,4 +1,5 @@
 import logging
+import math
 import re
 import jinja2 as jinja
 from jinja2.nativetypes import NativeEnvironment
@@ -62,6 +63,7 @@ jinja = NativeEnvironment(
     undefined=jinja.StrictUndefined,
 )
 jinja.add_extension("jinja2.ext.do")
+jinja.globals["math"] = math  # Inject entire math module
 
 
 def expand_str(st, vars):
