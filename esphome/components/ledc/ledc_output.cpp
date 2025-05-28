@@ -32,11 +32,13 @@ inline ledc_mode_t get_speed_mode(uint8_t channel) { return channel < 8 ? LEDC_H
 inline ledc_mode_t get_speed_mode(uint8_t) { return LEDC_LOW_SPEED_MODE; }
 #endif
 
-float ledc_max_frequency_for_bit_depth(uint8_t bit_depth) { return CLOCK_FREQUENCY / float(1 << bit_depth); }
+float ledc_max_frequency_for_bit_depth(uint8_t bit_depth) {
+  return static_cast<float>(CLOCK_FREQUENCY) / static_cast<float>(1 << bit_depth);
+}
 
 float ledc_min_frequency_for_bit_depth(uint8_t bit_depth, bool low_frequency) {
   const float max_div_num = ((1 << MAX_RES_BITS) - 1) / (low_frequency ? 32.0f : 256.0f);
-  return CLOCK_FREQUENCY / (max_div_num * float(1 << bit_depth));
+  return static_cast<float>(CLOCK_FREQUENCY) / (max_div_num * static_cast<float>(1 << bit_depth));
 }
 
 optional<uint8_t> ledc_bit_depth_for_frequency(float frequency) {
@@ -83,12 +85,12 @@ esp_err_t configure_timer_frequency(ledc_mode_t speed_mode, ledc_timer_t timer_n
 }
 
 constexpr int ledc_angle_to_htop(float angle, uint8_t bit_depth) {
-  return static_cast<int>(angle * ((1U << bit_depth) - 1) / 360.);
+  return static_cast<int>(angle * ((1U << bit_depth) - 1) / 360.0f);
 }
 
 void LEDCOutput::write_state(float state) {
-  if (!initialized_) {
-    ESP_LOGW(TAG, "LEDC output hasn't been initialized yet!");
+  if (!this->initialized_) {
+    ESP_LOGW(TAG, "Not yet initialized");
     return;
   }
 
@@ -100,8 +102,8 @@ void LEDCOutput::write_state(float state) {
   const float duty_rounded = roundf(state * max_duty);
   auto duty = static_cast<uint32_t>(duty_rounded);
   ESP_LOGV(TAG, "Setting duty: %" PRIu32 " on channel %u", duty, this->channel_);
-  auto speed_mode = get_speed_mode(channel_);
-  auto chan_num = static_cast<ledc_channel_t>(channel_ % 8);
+  auto speed_mode = get_speed_mode(this->channel_);
+  auto chan_num = static_cast<ledc_channel_t>(this->channel_ % 8);
   int hpoint = ledc_angle_to_htop(this->phase_angle_, this->bit_depth_);
   if (duty == max_duty) {
     ledc_stop(speed_mode, chan_num, 1);
@@ -115,9 +117,9 @@ void LEDCOutput::write_state(float state) {
 
 void LEDCOutput::setup() {
   ESP_LOGV(TAG, "Entering setup...");
-  auto speed_mode = get_speed_mode(channel_);
-  auto timer_num = static_cast<ledc_timer_t>((channel_ % 8) / 2);
-  auto chan_num = static_cast<ledc_channel_t>(channel_ % 8);
+  auto speed_mode = get_speed_mode(this->channel_);
+  auto timer_num = static_cast<ledc_timer_t>((this->channel_ % 8) / 2);
+  auto chan_num = static_cast<ledc_channel_t>(this->channel_ % 8);
 
   esp_err_t timer_init_result =
       configure_timer_frequency(speed_mode, timer_num, chan_num, this->channel_, this->bit_depth_, this->frequency_);
@@ -133,22 +135,22 @@ void LEDCOutput::setup() {
   ESP_LOGV(TAG, "Angle of %.1f° results in hpoint %u", this->phase_angle_, hpoint);
 
   ledc_channel_config_t chan_conf{};
-  chan_conf.gpio_num = pin_->get_pin();
+  chan_conf.gpio_num = this->pin_->get_pin();
   chan_conf.speed_mode = speed_mode;
   chan_conf.channel = chan_num;
   chan_conf.intr_type = LEDC_INTR_DISABLE;
   chan_conf.timer_sel = timer_num;
-  chan_conf.duty = inverted_ == pin_->is_inverted() ? 0 : (1U << bit_depth_);
+  chan_conf.duty = this->inverted_ == this->pin_->is_inverted() ? 0 : (1U << this->bit_depth_);
   chan_conf.hpoint = hpoint;
   ledc_channel_config(&chan_conf);
-  initialized_ = true;
+  this->initialized_ = true;
   this->status_clear_error();
 }
 
 void LEDCOutput::dump_config() {
-  ESP_LOGCONFIG(TAG, "LEDC Output:");
+  ESP_LOGCONFIG(TAG, "Output:");
   LOG_PIN("  Pin ", this->pin_);
-  ESP_LOGCONFIG(TAG, "  LEDC Channel: %u", this->channel_);
+  ESP_LOGCONFIG(TAG, "  Channel: %u", this->channel_);
   ESP_LOGCONFIG(TAG, "  PWM Frequency: %.1f Hz", this->frequency_);
   ESP_LOGCONFIG(TAG, "  Phase angle: %.1f°", this->phase_angle_);
   ESP_LOGCONFIG(TAG, "  Bit depth: %u", this->bit_depth_);
@@ -174,14 +176,14 @@ void LEDCOutput::update_frequency(float frequency) {
   this->bit_depth_ = bit_depth_opt.value_or(8);
 
   this->frequency_ = frequency;
-  if (!initialized_) {
-    ESP_LOGW(TAG, "LEDC output hasn't been initialized yet!");
+  if (!this->initialized_) {
+    ESP_LOGW(TAG, "Not yet initialized");
     return;
   }
 
-  auto speed_mode = get_speed_mode(channel_);
-  auto timer_num = static_cast<ledc_timer_t>((channel_ % 8) / 2);
-  auto chan_num = static_cast<ledc_channel_t>(channel_ % 8);
+  auto speed_mode = get_speed_mode(this->channel_);
+  auto timer_num = static_cast<ledc_timer_t>((this->channel_ % 8) / 2);
+  auto chan_num = static_cast<ledc_channel_t>(this->channel_ % 8);
 
   esp_err_t timer_init_result =
       configure_timer_frequency(speed_mode, timer_num, chan_num, this->channel_, this->bit_depth_, this->frequency_);
