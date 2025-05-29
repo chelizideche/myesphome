@@ -29,7 +29,7 @@ void ADCSensor::setup() {
     if (this->adc1_handle_ == nullptr) {
       // Check if another sensor already initialized ADC1
       if (shared_adc1_handle != nullptr) {
-        this->adc1_handle_ = shared_adc1_handle;
+        this->adc1_handle_ = ADCSensor::shared_adc1_handle;
         this->handle_init_complete_ = true;
       } else {
         adc_oneshot_unit_init_cfg_t init_config1 = {};  // Zero initialize
