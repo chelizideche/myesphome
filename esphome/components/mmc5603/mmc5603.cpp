@@ -39,7 +39,7 @@ void MMC5603Component::setup() {
     return;
   }
 
-  if (id != MMC56X3_CHIP_ID) {
+  if (id != 0 && id != MMC56X3_CHIP_ID) {
     ESP_LOGCONFIG(TAG, "Chip Wrong");
     this->error_code_ = ID_REGISTERS;
     this->mark_failed();
