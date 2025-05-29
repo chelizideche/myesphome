@@ -606,7 +606,7 @@ class ESPHomeDumper(yaml.SafeDumper):
 
     # The below override configures this dumper to indent output YAML properly:
     def increase_indent(self, flow=False, indentless=False):
-        return super(ESPHomeDumper, self).increase_indent(flow, False)
+        return super().increase_indent(flow, False)
 
 
 ESPHomeDumper.add_multi_representer(
