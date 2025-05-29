@@ -85,9 +85,7 @@ void HX711Sensor::loop() {
       this->start_settle_timeout_();
     }
 
-    if (read_operation_result) {
-      this->log_and_publish_channel_b_value_(static_cast<int32_t>(result));
-    }
+    this->log_and_publish_channel_b_value_(read_operation_result ? static_cast<int32_t>(result) : NAN);
 
     this->update_in_progress_ = false;
     return;
@@ -140,6 +138,12 @@ void HX711Sensor::loop() {
     // Since current measurement is from channel b, publish it.
     this->log_and_publish_channel_b_value_(value);
 #endif
+  } else {
+    // Failed to read the sensor, user can filter out NAN if needed.
+    this->publish_state(NAN);
+    if (current_measurement_is_channel_b) {
+      this->log_and_publish_channel_b_value_(NAN);
+    }
   }
 
   this->update_in_progress_ = false;
