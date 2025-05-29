@@ -29,11 +29,11 @@ class GCJA5Component : public Component, public uart::UARTDevice {
   bool calculate_checksum_();
 
   uint16_t get_16_bit_uint_(uint8_t start_index) const {
-    return encode_uint16(this->rx_message_[start_index], this->rx_message_[start_index + 1]);
+    return encode_uint16(this->rx_message_[start_index + 1], this->rx_message_[start_index]);
   }
   uint32_t get_32_bit_uint_(uint8_t start_index) const {
-    return encode_uint32(this->rx_message_[start_index], this->rx_message_[start_index + 1],
-                         this->rx_message_[start_index + 2], this->rx_message_[start_index + 3]);
+    return encode_uint32(this->rx_message_[start_index + 3], this->rx_message_[start_index + 2],
+                         this->rx_message_[start_index + 1], this->rx_message_[start_index]);
   }
   uint32_t last_transmission_{0};
   std::vector<uint8_t> rx_message_;
