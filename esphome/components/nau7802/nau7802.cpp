@@ -52,8 +52,8 @@ static const uint8_t POWER_PGA_CAP_EN = 0x80;
 static const uint8_t DEVICE_REV = 0x1F;
 
 void NAU7802Sensor::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->name_.c_str());
   i2c::I2CRegister pu_ctrl = this->reg(PU_CTRL_REG);
-  ESP_LOGCONFIG(TAG, "Setting up NAU7802 '%s'...", this->name_.c_str());
   uint8_t rev;
 
   if (this->read_register(DEVICE_REV | READ_BIT, &rev, 1)) {
@@ -120,8 +120,6 @@ void NAU7802Sensor::complete_setup_() {
   // PGA stabilizer cap on output
   i2c::I2CRegister pwr_reg = this->reg(POWER_REG);
   pwr_reg |= POWER_PGA_CAP_EN;
-
-  this->setup_complete_ = true;
 }
 
 void NAU7802Sensor::dump_config() {
@@ -316,8 +314,6 @@ void NAU7802Sensor::update() {
 }
 
 bool NAU7802Sensor::is_data_ready_() { return this->reg(PU_CTRL_REG).get() & PU_CTRL_CYCLE_READY; }
-
-bool NAU7802Sensor::can_proceed() { return this->setup_complete_; }
 
 }  // namespace nau7802
 }  // namespace esphome

@@ -20,7 +20,7 @@ void BMP085Component::update() {
   this->set_timeout("temperature", 5, [this]() { this->read_temperature_(); });
 }
 void BMP085Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up BMP085...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t data[22];
   if (!this->read_bytes(BMP085_REGISTER_AC1_H, data, 22)) {
     this->mark_failed();
@@ -95,7 +95,7 @@ void BMP085Component::read_pressure_() {
     return;
   }
 
-  uint32_t value = (uint32_t(buffer[0]) << 16) | (uint32_t(buffer[1]) << 8) | uint32_t(buffer[0]);
+  uint32_t value = (uint32_t(buffer[0]) << 16) | (uint32_t(buffer[1]) << 8) | uint32_t(buffer[2]);
   if ((value >> 5) == 0) {
     ESP_LOGW(TAG, "Invalid pressure!");
     this->status_set_warning();

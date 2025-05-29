@@ -49,7 +49,7 @@ static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
 static const uint8_t ENS160_DATA_AQI = 0x07;
 
 void ENS160Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ENS160...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   // check part_id
   uint16_t part_id;
@@ -187,7 +187,7 @@ void ENS160Component::update() {
       }
       return;
     case INVALID_OUTPUT:
-      ESP_LOGE(TAG, "ENS160 Invalid Status - No Invalid Output");
+      ESP_LOGE(TAG, "ENS160 Invalid Status - No valid output");
       this->status_set_warning();
       return;
   }

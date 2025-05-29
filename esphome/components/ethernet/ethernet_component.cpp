@@ -38,7 +38,7 @@ EthernetComponent *global_eth_component;  // NOLINT(cppcoreguidelines-avoid-non-
 EthernetComponent::EthernetComponent() { global_eth_component = this; }
 
 void EthernetComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Ethernet...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {
     // Delay here to allow power to stabilise before Ethernet is initialized.
     delay(300);  // NOLINT
@@ -240,7 +240,7 @@ void EthernetComponent::setup() {
 }
 
 void EthernetComponent::loop() {
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   switch (this->state_) {
     case EthernetComponentState::STOPPED:
@@ -580,7 +580,7 @@ void EthernetComponent::get_eth_mac_address_raw(uint8_t *mac) {
 
 std::string EthernetComponent::get_eth_mac_address_pretty() {
   uint8_t mac[6];
-  get_mac_address_raw(mac);
+  get_eth_mac_address_raw(mac);
   return str_snprintf("%02X:%02X:%02X:%02X:%02X:%02X", 17, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 

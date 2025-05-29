@@ -45,7 +45,7 @@ static const char *const TAG = "wifi";
 float WiFiComponent::get_setup_priority() const { return setup_priority::WIFI; }
 
 void WiFiComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up WiFi...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->wifi_pre_setup_();
   if (this->enable_on_boot_) {
     this->start();
@@ -66,7 +66,7 @@ void WiFiComponent::start() {
 
   this->pref_ = global_preferences->make_preference<wifi::SavedWifiSettings>(hash, true);
   if (this->fast_connect_) {
-    this->fast_connect_pref_ = global_preferences->make_preference<wifi::SavedWifiFastConnectSettings>(hash, false);
+    this->fast_connect_pref_ = global_preferences->make_preference<wifi::SavedWifiFastConnectSettings>(hash + 1, false);
   }
 
   SavedWifiSettings save{};
@@ -122,7 +122,7 @@ void WiFiComponent::start() {
 
 void WiFiComponent::loop() {
   this->wifi_loop_();
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   if (this->has_sta()) {
     if (this->is_connected() != this->handled_connected_state_) {

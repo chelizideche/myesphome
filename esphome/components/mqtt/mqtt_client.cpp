@@ -34,7 +34,7 @@ MQTTClientComponent::MQTTClientComponent() {
 
 // Connection
 void MQTTClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
         if (index == 0)
@@ -138,7 +138,11 @@ void MQTTClientComponent::send_device_info_() {
 #endif
 
 #ifdef USE_API_NOISE
-        root["api_encryption"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        if (api::global_api_server->get_noise_ctx()->has_psk()) {
+          root["api_encryption"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        } else {
+          root["api_encryption_supported"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        }
 #endif
       },
       2, this->discovery_info_.retain);
@@ -341,7 +345,7 @@ void MQTTClientComponent::loop() {
     this->disconnect_reason_.reset();
   }
 
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   switch (this->state_) {
     case MQTT_CLIENT_DISABLED:
@@ -606,8 +610,18 @@ void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MQTTClientComponent::set_log_message_template(MQTTMessage &&message) { this->log_message_ = std::move(message); }
 const MQTTDiscoveryInfo &MQTTClientComponent::get_discovery_info() const { return this->discovery_info_; }
-void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix) { this->topic_prefix_ = topic_prefix; }
+void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix, const std::string &check_topic_prefix) {
+  if (App.is_name_add_mac_suffix_enabled() && (topic_prefix == check_topic_prefix)) {
+    this->topic_prefix_ = str_sanitize(App.get_name());
+  } else {
+    this->topic_prefix_ = topic_prefix;
+  }
+}
 const std::string &MQTTClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
+void MQTTClientComponent::set_publish_nan_as_none(bool publish_nan_as_none) {
+  this->publish_nan_as_none_ = publish_nan_as_none;
+}
+bool MQTTClientComponent::is_publish_nan_as_none() const { return this->publish_nan_as_none_; }
 void MQTTClientComponent::disable_birth_message() {
   this->birth_message_.topic = "";
   this->recalculate_availability_();
