@@ -58,7 +58,7 @@ void WiFiComponent::setup() {
 }
 
 void WiFiComponent::start() {
-  ESP_LOGCONFIG(TAG, "Starting...");
+  ESP_LOGCONFIG(TAG, "Starting");
   ESP_LOGCONFIG(TAG, "  Local MAC: %s", get_mac_address_pretty().c_str());
   this->last_connected_ = millis();
 
@@ -201,7 +201,7 @@ void WiFiComponent::loop() {
 
     if (!this->has_ap() && this->reboot_timeout_ != 0) {
       if (now - this->last_connected_ > this->reboot_timeout_) {
-        ESP_LOGE(TAG, "Can't connect, rebooting...");
+        ESP_LOGE(TAG, "Can't connect; rebooting");
         App.reboot();
       }
     }
@@ -310,7 +310,7 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
 }
 
 void WiFiComponent::start_connecting(const WiFiAP &ap, bool two) {
-  ESP_LOGI(TAG, "Connecting to '%s'...", ap.get_ssid().c_str());
+  ESP_LOGI(TAG, "Connecting to '%s'", ap.get_ssid().c_str());
 #ifdef ESPHOME_LOG_HAS_VERBOSE
   ESP_LOGV(TAG, "Connection Params:");
   ESP_LOGV(TAG, "  SSID: '%s'", ap.get_ssid().c_str());
@@ -459,7 +459,7 @@ void WiFiComponent::enable() {
   if (this->state_ != WIFI_COMPONENT_STATE_DISABLED)
     return;
 
-  ESP_LOGD(TAG, "Enabling...");
+  ESP_LOGD(TAG, "Enabling");
   this->error_from_callback_ = false;
   this->state_ = WIFI_COMPONENT_STATE_OFF;
   this->start();
@@ -469,7 +469,7 @@ void WiFiComponent::disable() {
   if (this->state_ == WIFI_COMPONENT_STATE_DISABLED)
     return;
 
-  ESP_LOGD(TAG, "Disabling...");
+  ESP_LOGD(TAG, "Disabling");
   this->state_ = WIFI_COMPONENT_STATE_DISABLED;
   this->wifi_disconnect_();
   this->wifi_mode_(false, false);
@@ -614,7 +614,7 @@ void WiFiComponent::check_connecting_finished() {
     // We won't retry hidden networks unless a reconnect fails more than three times again
     this->retry_hidden_ = false;
 
-    ESP_LOGI(TAG, "Connected!");
+    ESP_LOGI(TAG, "Connected");
     this->print_connect_params_();
 
     if (this->has_ap()) {
@@ -644,7 +644,7 @@ void WiFiComponent::check_connecting_finished() {
 
   uint32_t now = millis();
   if (now - this->action_started_ > 30000) {
-    ESP_LOGW(TAG, "Timeout while connecting.");
+    ESP_LOGW(TAG, "Connection timeout");
     this->retry_connect();
     return;
   }
@@ -660,13 +660,13 @@ void WiFiComponent::check_connecting_finished() {
   }
 
   if (status == WiFiSTAConnectStatus::ERROR_NETWORK_NOT_FOUND) {
-    ESP_LOGW(TAG, "Network can not be found anymore.");
+    ESP_LOGW(TAG, "Network no longer found");
     this->retry_connect();
     return;
   }
 
   if (status == WiFiSTAConnectStatus::ERROR_CONNECT_FAILED) {
-    ESP_LOGW(TAG, "Connection failed. Are the credentials wrong?");
+    ESP_LOGW(TAG, "Connection failed. Check credentials");
     this->retry_connect();
     return;
   }
