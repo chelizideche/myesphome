@@ -58,8 +58,8 @@ enum class TuyaCommandType : uint8_t {
   WIFI_RSSI = 0x24,
 #else
   WIFI_STATE = 0x02,
-  WIFI_RESET = 0x03, // factory mode, same as below, since not yet implemented as ap mode
-  WIFI_PAIR = 0x04, // pairing mode, will made the device available for at most 2 minutes (maybe less)
+  WIFI_RESET = 0x03,  // factory mode, same as below, since not yet implemented as ap mode
+  WIFI_PAIR = 0x04,   // pairing mode, will made the device available for 2 minutes
   DATAPOINT_REPORT = 0x05,
   LOCAL_TIME_QUERY = 0x06,
   DP_CACHE = 0x10,
