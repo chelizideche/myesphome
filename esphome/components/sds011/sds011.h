@@ -33,7 +33,7 @@ class SDS011Component : public Component, public uart::UARTDevice {
   optional<bool> check_byte_() const;
   void parse_data_();
   uint16_t get_16_bit_uint_(uint8_t start_index) const {
-    return encode_uint16(this->data_[start_index], this->data_[start_index + 1]);
+    return encode_uint16(this->data_[start_index + 1], this->data_[start_index]);
   }
 
   sensor::Sensor *pm_2_5_sensor_{nullptr};
