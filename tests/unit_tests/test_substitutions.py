@@ -79,9 +79,9 @@ def test_substitutions_fixtures(fixture_path):
         elif DEV_MODE:
             expected = {}
         else:
-            assert os.path.isfile(
-                expected_path
-            ), f"Expected file missing: {expected_path}"
+            assert os.path.isfile(expected_path), (
+                f"Expected file missing: {expected_path}"
+            )
 
         # Sort dicts only (not lists) for comparison
         got_sorted = sort_dicts(config)

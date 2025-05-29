@@ -5,15 +5,15 @@ substitutions:
 esphome:
   name: test
 test_list:
-- '1'
-- '1'
-- '1'
-- '1'
-- 'Values: 1 2'
-- 'Value: 79'
-- 1 + 2
-- 1 * 2
-- 'Undefined var: ${undefined_var}'
-- ${undefined_var}
-- $undefined_var
-- ${ undefined_var }
+  - '1'
+  - '1'
+  - '1'
+  - '1'
+  - 'Values: 1 2'
+  - 'Value: 79'
+  - 1 + 2
+  - 1 * 2
+  - 'Undefined var: ${undefined_var}'
+  - ${undefined_var}
+  - $undefined_var
+  - ${ undefined_var }

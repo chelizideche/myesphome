@@ -69,7 +69,7 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
                     # Invoke the jinja engine to evaluate the expression.
                     expr_result = expand_str(value, substitutions)
                     if isinstance(expr_result, Undefined):
-                        "" + expr_result  # force a UndefinedError exception
+                        print("" + expr_result)  # force a UndefinedError exception
                     value = expr_result
                 except UndefinedError as err:
                     if not ignore_missing and "password" not in path:
@@ -91,7 +91,7 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
                 ) as err:
                     raise cv.Invalid(
                         f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}."
-                        f" See {"->".join(str(x) for x in path)}",
+                        f" See {'->'.join(str(x) for x in path)}",
                         path,
                     )
 
