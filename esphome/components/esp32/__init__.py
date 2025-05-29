@@ -542,6 +542,10 @@ ARDUINO_FRAMEWORK_SCHEMA = cv.All(
 )
 
 CONF_SDKCONFIG_OPTIONS = "sdkconfig_options"
+CONF_ENABLE_LWIP_DHCP_SERVER = "enable_lwip_dhcp_server"
+CONF_ENABLE_LWIP_MDNS_QUERIES = "enable_lwip_mdns_queries"
+CONF_ENABLE_LWIP_BRIDGE_INTERFACE = "enable_lwip_bridge_interface"
+
 ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -559,6 +563,15 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     ): cv.boolean,
                     cv.Optional(CONF_IGNORE_EFUSE_MAC_CRC): cv.boolean,
                     cv.Optional(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_DHCP_SERVER, default=False
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_MDNS_QUERIES, default=False
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
+                    ): cv.boolean,
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
@@ -686,6 +699,16 @@ async def to_code(config):
 
         # Set default CPU frequency
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
+
+        # Apply LWIP optimization settings
+        if CONF_ADVANCED in conf:
+            advanced = conf[CONF_ADVANCED]
+            if not advanced.get(CONF_ENABLE_LWIP_DHCP_SERVER, False):
+                add_idf_sdkconfig_option("CONFIG_LWIP_DHCPS", False)
+            if not advanced.get(CONF_ENABLE_LWIP_MDNS_QUERIES, False):
+                add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
+            if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
+                add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
