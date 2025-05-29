@@ -22,7 +22,23 @@ static const int RECEIVE_TIMEOUT = 300;
 static const int MAX_RETRIES = 5;
 
 void Tuya::setup() {
+#ifndef TUYA_LOW_ENERGY
   this->set_interval("heartbeat", 15000, [this] { this->send_empty_command_(TuyaCommandType::HEARTBEAT); });
+#else
+  this->protocol_version_ = 0;
+  this->write_byte(0x00);
+  this->init_state_ = TuyaInitState::INIT_PRODUCT;
+  this->set_retry(
+      "initquery", 100, 20,
+      [this](const uint8_t remaining_attempts) {
+        if (remaining_attempts > 0) {
+          this->send_empty_command_(TuyaCommandType::PRODUCT_QUERY);
+          return RetryResult::RETRY;
+        }
+        return RetryResult::DONE;
+      },
+      1);
+#endif
   if (this->status_pin_ != nullptr) {
     this->status_pin_->digital_write(false);
   }
@@ -176,11 +192,19 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
         this->product_ = R"({"p":"INVALID"})";
       }
       if (this->init_state_ == TuyaInitState::INIT_PRODUCT) {
+#ifndef TUYA_LOW_ENERGY
         this->init_state_ = TuyaInitState::INIT_CONF;
         this->send_empty_command_(TuyaCommandType::CONF_QUERY);
+#else
+        this->cancel_retry("initquery");
+        this->init_state_ = TuyaInitState::INIT_DATAPOINT;
+        ESP_LOGV(TAG, "Configured WIFI_STATE periodic send");
+        this->set_interval("wifi", 1000, [this] { this->send_wifi_status_(); });
+#endif
       }
       break;
     }
+#ifndef TUYA_LOW_ENERGY
     case TuyaCommandType::CONF_QUERY: {
       if (len >= 2) {
         this->status_pin_reported_ = buffer[0];
@@ -237,6 +261,22 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
             TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_REPORT_ACK, .payload = std::vector<uint8_t>{0x01}});
       }
       break;
+#else
+    case TuyaCommandType::WIFI_STATE:
+      this->send_wifi_status_();
+      break;
+    case TuyaCommandType::WIFI_RESET:
+      cut_cloud_mode_ = true;
+      break;
+    case TuyaCommandType::DATAPOINT_REPORT:
+      this->init_state_ = TuyaInitState::INIT_DONE;
+      this->handle_datapoints_(buffer, len);
+      // report that we received the data after handling them!
+      break;
+    case TuyaCommandType::DP_CACHE:
+      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DP_CACHE, .payload = std::vector<uint8_t>{0x01}});
+      break;
+#endif
     case TuyaCommandType::DATAPOINT_QUERY:
       break;
     case TuyaCommandType::WIFI_TEST:
@@ -408,6 +448,11 @@ void Tuya::handle_datapoints_(const uint8_t *buffer, size_t len) {
       if (listener.datapoint_id == datapoint.id)
         listener.on_datapoint(datapoint);
     }
+#ifdef TUYA_LOW_ENERGY
+    // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
+    // little longer, maybe postpone this?
+    this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_REPORT, .payload = std::vector<uint8_t>{0x00}});
+#endif
   }
 }
 
@@ -424,6 +469,7 @@ void Tuya::send_raw_command_(TuyaCommand command) {
     case TuyaCommandType::PRODUCT_QUERY:
       this->expected_response_ = TuyaCommandType::PRODUCT_QUERY;
       break;
+#ifndef TUYA_LOW_ENERGY
     case TuyaCommandType::CONF_QUERY:
       this->expected_response_ = TuyaCommandType::CONF_QUERY;
       break;
@@ -431,6 +477,7 @@ void Tuya::send_raw_command_(TuyaCommand command) {
     case TuyaCommandType::DATAPOINT_QUERY:
       this->expected_response_ = TuyaCommandType::DATAPOINT_REPORT_ASYNC;
       break;
+#endif
     default:
       break;
   }
@@ -499,8 +546,10 @@ uint8_t Tuya::get_wifi_status_code_() {
   if (network::is_connected()) {
     status = 0x03;
 
-    // Protocol version 3 also supports specifying when connected to "the cloud"
-    if (this->protocol_version_ >= 0x03 && remote_is_connected()) {
+    // Protocol version 3 and low energy (0) also supports specifying when connected to "the cloud" - in pair mode, we
+    // try to keep the device as long as possible activated (version 0) wi-fi devices
+    if ((this->protocol_version_ >= 0x03 || (!cut_cloud_mode_ && this->protocol_version_ == 0x00)) &&
+        remote_is_connected()) {
       status = 0x04;
     }
   } else {
@@ -691,7 +740,13 @@ void Tuya::send_datapoint_command_(uint8_t datapoint_id, TuyaDatapointType datap
   buffer.push_back(data.size() >> 0);
   buffer.insert(buffer.end(), data.begin(), data.end());
 
-  this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_DELIVER, .payload = buffer});
+  this->send_command_(TuyaCommand{.cmd =
+#ifndef TUYA_LOW_ENERGY
+                                      TuyaCommandType::DATAPOINT_DELIVER,
+#else
+                                      TuyaCommandType::DATAPOINT_REPORT,
+#endif
+                                  .payload = buffer});
 }
 
 void Tuya::register_listener(uint8_t datapoint_id, const std::function<void(TuyaDatapoint)> &func) {
