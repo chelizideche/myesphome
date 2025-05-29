@@ -161,7 +161,7 @@ void HX711Sensor::update() {
 
   if (this->is_powered_down()) {
     if (!this->power_down_after_reading_) {
-      ESP_LOGW(TAG, "'%s': Cannot update, %s", this->name_.c_str(), LOG_STR_POWERED_DOWN);
+      ESP_LOGW(TAG, "'%s': Currently %s, cannot update", this->name_.c_str(), LOG_STR_POWERED_DOWN);
       return;
     }
 
@@ -306,7 +306,7 @@ void HX711Sensor::mark_failed_internal_(const char *message) {
     return;
   this->power_down_internal_();
   this->mark_failed(message);
-  ESP_LOGE(TAG, "'%s' failed, %s", this->name_.c_str(), LOG_STR_POWERED_DOWN);
+  ESP_LOGE(TAG, "'%s' failed, automatically %s", this->name_.c_str(), LOG_STR_POWERED_DOWN);
 }
 
 void HX711Sensor::power_down_internal_() {
@@ -359,7 +359,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool start_settle_timeout
   uint32_t data = 0;
   bool final_dout;
 
-  ESP_LOGV(TAG, "'%s': last_gain=x%u, force=%s", this->name_.c_str(), hx711_gain_to_linear_gain(this->last_gain_),
+  ESP_LOGV(TAG, "'%s': last_gain=x%u; force=%s", this->name_.c_str(), hx711_gain_to_linear_gain(this->last_gain_),
            YESNO(force));
 
   {
@@ -393,7 +393,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool start_settle_timeout
   }
 
   if (!final_dout) {
-    ESP_LOGW(TAG, "'%s': Final dout error, data=0x%08" PRIx32, this->name_.c_str(), data);
+    ESP_LOGW(TAG, "'%s': Final dout error; data=0x%08" PRIx32, this->name_.c_str(), data);
     this->status_set_warning("final_dout not high");
     return false;
   }
