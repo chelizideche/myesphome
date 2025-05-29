@@ -1,6 +1,7 @@
 from collections.abc import MutableMapping
 import functools
 import hashlib
+from itertools import accumulate
 import logging
 import os
 from pathlib import Path
@@ -468,13 +469,76 @@ class EFont:
 
 
 class GlyphInfo:
-    def __init__(self, data_len, advance, offset_x, offset_y, width, height):
+    def __init__(
+        self, glyph, data_len, data, advance, offset_x, offset_y, width, height
+    ):
+        self.glyph = glyph
         self.data_len = data_len
+        self.data = data
         self.advance = advance
         self.offset_x = offset_x
         self.offset_y = offset_y
         self.width = width
         self.height = height
+
+
+def glyph_to_glyphinfo(glyph, font, size, bpp):
+    scale = 256 // (1 << bpp)
+    if not font.is_scalable:
+        sizes = [pt_to_px(x.size) for x in font.available_sizes]
+        if size in sizes:
+            font.select_size(sizes.index(size))
+    else:
+        font.set_pixel_sizes(size, 0)
+    flags = FT_LOAD_RENDER
+    if bpp != 1:
+        flags |= FT_LOAD_NO_BITMAP
+    else:
+        flags |= FT_LOAD_TARGET_MONO
+    font.load_char(glyph, flags)
+    width = font.glyph.bitmap.width
+    height = font.glyph.bitmap.rows
+    buffer = font.glyph.bitmap.buffer
+    pitch = font.glyph.bitmap.pitch
+    glyph_data = [0] * ((height * width * bpp + 7) // 8)
+    src_mode = font.glyph.bitmap.pixel_mode
+    pos = 0
+    for y in range(height):
+        for x in range(width):
+            if src_mode == ft_pixel_mode_mono:
+                pixel = (
+                    (1 << bpp) - 1
+                    if buffer[y * pitch + x // 8] & (1 << (7 - x % 8))
+                    else 0
+                )
+            else:
+                pixel = buffer[y * pitch + x] // scale
+            for bit_num in range(bpp):
+                if pixel & (1 << (bpp - bit_num - 1)):
+                    glyph_data[pos // 8] |= 0x80 >> (pos % 8)
+                pos += 1
+    ascender = pt_to_px(font.size.ascender)
+    if ascender == 0:
+        if not font.is_scalable:
+            ascender = size
+        else:
+            _LOGGER.error(
+                "Unable to determine ascender of font %s %s",
+                font.family_name,
+                font.style_name,
+            )
+    ret = GlyphInfo(
+        glyph,
+        len(glyph_data),
+        glyph_data,
+        pt_to_px(font.glyph.metrics.horiAdvance),
+        font.glyph.bitmap_left,
+        ascender - font.glyph.bitmap_top,
+        width,
+        height,
+    )
+    # data += glyph_data
+    return ret
 
 
 async def to_code(config):
@@ -506,98 +570,46 @@ async def to_code(config):
 
     codepoints = list(point_set)
     codepoints.sort(key=functools.cmp_to_key(glyph_comparator))
-    glyph_args = {}
-    data = []
     bpp = config[CONF_BPP]
-    scale = 256 // (1 << bpp)
     size = config[CONF_SIZE]
     # create the data array for all glyphs
-    for codepoint in codepoints:
-        font = point_font_map[codepoint]
-        if not font.is_scalable:
-            sizes = [pt_to_px(x.size) for x in font.available_sizes]
-            if size in sizes:
-                font.select_size(sizes.index(size))
-        else:
-            font.set_pixel_sizes(size, 0)
-        flags = FT_LOAD_RENDER
-        if bpp != 1:
-            flags |= FT_LOAD_NO_BITMAP
-        else:
-            flags |= FT_LOAD_TARGET_MONO
-        font.load_char(codepoint, flags)
-        width = font.glyph.bitmap.width
-        height = font.glyph.bitmap.rows
-        buffer = font.glyph.bitmap.buffer
-        pitch = font.glyph.bitmap.pitch
-        glyph_data = [0] * ((height * width * bpp + 7) // 8)
-        src_mode = font.glyph.bitmap.pixel_mode
-        pos = 0
-        for y in range(height):
-            for x in range(width):
-                if src_mode == ft_pixel_mode_mono:
-                    pixel = (
-                        (1 << bpp) - 1
-                        if buffer[y * pitch + x // 8] & (1 << (7 - x % 8))
-                        else 0
-                    )
-                else:
-                    pixel = buffer[y * pitch + x] // scale
-                for bit_num in range(bpp):
-                    if pixel & (1 << (bpp - bit_num - 1)):
-                        glyph_data[pos // 8] |= 0x80 >> (pos % 8)
-                    pos += 1
-        ascender = pt_to_px(font.size.ascender)
-        if ascender == 0:
-            if not font.is_scalable:
-                ascender = size
-            else:
-                _LOGGER.error(
-                    "Unable to determine ascender of font %s", config[CONF_FILE]
-                )
-        glyph_args[codepoint] = GlyphInfo(
-            len(data),
-            pt_to_px(font.glyph.metrics.horiAdvance),
-            font.glyph.bitmap_left,
-            ascender - font.glyph.bitmap_top,
-            width,
-            height,
-        )
-        data += glyph_data
-
-    rhs = [HexInt(x) for x in data]
+    glyph_args = list(
+        map(lambda x: glyph_to_glyphinfo(x, point_font_map[x], size, bpp), codepoints)
+    )
+    rhs = [HexInt(x) for x in flatten(map(lambda x: x.data, glyph_args))]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
 
     # Create the glyph table that points to data in the above array.
-    glyph_initializer = []
-    for codepoint in codepoints:
-        glyph_initializer.append(
-            cg.StructInitializer(
+    glyph_initializer = list(
+        map(
+            lambda x, y: cg.StructInitializer(
                 GlyphData,
                 (
                     "a_char",
-                    cg.RawExpression(
-                        f"(const uint8_t *){cpp_string_escape(codepoint)}"
-                    ),
+                    cg.RawExpression(f"(const uint8_t *){cpp_string_escape(x.glyph)}"),
                 ),
                 (
                     "data",
-                    cg.RawExpression(
-                        f"{str(prog_arr)} + {str(glyph_args[codepoint].data_len)}"
-                    ),
+                    cg.RawExpression(f"{str(prog_arr)} + {str(y - x.data_len)}"),
                 ),
-                ("advance", glyph_args[codepoint].advance),
-                ("offset_x", glyph_args[codepoint].offset_x),
-                ("offset_y", glyph_args[codepoint].offset_y),
-                ("width", glyph_args[codepoint].width),
-                ("height", glyph_args[codepoint].height),
-            )
+                ("advance", x.advance),
+                ("offset_x", x.offset_x),
+                ("offset_y", x.offset_y),
+                ("width", x.width),
+                ("height", x.height),
+            ),
+            glyph_args,
+            list(accumulate(map(lambda x: x.data_len, glyph_args))),
         )
+    )
 
     glyphs = cg.static_const_array(config[CONF_RAW_GLYPH_ID], glyph_initializer)
 
     font_height = pt_to_px(base_font.size.height)
     ascender = pt_to_px(base_font.size.ascender)
+    descender = abs(pt_to_px(base_font.size.descender))
+    xheight = glyph_to_glyphinfo("x", base_font, size, bpp).height
+    capheight = glyph_to_glyphinfo("X", base_font, size, bpp).height
     if font_height == 0:
         if not base_font.is_scalable:
             font_height = size
@@ -610,5 +622,9 @@ async def to_code(config):
         len(glyph_initializer),
         ascender,
         font_height,
+        ascender,
+        descender,
+        xheight,
+        capheight,
         bpp,
     )

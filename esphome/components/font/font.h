@@ -54,7 +54,8 @@ class Font
    * @param baseline The y-offset from the top of the text to the baseline.
    * @param bottom The y-offset from the top of the text to the bottom (i.e. height).
    */
-  Font(const GlyphData *data, int data_nr, int baseline, int height, uint8_t bpp = 1);
+  Font(const GlyphData *data, int data_nr, int baseline, int height, int ascender, int descender, int xheight,
+       int capheight, uint8_t bpp = 1);
 
   int match_next_glyph(const uint8_t *str, int *match_length);
 
@@ -65,6 +66,11 @@ class Font
 #endif
   inline int get_baseline() { return this->baseline_; }
   inline int get_height() { return this->height_; }
+  inline int get_ascender() { return this->ascender_; }
+  inline int get_descender() { return this->descender_; }
+  inline int get_linegap() { return this->linegap_; }
+  inline int get_xheight() { return this->xheight_; }
+  inline int get_capheight() { return this->capheight_; }
   inline int get_bpp() { return this->bpp_; }
 
   const std::vector<Glyph, ExternalRAMAllocator<Glyph>> &get_glyphs() const { return glyphs_; }
@@ -73,6 +79,11 @@ class Font
   std::vector<Glyph, ExternalRAMAllocator<Glyph>> glyphs_;
   int baseline_;
   int height_;
+  int ascender_;
+  int descender_;
+  int linegap_;
+  int xheight_;
+  int capheight_;
   uint8_t bpp_;  // bits per pixel
 };
 
