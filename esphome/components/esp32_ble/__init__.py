@@ -164,7 +164,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(
             CONF_ADVERTISING_CYCLE_TIME, default="10s"
         ): cv.positive_time_period_milliseconds,
-        cv.Optional(CONF_DISABLE_BT_LOGS, default=True): cv.boolean,
+        cv.Optional(CONF_DISABLE_BT_LOGS, default=True): cv.All(
+            cv.boolean, cv.only_with_esp_idf
+        ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
