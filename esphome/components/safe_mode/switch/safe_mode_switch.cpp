@@ -17,7 +17,7 @@ void SafeModeSwitch::write_state(bool state) {
   this->publish_state(false);
 
   if (state) {
-    ESP_LOGI(TAG, "Restarting device in safe mode...");
+    ESP_LOGI(TAG, "Restarting device...");
     this->safe_mode_component_->set_safe_mode_pending(true);
 
     // Let MQTT settle a bit

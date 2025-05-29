@@ -13,7 +13,7 @@ void SafeModeButton::set_safe_mode(SafeModeComponent *safe_mode_component) {
 }
 
 void SafeModeButton::press_action() {
-  ESP_LOGI(TAG, "Restarting device in safe mode...");
+  ESP_LOGI(TAG, "Restarting device...");
   this->safe_mode_component_->set_safe_mode_pending(true);
 
   // Let MQTT settle a bit
