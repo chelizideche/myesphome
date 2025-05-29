@@ -23,7 +23,7 @@ namespace esphome {
 namespace adc {
 
 #ifdef USE_ESP32
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 // Map old channel names to new ones for compatibility, if needed
 #ifndef ADC1_CHANNEL_0
 #define ADC1_CHANNEL_0 ADC_CHANNEL_0
@@ -64,7 +64,8 @@ constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
 constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
 #endif  // ADC_CHANNEL_MAX
 #endif  // ADC2_CHANNEL_MAX
-#endif  // ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
 // clang-format off
 #if (ESP_IDF_VERSION_MAJOR == 4 && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 7)) || \
