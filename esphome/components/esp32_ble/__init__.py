@@ -164,7 +164,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(
             CONF_ADVERTISING_CYCLE_TIME, default="10s"
         ): cv.positive_time_period_milliseconds,
-        cv.Optional(CONF_DISABLE_BT_LOGS, default=True): cv.boolean,
+        cv.SplitDefault(CONF_DISABLE_BT_LOGS, esp32_idf=True): cv.All(
+            cv.only_with_esp_idf, cv.boolean
+        ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -247,7 +249,7 @@ async def to_code(config):
         register_bt_logger(BTLoggers.GAP, BTLoggers.BTM, BTLoggers.HCI)
 
         # Apply logger settings if log disabling is enabled
-        if config[CONF_DISABLE_BT_LOGS]:
+        if config.get(CONF_DISABLE_BT_LOGS, False):
             # Disable all Bluetooth loggers that are not required
             for logger in BTLoggers:
                 if logger not in _required_loggers:
