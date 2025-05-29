@@ -75,7 +75,7 @@ void HX711Sensor::loop() {
 
     // Gain will be restored by read_sensor_
     // Do not start settle timeout
-    bool read_operation_result = this->read_sensor_(&result, false);
+    const bool read_operation_result = this->read_sensor_(&result, false);
 
     if (this->power_down_after_reading_) {
       // Power-down after channel B read if needed
@@ -93,11 +93,11 @@ void HX711Sensor::loop() {
 #endif
 
   bool start_settle_timeout_after_read = !this->power_down_after_reading_;
-  HX711Gain expected_gain_for_current_reading = this->last_gain_;
+  const HX711Gain expected_gain_for_current_reading = this->last_gain_;
 
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
   bool current_measurement_is_channel_b = expected_gain_for_current_reading == HX711Gain::HX711_GAIN_32;
-  HX711Gain &gain_to_restore = expected_gain_for_current_reading;
+  const HX711Gain &gain_to_restore = expected_gain_for_current_reading;
 
   // If needed, after reading the value, set the channel to channel B
   if (!current_measurement_is_channel_b) {
@@ -122,7 +122,7 @@ void HX711Sensor::loop() {
 #endif
     }
 
-    int32_t value = static_cast<int32_t>(result);
+    const int32_t value = static_cast<int32_t>(result);
     ESP_LOGD(TAG, "'%s': Got value %" PRId32 " (gain x%u)", this->name_.c_str(), value,
              hx711_gain_to_linear_gain(expected_gain_for_current_reading));
     this->publish_state(value);
@@ -200,7 +200,7 @@ bool HX711Sensor::is_measurement_ready() {
     return false;
   }
 
-  bool ready = !this->dout_pin_->digital_read();
+  const bool ready = !this->dout_pin_->digital_read();
   if (ready) {
     this->cancel_timeout(TIMEOUT_NAME_MEASUREMENT_READY);
     this->measurement_ready_timeout_running_ = false;
