@@ -1014,8 +1014,8 @@ uint16_t Nextion::recv_ret_string_(std::string &response, uint32_t timeout, bool
 void Nextion::add_no_result_to_queue_(const std::string &variable_name) {
 #ifdef USE_NEXTION_MAX_QUEUE_SIZE
   if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
-    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping NORESULT command: %s",
-             this->nextion_queue_.size(), variable_name.c_str());
+    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping NORESULT command: %s", this->nextion_queue_.size(),
+             variable_name.c_str());
     return;
   }
 #endif
@@ -1165,8 +1165,8 @@ void Nextion::add_to_get_queue(NextionComponentBase *component) {
 
 #ifdef USE_NEXTION_MAX_QUEUE_SIZE
   if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
-    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping GET for \"%s\"",
-             this->nextion_queue_.size(), component->get_variable_name().c_str());
+    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping GET for \"%s\"", this->nextion_queue_.size(),
+             component->get_variable_name().c_str());
     return;
   }
 #endif
