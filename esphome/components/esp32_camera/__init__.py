@@ -265,5 +265,5 @@ async def to_code(config):
         add_idf_component(
             name="esp32-camera",
             repo="https://github.com/espressif/esp32-camera.git",
-            ref="v2.0.9",
+            ref="v2.0.15",
         )
