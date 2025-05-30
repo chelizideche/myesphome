@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef USE_ARDUINO
+#if defined(USE_ARDUINO) && !defined(CLANG_TIDY)
 
 #include "esphome/core/macros.h"
 #include "esphome/core/component.h"
