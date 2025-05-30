@@ -141,9 +141,11 @@ void HX711Sensor::loop() {
   } else {
     // Failed to read the sensor, user can filter out NAN if needed.
     this->publish_state(NAN);
+#if defined(USE_HX711_CHANNEL_B_SENSOR)
     if (current_measurement_is_channel_b) {
       this->log_and_publish_channel_b_value_(NAN);
     }
+#endif
   }
 
   this->update_in_progress_ = false;
