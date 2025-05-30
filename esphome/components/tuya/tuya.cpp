@@ -324,7 +324,8 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       this->handle_datapoints_(buffer, len);
       // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
       // little longer, maybe postpone this?
-      this->send_command_(TuyaCommand{.cmd = command_type, .payload = std::vector<uint8_t>{0x00}});  // 0x00 == report OK - 0x01 report FAIL
+      this->send_command_(TuyaCommand{.cmd = command_type,
+                                      .payload = std::vector<uint8_t>{0x00}});  // 0x00 == report OK - 0x01 report FAIL
       break;
     case TuyaCommandType::DATAPOINT_DELIVER:
       break;
