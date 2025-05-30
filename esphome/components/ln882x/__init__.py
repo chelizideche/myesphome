@@ -17,7 +17,7 @@ from esphome.core import CORE
 
 from .boards import LN882X_BOARD_PINS, LN882X_BOARDS
 
-CODEOWNERS = ["@kuba2k2"]
+CODEOWNERS = ["@lamauny"]
 AUTO_LOAD = ["libretiny"]
 IS_TARGET_PLATFORM = True
 
