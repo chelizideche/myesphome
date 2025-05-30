@@ -185,7 +185,7 @@ void APIConnection::loop() {
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->client_combined_info_.c_str());
     }
   } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && now > this->next_ping_retry_) {
-    ESP_LOGVV(TAG, "Sending keepalive PING ");
+    ESP_LOGVV(TAG, "Sending keepalive PING");
     this->sent_ping_ = this->send_ping_request(PingRequest());
     if (!this->sent_ping_) {
       char warn_str[38];
