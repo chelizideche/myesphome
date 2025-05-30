@@ -6,13 +6,12 @@ namespace s300 {
 
 static const char *const TAG = "s300";
 
-static const uint8_t S300_START_TRANSMISSION[] = {0x62};
 static const uint8_t S300_COMMAND_READ_DATA[] = {0x52};
 
 // Time after writing command before reading i2c data (minimum is 10ms per S300 I2C programming guide)
 static const uint16_t S300_I2C_RESPONSE_WAIT_MS = 10;
 
-float S300Component::read_co2_data() {
+float S300Component::read_co2_data_() {
   uint8_t i2c_out_data[7];
   if (this->read(i2c_out_data, 7) != i2c::ERROR_OK) {
     static const char *const message = "Couldn't read CO2 data via I2C";
@@ -27,7 +26,7 @@ float S300Component::read_co2_data() {
   return (float) (i2c_out_data[1] << 8) + (float) i2c_out_data[2];
 }
 
-bool S300Component::start_command(const uint8_t *command_byte) {
+bool S300Component::start_command_(const uint8_t *command_byte) {
   if (this->write(command_byte, 1) != i2c::ERROR_OK) {
     static const char *const message = "Couldn't start measurement via I2C";
     ESP_LOGE(TAG, "%s", message);
