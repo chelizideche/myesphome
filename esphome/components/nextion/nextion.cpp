@@ -157,7 +157,10 @@ void Nextion::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Wake On Touch:         %s", YESNO(this->auto_wake_on_touch_));
   ESP_LOGCONFIG(TAG, "  Exit reparse:          %s", YESNO(this->exit_reparse_on_start_));
+
+#ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
   ESP_LOGCONFIG(TAG, "  Max commands per loop: %" PRIu16, this->max_commands_per_loop_);
+#endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
 
   if (this->touch_sleep_timeout_ != 0) {
     ESP_LOGCONFIG(TAG, "  Touch Timeout:         %" PRIu32, this->touch_sleep_timeout_);
@@ -378,10 +381,12 @@ void Nextion::process_nextion_commands_() {
   this->print_queue_members_();
 #endif
   while ((to_process_length = this->command_data_.find(COMMAND_DELIMITER)) != std::string::npos) {
+#ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
     if (++commands_processed > this->max_commands_per_loop_) {
       ESP_LOGW(TAG, "Processed too many commands in one loop. Deferring remaining commands.");
       break;
     }
+#endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
     ESP_LOGN(TAG, "print_queue_members_ size %zu", this->nextion_queue_.size());
     while (to_process_length + COMMAND_DELIMITER.length() < this->command_data_.length() &&
            static_cast<uint8_t>(this->command_data_[to_process_length + COMMAND_DELIMITER.length()]) == 0xFF) {

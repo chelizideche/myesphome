@@ -57,7 +57,7 @@ CONFIG_SCHEMA = (
                 cv.Range(max=TimePeriod(milliseconds=255)),
             ),
             cv.Optional(CONF_EXIT_REPARSE_ON_START, default=False): cv.boolean,
-            cv.Optional(CONF_MAX_COMMANDS_PER_LOOP, default=1000): cv.positive_int,
+            cv.Optional(CONF_MAX_COMMANDS_PER_LOOP): cv.uint16_t,
             cv.Optional(CONF_ON_BUFFER_OVERFLOW): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -169,7 +169,9 @@ async def to_code(config):
 
     cg.add(var.set_skip_connection_handshake(config[CONF_SKIP_CONNECTION_HANDSHAKE]))
 
-    cg.add(var.set_max_commands_per_loop(config[CONF_MAX_COMMANDS_PER_LOOP]))
+    if max_commands_per_loop := config.get(CONF_MAX_COMMANDS_PER_LOOP):
+        cg.add_define("USE_NEXTION_MAX_COMMANDS_PER_LOOP")
+        cg.add(var.set_max_commands_per_loop(max_commands_per_loop))
 
     await display.register_display(var, config)
 
