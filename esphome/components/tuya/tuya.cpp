@@ -311,7 +311,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       break;
     case TuyaCommandType::WIFI_PAIR:  // we'll remain UP for at most 2 minutes (maybe less with boot time)
       // len > 0, buffer[0] contains 0x00 for EZ mode or 0x01 for AP mode
-      /* 
+      /*
       if (len > 0) {
         buffer[0];
       }*/
@@ -330,11 +330,11 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       break;
     case TuyaCommandType::DATAPOINT_CACHE_DELIVER:
       /*
-      * TODO: we need to make this work for multiple cached commands done on
-      * battery powered devices, example:
-      * a device that does an action on multiple DP delayed, as a lock or an
-      * intermittent light, or anything else with that behaviour
-      */
+       * TODO: we need to make this work for multiple cached commands done on
+       * battery powered devices, example:
+       * a device that does an action on multiple DP delayed, as a lock or an
+       * intermittent light, or anything else with that behaviour
+       */
       break;
 #endif
     case TuyaCommandType::WIFI_TEST:
