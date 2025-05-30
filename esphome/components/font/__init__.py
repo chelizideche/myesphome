@@ -495,7 +495,9 @@ def glyph_to_glyphinfo(glyph, font, size, bpp):
         flags |= FT_LOAD_NO_BITMAP
     else:
         flags |= FT_LOAD_TARGET_MONO
-    font.load_char(glyph, flags)
+    if font.load_char(glyph, flags) != 0:
+        _LOGGER.warn("unable to load glyph %s of font %s", glyph, font.family_name)
+        return None
     width = font.glyph.bitmap.width
     height = font.glyph.bitmap.rows
     buffer = font.glyph.bitmap.buffer
@@ -608,8 +610,10 @@ async def to_code(config):
     font_height = pt_to_px(base_font.size.height)
     ascender = pt_to_px(base_font.size.ascender)
     descender = abs(pt_to_px(base_font.size.descender))
-    xheight = glyph_to_glyphinfo("x", base_font, size, bpp).height
-    capheight = glyph_to_glyphinfo("X", base_font, size, bpp).height
+    g = glyph_to_glyphinfo("x", base_font, size, bpp)
+    xheight = g.height if g is not None else 0
+    g = glyph_to_glyphinfo("X", base_font, size, bpp)
+    capheight = g.height if g is not None else 0
     if font_height == 0:
         if not base_font.is_scalable:
             font_height = size
