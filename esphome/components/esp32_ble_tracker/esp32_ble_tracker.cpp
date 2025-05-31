@@ -172,7 +172,7 @@ void ESP32BLETracker::loop() {
       (this->scan_set_param_failed_ && this->scanner_state_ == ScannerState::RUNNING)) {
     this->stop_scan_();
     if (this->scan_start_fail_count_ == std::numeric_limits<uint8_t>::max()) {
-      ESP_LOGE(TAG, "ESP-IDF BLE scan could not restart after %d attempts, rebooting to restore BLE stack",
+      ESP_LOGE(TAG, "Scan could not restart after %d attempts, rebooting to restore stack (IDF)",
                std::numeric_limits<uint8_t>::max());
       App.reboot();
     }
@@ -306,7 +306,7 @@ void ESP32BLETracker::start_scan_(bool first) {
 
   // Start timeout before scan is started. Otherwise scan never starts if any error.
   this->set_timeout("scan", this->scan_duration_ * 2000, []() {
-    ESP_LOGE(TAG, "ESP-IDF BLE scan never terminated, rebooting to restore BLE stack");
+    ESP_LOGE(TAG, "Scan never terminated, rebooting to restore stack (IDF)");
     App.reboot();
   });
 
