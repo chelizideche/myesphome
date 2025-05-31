@@ -19,31 +19,9 @@ void STM32UARTComponent::setup() {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   if (tx_pin_ != nullptr) {
     tx_pin_->setup();
-    auto pin = tx_pin_->get_pin();
-    auto port = esphome::stm32::pin_to_port(pin);
-    GPIO_InitStruct.Pin = esphome::stm32::pin_to_mask(pin);
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    auto af = ((stm32::STM32GPIOPin *) tx_pin_)->get_af();
-    if (af) {
-      GPIO_InitStruct.Alternate = *af;
-    }
-    HAL_GPIO_Init(port, &GPIO_InitStruct);
   }
   if (rx_pin_ != nullptr) {
     rx_pin_->setup();
-    auto pin = rx_pin_->get_pin();
-    auto port = esphome::stm32::pin_to_port(pin);
-    GPIO_InitStruct.Pin = esphome::stm32::pin_to_mask(pin);
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    auto af = ((stm32::STM32GPIOPin *) rx_pin_)->get_af();
-    if (af) {
-      GPIO_InitStruct.Alternate = *af;
-    }
-    HAL_GPIO_Init(port, &GPIO_InitStruct);
   }
   if (clock_initializer_) {
     clock_initializer_();
