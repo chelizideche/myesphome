@@ -7,6 +7,7 @@ from esphome.const import (
     CONF_ID,
     CONF_METHOD,
     CONF_ON_ERROR,
+    CONF_REQUEST_HEADERS,
     CONF_TIMEOUT,
     CONF_TRIGGER_ID,
     CONF_URL,
@@ -51,7 +52,6 @@ CONF_CA_CERTIFICATE_PATH = "ca_certificate_path"
 CONF_MAX_RESPONSE_BUFFER_SIZE = "max_response_buffer_size"
 CONF_ON_RESPONSE = "on_response"
 CONF_HEADERS = "headers"
-CONF_REQUEST_HEADERS = "request_headers"
 CONF_COLLECT_HEADERS = "collect_headers"
 CONF_BODY = "body"
 CONF_JSON = "json"
