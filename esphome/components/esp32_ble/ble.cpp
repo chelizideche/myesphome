@@ -2,10 +2,6 @@
 
 #include "ble.h"
 
-#ifdef USE_ESP32_VARIANT_ESP32C6
-#include "const_esp32c6.h"
-#endif  // USE_ESP32_VARIANT_ESP32C6
-
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
@@ -32,7 +28,7 @@ static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoi
 
 void ESP32BLE::setup() {
   global_ble = this;
-  ESP_LOGCONFIG(TAG, "Setting up BLE...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   if (!ble_pre_setup_()) {
     ESP_LOGE(TAG, "BLE could not be prepared for configuration");
@@ -114,6 +110,7 @@ void ESP32BLE::advertising_init_() {
 
   this->advertising_->set_scan_response(true);
   this->advertising_->set_min_preferred_interval(0x06);
+  this->advertising_->set_appearance(this->appearance_);
 }
 
 bool ESP32BLE::ble_setup_() {
@@ -127,11 +124,7 @@ bool ESP32BLE::ble_setup_() {
   if (esp_bt_controller_get_status() != ESP_BT_CONTROLLER_STATUS_ENABLED) {
     // start bt controller
     if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE) {
-#ifdef USE_ESP32_VARIANT_ESP32C6
-      esp_bt_controller_config_t cfg = BT_CONTROLLER_CONFIG;
-#else
       esp_bt_controller_config_t cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-#endif
       err = esp_bt_controller_init(&cfg);
       if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_bt_controller_init failed: %s", esp_err_to_name(err));
