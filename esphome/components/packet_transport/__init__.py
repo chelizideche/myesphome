@@ -97,12 +97,16 @@ def validate_provider(config):
     return config
 
 
-PROVIDER_SCHEMA = cv.Schema(
-    {
-        cv.Required(CONF_NAME): provider_name_validate,
-        cv.Optional(CONF_STATUS_SENSOR): STATUS_SENSOR_SCHEMA,
-    }
-).extend(ENCRYPTION_SCHEMA).add_extra(validate_provider)
+PROVIDER_SCHEMA = (
+    cv.Schema(
+        {
+            cv.Required(CONF_NAME): provider_name_validate,
+            cv.Optional(CONF_STATUS_SENSOR): STATUS_SENSOR_SCHEMA,
+        }
+    )
+    .extend(ENCRYPTION_SCHEMA)
+    .add_extra(validate_provider)
+)
 
 
 def validate_(config):
