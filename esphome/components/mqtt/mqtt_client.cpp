@@ -34,7 +34,7 @@ MQTTClientComponent::MQTTClientComponent() {
 
 // Connection
 void MQTTClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
         if (index == 0)
@@ -345,7 +345,7 @@ void MQTTClientComponent::loop() {
     this->disconnect_reason_.reset();
   }
 
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   switch (this->state_) {
     case MQTT_CLIENT_DISABLED:
