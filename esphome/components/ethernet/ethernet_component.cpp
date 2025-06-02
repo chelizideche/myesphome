@@ -234,6 +234,22 @@ void EthernetComponent::setup() {
   ESPHL_ERROR_CHECK(err, "GOT IPv6 event handler register error");
 #endif /* USE_NETWORK_IPV6 */
 
+  if (this->duplex_mode_.has_value() || this->link_speed_.has_value()) {
+    bool auto_nego_en = false;
+    err = esp_eth_ioctl(this->eth_handle_, ETH_CMD_S_AUTONEGO, &auto_nego_en);
+    ESPHL_ERROR_CHECK(err, "ETH_CMD_S_AUTONEGO error");
+
+    if (this->duplex_mode_.has_value()) {
+      esp_eth_ioctl(this->eth_handle_, ETH_CMD_S_DUPLEX_MODE, &this->duplex_mode_);
+      ESPHL_ERROR_CHECK(err, "ETH_CMD_S_DUPLEX_MODE error");
+    }
+
+    if (this->link_speed_.has_value()) {
+      esp_eth_ioctl(this->eth_handle_, ETH_CMD_S_SPEED, &this->link_speed_);
+      ESPHL_ERROR_CHECK(err, "ETH_CMD_S_SPEED error");
+    }
+  }
+
   /* start Ethernet driver state machine */
   err = esp_eth_start(this->eth_handle_);
   ESPHL_ERROR_CHECK(err, "ETH start error");
@@ -592,6 +608,8 @@ eth_duplex_t EthernetComponent::get_duplex_mode() {
   return duplex_mode;
 }
 
+void EthernetComponent::set_duplex_mode(eth_duplex_t duplex_mode) { this->duplex_mode_ = duplex_mode; }
+
 eth_speed_t EthernetComponent::get_link_speed() {
   esp_err_t err;
   eth_speed_t speed;
@@ -599,6 +617,8 @@ eth_speed_t EthernetComponent::get_link_speed() {
   ESPHL_ERROR_CHECK_RET(err, "ETH_CMD_G_SPEED error", ETH_SPEED_10M);
   return speed;
 }
+
+void EthernetComponent::set_link_speed(eth_speed_t speed) { this->link_speed_ = speed; }
 
 bool EthernetComponent::powerdown() {
   ESP_LOGI(TAG, "Powering down ethernet PHY");

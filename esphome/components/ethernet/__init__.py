@@ -27,6 +27,7 @@ from esphome.const import (
     CONF_PAGE_ID,
     CONF_POLLING_INTERVAL,
     CONF_RESET_PIN,
+    CONF_SPEED,
     CONF_SPI,
     CONF_STATIC_IP,
     CONF_SUBNET,
@@ -45,6 +46,7 @@ AUTO_LOAD = ["network"]
 LOGGER = logging.getLogger(__name__)
 
 ethernet_ns = cg.esphome_ns.namespace("ethernet")
+
 PHYRegister = ethernet_ns.struct("PHYRegister")
 CONF_PHY_ADDR = "phy_addr"
 CONF_MDC_PIN = "mdc_pin"
@@ -90,6 +92,19 @@ CLK_MODES = {
         emac_rmii_clock_mode_t.EMAC_CLK_OUT,
         emac_rmii_clock_gpio_t.EMAC_CLK_OUT_180_GPIO,
     ),
+}
+
+eth_speed_t = cg.global_ns.enum("eth_speed_t")
+SPEED_MODES = {
+    "SPEED_10M": eth_speed_t.ETH_SPEED_10M,
+    "SPEED_100M": eth_speed_t.ETH_SPEED_100M,
+}
+
+CONF_DUPLEX = "duplex"
+eth_duplex_t = cg.global_ns.enum("eth_duplex_t")
+DUPLEX_MODES = {
+    "DUPLEX_HALF": eth_duplex_t.ETH_DUPLEX_HALF,
+    "DUPLEX_FULL": eth_duplex_t.ETH_DUPLEX_FULL,
 }
 
 
@@ -166,6 +181,8 @@ BASE_SCHEMA = cv.Schema(
             "This option has been removed. Please use the [disabled] option under the "
             "new mdns component instead."
         ),
+        cv.Optional(CONF_SPEED): cv.enum(SPEED_MODES, upper=True, space="_"),
+        cv.Optional(CONF_DUPLEX): cv.enum(DUPLEX_MODES, upper=True, space="_"),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -317,6 +334,12 @@ async def to_code(config):
 
     cg.add(var.set_type(ETHERNET_TYPES[config[CONF_TYPE]]))
     cg.add(var.set_use_address(config[CONF_USE_ADDRESS]))
+
+    if link_speed := config.get(CONF_SPEED):
+        cg.add(var.set_link_speed(link_speed))
+
+    if duplex_mode := config.get(CONF_DUPLEX):
+        cg.add(var.set_duplex_mode(duplex_mode))
 
     if CONF_MANUAL_IP in config:
         cg.add(var.set_manual_ip(manual_ip(config[CONF_MANUAL_IP])))
