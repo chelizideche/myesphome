@@ -264,6 +264,9 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       break;
     case TuyaCommandType::DATAPOINT_QUERY:
       break;
+    case TuyaCommandType::WIFI_TEST:
+      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::WIFI_TEST, .payload = std::vector<uint8_t>{0x00, 0x00}});
+      break;
     case TuyaCommandType::VACUUM_MAP_UPLOAD:
       this->send_command_(
           TuyaCommand{.cmd = TuyaCommandType::VACUUM_MAP_UPLOAD, .payload = std::vector<uint8_t>{0x01}});
@@ -318,6 +321,10 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       this->send_empty_command_(TuyaCommandType::WIFI_PAIR);
       cut_cloud_mode_ = true;
       break;
+    case TuyaCommandType::WIFI_TEST:
+      // we report fake OK signal 0x01 with 50 signal, since there are implications in sending 0x00
+      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::WIFI_TEST, .payload = std::vector<uint8_t>{0x01, 0x32}});
+      break;
     case TuyaCommandType::DATAPOINT_REPORT_ASYNC:
     case TuyaCommandType::DATAPOINT_REPORT_SYNC:
       this->init_state_ = TuyaInitState::INIT_DONE;
@@ -338,9 +345,6 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
        */
       break;
 #endif
-    case TuyaCommandType::WIFI_TEST:
-      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::WIFI_TEST, .payload = std::vector<uint8_t>{0x00, 0x00}});
-      break;
     case TuyaCommandType::WIFI_RSSI:
       this->send_command_(
           TuyaCommand{.cmd = TuyaCommandType::WIFI_RSSI, .payload = std::vector<uint8_t>{get_wifi_rssi_()}});
