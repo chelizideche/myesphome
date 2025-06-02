@@ -98,22 +98,24 @@ template<typename T, uint8_t SZ> class RestoringGlobalStringComponent : public C
 
  protected:
   void store_value_() {
-    int diff = this->value_.compare(this->prev_value_);
+    const int diff = this->value_.compare(this->prev_value_);
     if (diff != 0) {
-      // Make it into a length prefixed thing
-      unsigned char temp[SZ];
+      const uint8_t size = static_cast<uint8_t>(this->value_.size());
 
       // If string is bigger than the allocation, do not save it.
-      // We don't need to waste ram setting prev_value either.
-      int size = this->value_.size();
-      // Less than, not less than or equal, SZ includes the length byte.
-      if (size < SZ) {
-        memcpy(temp + 1, this->value_.c_str(), size);
-        // SZ should be pre checked at the schema level, it can't go past the char range.
-        temp[0] = ((unsigned char) size);
-        this->rtc_.save(&temp);
-        this->prev_value_.assign(this->value_);
+      if (size >= SZ) {
+        ESP_LOGW("globals", "Skipped saving oversized string (%d >= %d)", size, SZ);
+        this->prev_value_.assign(this->value_);  // Prevent repeated attempts
+        return;
       }
+
+      // Make it into a length prefixed thing
+      unsigned char temp[SZ];
+      memcpy(temp + 1, this->value_.c_str(), size);
+      // SZ should be pre checked at the schema level, it can't go past the char range.
+      temp[0] = static_cast<unsigned char>(size);
+      this->rtc_.save(&temp);
+      this->prev_value_.assign(this->value_);
     }
   }
 
