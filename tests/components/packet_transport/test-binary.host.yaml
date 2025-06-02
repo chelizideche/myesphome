@@ -4,6 +4,8 @@ udp:
 
 packet_transport:
   platform: udp
+  encryption: "our key goes here"
+  ping_pong_enable: true
   providers:
     - name: some-device-name
       status_sensor:
