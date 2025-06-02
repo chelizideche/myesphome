@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
 )
-from esphome.core import CORE, ID, coroutine
+from esphome.core import CORE, ID, coroutine, fnv1a_32bit_hash
 from esphome.coroutine import FakeAwaitable
 from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
@@ -113,7 +113,7 @@ async def setup_entity(var, config):
         add(var.set_entity_category(config[CONF_ENTITY_CATEGORY]))
     if CONF_DEVICE_ID in config:
         device = await get_variable(config[CONF_DEVICE_ID])
-        add(var.set_device_uid(hash(str(device)) % 0xFFFFFFFF))
+        add(var.set_device_uid(fnv1a_32bit_hash(str(device))))
 
 
 def extract_registry_entry_config(

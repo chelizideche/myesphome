@@ -340,6 +340,15 @@ async def _add_automations(config):
         await automation.build_automation(trigger, [], conf)
 
 
+def fnv1a_32bit_hash(string: str) -> int:
+    """FNV-1a 32-bit hash function."""
+    hash_value = 2166136261
+    for char in string:
+        hash_value ^= ord(char)
+        hash_value = (hash_value * 16777619) & 0xFFFFFFFF
+    return hash_value
+
+
 @coroutine_with_priority(100.0)
 async def to_code(config):
     cg.add_global(cg.global_ns.namespace("esphome").using)
@@ -420,7 +429,7 @@ async def to_code(config):
     if config[CONF_SUB_DEVICES]:
         for dev_conf in config[CONF_SUB_DEVICES]:
             dev = cg.new_Pvariable(dev_conf[CONF_ID])
-            cg.add(dev.set_uid(hash(str(dev_conf[CONF_ID])) % 0xFFFFFFFF))
+            cg.add(dev.set_uid(fnv1a_32bit_hash(str(dev_conf[CONF_ID]))))
             cg.add(dev.set_name(dev_conf[CONF_NAME]))
             cg.add(dev.set_area(dev_conf[CONF_AREA]))
             cg.add(cg.App.register_sub_device(dev))
