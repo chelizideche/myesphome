@@ -1,6 +1,9 @@
 #pragma once
+#include "esp_err.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/optional.h"
 #include "hal/twai_types.h"
+#include "soc/gpio_num.h"
 #ifdef USE_ESP32
 
 #ifdef ESP32_CAN_V2_FIND_OUT
@@ -50,35 +53,50 @@ class ESP32Can : public canbus::Canbus {
   SUB_TEXT_SENSOR(state)
 #endif
  public:
-  void set_rx(int rx) { rx_ = rx; }
-  void set_tx(int tx) { tx_ = tx; }
-  void set_tx_queue_len(uint32_t tx_queue_len) { this->tx_queue_len_ = tx_queue_len; }
-  void set_rx_queue_len(uint32_t rx_queue_len) { this->rx_queue_len_ = rx_queue_len; }
+  void set_rx(int rx) { this->g_config_.rx_io = static_cast<gpio_num_t>(rx); }
+  void set_tx(int tx) { this->g_config_.tx_io = static_cast<gpio_num_t>(tx); }
+  void set_tx_queue_len(uint32_t tx_queue_len) { this->g_config_.tx_queue_len = tx_queue_len; }
+  void set_rx_queue_len(uint32_t rx_queue_len) { this->g_config_.rx_queue_len = rx_queue_len; }
   void set_tx_enqueue_timeout_ms(uint32_t tx_enqueue_timeout_ms) {
     this->tx_enqueue_timeout_ticks_ = pdMS_TO_TICKS(tx_enqueue_timeout_ms);
   }
-  void set_tx_mode(TXMode mode) { this->tx_mode_ = static_cast<twai_mode_t>(mode); }
+  void set_tx_mode(TXMode mode) { this->g_config_.mode = static_cast<twai_mode_t>(mode); }
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)
+  void sleep_allow_pd(bool arg) { this->g_config_.general_flags.sleep_allow_pd = arg ? 1 : 0; }
+#endif
   ESP32Can() {}
 
   void loop() override;
+  float get_setup_priority() const override { return 500 /* setup_priority::HARDWARE_LATE */; }
+
+  void add_config_callback(
+      std::function<void(const twai_general_config_t &g_config, const twai_timing_config_t &t_config,
+                         const twai_filter_config_t &f_config, esp_err_t err)>
+          foo) {
+    this->config_callback_manager_.add(std::move(foo));
+  }
 
  protected:
   bool setup_internal() override;
   canbus::Error send_message(struct canbus::CanFrame *frame) override;
   canbus::Error read_message(struct canbus::CanFrame *frame) override;
 
-  int rx_{-1};
-  int tx_{-1};
+  bool install_and_start_();
+
   TickType_t tx_enqueue_timeout_ticks_{};
-  optional<uint32_t> tx_queue_len_{};
-  optional<uint32_t> rx_queue_len_{};
 
 #ifdef ESP32_CAN_V2_SUPPORTED
   twai_handle_t twai_handle_{};
 #endif
   twai_state_t twai_last_state_ = static_cast<twai_state_t>(-1);
   optional<twai_status_info_t> prev_status_;
-  twai_mode_t tx_mode_ = TWAI_MODE_NORMAL;
+  twai_general_config_t g_config_ = TWAI_GENERAL_CONFIG_DEFAULT(TWAI_IO_UNUSED, TWAI_IO_UNUSED, TWAI_MODE_NORMAL);
+  twai_filter_config_t f_config_ = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+  twai_timing_config_t t_config_;
+  optional<twai_general_config_t> initialized_g_config_;
+  CallbackManager<void(const twai_general_config_t &g_config, const twai_timing_config_t &t_config,
+                       const twai_filter_config_t &f_config, esp_err_t err)>
+      config_callback_manager_{};
 };
 
 }  // namespace esp32_can

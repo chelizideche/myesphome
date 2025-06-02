@@ -1,3 +1,5 @@
+#include <cstring>
+#include "driver/twai.h"
 #include "esphome/core/defines.h"
 
 #ifdef USE_ESP32
@@ -11,7 +13,9 @@
 
 #ifdef ESP32_CAN_V2_SUPPORTED
 #define twai_driver_install(args...) twai_driver_install_v2(args, &this->twai_handle_)
+#define twai_driver_uninstall() twai_driver_uninstall_v2(this->twai_handle_)
 #define twai_start() twai_start_v2(this->twai_handle_)
+#define twai_stop() twai_stop_v2(this->twai_handle_)
 #define twai_transmit(args...) twai_transmit_v2(this->twai_handle_, args)
 #define twai_receive(args...) twai_receive_v2(this->twai_handle_, args)
 #define twai_get_status_info(args...) twai_get_status_info_v2(this->twai_handle_, args)
@@ -24,99 +28,97 @@ static const char *const TAG = "esp32_can";
 
 static bool get_bitrate(canbus::CanSpeed bitrate, twai_timing_config_t *t_config) {
   switch (bitrate) {
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C3) || \
-    defined(USE_ESP32_VARIANT_ESP32C6) || defined(USE_ESP32_VARIANT_ESP32H2)
+#ifdef TWAI_TIMING_CONFIG_1KBITS
     case canbus::CAN_1KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_1KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_5KBITS
     case canbus::CAN_5KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_5KBITS();
       return true;
+#endif
+
+#ifdef TWAI_TIMING_CONFIG_10KBITS
     case canbus::CAN_10KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_10KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_12_5KBITS
     case canbus::CAN_12K5BPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_12_5KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_16KBITS
     case canbus::CAN_16KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_16KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_20KBITS
     case canbus::CAN_20KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_20KBITS();
       return true;
 #endif
+
+#ifdef TWAI_TIMING_CONFIG_25KBITS
     case canbus::CAN_25KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_25KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_50KBITS
     case canbus::CAN_50KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_50KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_100KBITS
     case canbus::CAN_100KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_100KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_125KBITS
     case canbus::CAN_125KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_125KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_250KBITS
     case canbus::CAN_250KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_250KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_500KBITS
     case canbus::CAN_500KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_500KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_800KBITS
     case canbus::CAN_800KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_800KBITS();
       return true;
+#endif
+#ifdef TWAI_TIMING_CONFIG_1MBITS
     case canbus::CAN_1000KBPS:
       *t_config = (twai_timing_config_t) TWAI_TIMING_CONFIG_1MBITS();
       return true;
+#endif
     default:
       return false;
   }
 }
 
 bool ESP32Can::setup_internal() {
-  twai_general_config_t g_config =
-      TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t) this->tx_, (gpio_num_t) this->rx_, this->tx_mode_);
 #ifdef ESP32_CAN_V2_SUPPORTED
   static int controller_id = 0;
-  g_config.controller_id = controller_id++;
+  this->g_config_.controller_id = controller_id++;
 #endif
-  if (this->tx_queue_len_.has_value()) {
-    g_config.tx_queue_len = this->tx_queue_len_.value();
-  }
-  if (this->rx_queue_len_.has_value()) {
-    g_config.rx_queue_len = this->rx_queue_len_.value();
-  }
-
-  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-  twai_timing_config_t t_config;
 
   ESP_LOGV(TAG, "Finding bitrate");
-  if (!get_bitrate(this->bit_rate_, &t_config)) {
+  if (!get_bitrate(this->bit_rate_, &this->t_config_)) {
     ESP_LOGE(TAG, "invalid bit rate");
     this->mark_failed();
     return false;
   }
 
-  ESP_LOGV(TAG, "Install TWAI driver");
-  const auto install_err = twai_driver_install(&g_config, &t_config, &f_config);
-  switch (install_err) {
-    case ESP_OK:
-      break;
-    default:
-      ESP_LOGE(TAG, "Failed to install driver: %s", esp_err_to_name(install_err));
-      this->mark_failed();
-      return false;
-  }
-
-  ESP_LOGV(TAG, "Start TWAI driver");
-  const auto start_err = twai_start();
-  if (start_err != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to start driver: %s", esp_err_to_name(start_err));
-    this->mark_failed();
-    return false;
-  }
-  return true;
+  return this->install_and_start_();
 }
 
 canbus::Error ESP32Can::send_message(struct canbus::CanFrame *frame) {
@@ -180,6 +182,14 @@ canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
 }
 
 void ESP32Can::loop() {
+  if (this->initialized_g_config_ &&
+      0 != memcmp(&*this->initialized_g_config_, &this->g_config_, sizeof(twai_general_config_t))) {
+    ESP_LOGI(TAG, "Configuration changed. Reinitializing");
+    twai_stop();
+    twai_driver_uninstall();
+
+    this->install_and_start_();
+  }
 #if defined(USE_SENSOR) || defined(USE_TEXT_SENSOR)
   twai_status_info_t status;
   const auto err = twai_get_status_info(&status);
@@ -245,6 +255,32 @@ void ESP32Can::loop() {
 #endif  // defined(USE_SENSOR) || defined(USE_TEXT_SENSOR)
 
   canbus::Canbus::loop();
+}
+
+bool ESP32Can::install_and_start_() {
+  ESP_LOGV(TAG, "Install TWAI driver");
+  this->initialized_g_config_.reset();
+  const auto install_err = twai_driver_install(&this->g_config_, &this->t_config_, &this->f_config_);
+  config_callback_manager_.call(this->g_config_, this->t_config_, this->f_config_, install_err);
+  switch (install_err) {
+    case ESP_OK:
+      this->initialized_g_config_ = this->g_config_;
+      break;
+    default:
+      ESP_LOGE(TAG, "Failed to install driver: %s", esp_err_to_name(install_err));
+      this->mark_failed();
+      return false;
+  }
+
+  ESP_LOGV(TAG, "Start TWAI driver");
+  const auto start_err = twai_start();
+  if (start_err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to start driver: %s", esp_err_to_name(start_err));
+    this->mark_failed();
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace esp32_can

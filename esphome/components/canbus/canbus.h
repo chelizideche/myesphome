@@ -95,6 +95,10 @@ class Canbus : public Component {
       std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
     this->callback_manager_.add(std::move(callback));
   }
+  void add_transmit_callback(
+      std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
+    this->transmit_callback_manager_.add(std::move(callback));
+  }
 
  protected:
   template<typename... Ts> friend class CanbusSendAction;
@@ -104,6 +108,8 @@ class Canbus : public Component {
   CanSpeed bit_rate_;
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       callback_manager_{};
+  CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
+      transmit_callback_manager_{};
 
   virtual bool setup_internal();
   virtual Error send_message(struct CanFrame *frame);
