@@ -13,14 +13,24 @@ lora_ns = cg.esphome_ns.namespace("lora")
 LoRa = lora_ns.class_("LoRa", cg.Component)
 LoRaListener = lora_ns.class_("LoRaListener")
 
-# RunImageCalAction = lora_ns.class_("RunImageCalAction", automation.Action)
+# RunImageCalAction = lora_ns.class_(
+#     "RunImageCalAction", automation.Action, cg.Parented.template(LoRa)
+# )
 SendPacketAction = lora_ns.class_(
     "SendPacketAction", automation.Action, cg.Parented.template(LoRa)
 )
-SetModeTxAction = lora_ns.class_("SetModeTxAction", automation.Action)
-SetModeRxAction = lora_ns.class_("SetModeRxAction", automation.Action)
-SetModeSleepAction = lora_ns.class_("SetModeSleepAction", automation.Action)
-SetModeStandbyAction = lora_ns.class_("SetModeStandbyAction", automation.Action)
+SetModeTxAction = lora_ns.class_(
+    "SetModeTxAction", automation.Action, cg.Parented.template(LoRa)
+)
+SetModeRxAction = lora_ns.class_(
+    "SetModeRxAction", automation.Action, cg.Parented.template(LoRa)
+)
+SetModeSleepAction = lora_ns.class_(
+    "SetModeSleepAction", automation.Action, cg.Parented.template(LoRa)
+)
+SetModeStandbyAction = lora_ns.class_(
+    "SetModeStandbyAction", automation.Action, cg.Parented.template(LoRa)
+)
 
 IS_PLATFORM_COMPONENT = True
 

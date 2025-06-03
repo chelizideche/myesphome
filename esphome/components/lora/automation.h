@@ -7,14 +7,9 @@
 namespace esphome {
 namespace lora {
 
-// template<typename... Ts> class RunImageCalAction : public Action<Ts...> {
+// template<typename... Ts> class RunImageCalAction : public Action<Ts...>, public Parented<LoRa> {
 //  public:
-//   RunImageCalAction(LoRa *lora) : lora_(lora) {}
-
-//   void play(Ts... x) override { this->lora_->run_image_cal(); }
-
-//  protected:
-//   LoRa *lora_;
+//   void play(Ts... x) override { this->parent_->run_image_cal(); }
 // };
 
 template<typename... Ts> class SendPacketAction : public Action<Ts...>, public Parented<LoRa> {
@@ -42,44 +37,24 @@ template<typename... Ts> class SendPacketAction : public Action<Ts...>, public P
   std::vector<uint8_t> data_static_{};
 };
 
-template<typename... Ts> class SetModeTxAction : public Action<Ts...> {
+template<typename... Ts> class SetModeTxAction : public Action<Ts...>, public Parented<LoRa> {
  public:
-  SetModeTxAction(LoRa *lora) : lora_(lora) {}
-
-  void play(Ts... x) override { this->lora_->set_mode(LoRaMode::TX); }
-
- protected:
-  LoRa *lora_;
+  void play(Ts... x) override { this->parent_->set_mode(LoRaMode::TX); }
 };
 
-template<typename... Ts> class SetModeRxAction : public Action<Ts...> {
+template<typename... Ts> class SetModeRxAction : public Action<Ts...>, public Parented<LoRa> {
  public:
-  SetModeRxAction(LoRa *lora) : lora_(lora) {}
-
-  void play(Ts... x) override { this->lora_->set_mode(LoRaMode::RX); }
-
- protected:
-  LoRa *lora_;
+  void play(Ts... x) override { this->parent_->set_mode(LoRaMode::RX); }
 };
 
-template<typename... Ts> class SetModeSleepAction : public Action<Ts...> {
+template<typename... Ts> class SetModeSleepAction : public Action<Ts...>, public Parented<LoRa> {
  public:
-  SetModeSleepAction(LoRa *lora) : lora_(lora) {}
-
-  void play(Ts... x) override { this->lora_->set_mode(LoRaMode::SLEEP); }
-
- protected:
-  LoRa *lora_;
+  void play(Ts... x) override { this->parent_->set_mode(LoRaMode::SLEEP); }
 };
 
-template<typename... Ts> class SetModeStandbyAction : public Action<Ts...> {
+template<typename... Ts> class SetModeStandbyAction : public Action<Ts...>, public Parented<LoRa> {
  public:
-  SetModeStandbyAction(LoRa *lora) : lora_(lora) {}
-
-  void play(Ts... x) override { this->lora_->set_mode(LoRaMode::STANDBY); }
-
- protected:
-  LoRa *lora_;
+  void play(Ts... x) override { this->parent_->set_mode(LoRaMode::STANDBY); }
 };
 
 }  // namespace lora
