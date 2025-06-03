@@ -52,13 +52,12 @@ template<typename T> class optional {  // NOLINT
     reset();
     return *this;
   }
-
-  optional &operator==(optional const &other) {
-    if (has_value() != other.has_value())
-      return *this;
-    if (!has_value())
-      return *this;
-    return **this == *other;
+  bool operator==(optional<T> const &rhs) const {
+    if (has_value() && rhs.has_value())
+      return **this == *rhs;
+    if (!has_value() && !rhs.has_value())
+      return true;
+    return false;
   }
 
   template<class U> optional &operator=(optional<U> const &other) {

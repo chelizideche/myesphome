@@ -19,15 +19,16 @@ void BinarySensor::publish_initial_state(bool state) {
   this->publish_state(state);
 }
 void BinarySensor::send_state_internal(optional<bool> state) {
-  if (!state.has_value()) {
+  if (!state.has_value())
     return;
-  }
   if (!this->has_state()) {
     ESP_LOGD(TAG, "'%s': Sending initial state %s", this->get_name().c_str(), ONOFF(state));
   } else {
     ESP_LOGD(TAG, "'%s': Sending state %s", this->get_name().c_str(), ONOFF(state));
   }
   this->set_state(state);
+  // copy current state to the visible property for backwards compatibility
+  this->state = state;
 }
 
 void BinarySensor::add_filter(Filter *filter) {
