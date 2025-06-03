@@ -55,7 +55,7 @@ class BinarySensor : public StatefulEntityBase<bool>, public EntityBase_DeviceCl
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
-  void send_state_internal(optional<bool> state);
+  void send_state_internal(bool state);
 
   /// Return whether this binary sensor has outputted a state.
   virtual bool is_status_binary_sensor() const;
