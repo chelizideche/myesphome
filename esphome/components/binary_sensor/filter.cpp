@@ -10,9 +10,6 @@ namespace binary_sensor {
 static const char *const TAG = "sensor.filter";
 
 void Filter::output(bool value) {
-  if (!this->dedup_.next(value))
-    return;
-
   if (this->next_ == nullptr) {
     this->parent_->send_state_internal(value);
   } else {
@@ -20,6 +17,8 @@ void Filter::output(bool value) {
   }
 }
 void Filter::input(bool value) {
+  if (!this->dedup_.next(value))
+    return;
   auto b = this->new_value(value);
   if (b.has_value()) {
     this->output(*b);
