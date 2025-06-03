@@ -67,8 +67,8 @@ float LD2420Component::get_setup_priority() const { return setup_priority::BUS; 
 void LD2420Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2420:");
   ESP_LOGCONFIG(TAG, "  Firmware Version : %7s", this->ld2420_firmware_ver_);
-  ESP_LOGCONFIG(TAG, "LD2420 Number:");
 #ifdef USE_NUMBER
+  ESP_LOGCONFIG(TAG, "LD2420 Number:");
   LOG_NUMBER(TAG, "  Gate Timeout:", this->gate_timeout_number_);
   LOG_NUMBER(TAG, "  Gate Max Distance:", this->max_gate_distance_number_);
   LOG_NUMBER(TAG, "  Gate Min Distance:", this->min_gate_distance_number_);
@@ -134,6 +134,10 @@ void LD2420Component::setup() {
     this->get_gate_threshold_(gate);
   }
 
+  // Set the default mode to energy and ensure its not null
+  if (this->operating_selector_ == nullptr)
+    this->set_operating_mode(OP_NORMAL_MODE_STRING);
+
   memcpy(&this->new_config, &this->current_config, sizeof(this->current_config));
   if (get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     this->set_operating_mode(OP_SIMPLE_MODE_STRING);
@@ -141,7 +145,7 @@ void LD2420Component::setup() {
     this->set_mode_(CMD_SYSTEM_MODE_SIMPLE);
     ESP_LOGW(TAG, "LD2420 Frimware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   } else {
-    this->set_mode_(CMD_SYSTEM_MODE_ENERGY);
+    this->set_mode_(CMD_SYSTEM_MODE_ENERGY);  // Set the default mode to energy
     this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
   }
 #ifdef USE_NUMBER
@@ -292,7 +296,7 @@ void LD2420Component::set_operating_mode(const std::string &state) {
   // If unsupported firmware ignore mode select
   if (get_firmware_int_(ld2420_firmware_ver_) >= CALIBRATE_VERSION_MIN) {
     this->current_operating_mode = OP_MODE_TO_UINT.at(state);
-    // Entering Auto Calibrate we need to clear the privoiuos data collection
+    // Entering Auto Calibrate we need to clear the previous data collection
     this->operating_selector_->publish_state(state);
     if (current_operating_mode == OP_CALIBRATE_MODE) {
       this->set_calibration_(true);
@@ -500,7 +504,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
   this->cmd_reply_.ack = false;
   if (frame.command != CMD_RESTART)
     this->set_cmd_active_(true);  // Restart does not reply, thus no ack state required.
-  uint8_t retry = 3;
+  uint8_t retry = 4;
   while (retry) {
     frame.length = 0;
     uint16_t frame_data_bytes = frame.data_length + 2;  // Always add two bytes for the cmd size
@@ -535,7 +539,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
         this->readline_(read(), ack_buffer, sizeof(ack_buffer));
       }
       delay_microseconds_safe(1450);
-      // Wait on an Rx from the LD2420 for up to 3 1 second loops, otherwise it could trigger a WDT.
+      // Wait on an Rx from the LD2420 for up to 4 x 1 second loops, otherwise it could trigger a WDT.
       if ((millis() - start_millis) > 1000) {
         start_millis = millis();
         error = LD2420_ERROR_TIMEOUT;

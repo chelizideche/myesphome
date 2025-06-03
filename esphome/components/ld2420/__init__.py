@@ -5,7 +5,7 @@ from esphome.const import CONF_ID
 
 CODEOWNERS = ["@descipher"]
 
-DEPENDENCIES = ["uart"]
+DEPENDENCIES = ["uart", "select.ld2420"]
 
 MULTI_CONF = True
 
