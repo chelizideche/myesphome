@@ -46,6 +46,7 @@ CONFIG_SCHEMA = cv.typed_schema(
 
 def _final_validate(config):
     if config[CONF_TYPE] != CONF_STATUS:
+        # Only run this validation if a status sensor is being configured
         return config
     full_config = fv.full_config.get()
     transport_path = full_config.get_path_for_id(config[CONF_TRANSPORT_ID])[:-1]
@@ -62,13 +63,15 @@ def _final_validate(config):
             if CONF_ENCRYPTION not in provider:
                 raise cv.Invalid(
                     f"Provider {config[CONF_PROVIDER]} in {config[CONF_TRANSPORT_ID]} "
-                    f"must have encryption enabled to use status sensor {config[CONF_ID]}"
+                    f"must have encryption set to use status sensor {config[CONF_ID]}"
                 )
         else:
             raise cv.Invalid(
                 f"Provider {config[CONF_PROVIDER]} not found in {config[CONF_TRANSPORT_ID]}"
             )
     else:
+        # In current config logic this will never be reached since by enforcing ping-pong-enable
+        # at lest one provider needs to be configured, but keep it for future-proofing.
         raise cv.Invalid(
             f"No providers configured for {config[CONF_TRANSPORT_ID]}, "
             f"but status sensor {config[CONF_ID]} requires one"
