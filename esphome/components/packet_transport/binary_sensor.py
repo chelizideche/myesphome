@@ -4,14 +4,19 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_DATA,
     CONF_ID,
+    CONF_NAME,
     CONF_STATUS,
     CONF_TYPE,
     DEVICE_CLASS_CONNECTIVITY,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
+import esphome.final_validate as fv
 
 from . import (
+    CONF_ENCRYPTION,
+    CONF_PING_PONG_ENABLE,
     CONF_PROVIDER,
+    CONF_PROVIDERS,
     CONF_REMOTE_ID,
     CONF_TRANSPORT_ID,
     PacketTransport,
@@ -37,6 +42,41 @@ CONFIG_SCHEMA = cv.typed_schema(
     key=CONF_TYPE,
     default_type=CONF_DATA,
 )
+
+
+def _final_validate(config):
+    if config[CONF_TYPE] != CONF_STATUS:
+        return config
+    full_config = fv.full_config.get()
+    transport_path = full_config.get_path_for_id(config[CONF_TRANSPORT_ID])[:-1]
+    transport_config = full_config.get_config_for_path(transport_path)
+    if not transport_config.get(CONF_PING_PONG_ENABLE, False):
+        raise cv.Invalid(
+            f"Status sensor {config[CONF_ID]} cannot be used without ping-pong enabled "
+            f"in {config[CONF_TRANSPORT_ID]}"
+        )
+    if providers := transport_config.get(CONF_PROVIDERS):
+        if provider := next(
+            (p for p in providers if p.get(CONF_NAME) == config[CONF_PROVIDER]), None
+        ):
+            if CONF_ENCRYPTION not in provider:
+                raise cv.Invalid(
+                    f"Provider {config[CONF_PROVIDER]} in {config[CONF_TRANSPORT_ID]} "
+                    f"must have encryption enabled to use status sensor {config[CONF_ID]}"
+                )
+        else:
+            raise cv.Invalid(
+                f"Provider {config[CONF_PROVIDER]} not found in {config[CONF_TRANSPORT_ID]}"
+            )
+    else:
+        raise cv.Invalid(
+            f"No providers configured for {config[CONF_TRANSPORT_ID]}, "
+            f"but status sensor {config[CONF_ID]} requires one"
+        )
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):

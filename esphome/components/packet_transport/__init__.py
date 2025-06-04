@@ -80,7 +80,6 @@ ENCRYPTION_SCHEMA = {
 PROVIDER_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_NAME): provider_name_validate,
-        # cv.GenerateID(CONF_ID): cv.declare_id(MockObjClass),
     }
 ).extend(ENCRYPTION_SCHEMA)
 
@@ -94,11 +93,6 @@ def validate_(config):
     if config[CONF_PING_PONG_ENABLE]:
         if not any(CONF_ENCRYPTION in p for p in config.get(CONF_PROVIDERS) or ()):
             raise cv.Invalid("Ping-pong requires at least one encrypted provider")
-    # ToDo: This part needs to be moved binary status sensor validation
-    # elif any(CONF_STATUS_SENSOR in p for p in config.get(CONF_PROVIDERS) or ()):
-    #     raise cv.Invalid(
-    #         "Ping-pong needs to be enabled when using providers with status sensor"
-    #     )
     return config
 
 
@@ -185,12 +179,6 @@ async def register_packet_transport(var, config):
         name = provider[CONF_NAME]
         if encryption := provider.get(CONF_ENCRYPTION):
             cg.add(var.set_provider_encryption(name, hash_encryption_key(encryption)))
-    # ToDo: This part needs to be moved binary status sensor validation
-    #     if status_sensor := provider.get(CONF_STATUS_SENSOR):
-    #         sens = await new_binary_sensor(status_sensor)
-    #         cg.add(var.set_provider_status_sensor(name, sens))
-    # if any(CONF_STATUS_SENSOR in p for p in config[CONF_PROVIDERS]):
-    #     cg.add_define("USE_STATUS_SENSOR")
 
     for sens_conf in config.get(CONF_SENSORS, ()):
         sens_id = sens_conf[CONF_ID]
