@@ -28,10 +28,7 @@ class Sdl : public display::Display {
     this->width_ = width;
     this->height_ = height;
   }
-  void set_borderless(bool borderless) { this->borderless_ = borderless ? SDL_WINDOW_BORDERLESS : 0; }
-  void set_always_on_top(bool always_on_top) { this->always_on_top_ = always_on_top ? SDL_WINDOW_ALWAYS_ON_TOP : 0; }
-  void set_fullscreen(bool fullscreen) { this->fullscreen_ = fullscreen ? SDL_WINDOW_FULLSCREEN : 0; }
-  void set_skip_taskbar(bool skip_taskbar) { this->skip_taskbar_ = skip_taskbar ? SDL_WINDOW_SKIP_TASKBAR : 0; }
+  void set_window_options(uint32_t window_options) { this->window_options_ = window_options; }
   void set_position(uint16_t pos_x, uint16_t pos_y) {
     this->pos_x_ = pos_x;
     this->pos_y_ = pos_y;
@@ -57,10 +54,7 @@ class Sdl : public display::Display {
   void redraw_(SDL_Rect &rect);
   int width_{};
   int height_{};
-  uint32_t borderless_{0};
-  uint32_t always_on_top_{0};
-  uint32_t fullscreen_{0};
-  uint32_t skip_taskbar_{0};
+  uint32_t window_options_{0};
   int pos_x_{SDL_WINDOWPOS_UNDEFINED};
   int pos_y_{SDL_WINDOWPOS_UNDEFINED};
   SDL_Renderer *renderer_{};

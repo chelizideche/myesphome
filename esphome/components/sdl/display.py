@@ -10,22 +10,26 @@ from esphome.const import (
     CONF_LAMBDA,
     CONF_POSITION,
     CONF_WIDTH,
+    CONF_X,
+    CONF_Y,
     PLATFORM_HOST,
 )
 
 sdl_ns = cg.esphome_ns.namespace("sdl")
 Sdl = sdl_ns.class_("Sdl", display.Display, cg.Component)
+sdl_window_flags = cg.global_ns.enum("SDL_WindowFlags")
 
 
 CONF_SDL_OPTIONS = "sdl_options"
 CONF_SDL_ID = "sdl_id"
 CONF_WINDOW_OPTIONS = "window_options"
-CONF_BORDERLESS = "borderless"
-CONF_ALWAYS_ON_TOP = "always_on_top"
-CONF_FULLSCREEN = "fullscreen"
-CONF_SKIP_TASKBAR = "skip_taskbar"
-CONF_X = "x"
-CONF_Y = "y"
+WINDOW_OPTIONS = (
+    "borderless",
+    "always_on_top",
+    "fullscreen",
+    "skip_taskbar",
+    "resizable",
+)
 
 
 def get_sdl_options(value):
@@ -35,6 +39,10 @@ def get_sdl_options(value):
         return subprocess.check_output(["sdl2-config", "--cflags", "--libs"]).decode()
     except Exception as e:
         raise cv.Invalid("Unable to run sdl2-config - have you installed sdl2?") from e
+
+
+def get_window_options():
+    return {cv.Optional(option, default=False): cv.boolean for option in WINDOW_OPTIONS}
 
 
 CONFIG_SCHEMA = cv.All(
@@ -52,25 +60,16 @@ CONFIG_SCHEMA = cv.All(
                         }
                     ),
                 ),
-                cv.Optional(CONF_WINDOW_OPTIONS): cv.Any(
-                    None,
-                    cv.Schema(
-                        {
-                            cv.Optional(CONF_BORDERLESS, default=False): cv.boolean,
-                            cv.Optional(CONF_ALWAYS_ON_TOP, default=False): cv.boolean,
-                            cv.Optional(CONF_FULLSCREEN, default=False): cv.boolean,
-                            cv.Optional(CONF_SKIP_TASKBAR, default=False): cv.boolean,
-                            cv.Optional(CONF_POSITION): cv.Any(
-                                None,
-                                cv.Schema(
-                                    {
-                                        cv.Required(CONF_X): cv.int_,
-                                        cv.Required(CONF_Y): cv.int_,
-                                    }
-                                ),
-                            ),
-                        }
-                    ),
+                cv.Optional(CONF_WINDOW_OPTIONS): cv.Schema(
+                    {
+                        cv.Optional(CONF_POSITION): cv.Schema(
+                            {
+                                cv.Required(CONF_X): cv.int_,
+                                cv.Required(CONF_Y): cv.int_,
+                            }
+                        ),
+                        **get_window_options(),
+                    }
                 ),
             }
         )
@@ -94,17 +93,17 @@ async def to_code(config):
         cg.add(var.set_dimensions(width, height))
 
     if window_options := config.get(CONF_WINDOW_OPTIONS):
-        cg.add(var.set_borderless(window_options[CONF_BORDERLESS]))
-        cg.add(var.set_always_on_top(window_options[CONF_ALWAYS_ON_TOP]))
-        cg.add(var.set_fullscreen(window_options[CONF_FULLSCREEN]))
-        cg.add(var.set_skip_taskbar(window_options[CONF_SKIP_TASKBAR]))
+        create_flags = 0
+        for option in WINDOW_OPTIONS:
+            value = window_options.get(option, False)
+            if value:
+                create_flags = create_flags | getattr(
+                    sdl_window_flags, "SDL_WINDOW_" + option.upper()
+                )
+        cg.add(var.set_window_options(create_flags))
 
         if position := window_options.get(CONF_POSITION):
-            if isinstance(position, dict):
-                cg.add(var.set_position(position[CONF_X], position[CONF_Y]))
-            else:
-                (pos_x, pos_y) = position
-                cg.add(var.set_position(pos_x, pos_y))
+            cg.add(var.set_position(position[CONF_X], position[CONF_Y]))
 
     if lamb := config.get(CONF_LAMBDA):
         lambda_ = await cg.process_lambda(
