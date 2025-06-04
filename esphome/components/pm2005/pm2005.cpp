@@ -55,7 +55,7 @@ void PM2005Component::setup() {
   }
 
   if (this->read(this->data_buffer_, 12) != i2c::ERROR_OK) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
     this->mark_failed();
     return;
   }
@@ -82,10 +82,10 @@ void PM2005Component::update() {
     return;
   }
 
-  uint16_t pm1 = get_sensor_value(this->data_buffer_, this->pm_1_0_value_index_);
-  uint16_t pm25 = get_sensor_value(this->data_buffer_, this->pm_2_5_value_index_);
-  uint16_t pm10 = get_sensor_value(this->data_buffer_, this->pm_10_0_value_index_);
-  uint16_t sensor_measuring_mode = get_sensor_value(this->data_buffer_, this->measuring_value_index_);
+  const uint16_t pm1 = get_sensor_value(this->data_buffer_, this->pm_1_0_value_index_);
+  const uint16_t pm25 = get_sensor_value(this->data_buffer_, this->pm_2_5_value_index_);
+  const uint16_t pm10 = get_sensor_value(this->data_buffer_, this->pm_10_0_value_index_);
+  const uint16_t sensor_measuring_mode = get_sensor_value(this->data_buffer_, this->measuring_value_index_);
   ESP_LOGD(TAG, "PM1.0: %d, PM2.5: %d, PM10: %d, Measuring mode: %s.", pm1, pm25, pm10,
            LOG_STR_ARG(pm2005_get_measuring_mode_string(sensor_measuring_mode)));
 
@@ -108,7 +108,7 @@ void PM2005Component::dump_config() {
 
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with PM2%u05 failed", this->sensor_type_ == PM2105);
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 
   LOG_SENSOR("  ", "PM1.0", this->pm_1_0_sensor_);

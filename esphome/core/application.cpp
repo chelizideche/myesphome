@@ -45,8 +45,8 @@ void Application::register_component_(Component *comp) {
   this->components_.push_back(comp);
 }
 void Application::setup() {
-  ESP_LOGI(TAG, "Running through setup()...");
-  ESP_LOGV(TAG, "Sorting components by setup priority...");
+  ESP_LOGI(TAG, "Running through setup()");
+  ESP_LOGV(TAG, "Sorting components by setup priority");
   std::stable_sort(this->components_.begin(), this->components_.end(), [](const Component *a, const Component *b) {
     return a->get_actual_setup_priority() > b->get_actual_setup_priority();
   });
@@ -160,6 +160,10 @@ void Application::loop() {
       int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
 #endif
 
+      // Process select() result:
+      // ret < 0: error (except EINTR which is normal)
+      // ret > 0: socket(s) have data ready - normal and expected
+      // ret == 0: timeout occurred - normal and expected
       if (ret < 0) {
         if (errno == EINTR) {
           // Interrupted by signal - this is normal, just continue
@@ -170,11 +174,6 @@ void Application::loop() {
           ESP_LOGW(TAG, "select() failed with errno %d", errno);
           delay(delay_time);
         }
-      } else if (ret > 0) {
-        ESP_LOGVV(TAG, "select() woke early: %d socket(s) ready (saved up to %ums)", ret, delay_time);
-      } else {
-        // ret == 0: timeout occurred (normal)
-        ESP_LOGVV(TAG, "select() timeout after %ums (no sockets ready)", delay_time);
       }
     } else {
       // No sockets registered, use regular delay
@@ -216,14 +215,14 @@ void IRAM_ATTR HOT Application::feed_wdt(uint32_t time) {
   }
 }
 void Application::reboot() {
-  ESP_LOGI(TAG, "Forcing a reboot...");
+  ESP_LOGI(TAG, "Forcing a reboot");
   for (auto it = this->components_.rbegin(); it != this->components_.rend(); ++it) {
     (*it)->on_shutdown();
   }
   arch_restart();
 }
 void Application::safe_reboot() {
-  ESP_LOGI(TAG, "Rebooting safely...");
+  ESP_LOGI(TAG, "Rebooting safely");
   run_safe_shutdown_hooks();
   arch_restart();
 }

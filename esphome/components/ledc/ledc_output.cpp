@@ -116,7 +116,7 @@ void LEDCOutput::write_state(float state) {
 }
 
 void LEDCOutput::setup() {
-  ESP_LOGV(TAG, "Entering setup...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   auto speed_mode = get_speed_mode(this->channel_);
   auto timer_num = static_cast<ledc_timer_t>((this->channel_ % 8) / 2);
   auto chan_num = static_cast<ledc_channel_t>(this->channel_ % 8);
@@ -174,8 +174,8 @@ void LEDCOutput::update_frequency(float frequency) {
     this->status_set_error();
   }
   this->bit_depth_ = bit_depth_opt.value_or(8);
-
   this->frequency_ = frequency;
+
   if (!this->initialized_) {
     ESP_LOGW(TAG, "Not yet initialized");
     return;

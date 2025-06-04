@@ -113,7 +113,7 @@ void LTRAlsPs501Component::dump_config() {
   LOG_SENSOR("  ", "Actual gain", this->actual_gain_sensor_);
 
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with I2C LTR-501/301/558 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 }
 
@@ -306,7 +306,7 @@ void LTRAlsPs501Component::configure_als_() {
 
   uint8_t tries = MAX_TRIES;
   do {
-    ESP_LOGV(TAG, "Waiting for ALS device to become active...");
+    ESP_LOGV(TAG, "Waiting for ALS device to become active");
     delay(2);
     als_ctrl.raw = this->reg((uint8_t) CommandRegisters::ALS_CONTR).get();
   } while (!als_ctrl.als_mode_active && tries--);  // while active mode is not set - keep waiting

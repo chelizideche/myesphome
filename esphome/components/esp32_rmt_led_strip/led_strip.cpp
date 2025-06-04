@@ -112,7 +112,7 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
   this->last_refresh_ = now;
   this->mark_shown_();
 
-  ESP_LOGVV(TAG, "Writing RGB values to bus...");
+  ESP_LOGVV(TAG, "Writing RGB values to bus");
 
   esp_err_t error = rmt_tx_wait_all_done(this->channel_, 1000);
   if (error != ESP_OK) {
