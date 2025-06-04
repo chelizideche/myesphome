@@ -113,7 +113,6 @@ def create_components_graph():
             # restore config
             CORE.data[KEY_CORE] = TARGET_CONFIGURATIONS[0]
 
-    print(components_graph["binary_sensor"])
     return components_graph
 
 
