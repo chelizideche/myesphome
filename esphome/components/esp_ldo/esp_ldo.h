@@ -1,4 +1,5 @@
 #pragma once
+#ifdef USE_ESP32_VARIANT_ESP32P4
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esp_ldo_regulator.h"
@@ -38,3 +39,5 @@ template<typename... Ts> class AdjustAction : public Action<Ts...> {
 
 }  // namespace esp_ldo
 }  // namespace esphome
+
+#endif  // USE_ESP32_VARIANT_ESP32P4

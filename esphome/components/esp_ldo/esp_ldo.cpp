@@ -1,3 +1,4 @@
+#ifdef USE_ESP32_VARIANT_ESP32P4
 #include "esp_ldo.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
@@ -29,3 +30,5 @@ void EspLdo::adjust_voltage(float voltage) { esp_ldo_channel_adjust_voltage(this
 
 }  // namespace esp_ldo
 }  // namespace esphome
+
+#endif  // USE_ESP32_VARIANT_ESP32P4
