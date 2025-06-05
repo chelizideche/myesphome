@@ -168,7 +168,6 @@ void Application::reboot() {
 void Application::safe_reboot() {
   ESP_LOGI(TAG, "Rebooting safely");
   run_safe_shutdown_hooks();
-  // Use shorter timeout for reboot since we just need to flush buffers
   teardown_components(TEARDOWN_TIMEOUT_REBOOT_MS);
   arch_restart();
 }
