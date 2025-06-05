@@ -1816,16 +1816,16 @@ void APIConnection::process_batch_() {
     }
   }
 
-  // Remove processed updates from the batch
-  if (processed_count < this->deferred_state_batch_.updates.size()) {
-    // Some updates weren't processed, keep them for next batch
-    this->deferred_state_batch_.updates.erase(this->deferred_state_batch_.updates.begin(),
-                                              this->deferred_state_batch_.updates.begin() + processed_count);
-    // Reschedule for remaining updates
-    this->schedule_state_batch_();
+  // Remove processed items from the batch
+  if (processed_count < this->deferred_batch_.items.size()) {
+    // Some items weren't processed, keep them for next batch
+    this->deferred_batch_.items.erase(this->deferred_batch_.items.begin(),
+                                      this->deferred_batch_.items.begin() + processed_count);
+    // Reschedule for remaining items
+    this->schedule_batch_();
   } else {
-    // All updates processed
-    this->deferred_state_batch_.clear();
+    // All items processed
+    this->deferred_batch_.clear();
   }
 }
 
