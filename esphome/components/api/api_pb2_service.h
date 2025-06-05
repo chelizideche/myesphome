@@ -14,7 +14,7 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef HAS_PROTO_MESSAGE_DUMP
     ESP_LOGVV(TAG, "send_message %s: %s", T::message_name(), msg.dump().c_str());
 #endif
-    return this->send_message_(msg, T::message_type());
+    return this->send_message_(msg, msg.get_message_type());
   }
 
   virtual void on_hello_request(const HelloRequest &value){};

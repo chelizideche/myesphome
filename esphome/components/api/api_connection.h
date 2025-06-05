@@ -385,8 +385,10 @@ class APIConnection : public APIServerConnection {
     response.disabled_by_default = entity->is_disabled_by_default();
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
 
-    // Send the response using the generic send_message method
-    return this->send_message(response);
+    // Add to deferred batch
+    this->deferred_batch_.add_item(std::make_unique<ResponseT>(response));
+    this->schedule_batch_();
+    return true;
   }
 
   /**
@@ -395,7 +397,12 @@ class APIConnection : public APIServerConnection {
    * @param response The state response object with key already set
    * @return True if the message was sent successfully
    */
-  template<typename ResponseT> bool try_send_entity_state(ResponseT &response) { return this->send_message(response); }
+  template<typename ResponseT> bool try_send_entity_state(ResponseT &response) {
+    // Add to deferred batch
+    this->deferred_batch_.add_item(std::make_unique<ResponseT>(response));
+    this->schedule_batch_();
+    return true;
+  }
 
   bool send_(const void *buf, size_t len, bool force);
 
@@ -438,8 +445,7 @@ class APIConnection : public APIServerConnection {
   // Generic batching mechanism for both state updates and entity info
   struct DeferredBatch {
     struct BatchItem {
-      void *entity;
-      send_message_t send_func;
+      std::unique_ptr<ProtoMessage> message;
       uint32_t timestamp;  // When this update was queued
     };
 
@@ -447,8 +453,8 @@ class APIConnection : public APIServerConnection {
     uint32_t batch_start_time{0};
     bool batch_scheduled{false};
 
-    // Add item with deduplication - newer updates replace older ones for same entity
-    void add_item(void *entity, send_message_t send_func);
+    // Add item to the batch
+    void add_item(std::unique_ptr<ProtoMessage> message);
     void clear() {
       items.clear();
       batch_scheduled = false;

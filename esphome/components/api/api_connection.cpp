@@ -1442,9 +1442,8 @@ bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   return false;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) {
-  // If we're in batch mode, just capture the message type and return success
+  // If we're in batch mode, just return success (message already encoded)
   if (this->batch_mode_) {
-    this->captured_message_type_ = message_type;
     return true;
   }
 
@@ -1481,18 +1480,9 @@ void APIConnection::on_fatal_error() {
   this->remove_ = true;
 }
 
-void APIConnection::DeferredBatch::add_item(void *entity, send_message_t send_func) {
-  // Check if we already have an item for this entity
-  for (auto &item : items) {
-    if (item.entity == entity && item.send_func == send_func) {
-      // Update timestamp to latest
-      item.timestamp = App.get_loop_component_start_time();
-      return;
-    }
-  }
-
-  // Add new item
-  items.push_back({entity, send_func, App.get_loop_component_start_time()});
+void APIConnection::DeferredBatch::add_item(std::unique_ptr<ProtoMessage> message) {
+  // Add new item without deduplication
+  items.push_back({std::move(message), App.get_loop_component_start_time()});
 }
 
 void APIConnection::schedule_batch_() {
@@ -1512,11 +1502,7 @@ void APIConnection::process_batch_() {
 
   // Try to clear buffer first
   if (!this->helper_->can_write_without_blocking()) {
-    // Can't write now, defer everything to the regular deferred queue
-    for (const auto &item : this->deferred_batch_.items) {
-      this->deferred_message_queue_.defer(item.entity, item.send_func);
-    }
-    this->deferred_batch_.clear();
+    // Can't write now, we'll try again later
     return;
   }
 
@@ -1553,7 +1539,6 @@ void APIConnection::process_batch_() {
     // Save current buffer position before extending
     uint32_t msg_offset = 0;
     uint32_t msg_content_start = 0;
-    this->captured_message_type_ = 0;
 
     // For messages after the first, extend the buffer with padding
     if (processed_count > 0) {
@@ -1566,15 +1551,17 @@ void APIConnection::process_batch_() {
       msg_content_start = this->helper_->frame_header_padding();
     }
 
-    // Try to encode the message
-    if (!(this->*item.send_func)(item.entity)) {
+    // Get the message type before encoding
+    uint16_t message_type = item.message->get_message_type();
+
+    // Encode the message directly from the stored ProtoMessage
+    bool success = item.message->encode(batch_buffer);
+
+    if (!success) {
       // Encoding failed, revert buffer to previous size
       this->proto_write_buffer_.resize(msg_offset);
       continue;
     }
-
-    // Get the captured message type
-    uint16_t message_type = this->captured_message_type_;
 
     // Calculate message length - from content start to current buffer end
     uint16_t msg_len = static_cast<uint16_t>(this->proto_write_buffer_.size() - msg_content_start);

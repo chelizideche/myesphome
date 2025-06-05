@@ -779,7 +779,7 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     # Add message_type method if this is a service message
     if message_id is not None:
         public_content.append(
-            f"static constexpr uint32_t message_type() {{ return {message_id}; }}"
+            f"uint16_t get_message_type() const override {{ return {message_id}; }}"
         )
         # Add message_name method for debugging
         public_content.append("#ifdef HAS_PROTO_MESSAGE_DUMP")
@@ -1097,7 +1097,7 @@ def main() -> None:
     hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
     hpp += '    ESP_LOGVV(TAG, "send_message %s: %s", T::message_name(), msg.dump().c_str());\n'
     hpp += "#endif\n"
-    hpp += "    return this->send_message_(msg, T::message_type());\n"
+    hpp += "    return this->send_message_(msg, msg.get_message_type());\n"
     hpp += "  }\n\n"
 
     for mt in file.message_type:
