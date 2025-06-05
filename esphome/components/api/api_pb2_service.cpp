@@ -61,7 +61,7 @@ bool APIServerConnectionBase::send_list_entities_binary_sensor_response(const Li
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_binary_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesBinarySensorResponse>(msg, 12);
+  return this->send_message_<ListEntitiesBinarySensorResponse>(msg, 12);
 }
 #endif
 #ifdef USE_BINARY_SENSOR
@@ -69,7 +69,7 @@ bool APIServerConnectionBase::send_binary_sensor_state_response(const BinarySens
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_binary_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<BinarySensorStateResponse>(msg, 21);
+  return this->send_message_<BinarySensorStateResponse>(msg, 21);
 }
 #endif
 #ifdef USE_COVER
@@ -77,7 +77,7 @@ bool APIServerConnectionBase::send_list_entities_cover_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_cover_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesCoverResponse>(msg, 13);
+  return this->send_message_<ListEntitiesCoverResponse>(msg, 13);
 }
 #endif
 #ifdef USE_COVER
@@ -85,7 +85,7 @@ bool APIServerConnectionBase::send_cover_state_response(const CoverStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_cover_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<CoverStateResponse>(msg, 22);
+  return this->send_message_<CoverStateResponse>(msg, 22);
 }
 #endif
 #ifdef USE_COVER
@@ -95,7 +95,7 @@ bool APIServerConnectionBase::send_list_entities_fan_response(const ListEntities
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_fan_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesFanResponse>(msg, 14);
+  return this->send_message_<ListEntitiesFanResponse>(msg, 14);
 }
 #endif
 #ifdef USE_FAN
@@ -103,7 +103,7 @@ bool APIServerConnectionBase::send_fan_state_response(const FanStateResponse &ms
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_fan_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<FanStateResponse>(msg, 23);
+  return this->send_message_<FanStateResponse>(msg, 23);
 }
 #endif
 #ifdef USE_FAN
@@ -113,7 +113,7 @@ bool APIServerConnectionBase::send_list_entities_light_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_light_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesLightResponse>(msg, 15);
+  return this->send_message_<ListEntitiesLightResponse>(msg, 15);
 }
 #endif
 #ifdef USE_LIGHT
@@ -121,7 +121,7 @@ bool APIServerConnectionBase::send_light_state_response(const LightStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_light_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<LightStateResponse>(msg, 24);
+  return this->send_message_<LightStateResponse>(msg, 24);
 }
 #endif
 #ifdef USE_LIGHT
@@ -131,7 +131,7 @@ bool APIServerConnectionBase::send_list_entities_sensor_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesSensorResponse>(msg, 16);
+  return this->send_message_<ListEntitiesSensorResponse>(msg, 16);
 }
 #endif
 #ifdef USE_SENSOR
@@ -139,7 +139,7 @@ bool APIServerConnectionBase::send_sensor_state_response(const SensorStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<SensorStateResponse>(msg, 25);
+  return this->send_message_<SensorStateResponse>(msg, 25);
 }
 #endif
 #ifdef USE_SWITCH
@@ -147,7 +147,7 @@ bool APIServerConnectionBase::send_list_entities_switch_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_switch_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesSwitchResponse>(msg, 17);
+  return this->send_message_<ListEntitiesSwitchResponse>(msg, 17);
 }
 #endif
 #ifdef USE_SWITCH
@@ -155,7 +155,7 @@ bool APIServerConnectionBase::send_switch_state_response(const SwitchStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_switch_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<SwitchStateResponse>(msg, 26);
+  return this->send_message_<SwitchStateResponse>(msg, 26);
 }
 #endif
 #ifdef USE_SWITCH
@@ -165,7 +165,7 @@ bool APIServerConnectionBase::send_list_entities_text_sensor_response(const List
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_text_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<ListEntitiesTextSensorResponse>(msg, 18);
+  return this->send_message_<ListEntitiesTextSensorResponse>(msg, 18);
 }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -173,7 +173,7 @@ bool APIServerConnectionBase::send_text_sensor_state_response(const TextSensorSt
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_text_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_batchable_<TextSensorStateResponse>(msg, 27);
+  return this->send_message_<TextSensorStateResponse>(msg, 27);
 }
 #endif
 bool APIServerConnectionBase::send_subscribe_logs_response(const SubscribeLogsResponse &msg) {
@@ -1269,27 +1269,6 @@ bool APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       return false;
   }
   return true;
-}
-bool APIServerConnectionBase::is_message_batchable(uint16_t msg_type) {
-  switch (msg_type) {
-    case 12:
-    case 13:
-    case 14:
-    case 15:
-    case 16:
-    case 17:
-    case 18:
-    case 21:
-    case 22:
-    case 23:
-    case 24:
-    case 25:
-    case 26:
-    case 27:
-      return true;
-    default:
-      return false;
-  }
 }
 
 void APIServerConnection::on_hello_request(const HelloRequest &msg) {

@@ -910,7 +910,6 @@ SOURCE_SERVER = 1
 SOURCE_CLIENT = 2
 
 RECEIVE_CASES: dict[int, str] = {}
-BATCHABLE_MESSAGES: dict[int, bool] = {}
 
 ifdefs: dict[str, str] = {}
 
@@ -939,7 +938,6 @@ def build_service_message_type(
 
     ifdef: str | None = get_opt(mt, pb.ifdef)
     log: bool = get_opt(mt, pb.log, True)
-    batchable: bool = get_opt(mt, pb.batchable, False)
     hout = ""
     cout = ""
 
@@ -958,15 +956,8 @@ def build_service_message_type(
             cout += f'  ESP_LOGVV(TAG, "{func}: %s", msg.dump().c_str());\n'
             cout += "#endif\n"
         # cout += f'  this->set_nodelay({str(nodelay).lower()});\n'
-        if batchable:
-            cout += f"  return this->send_message_batchable_<{mt.name}>(msg, {id_});\n"
-        else:
-            cout += f"  return this->send_message_<{mt.name}>(msg, {id_});\n"
+        cout += f"  return this->send_message_<{mt.name}>(msg, {id_});\n"
         cout += "}\n"
-
-        # Track batchable messages
-        if batchable:
-            BATCHABLE_MESSAGES[id_] = True
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
         # Generate receive
         func = f"on_{snake}"
@@ -1104,7 +1095,6 @@ def main() -> None:
     cases.sort()
     hpp += " protected:\n"
     hpp += "  bool read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) override;\n"
-    hpp += "  static bool is_message_batchable(uint16_t msg_type);\n"
     out = f"bool {class_name}::read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) {{\n"
     out += "  switch (msg_type) {\n"
     for i, case in cases:
@@ -1116,20 +1106,6 @@ def main() -> None:
     out += "      return false;\n"
     out += "  }\n"
     out += "  return true;\n"
-    out += "}\n"
-    cpp += out
-
-    # Generate is_message_batchable function
-    batchable_cases = list(BATCHABLE_MESSAGES.items())
-    batchable_cases.sort()
-    out = f"bool {class_name}::is_message_batchable(uint16_t msg_type) {{\n"
-    out += "  switch (msg_type) {\n"
-    for msg_id, _ in batchable_cases:
-        out += f"    case {msg_id}:\n"
-    out += "      return true;\n"
-    out += "    default:\n"
-    out += "      return false;\n"
-    out += "  }\n"
     out += "}\n"
     cpp += out
 

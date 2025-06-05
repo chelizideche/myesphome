@@ -354,7 +354,6 @@ class APIServerConnectionBase : public ProtoService {
 #endif
  protected:
   bool read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) override;
-  static bool is_message_batchable(uint16_t msg_type);
 };
 
 class APIServerConnection : public APIServerConnectionBase {

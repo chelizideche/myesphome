@@ -21,5 +21,4 @@ extend google.protobuf.MessageOptions {
     optional string ifdef = 1038;
     optional bool log = 1039 [default=true];
     optional bool no_delay = 1040 [default=false];
-    optional bool batchable = 1041 [default=false];
 }
