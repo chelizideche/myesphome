@@ -1222,7 +1222,7 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
   resp.event_type = std::move(event_type);
 
   resp.key = event->get_object_id_hash();
-  return this->try_send_entity_state(resp);
+  this->try_send_entity_state(resp);
 }
 void APIConnection::send_event_info(event::Event *event) {
   ListEntitiesEventResponse msg;
@@ -1254,11 +1254,11 @@ bool APIConnection::send_update_state(update::UpdateEntity *update) {
   resp.key = update->get_object_id_hash();
   return this->try_send_entity_state(resp);
 }
-bool APIConnection::try_send_update_info_(update::UpdateEntity *update) {
+void APIConnection::send_update_info(update::UpdateEntity *update) {
   ListEntitiesUpdateResponse msg;
   msg.device_class = update->get_device_class();
   msg.unique_id = get_default_unique_id("update", update);
-  return this->try_send_entity_info_(static_cast<EntityBase *>(update), msg);
+  this->try_send_entity_info_(static_cast<EntityBase *>(update), msg);
 }
 void APIConnection::update_command(const UpdateCommandRequest &msg) {
   update::UpdateEntity *update = App.get_update_by_key(msg.key);
