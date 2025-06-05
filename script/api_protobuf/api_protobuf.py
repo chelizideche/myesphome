@@ -956,7 +956,7 @@ def build_service_message_type(
             cout += f'  ESP_LOGVV(TAG, "{func}: %s", msg.dump().c_str());\n'
             cout += "#endif\n"
         # cout += f'  this->set_nodelay({str(nodelay).lower()});\n'
-        cout += f"  return this->send_message_<{mt.name}>(msg, {id_});\n"
+        cout += f"  return this->send_message_(msg, {id_});\n"
         cout += "}\n"
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
         # Generate receive

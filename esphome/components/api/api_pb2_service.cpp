@@ -12,56 +12,56 @@ bool APIServerConnectionBase::send_hello_response(const HelloResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_hello_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<HelloResponse>(msg, 2);
+  return this->send_message_(msg, 2);
 }
 bool APIServerConnectionBase::send_connect_response(const ConnectResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_connect_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ConnectResponse>(msg, 4);
+  return this->send_message_(msg, 4);
 }
 bool APIServerConnectionBase::send_disconnect_request(const DisconnectRequest &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_disconnect_request: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<DisconnectRequest>(msg, 5);
+  return this->send_message_(msg, 5);
 }
 bool APIServerConnectionBase::send_disconnect_response(const DisconnectResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_disconnect_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<DisconnectResponse>(msg, 6);
+  return this->send_message_(msg, 6);
 }
 bool APIServerConnectionBase::send_ping_request(const PingRequest &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_ping_request: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<PingRequest>(msg, 7);
+  return this->send_message_(msg, 7);
 }
 bool APIServerConnectionBase::send_ping_response(const PingResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_ping_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<PingResponse>(msg, 8);
+  return this->send_message_(msg, 8);
 }
 bool APIServerConnectionBase::send_device_info_response(const DeviceInfoResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_device_info_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<DeviceInfoResponse>(msg, 10);
+  return this->send_message_(msg, 10);
 }
 bool APIServerConnectionBase::send_list_entities_done_response(const ListEntitiesDoneResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_done_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesDoneResponse>(msg, 19);
+  return this->send_message_(msg, 19);
 }
 #ifdef USE_BINARY_SENSOR
 bool APIServerConnectionBase::send_list_entities_binary_sensor_response(const ListEntitiesBinarySensorResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_binary_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesBinarySensorResponse>(msg, 12);
+  return this->send_message_(msg, 12);
 }
 #endif
 #ifdef USE_BINARY_SENSOR
@@ -69,7 +69,7 @@ bool APIServerConnectionBase::send_binary_sensor_state_response(const BinarySens
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_binary_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BinarySensorStateResponse>(msg, 21);
+  return this->send_message_(msg, 21);
 }
 #endif
 #ifdef USE_COVER
@@ -77,7 +77,7 @@ bool APIServerConnectionBase::send_list_entities_cover_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_cover_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesCoverResponse>(msg, 13);
+  return this->send_message_(msg, 13);
 }
 #endif
 #ifdef USE_COVER
@@ -85,7 +85,7 @@ bool APIServerConnectionBase::send_cover_state_response(const CoverStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_cover_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<CoverStateResponse>(msg, 22);
+  return this->send_message_(msg, 22);
 }
 #endif
 #ifdef USE_COVER
@@ -95,7 +95,7 @@ bool APIServerConnectionBase::send_list_entities_fan_response(const ListEntities
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_fan_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesFanResponse>(msg, 14);
+  return this->send_message_(msg, 14);
 }
 #endif
 #ifdef USE_FAN
@@ -103,7 +103,7 @@ bool APIServerConnectionBase::send_fan_state_response(const FanStateResponse &ms
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_fan_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<FanStateResponse>(msg, 23);
+  return this->send_message_(msg, 23);
 }
 #endif
 #ifdef USE_FAN
@@ -113,7 +113,7 @@ bool APIServerConnectionBase::send_list_entities_light_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_light_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesLightResponse>(msg, 15);
+  return this->send_message_(msg, 15);
 }
 #endif
 #ifdef USE_LIGHT
@@ -121,7 +121,7 @@ bool APIServerConnectionBase::send_light_state_response(const LightStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_light_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<LightStateResponse>(msg, 24);
+  return this->send_message_(msg, 24);
 }
 #endif
 #ifdef USE_LIGHT
@@ -131,7 +131,7 @@ bool APIServerConnectionBase::send_list_entities_sensor_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesSensorResponse>(msg, 16);
+  return this->send_message_(msg, 16);
 }
 #endif
 #ifdef USE_SENSOR
@@ -139,7 +139,7 @@ bool APIServerConnectionBase::send_sensor_state_response(const SensorStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<SensorStateResponse>(msg, 25);
+  return this->send_message_(msg, 25);
 }
 #endif
 #ifdef USE_SWITCH
@@ -147,7 +147,7 @@ bool APIServerConnectionBase::send_list_entities_switch_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_switch_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesSwitchResponse>(msg, 17);
+  return this->send_message_(msg, 17);
 }
 #endif
 #ifdef USE_SWITCH
@@ -155,7 +155,7 @@ bool APIServerConnectionBase::send_switch_state_response(const SwitchStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_switch_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<SwitchStateResponse>(msg, 26);
+  return this->send_message_(msg, 26);
 }
 #endif
 #ifdef USE_SWITCH
@@ -165,7 +165,7 @@ bool APIServerConnectionBase::send_list_entities_text_sensor_response(const List
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_text_sensor_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesTextSensorResponse>(msg, 18);
+  return this->send_message_(msg, 18);
 }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -173,11 +173,11 @@ bool APIServerConnectionBase::send_text_sensor_state_response(const TextSensorSt
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_text_sensor_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<TextSensorStateResponse>(msg, 27);
+  return this->send_message_(msg, 27);
 }
 #endif
 bool APIServerConnectionBase::send_subscribe_logs_response(const SubscribeLogsResponse &msg) {
-  return this->send_message_<SubscribeLogsResponse>(msg, 29);
+  return this->send_message_(msg, 29);
 }
 #ifdef USE_API_NOISE
 #endif
@@ -186,46 +186,46 @@ bool APIServerConnectionBase::send_noise_encryption_set_key_response(const Noise
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_noise_encryption_set_key_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<NoiseEncryptionSetKeyResponse>(msg, 125);
+  return this->send_message_(msg, 125);
 }
 #endif
 bool APIServerConnectionBase::send_homeassistant_service_response(const HomeassistantServiceResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_homeassistant_service_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<HomeassistantServiceResponse>(msg, 35);
+  return this->send_message_(msg, 35);
 }
 bool APIServerConnectionBase::send_subscribe_home_assistant_state_response(
     const SubscribeHomeAssistantStateResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_subscribe_home_assistant_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<SubscribeHomeAssistantStateResponse>(msg, 39);
+  return this->send_message_(msg, 39);
 }
 bool APIServerConnectionBase::send_get_time_request(const GetTimeRequest &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_get_time_request: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<GetTimeRequest>(msg, 36);
+  return this->send_message_(msg, 36);
 }
 bool APIServerConnectionBase::send_get_time_response(const GetTimeResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_get_time_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<GetTimeResponse>(msg, 37);
+  return this->send_message_(msg, 37);
 }
 bool APIServerConnectionBase::send_list_entities_services_response(const ListEntitiesServicesResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_services_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesServicesResponse>(msg, 41);
+  return this->send_message_(msg, 41);
 }
 #ifdef USE_ESP32_CAMERA
 bool APIServerConnectionBase::send_list_entities_camera_response(const ListEntitiesCameraResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_camera_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesCameraResponse>(msg, 43);
+  return this->send_message_(msg, 43);
 }
 #endif
 #ifdef USE_ESP32_CAMERA
@@ -233,7 +233,7 @@ bool APIServerConnectionBase::send_camera_image_response(const CameraImageRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_camera_image_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<CameraImageResponse>(msg, 44);
+  return this->send_message_(msg, 44);
 }
 #endif
 #ifdef USE_ESP32_CAMERA
@@ -243,7 +243,7 @@ bool APIServerConnectionBase::send_list_entities_climate_response(const ListEnti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_climate_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesClimateResponse>(msg, 46);
+  return this->send_message_(msg, 46);
 }
 #endif
 #ifdef USE_CLIMATE
@@ -251,7 +251,7 @@ bool APIServerConnectionBase::send_climate_state_response(const ClimateStateResp
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_climate_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ClimateStateResponse>(msg, 47);
+  return this->send_message_(msg, 47);
 }
 #endif
 #ifdef USE_CLIMATE
@@ -261,7 +261,7 @@ bool APIServerConnectionBase::send_list_entities_number_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_number_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesNumberResponse>(msg, 49);
+  return this->send_message_(msg, 49);
 }
 #endif
 #ifdef USE_NUMBER
@@ -269,7 +269,7 @@ bool APIServerConnectionBase::send_number_state_response(const NumberStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_number_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<NumberStateResponse>(msg, 50);
+  return this->send_message_(msg, 50);
 }
 #endif
 #ifdef USE_NUMBER
@@ -279,7 +279,7 @@ bool APIServerConnectionBase::send_list_entities_select_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_select_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesSelectResponse>(msg, 52);
+  return this->send_message_(msg, 52);
 }
 #endif
 #ifdef USE_SELECT
@@ -287,7 +287,7 @@ bool APIServerConnectionBase::send_select_state_response(const SelectStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_select_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<SelectStateResponse>(msg, 53);
+  return this->send_message_(msg, 53);
 }
 #endif
 #ifdef USE_SELECT
@@ -297,7 +297,7 @@ bool APIServerConnectionBase::send_list_entities_siren_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_siren_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesSirenResponse>(msg, 55);
+  return this->send_message_(msg, 55);
 }
 #endif
 #ifdef USE_SIREN
@@ -305,7 +305,7 @@ bool APIServerConnectionBase::send_siren_state_response(const SirenStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_siren_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<SirenStateResponse>(msg, 56);
+  return this->send_message_(msg, 56);
 }
 #endif
 #ifdef USE_SIREN
@@ -315,7 +315,7 @@ bool APIServerConnectionBase::send_list_entities_lock_response(const ListEntitie
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_lock_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesLockResponse>(msg, 58);
+  return this->send_message_(msg, 58);
 }
 #endif
 #ifdef USE_LOCK
@@ -323,7 +323,7 @@ bool APIServerConnectionBase::send_lock_state_response(const LockStateResponse &
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_lock_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<LockStateResponse>(msg, 59);
+  return this->send_message_(msg, 59);
 }
 #endif
 #ifdef USE_LOCK
@@ -333,7 +333,7 @@ bool APIServerConnectionBase::send_list_entities_button_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_button_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesButtonResponse>(msg, 61);
+  return this->send_message_(msg, 61);
 }
 #endif
 #ifdef USE_BUTTON
@@ -343,7 +343,7 @@ bool APIServerConnectionBase::send_list_entities_media_player_response(const Lis
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_media_player_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesMediaPlayerResponse>(msg, 63);
+  return this->send_message_(msg, 63);
 }
 #endif
 #ifdef USE_MEDIA_PLAYER
@@ -351,7 +351,7 @@ bool APIServerConnectionBase::send_media_player_state_response(const MediaPlayer
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_media_player_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<MediaPlayerStateResponse>(msg, 64);
+  return this->send_message_(msg, 64);
 }
 #endif
 #ifdef USE_MEDIA_PLAYER
@@ -363,7 +363,7 @@ bool APIServerConnectionBase::send_bluetooth_le_advertisement_response(const Blu
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_le_advertisement_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothLEAdvertisementResponse>(msg, 67);
+  return this->send_message_(msg, 67);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -372,7 +372,7 @@ bool APIServerConnectionBase::send_bluetooth_le_raw_advertisements_response(
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_le_raw_advertisements_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothLERawAdvertisementsResponse>(msg, 93);
+  return this->send_message_(msg, 93);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -382,7 +382,7 @@ bool APIServerConnectionBase::send_bluetooth_device_connection_response(const Bl
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_device_connection_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothDeviceConnectionResponse>(msg, 69);
+  return this->send_message_(msg, 69);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -392,7 +392,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_get_services_response(const Bl
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_get_services_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTGetServicesResponse>(msg, 71);
+  return this->send_message_(msg, 71);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -401,7 +401,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_get_services_done_response(
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_get_services_done_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTGetServicesDoneResponse>(msg, 72);
+  return this->send_message_(msg, 72);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -411,7 +411,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_read_response(const BluetoothG
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_read_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTReadResponse>(msg, 74);
+  return this->send_message_(msg, 74);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -427,7 +427,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_notify_data_response(const Blu
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_notify_data_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTNotifyDataResponse>(msg, 79);
+  return this->send_message_(msg, 79);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -437,7 +437,7 @@ bool APIServerConnectionBase::send_bluetooth_connections_free_response(const Blu
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_connections_free_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothConnectionsFreeResponse>(msg, 81);
+  return this->send_message_(msg, 81);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -445,7 +445,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_error_response(const Bluetooth
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_error_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTErrorResponse>(msg, 82);
+  return this->send_message_(msg, 82);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -453,7 +453,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_write_response(const Bluetooth
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_write_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTWriteResponse>(msg, 83);
+  return this->send_message_(msg, 83);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -461,7 +461,7 @@ bool APIServerConnectionBase::send_bluetooth_gatt_notify_response(const Bluetoot
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_gatt_notify_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothGATTNotifyResponse>(msg, 84);
+  return this->send_message_(msg, 84);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -469,7 +469,7 @@ bool APIServerConnectionBase::send_bluetooth_device_pairing_response(const Bluet
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_device_pairing_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothDevicePairingResponse>(msg, 85);
+  return this->send_message_(msg, 85);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -477,7 +477,7 @@ bool APIServerConnectionBase::send_bluetooth_device_unpairing_response(const Blu
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_device_unpairing_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothDeviceUnpairingResponse>(msg, 86);
+  return this->send_message_(msg, 86);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -487,7 +487,7 @@ bool APIServerConnectionBase::send_bluetooth_device_clear_cache_response(const B
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_device_clear_cache_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothDeviceClearCacheResponse>(msg, 88);
+  return this->send_message_(msg, 88);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -495,7 +495,7 @@ bool APIServerConnectionBase::send_bluetooth_scanner_state_response(const Blueto
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_bluetooth_scanner_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<BluetoothScannerStateResponse>(msg, 126);
+  return this->send_message_(msg, 126);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -507,7 +507,7 @@ bool APIServerConnectionBase::send_voice_assistant_request(const VoiceAssistantR
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_voice_assistant_request: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<VoiceAssistantRequest>(msg, 90);
+  return this->send_message_(msg, 90);
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
@@ -519,7 +519,7 @@ bool APIServerConnectionBase::send_voice_assistant_audio(const VoiceAssistantAud
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_voice_assistant_audio: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<VoiceAssistantAudio>(msg, 106);
+  return this->send_message_(msg, 106);
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
@@ -531,7 +531,7 @@ bool APIServerConnectionBase::send_voice_assistant_announce_finished(const Voice
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_voice_assistant_announce_finished: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<VoiceAssistantAnnounceFinished>(msg, 120);
+  return this->send_message_(msg, 120);
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
@@ -542,7 +542,7 @@ bool APIServerConnectionBase::send_voice_assistant_configuration_response(
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_voice_assistant_configuration_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<VoiceAssistantConfigurationResponse>(msg, 122);
+  return this->send_message_(msg, 122);
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
@@ -553,7 +553,7 @@ bool APIServerConnectionBase::send_list_entities_alarm_control_panel_response(
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_alarm_control_panel_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesAlarmControlPanelResponse>(msg, 94);
+  return this->send_message_(msg, 94);
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
@@ -561,7 +561,7 @@ bool APIServerConnectionBase::send_alarm_control_panel_state_response(const Alar
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_alarm_control_panel_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<AlarmControlPanelStateResponse>(msg, 95);
+  return this->send_message_(msg, 95);
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
@@ -571,7 +571,7 @@ bool APIServerConnectionBase::send_list_entities_text_response(const ListEntitie
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_text_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesTextResponse>(msg, 97);
+  return this->send_message_(msg, 97);
 }
 #endif
 #ifdef USE_TEXT
@@ -579,7 +579,7 @@ bool APIServerConnectionBase::send_text_state_response(const TextStateResponse &
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_text_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<TextStateResponse>(msg, 98);
+  return this->send_message_(msg, 98);
 }
 #endif
 #ifdef USE_TEXT
@@ -589,7 +589,7 @@ bool APIServerConnectionBase::send_list_entities_date_response(const ListEntitie
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_date_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesDateResponse>(msg, 100);
+  return this->send_message_(msg, 100);
 }
 #endif
 #ifdef USE_DATETIME_DATE
@@ -597,7 +597,7 @@ bool APIServerConnectionBase::send_date_state_response(const DateStateResponse &
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_date_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<DateStateResponse>(msg, 101);
+  return this->send_message_(msg, 101);
 }
 #endif
 #ifdef USE_DATETIME_DATE
@@ -607,7 +607,7 @@ bool APIServerConnectionBase::send_list_entities_time_response(const ListEntitie
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_time_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesTimeResponse>(msg, 103);
+  return this->send_message_(msg, 103);
 }
 #endif
 #ifdef USE_DATETIME_TIME
@@ -615,7 +615,7 @@ bool APIServerConnectionBase::send_time_state_response(const TimeStateResponse &
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_time_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<TimeStateResponse>(msg, 104);
+  return this->send_message_(msg, 104);
 }
 #endif
 #ifdef USE_DATETIME_TIME
@@ -625,7 +625,7 @@ bool APIServerConnectionBase::send_list_entities_event_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_event_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesEventResponse>(msg, 107);
+  return this->send_message_(msg, 107);
 }
 #endif
 #ifdef USE_EVENT
@@ -633,7 +633,7 @@ bool APIServerConnectionBase::send_event_response(const EventResponse &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_event_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<EventResponse>(msg, 108);
+  return this->send_message_(msg, 108);
 }
 #endif
 #ifdef USE_VALVE
@@ -641,7 +641,7 @@ bool APIServerConnectionBase::send_list_entities_valve_response(const ListEntiti
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_valve_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesValveResponse>(msg, 109);
+  return this->send_message_(msg, 109);
 }
 #endif
 #ifdef USE_VALVE
@@ -649,7 +649,7 @@ bool APIServerConnectionBase::send_valve_state_response(const ValveStateResponse
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_valve_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ValveStateResponse>(msg, 110);
+  return this->send_message_(msg, 110);
 }
 #endif
 #ifdef USE_VALVE
@@ -659,7 +659,7 @@ bool APIServerConnectionBase::send_list_entities_date_time_response(const ListEn
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_date_time_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesDateTimeResponse>(msg, 112);
+  return this->send_message_(msg, 112);
 }
 #endif
 #ifdef USE_DATETIME_DATETIME
@@ -667,7 +667,7 @@ bool APIServerConnectionBase::send_date_time_state_response(const DateTimeStateR
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_date_time_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<DateTimeStateResponse>(msg, 113);
+  return this->send_message_(msg, 113);
 }
 #endif
 #ifdef USE_DATETIME_DATETIME
@@ -677,7 +677,7 @@ bool APIServerConnectionBase::send_list_entities_update_response(const ListEntit
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_list_entities_update_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<ListEntitiesUpdateResponse>(msg, 116);
+  return this->send_message_(msg, 116);
 }
 #endif
 #ifdef USE_UPDATE
@@ -685,7 +685,7 @@ bool APIServerConnectionBase::send_update_state_response(const UpdateStateRespon
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_update_state_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<UpdateStateResponse>(msg, 117);
+  return this->send_message_(msg, 117);
 }
 #endif
 #ifdef USE_UPDATE

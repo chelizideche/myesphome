@@ -364,7 +364,7 @@ class ProtoService {
   virtual bool read_message(uint32_t msg_size, uint32_t msg_type, uint8_t *msg_data) = 0;
 
   // Optimized method that pre-allocates buffer based on message size
-  template<class C> bool send_message_(const C &msg, uint16_t message_type) {
+  bool send_message_(const ProtoMessage &msg, uint16_t message_type) {
     uint32_t msg_size = 0;
     msg.calculate_size(msg_size);
 
