@@ -4,7 +4,6 @@ esphome:
 
 esp32:
   board: lolin_c3_mini
-  flash_size: 8MB
   framework:
     type: arduino
 

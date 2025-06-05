@@ -326,6 +326,8 @@ async def to_code(config):
             cg.add_build_flag("-DARDUINO_USB_CDC_ON_BOOT=1")
             if CORE.is_esp32 and get_esp32_variant() == VARIANT_ESP32C3:
                 cg.add_build_flag("-DARDUINO_USB_MODE=1")
+            if CORE.is_esp32 and get_esp32_variant() == VARIANT_ESP32C6:
+                cg.add_build_flag("-DARDUINO_USB_MODE=1")
 
     if CORE.using_esp_idf:
         if config[CONF_HARDWARE_UART] == USB_CDC:
