@@ -475,7 +475,7 @@ bool APIServer::is_connected() const { return !this->clients_.empty(); }
 
 void APIServer::on_shutdown() {
   for (auto &c : this->clients_) {
-    c->send_disconnect_request(DisconnectRequest());
+    c->send_message(DisconnectRequest());
   }
   delay(10);
 }

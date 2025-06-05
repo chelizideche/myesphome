@@ -192,7 +192,7 @@ void APIConnection::loop() {
     }
   } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && now > this->next_ping_retry_) {
     ESP_LOGVV(TAG, "Sending keepalive PING");
-    this->sent_ping_ = this->send_ping_request(PingRequest());
+    this->sent_ping_ = this->send_message(PingRequest());
     if (!this->sent_ping_) {
       this->next_ping_retry_ = now + ping_retry_interval;
       this->ping_retries_++;

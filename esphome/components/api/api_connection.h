@@ -69,7 +69,7 @@ class APIConnection : public APIServerConnection {
 
   bool send_list_info_done() {
     ListEntitiesDoneResponse resp;
-    return this->send_list_entities_done_response(resp);
+    return this->send_message(resp);
   }
 #ifdef USE_BINARY_SENSOR
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
@@ -286,7 +286,7 @@ class APIConnection : public APIServerConnection {
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->service_call_subscription_)
       return;
-    this->send_homeassistant_service_response(call);
+    this->send_message(call);
   }
 #ifdef USE_BLUETOOTH_PROXY
   void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
@@ -308,7 +308,7 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_HOMEASSISTANT_TIME
   void send_time_request() {
     GetTimeRequest req;
-    this->send_get_time_request(req);
+    this->send_message(req);
   }
 #endif
 
