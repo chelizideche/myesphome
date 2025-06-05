@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "esp_ldo_regulator.h"
 
 namespace esphome {
@@ -12,14 +13,27 @@ class EspLdo : public Component {
   void setup() override;
   void dump_config() override;
 
-  void set_millivolts(int millivolts) { this->millivolts_ = millivolts; }
   void set_adjustable(bool adjustable) { this->adjustable_ = adjustable; }
+  void set_voltage(float voltage) { this->voltage_ = voltage; }
+  void adjust_voltage(float voltage);
 
  protected:
   int channel_;
-  int millivolts_{2700};
+  float voltage_{2.7};
   bool adjustable_{false};
   esp_ldo_channel_handle_t handle_{};
+};
+
+template<typename... Ts> class AdjustAction : public Action<Ts...> {
+ public:
+  explicit AdjustAction(EspLdo *ldo) : ldo_(ldo) {}
+
+  TEMPLATABLE_VALUE(float, voltage)
+
+  void play(Ts... x) override { this->ldo_->adjust_voltage(this->voltage_.value(x...)); }
+
+ protected:
+  EspLdo *ldo_;
 };
 
 }  // namespace esp_ldo
