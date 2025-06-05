@@ -1442,11 +1442,6 @@ bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   return false;
 }
 bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) {
-  // If we're in batch mode, just return success (message already encoded)
-  if (this->batch_mode_) {
-    return true;
-  }
-
   if (!this->try_to_clear_buffer(message_type != 29)) {  // SubscribeLogsResponse
     return false;
   }
@@ -1520,9 +1515,6 @@ void APIConnection::process_batch_() {
                                      static_cast<uint32_t>(MAX_BATCH_SIZE_BYTES));
   ProtoWriteBuffer batch_buffer = this->create_buffer(estimated_size);
 
-  // Enable batch mode AFTER creating the initial buffer to capture message types
-  this->batch_mode_ = true;
-
   for (size_t i = 0; i < this->deferred_batch_.items.size(); i++) {
     const auto &item = this->deferred_batch_.items[i];
 
@@ -1575,9 +1567,6 @@ void APIConnection::process_batch_() {
     uint16_t packet_size = msg_len + packet_overhead;
     total_size += packet_size;
   }
-
-  // Disable batch mode
-  this->batch_mode_ = false;
 
   // Send all collected packets
   if (!packet_info.empty()) {

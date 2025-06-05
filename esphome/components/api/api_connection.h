@@ -316,24 +316,13 @@ class APIConnection : public APIServerConnection {
     // Get header padding size - used for both reserve and insert
     uint8_t header_padding = this->helper_->frame_header_padding();
 
-    if (!this->batch_mode_) {
-      this->proto_write_buffer_.clear();
-      // Reserve space for header padding + message + footer
-      // - Header padding: space for protocol headers (7 bytes for Noise, 6 for Plaintext)
-      // - Footer: space for MAC (16 bytes for Noise, 0 for Plaintext)
-      this->proto_write_buffer_.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
-      // Insert header padding bytes so message encoding starts at the correct position
-      this->proto_write_buffer_.insert(this->proto_write_buffer_.begin(), header_padding, 0);
-    } else {
-      // In batch mode, extend the existing buffer
-      // Don't clear, just ensure we have enough capacity
-      size_t current_size = this->proto_write_buffer_.size();
-      size_t needed_size = current_size + reserve_size + header_padding + this->helper_->frame_footer_size();
-      if (this->proto_write_buffer_.capacity() < needed_size) {
-        this->proto_write_buffer_.reserve(needed_size);
-      }
-      // Don't add padding here - that's done by extend_buffer() when actually extending
-    }
+    this->proto_write_buffer_.clear();
+    // Reserve space for header padding + message + footer
+    // - Header padding: space for protocol headers (7 bytes for Noise, 6 for Plaintext)
+    // - Footer: space for MAC (16 bytes for Noise, 0 for Plaintext)
+    this->proto_write_buffer_.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
+    // Insert header padding bytes so message encoding starts at the correct position
+    this->proto_write_buffer_.insert(this->proto_write_buffer_.begin(), header_padding, 0);
     return {&this->proto_write_buffer_};
   }
 
@@ -466,9 +455,6 @@ class APIConnection : public APIServerConnection {
   DeferredBatch deferred_batch_;
   static constexpr uint32_t BATCH_DELAY_MS = 100;
   static constexpr size_t MAX_BATCH_SIZE_BYTES = 1360;  // MTU - 100 bytes safety margin
-
-  // Batch mode state
-  bool batch_mode_{false};
 
   void schedule_batch_();
   void process_batch_();
