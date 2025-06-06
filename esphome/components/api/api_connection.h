@@ -561,14 +561,6 @@ class APIConnection : public APIServerConnection {
     this->deferred_batch_.add_item(entity, creator, message_type);
     return this->schedule_batch_();
   }
-
-  // For cases where we can deduce the message type at compile time
-  bool schedule_message_(EntityBase *entity, MessageCreator creator) {
-    // For lambdas, we don't know the message type at compile time
-    // Use a placeholder value - we'll determine it when creating the message
-    this->deferred_batch_.add_item(entity, creator, 0);
-    return this->schedule_batch_();
-  }
 };
 
 }  // namespace api
