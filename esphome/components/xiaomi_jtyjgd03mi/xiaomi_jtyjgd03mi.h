@@ -26,8 +26,7 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
   float get_setup_priority() const override { return setup_priority::DATA; }
 
 #ifdef USE_BINARY_SENSOR
-   void set_smoke(binary_sensor::BinarySensor *smoke) { this->smoke_ = smoke; }    
-
+  void set_smoke(binary_sensor::BinarySensor *smoke) { this->smoke_ = smoke; }    
   void set_button(binary_sensor::BinarySensor *button) { this->button_ = button; }
   void set_button_timeout(uint16_t timeout) { this->button_timeout_ = timeout; }
 #endif
@@ -44,7 +43,7 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
   uint16_t motion_timeout_;
   uint16_t button_timeout_;
 
-  binary_sensor::BinarySensor *smoke_{nullptr};  
+  binary_sensor::BinarySensor *smoke_{nullptr};
   binary_sensor::BinarySensor *button_{nullptr};
 #endif
 #ifdef USE_SENSOR
