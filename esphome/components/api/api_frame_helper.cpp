@@ -634,8 +634,8 @@ APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, co
   }
 
   std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
-  std::vector<struct iovec> iovs;
-  iovs.reserve(packets.size());
+  this->reusable_iovs_.clear();
+  this->reusable_iovs_.reserve(packets.size());
 
   // We need to encrypt each packet in place
   for (const auto &packet : packets) {
@@ -682,11 +682,11 @@ APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, co
     struct iovec iov;
     iov.iov_base = buf_start;
     iov.iov_len = 3 + mbuf.size;  // indicator + size + encrypted data
-    iovs.push_back(iov);
+    this->reusable_iovs_.push_back(iov);
   }
 
   // Send all encrypted packets in one writev call
-  return this->write_raw_(iovs.data(), iovs.size());
+  return this->write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size());
 }
 
 APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
@@ -1049,8 +1049,8 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
   }
 
   std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
-  std::vector<struct iovec> iovs;
-  iovs.reserve(packets.size());
+  this->reusable_iovs_.clear();
+  this->reusable_iovs_.reserve(packets.size());
 
   for (const auto &packet : packets) {
     uint16_t type = packet.message_type;
@@ -1099,11 +1099,11 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
     struct iovec iov;
     iov.iov_base = buf_start + header_offset;
     iov.iov_len = total_header_len + payload_len;
-    iovs.push_back(iov);
+    this->reusable_iovs_.push_back(iov);
   }
 
   // Send all packets in one writev call
-  return write_raw_(iovs.data(), iovs.size());
+  return write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size());
 }
 
 uint8_t APIPlaintextFrameHelper::calculate_header_footer_size(uint16_t message_type, uint16_t payload_len) {

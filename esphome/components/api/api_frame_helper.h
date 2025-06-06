@@ -175,6 +175,9 @@ class APIFrameHelper {
   uint8_t frame_header_padding_{0};
   uint8_t frame_footer_size_{0};
 
+  // Reusable IOV array for write_protobuf_packets to avoid repeated allocations
+  std::vector<struct iovec> reusable_iovs_;
+
   // Receive buffer for reading frame data
   std::vector<uint8_t> rx_buf_;
   uint16_t rx_buf_len_ = 0;
