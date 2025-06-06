@@ -330,7 +330,6 @@ class ProtoMessage {
   virtual void encode(ProtoWriteBuffer buffer) const = 0;
   void decode(const uint8_t *buffer, size_t length);
   virtual void calculate_size(uint32_t &total_size) const = 0;
-  virtual uint16_t get_message_type() const { return 0; }  // Default for nested types
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
   virtual void dump_to(std::string &out) const = 0;
