@@ -223,6 +223,7 @@ void MQTTClientComponent::check_dnslookup_() {
   if (this->dns_resolve_error_) {
     ESP_LOGW(TAG, "Couldn't resolve IP address for '%s'", this->credentials_.address.c_str());
     this->state_ = MQTT_CLIENT_DISCONNECTED;
+    this->disconnect_reason_ = MQTTClientDisconnectReason::DNS_RESOLVE_ERROR;
     this->on_disconnect_.call(MQTTClientDisconnectReason::DNS_RESOLVE_ERROR);
     return;
   }
