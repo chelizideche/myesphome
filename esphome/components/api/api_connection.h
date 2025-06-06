@@ -312,51 +312,6 @@ class APIConnection : public APIServerConnection {
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
-  /**
-   * Generic function for generating entity info response messages.
-   * This is used to reduce duplication in the try_send_*_info functions.
-   *
-   * @param entity The entity to generate info for
-   * @param response The response object
-   * @param send_response_func Function pointer to send the response
-   * @return True if the message was sent successfully
-   */
-  template<typename ResponseT> bool try_send_entity_info_(esphome::EntityBase *entity, ResponseT &response) {
-    // Set common fields that are shared by all entity types
-    response.key = entity->get_object_id_hash();
-    response.object_id = entity->get_object_id();
-
-    if (entity->has_own_name())
-      response.name = entity->get_name();
-
-    // Set common EntityBase properties
-    response.icon = entity->get_icon();
-    response.disabled_by_default = entity->is_disabled_by_default();
-    response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
-
-    // Add to deferred batch with a lambda that creates the message
-    this->deferred_batch_.add_item(entity, [response](EntityBase *) -> std::unique_ptr<ProtoMessage> {
-      return std::make_unique<ResponseT>(response);
-    });
-    return this->schedule_batch_();
-  }
-
-  /**
-   * Generic function for sending entity state messages.
-   *
-   * @param response The state response object with key already set
-   * @return True if the message was sent successfully
-   */
-  template<typename ResponseT> bool try_send_entity_state(ResponseT &response) {
-    // Add to deferred batch with a lambda that creates the message
-    this->deferred_batch_.add_item(
-        [response]() -> std::unique_ptr<ProtoMessage> { return std::make_unique<ResponseT>(response); });
-    this->schedule_batch_();
-    return true;
-  }
-
-  bool send_(const void *buf, size_t len, bool force);
-
  protected:
   // Helper function to fill common entity fields
   template<typename ResponseT> void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {

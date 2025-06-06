@@ -1185,9 +1185,18 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  ListEntitiesCameraResponse msg;
-  msg.unique_id = get_default_unique_id("camera", camera);
-  this->try_send_entity_info_(static_cast<EntityBase *>(camera), msg);
+  // Camera doesn't need to capture extra values, so we can use a lambda that creates the message inline
+  this->deferred_batch_.add_item(camera, [this](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+    auto *cam = static_cast<esp32_camera::ESP32Camera *>(entity);
+    auto msg = std::make_unique<ListEntitiesCameraResponse>();
+    msg->unique_id = get_default_unique_id("camera", cam);
+
+    // Fill common entity fields
+    this->fill_entity_info_base_(cam, *msg);
+
+    return msg;
+  });
+  this->schedule_batch_();
 }
 void APIConnection::camera_image(const CameraImageRequest &msg) {
   if (esp32_camera::global_esp32_camera == nullptr)
