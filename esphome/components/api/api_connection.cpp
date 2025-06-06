@@ -1691,16 +1691,13 @@ void APIConnection::process_batch_() {
   if (this->deferred_batch_.items.size() == 1) {
     const auto &item = this->deferred_batch_.items[0];
     auto message = item.creator(item.entity);
-    if (message) {
-      if (this->send_message(*message)) {
-        this->deferred_batch_.clear();
-      } else {
-        // Message couldn't be sent, keep it for retry
-        // Batch is still scheduled, will retry later
-      }
-    } else {
-      this->deferred_batch_.clear();  // Creator failed, remove item
+    if (message && this->send_message(*message)) {
+      this->deferred_batch_.clear();
+    } else if (!message) {
+      // Memory allocation failed, remove item
+      this->deferred_batch_.clear();
     }
+    // If send fails, keep for retry
     return;
   }
 
@@ -1729,7 +1726,7 @@ void APIConnection::process_batch_() {
     // Create message once
     auto message = item.creator(item.entity);
     if (!message) {
-      continue;  // Skip if creator returned nullptr
+      continue;  // Skip if allocation failed
     }
 
     // Calculate size and overhead
