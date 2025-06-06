@@ -29,8 +29,8 @@ class APIConnection : public APIServerConnection {
   void loop();
 
   bool send_list_info_done() {
-    ListEntitiesDoneResponse resp;
-    return this->send_message(resp);
+    return this->schedule_message_(nullptr, &APIConnection::try_send_list_info_done,
+                                   ListEntitiesDoneResponse::MESSAGE_TYPE);
   }
 #ifdef USE_BINARY_SENSOR
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
@@ -438,6 +438,10 @@ class APIConnection : public APIServerConnection {
   static EncodedMessage try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
 #endif
+
+  // Method for ListEntitiesDone batching
+  static EncodedMessage try_send_list_info_done(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                bool is_single);
 
   enum class ConnectionState {
     WAITING_FOR_HELLO,
