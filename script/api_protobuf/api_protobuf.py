@@ -968,7 +968,6 @@ def build_service_message_type(
         # Only add ifdef when we're actually generating content
         if ifdef is not None:
             hout += f"#ifdef {ifdef}\n"
-            cout += f"#ifdef {ifdef}\n"
         # Generate receive
         func = f"on_{snake}"
         hout += f"virtual void {func}(const {mt.name} &value){{}};\n"
@@ -990,7 +989,6 @@ def build_service_message_type(
         # Only close ifdef if we opened it
         if ifdef is not None:
             hout += "#endif\n"
-            cout += "#endif\n"
 
     return hout, cout
 
