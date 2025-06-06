@@ -1373,8 +1373,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
-  // Use lambda to capture the event_type value
-  this->deferred_batch_.add_item(
+  this->schedule_info_message_(
       event, [event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
         auto *e = static_cast<event::Event *>(entity);
         auto msg = std::make_unique<EventResponse>();
@@ -1382,7 +1381,6 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
         msg->key = e->get_object_id_hash();
         return msg;
       });
-  this->schedule_batch_();
 }
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_info_message_(event, &APIConnection::try_send_event_info_);
