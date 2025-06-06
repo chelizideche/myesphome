@@ -1717,7 +1717,7 @@ void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator c
   }
 
   // No existing item found, add new one
-  items.push_back({entity, std::move(creator), App.get_loop_component_start_time(), message_type});
+  items.emplace_back(entity, std::move(creator), App.get_loop_component_start_time(), message_type);
 }
 
 bool APIConnection::schedule_batch_() {
