@@ -33,7 +33,7 @@ class APIConnection : public APIServerConnection {
                                    ListEntitiesDoneResponse::MESSAGE_TYPE);
   }
 #ifdef USE_BINARY_SENSOR
-  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
+  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor);
   void send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor);
 #endif
 #ifdef USE_COVER
@@ -52,16 +52,16 @@ class APIConnection : public APIServerConnection {
   void light_command(const LightCommandRequest &msg) override;
 #endif
 #ifdef USE_SENSOR
-  bool send_sensor_state(sensor::Sensor *sensor, float state);
+  bool send_sensor_state(sensor::Sensor *sensor);
   void send_sensor_info(sensor::Sensor *sensor);
 #endif
 #ifdef USE_SWITCH
-  bool send_switch_state(switch_::Switch *a_switch, bool state);
+  bool send_switch_state(switch_::Switch *a_switch);
   void send_switch_info(switch_::Switch *a_switch);
   void switch_command(const SwitchCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT_SENSOR
-  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state);
+  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor);
   void send_text_sensor_info(text_sensor::TextSensor *text_sensor);
 #endif
 #ifdef USE_ESP32_CAMERA
@@ -75,7 +75,7 @@ class APIConnection : public APIServerConnection {
   void climate_command(const ClimateCommandRequest &msg) override;
 #endif
 #ifdef USE_NUMBER
-  bool send_number_state(number::Number *number, float state);
+  bool send_number_state(number::Number *number);
   void send_number_info(number::Number *number);
   void number_command(const NumberCommandRequest &msg) override;
 #endif
@@ -95,12 +95,12 @@ class APIConnection : public APIServerConnection {
   void datetime_command(const DateTimeCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT
-  bool send_text_state(text::Text *text, std::string state);
+  bool send_text_state(text::Text *text);
   void send_text_info(text::Text *text);
   void text_command(const TextCommandRequest &msg) override;
 #endif
 #ifdef USE_SELECT
-  bool send_select_state(select::Select *select, std::string state);
+  bool send_select_state(select::Select *select);
   void send_select_info(select::Select *select);
   void select_command(const SelectCommandRequest &msg) override;
 #endif
@@ -109,7 +109,7 @@ class APIConnection : public APIServerConnection {
   void button_command(const ButtonCommandRequest &msg) override;
 #endif
 #ifdef USE_LOCK
-  bool send_lock_state(lock::Lock *a_lock, lock::LockState state);
+  bool send_lock_state(lock::Lock *a_lock);
   void send_lock_info(lock::Lock *a_lock);
   void lock_command(const LockCommandRequest &msg) override;
 #endif
@@ -313,10 +313,10 @@ class APIConnection : public APIServerConnection {
                                                  uint32_t remaining_size, bool is_single);
 
 #ifdef USE_BINARY_SENSOR
-  static EncodedMessage try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn,
-                                                     uint32_t remaining_size, bool is_single);
   static EncodedMessage try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                     bool is_single);
+  static EncodedMessage try_send_binary_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                     bool is_single);
 #endif
 #ifdef USE_COVER
   static EncodedMessage try_send_cover_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -337,10 +337,10 @@ class APIConnection : public APIServerConnection {
                                             bool is_single);
 #endif
 #ifdef USE_SENSOR
-  static EncodedMessage try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
   static EncodedMessage try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
+  static EncodedMessage try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single);
 #endif
 #ifdef USE_SWITCH
   static EncodedMessage try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -349,10 +349,10 @@ class APIConnection : public APIServerConnection {
                                              bool is_single);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static EncodedMessage try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                   bool is_single);
   static EncodedMessage try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                   bool is_single);
+  static EncodedMessage try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                   bool is_single);
 #endif
 #ifdef USE_CLIMATE
   static EncodedMessage try_send_climate_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -361,10 +361,10 @@ class APIConnection : public APIServerConnection {
                                               bool is_single);
 #endif
 #ifdef USE_NUMBER
-  static EncodedMessage try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
   static EncodedMessage try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
+  static EncodedMessage try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single);
 #endif
 #ifdef USE_DATETIME_DATE
   static EncodedMessage try_send_date_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -385,10 +385,10 @@ class APIConnection : public APIServerConnection {
                                                bool is_single);
 #endif
 #ifdef USE_TEXT
-  static EncodedMessage try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
   static EncodedMessage try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                            bool is_single);
+  static EncodedMessage try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_SELECT
   static EncodedMessage try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
