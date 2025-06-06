@@ -247,8 +247,7 @@ optional<XiaomiParseResult> parse_xiaomi_header(const esp32_ble_tracker::Service
   } else if (device_uuid == 0x0997) {  // Xiaomi (Honeywell)  smoke sensor JTYJGD03MI
     result.type = XiaomiParseResult::TYPE_JTYJGD03MI;
     result.name = "JTYJGD03MI";
-  }
-  else {
+  } else {
     ESP_LOGVV(TAG, "parse_xiaomi_header(): unknown device, no magic bytes.");
     return {};
   }
