@@ -314,6 +314,12 @@ class APIConnection : public APIServerConnection {
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
  protected:
+  // Helper function to schedule a deferred message
+  void schedule_info_message_(EntityBase *entity, MessageCreator creator) {
+    this->deferred_batch_.add_item(entity, creator);
+    this->schedule_batch_();
+  }
+
   // Helper function to fill common entity fields
   template<typename ResponseT> static void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
     // Set common fields that are shared by all entity types

@@ -264,9 +264,7 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
   return this->schedule_batch_();
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
-  // For info messages, we can use function pointer directly since it's static
-  this->deferred_batch_.add_item(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(EntityBase *entity) {
   auto *binary_sensor = static_cast<binary_sensor::BinarySensor *>(entity);
@@ -289,8 +287,7 @@ bool APIConnection::send_cover_state(cover::Cover *cover) {
   return this->schedule_batch_();
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
-  this->deferred_batch_.add_item(cover, &APIConnection::try_send_cover_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(cover, &APIConnection::try_send_cover_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_cover_state_(EntityBase *entity) {
   auto *cover = static_cast<cover::Cover *>(entity);
@@ -353,8 +350,7 @@ bool APIConnection::send_fan_state(fan::Fan *fan) {
   return this->schedule_batch_();
 }
 void APIConnection::send_fan_info(fan::Fan *fan) {
-  this->deferred_batch_.add_item(fan, &APIConnection::try_send_fan_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(fan, &APIConnection::try_send_fan_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_fan_state_(EntityBase *entity) {
   auto *fan = static_cast<fan::Fan *>(entity);
@@ -415,8 +411,7 @@ bool APIConnection::send_light_state(light::LightState *light) {
   return this->schedule_batch_();
 }
 void APIConnection::send_light_info(light::LightState *light) {
-  this->deferred_batch_.add_item(light, &APIConnection::try_send_light_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(light, &APIConnection::try_send_light_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_light_state_(EntityBase *entity) {
   auto *light = static_cast<light::LightState *>(entity);
@@ -519,8 +514,7 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
-  this->deferred_batch_.add_item(sensor, &APIConnection::try_send_sensor_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(sensor, &APIConnection::try_send_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *entity) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
@@ -551,8 +545,7 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
-  this->deferred_batch_.add_item(a_switch, &APIConnection::try_send_switch_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(a_switch, &APIConnection::try_send_switch_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_switch_info_(EntityBase *entity) {
   auto *a_switch = static_cast<switch_::Switch *>(entity);
@@ -591,9 +584,7 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
   return this->schedule_batch_();
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(text_sensor, &APIConnection::try_send_text_sensor_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(text_sensor, &APIConnection::try_send_text_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBase *entity) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
@@ -649,9 +640,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase 
   return msg;
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(climate, &APIConnection::try_send_climate_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(climate, &APIConnection::try_send_climate_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_info_(EntityBase *entity) {
   auto *climate = static_cast<climate::Climate *>(entity);
@@ -732,9 +721,7 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_number_info(number::Number *number) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(number, &APIConnection::try_send_number_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(number, &APIConnection::try_send_number_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_number_info_(EntityBase *entity) {
   auto *number = static_cast<number::Number *>(entity);
@@ -780,9 +767,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *en
   return msg;
 }
 void APIConnection::send_date_info(datetime::DateEntity *date) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(date, &APIConnection::try_send_date_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(date, &APIConnection::try_send_date_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_info_(EntityBase *entity) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
