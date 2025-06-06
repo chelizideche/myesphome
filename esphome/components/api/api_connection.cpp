@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <utility>
 #include <functional>
+#include <limits>
 #include "esphome/components/network/util.h"
 #include "esphome/core/application.h"
 #include "esphome/core/entity_base.h"
@@ -1710,9 +1711,9 @@ void APIConnection::on_fatal_error() {
   this->remove_ = true;
 }
 
-void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator creator) {
+void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
   // Add new item without deduplication for now
-  items.push_back({entity, std::move(creator), App.get_loop_component_start_time()});
+  items.push_back({entity, std::move(creator), App.get_loop_component_start_time(), message_type});
 }
 
 bool APIConnection::schedule_batch_() {
@@ -1753,7 +1754,7 @@ void APIConnection::process_batch_() {
     BufferAllocator allocator = std::bind(&APIConnection::allocate_single_message_buffer, this, std::placeholders::_1);
 
     // Let the creator calculate size and encode if it fits
-    MessageInfo info = item.creator(item.entity, allocator, UINT32_MAX);
+    MessageInfo info = item.creator(item.entity, allocator, std::numeric_limits<uint16_t>::max());
 
     if (info.encoded && this->send_buffer(ProtoWriteBuffer{&this->proto_write_buffer_}, info.type)) {
       this->deferred_batch_.clear();
@@ -1796,15 +1797,11 @@ void APIConnection::process_batch_() {
       current_offset = this->proto_write_buffer_.size() - this->helper_->frame_header_padding();
     }
 
-    // Save buffer position in case we need to rollback
-    size_t buffer_pos_before = this->proto_write_buffer_.size();
-
     // Try to encode message with allocator
     MessageInfo info = item.creator(item.entity, allocator, remaining_size);
 
     if (!info.encoded) {
-      // Message didn't fit, rollback buffer
-      this->proto_write_buffer_.resize(buffer_pos_before);
+      // Message won't fit (allocator was not called), stop processing
       break;
     }
 

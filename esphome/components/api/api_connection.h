@@ -304,19 +304,15 @@ class APIConnection : public APIServerConnection {
       uint8_t footer_size = this->helper_->frame_footer_size();
       uint8_t header_padding = this->helper_->frame_header_padding();
 
-      // Reserve additional space
+      // Reserve additional space for everything
       this->proto_write_buffer_.reserve(current_size + footer_size + header_padding + message_size);
 
-      // Add footer space for previous message
-      if (footer_size > 0) {
-        this->proto_write_buffer_.resize(current_size + footer_size);
-      }
+      // Single resize to add both footer and header padding
+      size_t new_size = current_size + footer_size + header_padding;
+      this->proto_write_buffer_.resize(new_size);
 
-      // Add header padding for this message
-      size_t new_start = this->proto_write_buffer_.size();
-      this->proto_write_buffer_.resize(new_start + header_padding);
-      // Fill new header padding with zeros
-      std::fill(this->proto_write_buffer_.begin() + new_start, this->proto_write_buffer_.end(), 0);
+      // Fill the newly added bytes with zeros (footer + header padding)
+      std::fill(this->proto_write_buffer_.begin() + current_size, this->proto_write_buffer_.end(), 0);
     }
 
     return {&this->proto_write_buffer_};
@@ -366,7 +362,7 @@ class APIConnection : public APIServerConnection {
 
     // Check if it fits
     if (size > remaining_size) {
-      return {msg.get_message_type(), static_cast<uint16_t>(size), false};
+      return {MessageT::message_type, static_cast<uint16_t>(size), false};
     }
 
     // Allocate exact buffer space needed
@@ -374,7 +370,7 @@ class APIConnection : public APIServerConnection {
 
     // Encode directly into buffer
     msg.encode(buffer);
-    return {msg.get_message_type(), static_cast<uint16_t>(size), true};
+    return {MessageT::message_type, static_cast<uint16_t>(size), true};
   }
 #ifdef USE_BINARY_SENSOR
   static MessageInfo try_send_binary_sensor_state_(EntityBase *binary_sensor, BufferAllocator allocator,
@@ -514,6 +510,7 @@ class APIConnection : public APIServerConnection {
       EntityBase *entity;      // Entity pointer
       MessageCreator creator;  // Function that creates the message when needed
       uint32_t timestamp;      // When this update was queued
+      uint16_t message_type;   // Message type for overhead calculation
     };
 
     std::vector<BatchItem> items;
@@ -521,7 +518,7 @@ class APIConnection : public APIServerConnection {
     bool batch_scheduled{false};
 
     // Add item to the batch
-    void add_item(EntityBase *entity, MessageCreator creator);
+    void add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type);
     void clear() {
       items.clear();
       batch_scheduled = false;
@@ -540,9 +537,17 @@ class APIConnection : public APIServerConnection {
   // State for batch buffer allocation
   bool batch_first_message_{false};
 
-  // Helper function to schedule a deferred message
+  // Helper function to schedule a deferred message with known message type
+  bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
+    this->deferred_batch_.add_item(entity, creator, message_type);
+    return this->schedule_batch_();
+  }
+
+  // For cases where we can deduce the message type at compile time
   bool schedule_message_(EntityBase *entity, MessageCreator creator) {
-    this->deferred_batch_.add_item(entity, creator);
+    // For lambdas, we don't know the message type at compile time
+    // Use a placeholder value - we'll determine it when creating the message
+    this->deferred_batch_.add_item(entity, creator, 0);
     return this->schedule_batch_();
   }
 };

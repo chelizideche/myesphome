@@ -255,7 +255,7 @@ enum UpdateCommand : uint32_t {
 
 class HelloRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 1; }
+  static constexpr uint16_t message_type = 1;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "hello_request"; }
 #endif
@@ -274,7 +274,7 @@ class HelloRequest : public ProtoMessage {
 };
 class HelloResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 2; }
+  static constexpr uint16_t message_type = 2;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "hello_response"; }
 #endif
@@ -294,7 +294,7 @@ class HelloResponse : public ProtoMessage {
 };
 class ConnectRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 3; }
+  static constexpr uint16_t message_type = 3;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "connect_request"; }
 #endif
@@ -310,7 +310,7 @@ class ConnectRequest : public ProtoMessage {
 };
 class ConnectResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 4; }
+  static constexpr uint16_t message_type = 4;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "connect_response"; }
 #endif
@@ -326,7 +326,7 @@ class ConnectResponse : public ProtoMessage {
 };
 class DisconnectRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 5; }
+  static constexpr uint16_t message_type = 5;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "disconnect_request"; }
 #endif
@@ -340,7 +340,7 @@ class DisconnectRequest : public ProtoMessage {
 };
 class DisconnectResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 6; }
+  static constexpr uint16_t message_type = 6;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "disconnect_response"; }
 #endif
@@ -354,7 +354,7 @@ class DisconnectResponse : public ProtoMessage {
 };
 class PingRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 7; }
+  static constexpr uint16_t message_type = 7;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "ping_request"; }
 #endif
@@ -368,7 +368,7 @@ class PingRequest : public ProtoMessage {
 };
 class PingResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 8; }
+  static constexpr uint16_t message_type = 8;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "ping_response"; }
 #endif
@@ -382,7 +382,7 @@ class PingResponse : public ProtoMessage {
 };
 class DeviceInfoRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 9; }
+  static constexpr uint16_t message_type = 9;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "device_info_request"; }
 #endif
@@ -396,7 +396,7 @@ class DeviceInfoRequest : public ProtoMessage {
 };
 class DeviceInfoResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 10; }
+  static constexpr uint16_t message_type = 10;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "device_info_response"; }
 #endif
@@ -431,7 +431,7 @@ class DeviceInfoResponse : public ProtoMessage {
 };
 class ListEntitiesRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 11; }
+  static constexpr uint16_t message_type = 11;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_request"; }
 #endif
@@ -445,7 +445,7 @@ class ListEntitiesRequest : public ProtoMessage {
 };
 class ListEntitiesDoneResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 19; }
+  static constexpr uint16_t message_type = 19;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_done_response"; }
 #endif
@@ -459,7 +459,7 @@ class ListEntitiesDoneResponse : public ProtoMessage {
 };
 class SubscribeStatesRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 20; }
+  static constexpr uint16_t message_type = 20;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_states_request"; }
 #endif
@@ -473,7 +473,7 @@ class SubscribeStatesRequest : public ProtoMessage {
 };
 class ListEntitiesBinarySensorResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 12; }
+  static constexpr uint16_t message_type = 12;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_binary_sensor_response"; }
 #endif
@@ -499,7 +499,7 @@ class ListEntitiesBinarySensorResponse : public ProtoMessage {
 };
 class BinarySensorStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 21; }
+  static constexpr uint16_t message_type = 21;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "binary_sensor_state_response"; }
 #endif
@@ -518,7 +518,7 @@ class BinarySensorStateResponse : public ProtoMessage {
 };
 class ListEntitiesCoverResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 13; }
+  static constexpr uint16_t message_type = 13;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_cover_response"; }
 #endif
@@ -547,7 +547,7 @@ class ListEntitiesCoverResponse : public ProtoMessage {
 };
 class CoverStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 22; }
+  static constexpr uint16_t message_type = 22;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "cover_state_response"; }
 #endif
@@ -568,7 +568,7 @@ class CoverStateResponse : public ProtoMessage {
 };
 class CoverCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 30; }
+  static constexpr uint16_t message_type = 30;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "cover_command_request"; }
 #endif
@@ -592,7 +592,7 @@ class CoverCommandRequest : public ProtoMessage {
 };
 class ListEntitiesFanResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 14; }
+  static constexpr uint16_t message_type = 14;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_fan_response"; }
 #endif
@@ -621,7 +621,7 @@ class ListEntitiesFanResponse : public ProtoMessage {
 };
 class FanStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 23; }
+  static constexpr uint16_t message_type = 23;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "fan_state_response"; }
 #endif
@@ -645,7 +645,7 @@ class FanStateResponse : public ProtoMessage {
 };
 class FanCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 31; }
+  static constexpr uint16_t message_type = 31;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "fan_command_request"; }
 #endif
@@ -675,7 +675,7 @@ class FanCommandRequest : public ProtoMessage {
 };
 class ListEntitiesLightResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 15; }
+  static constexpr uint16_t message_type = 15;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_light_response"; }
 #endif
@@ -707,7 +707,7 @@ class ListEntitiesLightResponse : public ProtoMessage {
 };
 class LightStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 24; }
+  static constexpr uint16_t message_type = 24;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "light_state_response"; }
 #endif
@@ -737,7 +737,7 @@ class LightStateResponse : public ProtoMessage {
 };
 class LightCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 32; }
+  static constexpr uint16_t message_type = 32;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "light_command_request"; }
 #endif
@@ -781,7 +781,7 @@ class LightCommandRequest : public ProtoMessage {
 };
 class ListEntitiesSensorResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 16; }
+  static constexpr uint16_t message_type = 16;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_sensor_response"; }
 #endif
@@ -811,7 +811,7 @@ class ListEntitiesSensorResponse : public ProtoMessage {
 };
 class SensorStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 25; }
+  static constexpr uint16_t message_type = 25;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "sensor_state_response"; }
 #endif
@@ -830,7 +830,7 @@ class SensorStateResponse : public ProtoMessage {
 };
 class ListEntitiesSwitchResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 17; }
+  static constexpr uint16_t message_type = 17;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_switch_response"; }
 #endif
@@ -856,7 +856,7 @@ class ListEntitiesSwitchResponse : public ProtoMessage {
 };
 class SwitchStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 26; }
+  static constexpr uint16_t message_type = 26;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "switch_state_response"; }
 #endif
@@ -874,7 +874,7 @@ class SwitchStateResponse : public ProtoMessage {
 };
 class SwitchCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 33; }
+  static constexpr uint16_t message_type = 33;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "switch_command_request"; }
 #endif
@@ -892,7 +892,7 @@ class SwitchCommandRequest : public ProtoMessage {
 };
 class ListEntitiesTextSensorResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 18; }
+  static constexpr uint16_t message_type = 18;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_text_sensor_response"; }
 #endif
@@ -917,7 +917,7 @@ class ListEntitiesTextSensorResponse : public ProtoMessage {
 };
 class TextSensorStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 27; }
+  static constexpr uint16_t message_type = 27;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "text_sensor_state_response"; }
 #endif
@@ -937,7 +937,7 @@ class TextSensorStateResponse : public ProtoMessage {
 };
 class SubscribeLogsRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 28; }
+  static constexpr uint16_t message_type = 28;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_logs_request"; }
 #endif
@@ -954,7 +954,7 @@ class SubscribeLogsRequest : public ProtoMessage {
 };
 class SubscribeLogsResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 29; }
+  static constexpr uint16_t message_type = 29;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_logs_response"; }
 #endif
@@ -973,7 +973,7 @@ class SubscribeLogsResponse : public ProtoMessage {
 };
 class NoiseEncryptionSetKeyRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 124; }
+  static constexpr uint16_t message_type = 124;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "noise_encryption_set_key_request"; }
 #endif
@@ -989,7 +989,7 @@ class NoiseEncryptionSetKeyRequest : public ProtoMessage {
 };
 class NoiseEncryptionSetKeyResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 125; }
+  static constexpr uint16_t message_type = 125;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "noise_encryption_set_key_response"; }
 #endif
@@ -1005,7 +1005,7 @@ class NoiseEncryptionSetKeyResponse : public ProtoMessage {
 };
 class SubscribeHomeassistantServicesRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 34; }
+  static constexpr uint16_t message_type = 34;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_homeassistant_services_request"; }
 #endif
@@ -1032,7 +1032,7 @@ class HomeassistantServiceMap : public ProtoMessage {
 };
 class HomeassistantServiceResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 35; }
+  static constexpr uint16_t message_type = 35;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "homeassistant_service_response"; }
 #endif
@@ -1053,7 +1053,7 @@ class HomeassistantServiceResponse : public ProtoMessage {
 };
 class SubscribeHomeAssistantStatesRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 38; }
+  static constexpr uint16_t message_type = 38;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_home_assistant_states_request"; }
 #endif
@@ -1067,7 +1067,7 @@ class SubscribeHomeAssistantStatesRequest : public ProtoMessage {
 };
 class SubscribeHomeAssistantStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 39; }
+  static constexpr uint16_t message_type = 39;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_home_assistant_state_response"; }
 #endif
@@ -1086,7 +1086,7 @@ class SubscribeHomeAssistantStateResponse : public ProtoMessage {
 };
 class HomeAssistantStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 40; }
+  static constexpr uint16_t message_type = 40;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "home_assistant_state_response"; }
 #endif
@@ -1104,7 +1104,7 @@ class HomeAssistantStateResponse : public ProtoMessage {
 };
 class GetTimeRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 36; }
+  static constexpr uint16_t message_type = 36;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "get_time_request"; }
 #endif
@@ -1118,7 +1118,7 @@ class GetTimeRequest : public ProtoMessage {
 };
 class GetTimeResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 37; }
+  static constexpr uint16_t message_type = 37;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "get_time_response"; }
 #endif
@@ -1148,7 +1148,7 @@ class ListEntitiesServicesArgument : public ProtoMessage {
 };
 class ListEntitiesServicesResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 41; }
+  static constexpr uint16_t message_type = 41;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_services_response"; }
 #endif
@@ -1189,7 +1189,7 @@ class ExecuteServiceArgument : public ProtoMessage {
 };
 class ExecuteServiceRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 42; }
+  static constexpr uint16_t message_type = 42;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "execute_service_request"; }
 #endif
@@ -1207,7 +1207,7 @@ class ExecuteServiceRequest : public ProtoMessage {
 };
 class ListEntitiesCameraResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 43; }
+  static constexpr uint16_t message_type = 43;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_camera_response"; }
 #endif
@@ -1231,7 +1231,7 @@ class ListEntitiesCameraResponse : public ProtoMessage {
 };
 class CameraImageResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 44; }
+  static constexpr uint16_t message_type = 44;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "camera_image_response"; }
 #endif
@@ -1251,7 +1251,7 @@ class CameraImageResponse : public ProtoMessage {
 };
 class CameraImageRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 45; }
+  static constexpr uint16_t message_type = 45;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "camera_image_request"; }
 #endif
@@ -1268,7 +1268,7 @@ class CameraImageRequest : public ProtoMessage {
 };
 class ListEntitiesClimateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 46; }
+  static constexpr uint16_t message_type = 46;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_climate_response"; }
 #endif
@@ -1310,7 +1310,7 @@ class ListEntitiesClimateResponse : public ProtoMessage {
 };
 class ClimateStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 47; }
+  static constexpr uint16_t message_type = 47;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "climate_state_response"; }
 #endif
@@ -1342,7 +1342,7 @@ class ClimateStateResponse : public ProtoMessage {
 };
 class ClimateCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 48; }
+  static constexpr uint16_t message_type = 48;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "climate_command_request"; }
 #endif
@@ -1382,7 +1382,7 @@ class ClimateCommandRequest : public ProtoMessage {
 };
 class ListEntitiesNumberResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 49; }
+  static constexpr uint16_t message_type = 49;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_number_response"; }
 #endif
@@ -1412,7 +1412,7 @@ class ListEntitiesNumberResponse : public ProtoMessage {
 };
 class NumberStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 50; }
+  static constexpr uint16_t message_type = 50;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "number_state_response"; }
 #endif
@@ -1431,7 +1431,7 @@ class NumberStateResponse : public ProtoMessage {
 };
 class NumberCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 51; }
+  static constexpr uint16_t message_type = 51;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "number_command_request"; }
 #endif
@@ -1448,7 +1448,7 @@ class NumberCommandRequest : public ProtoMessage {
 };
 class ListEntitiesSelectResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 52; }
+  static constexpr uint16_t message_type = 52;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_select_response"; }
 #endif
@@ -1473,7 +1473,7 @@ class ListEntitiesSelectResponse : public ProtoMessage {
 };
 class SelectStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 53; }
+  static constexpr uint16_t message_type = 53;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "select_state_response"; }
 #endif
@@ -1493,7 +1493,7 @@ class SelectStateResponse : public ProtoMessage {
 };
 class SelectCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 54; }
+  static constexpr uint16_t message_type = 54;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "select_command_request"; }
 #endif
@@ -1511,7 +1511,7 @@ class SelectCommandRequest : public ProtoMessage {
 };
 class ListEntitiesSirenResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 55; }
+  static constexpr uint16_t message_type = 55;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_siren_response"; }
 #endif
@@ -1538,7 +1538,7 @@ class ListEntitiesSirenResponse : public ProtoMessage {
 };
 class SirenStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 56; }
+  static constexpr uint16_t message_type = 56;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "siren_state_response"; }
 #endif
@@ -1556,7 +1556,7 @@ class SirenStateResponse : public ProtoMessage {
 };
 class SirenCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 57; }
+  static constexpr uint16_t message_type = 57;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "siren_command_request"; }
 #endif
@@ -1582,7 +1582,7 @@ class SirenCommandRequest : public ProtoMessage {
 };
 class ListEntitiesLockResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 58; }
+  static constexpr uint16_t message_type = 58;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_lock_response"; }
 #endif
@@ -1610,7 +1610,7 @@ class ListEntitiesLockResponse : public ProtoMessage {
 };
 class LockStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 59; }
+  static constexpr uint16_t message_type = 59;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "lock_state_response"; }
 #endif
@@ -1628,7 +1628,7 @@ class LockStateResponse : public ProtoMessage {
 };
 class LockCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 60; }
+  static constexpr uint16_t message_type = 60;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "lock_command_request"; }
 #endif
@@ -1649,7 +1649,7 @@ class LockCommandRequest : public ProtoMessage {
 };
 class ListEntitiesButtonResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 61; }
+  static constexpr uint16_t message_type = 61;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_button_response"; }
 #endif
@@ -1674,7 +1674,7 @@ class ListEntitiesButtonResponse : public ProtoMessage {
 };
 class ButtonCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 62; }
+  static constexpr uint16_t message_type = 62;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "button_command_request"; }
 #endif
@@ -1707,7 +1707,7 @@ class MediaPlayerSupportedFormat : public ProtoMessage {
 };
 class ListEntitiesMediaPlayerResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 63; }
+  static constexpr uint16_t message_type = 63;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_media_player_response"; }
 #endif
@@ -1733,7 +1733,7 @@ class ListEntitiesMediaPlayerResponse : public ProtoMessage {
 };
 class MediaPlayerStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 64; }
+  static constexpr uint16_t message_type = 64;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "media_player_state_response"; }
 #endif
@@ -1753,7 +1753,7 @@ class MediaPlayerStateResponse : public ProtoMessage {
 };
 class MediaPlayerCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 65; }
+  static constexpr uint16_t message_type = 65;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "media_player_command_request"; }
 #endif
@@ -1779,7 +1779,7 @@ class MediaPlayerCommandRequest : public ProtoMessage {
 };
 class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 66; }
+  static constexpr uint16_t message_type = 66;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_bluetooth_le_advertisements_request"; }
 #endif
@@ -1810,7 +1810,7 @@ class BluetoothServiceData : public ProtoMessage {
 };
 class BluetoothLEAdvertisementResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 67; }
+  static constexpr uint16_t message_type = 67;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_le_advertisement_response"; }
 #endif
@@ -1849,7 +1849,7 @@ class BluetoothLERawAdvertisement : public ProtoMessage {
 };
 class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 93; }
+  static constexpr uint16_t message_type = 93;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_le_raw_advertisements_response"; }
 #endif
@@ -1865,7 +1865,7 @@ class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
 };
 class BluetoothDeviceRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 68; }
+  static constexpr uint16_t message_type = 68;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_device_request"; }
 #endif
@@ -1884,7 +1884,7 @@ class BluetoothDeviceRequest : public ProtoMessage {
 };
 class BluetoothDeviceConnectionResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 69; }
+  static constexpr uint16_t message_type = 69;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_device_connection_response"; }
 #endif
@@ -1903,7 +1903,7 @@ class BluetoothDeviceConnectionResponse : public ProtoMessage {
 };
 class BluetoothGATTGetServicesRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 70; }
+  static constexpr uint16_t message_type = 70;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_get_services_request"; }
 #endif
@@ -1963,7 +1963,7 @@ class BluetoothGATTService : public ProtoMessage {
 };
 class BluetoothGATTGetServicesResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 71; }
+  static constexpr uint16_t message_type = 71;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_get_services_response"; }
 #endif
@@ -1981,7 +1981,7 @@ class BluetoothGATTGetServicesResponse : public ProtoMessage {
 };
 class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 72; }
+  static constexpr uint16_t message_type = 72;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_get_services_done_response"; }
 #endif
@@ -1997,7 +1997,7 @@ class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
 };
 class BluetoothGATTReadRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 73; }
+  static constexpr uint16_t message_type = 73;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_read_request"; }
 #endif
@@ -2014,7 +2014,7 @@ class BluetoothGATTReadRequest : public ProtoMessage {
 };
 class BluetoothGATTReadResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 74; }
+  static constexpr uint16_t message_type = 74;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_read_response"; }
 #endif
@@ -2033,7 +2033,7 @@ class BluetoothGATTReadResponse : public ProtoMessage {
 };
 class BluetoothGATTWriteRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 75; }
+  static constexpr uint16_t message_type = 75;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_write_request"; }
 #endif
@@ -2053,7 +2053,7 @@ class BluetoothGATTWriteRequest : public ProtoMessage {
 };
 class BluetoothGATTReadDescriptorRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 76; }
+  static constexpr uint16_t message_type = 76;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_read_descriptor_request"; }
 #endif
@@ -2070,7 +2070,7 @@ class BluetoothGATTReadDescriptorRequest : public ProtoMessage {
 };
 class BluetoothGATTWriteDescriptorRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 77; }
+  static constexpr uint16_t message_type = 77;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_write_descriptor_request"; }
 #endif
@@ -2089,7 +2089,7 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoMessage {
 };
 class BluetoothGATTNotifyRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 78; }
+  static constexpr uint16_t message_type = 78;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_notify_request"; }
 #endif
@@ -2107,7 +2107,7 @@ class BluetoothGATTNotifyRequest : public ProtoMessage {
 };
 class BluetoothGATTNotifyDataResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 79; }
+  static constexpr uint16_t message_type = 79;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_notify_data_response"; }
 #endif
@@ -2126,7 +2126,7 @@ class BluetoothGATTNotifyDataResponse : public ProtoMessage {
 };
 class SubscribeBluetoothConnectionsFreeRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 80; }
+  static constexpr uint16_t message_type = 80;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_bluetooth_connections_free_request"; }
 #endif
@@ -2140,7 +2140,7 @@ class SubscribeBluetoothConnectionsFreeRequest : public ProtoMessage {
 };
 class BluetoothConnectionsFreeResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 81; }
+  static constexpr uint16_t message_type = 81;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_connections_free_response"; }
 #endif
@@ -2158,7 +2158,7 @@ class BluetoothConnectionsFreeResponse : public ProtoMessage {
 };
 class BluetoothGATTErrorResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 82; }
+  static constexpr uint16_t message_type = 82;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_error_response"; }
 #endif
@@ -2176,7 +2176,7 @@ class BluetoothGATTErrorResponse : public ProtoMessage {
 };
 class BluetoothGATTWriteResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 83; }
+  static constexpr uint16_t message_type = 83;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_write_response"; }
 #endif
@@ -2193,7 +2193,7 @@ class BluetoothGATTWriteResponse : public ProtoMessage {
 };
 class BluetoothGATTNotifyResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 84; }
+  static constexpr uint16_t message_type = 84;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_gatt_notify_response"; }
 #endif
@@ -2210,7 +2210,7 @@ class BluetoothGATTNotifyResponse : public ProtoMessage {
 };
 class BluetoothDevicePairingResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 85; }
+  static constexpr uint16_t message_type = 85;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_device_pairing_response"; }
 #endif
@@ -2228,7 +2228,7 @@ class BluetoothDevicePairingResponse : public ProtoMessage {
 };
 class BluetoothDeviceUnpairingResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 86; }
+  static constexpr uint16_t message_type = 86;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_device_unpairing_response"; }
 #endif
@@ -2246,7 +2246,7 @@ class BluetoothDeviceUnpairingResponse : public ProtoMessage {
 };
 class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 87; }
+  static constexpr uint16_t message_type = 87;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "unsubscribe_bluetooth_le_advertisements_request"; }
 #endif
@@ -2260,7 +2260,7 @@ class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
 };
 class BluetoothDeviceClearCacheResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 88; }
+  static constexpr uint16_t message_type = 88;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_device_clear_cache_response"; }
 #endif
@@ -2278,7 +2278,7 @@ class BluetoothDeviceClearCacheResponse : public ProtoMessage {
 };
 class BluetoothScannerStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 126; }
+  static constexpr uint16_t message_type = 126;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_scanner_state_response"; }
 #endif
@@ -2295,7 +2295,7 @@ class BluetoothScannerStateResponse : public ProtoMessage {
 };
 class BluetoothScannerSetModeRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 127; }
+  static constexpr uint16_t message_type = 127;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "bluetooth_scanner_set_mode_request"; }
 #endif
@@ -2311,7 +2311,7 @@ class BluetoothScannerSetModeRequest : public ProtoMessage {
 };
 class SubscribeVoiceAssistantRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 89; }
+  static constexpr uint16_t message_type = 89;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "subscribe_voice_assistant_request"; }
 #endif
@@ -2343,7 +2343,7 @@ class VoiceAssistantAudioSettings : public ProtoMessage {
 };
 class VoiceAssistantRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 90; }
+  static constexpr uint16_t message_type = 90;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_request"; }
 #endif
@@ -2364,7 +2364,7 @@ class VoiceAssistantRequest : public ProtoMessage {
 };
 class VoiceAssistantResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 91; }
+  static constexpr uint16_t message_type = 91;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_response"; }
 #endif
@@ -2394,7 +2394,7 @@ class VoiceAssistantEventData : public ProtoMessage {
 };
 class VoiceAssistantEventResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 92; }
+  static constexpr uint16_t message_type = 92;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_event_response"; }
 #endif
@@ -2412,7 +2412,7 @@ class VoiceAssistantEventResponse : public ProtoMessage {
 };
 class VoiceAssistantAudio : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 106; }
+  static constexpr uint16_t message_type = 106;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_audio"; }
 #endif
@@ -2430,7 +2430,7 @@ class VoiceAssistantAudio : public ProtoMessage {
 };
 class VoiceAssistantTimerEventResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 115; }
+  static constexpr uint16_t message_type = 115;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_timer_event_response"; }
 #endif
@@ -2452,7 +2452,7 @@ class VoiceAssistantTimerEventResponse : public ProtoMessage {
 };
 class VoiceAssistantAnnounceRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 119; }
+  static constexpr uint16_t message_type = 119;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_announce_request"; }
 #endif
@@ -2472,7 +2472,7 @@ class VoiceAssistantAnnounceRequest : public ProtoMessage {
 };
 class VoiceAssistantAnnounceFinished : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 120; }
+  static constexpr uint16_t message_type = 120;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_announce_finished"; }
 #endif
@@ -2502,7 +2502,7 @@ class VoiceAssistantWakeWord : public ProtoMessage {
 };
 class VoiceAssistantConfigurationRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 121; }
+  static constexpr uint16_t message_type = 121;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_configuration_request"; }
 #endif
@@ -2516,7 +2516,7 @@ class VoiceAssistantConfigurationRequest : public ProtoMessage {
 };
 class VoiceAssistantConfigurationResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 122; }
+  static constexpr uint16_t message_type = 122;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_configuration_response"; }
 #endif
@@ -2535,7 +2535,7 @@ class VoiceAssistantConfigurationResponse : public ProtoMessage {
 };
 class VoiceAssistantSetConfiguration : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 123; }
+  static constexpr uint16_t message_type = 123;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "voice_assistant_set_configuration"; }
 #endif
@@ -2551,7 +2551,7 @@ class VoiceAssistantSetConfiguration : public ProtoMessage {
 };
 class ListEntitiesAlarmControlPanelResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 94; }
+  static constexpr uint16_t message_type = 94;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_alarm_control_panel_response"; }
 #endif
@@ -2578,7 +2578,7 @@ class ListEntitiesAlarmControlPanelResponse : public ProtoMessage {
 };
 class AlarmControlPanelStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 95; }
+  static constexpr uint16_t message_type = 95;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "alarm_control_panel_state_response"; }
 #endif
@@ -2596,7 +2596,7 @@ class AlarmControlPanelStateResponse : public ProtoMessage {
 };
 class AlarmControlPanelCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 96; }
+  static constexpr uint16_t message_type = 96;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "alarm_control_panel_command_request"; }
 #endif
@@ -2616,7 +2616,7 @@ class AlarmControlPanelCommandRequest : public ProtoMessage {
 };
 class ListEntitiesTextResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 97; }
+  static constexpr uint16_t message_type = 97;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_text_response"; }
 #endif
@@ -2644,7 +2644,7 @@ class ListEntitiesTextResponse : public ProtoMessage {
 };
 class TextStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 98; }
+  static constexpr uint16_t message_type = 98;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "text_state_response"; }
 #endif
@@ -2664,7 +2664,7 @@ class TextStateResponse : public ProtoMessage {
 };
 class TextCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 99; }
+  static constexpr uint16_t message_type = 99;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "text_command_request"; }
 #endif
@@ -2682,7 +2682,7 @@ class TextCommandRequest : public ProtoMessage {
 };
 class ListEntitiesDateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 100; }
+  static constexpr uint16_t message_type = 100;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_date_response"; }
 #endif
@@ -2706,7 +2706,7 @@ class ListEntitiesDateResponse : public ProtoMessage {
 };
 class DateStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 101; }
+  static constexpr uint16_t message_type = 101;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "date_state_response"; }
 #endif
@@ -2727,7 +2727,7 @@ class DateStateResponse : public ProtoMessage {
 };
 class DateCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 102; }
+  static constexpr uint16_t message_type = 102;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "date_command_request"; }
 #endif
@@ -2747,7 +2747,7 @@ class DateCommandRequest : public ProtoMessage {
 };
 class ListEntitiesTimeResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 103; }
+  static constexpr uint16_t message_type = 103;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_time_response"; }
 #endif
@@ -2771,7 +2771,7 @@ class ListEntitiesTimeResponse : public ProtoMessage {
 };
 class TimeStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 104; }
+  static constexpr uint16_t message_type = 104;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "time_state_response"; }
 #endif
@@ -2792,7 +2792,7 @@ class TimeStateResponse : public ProtoMessage {
 };
 class TimeCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 105; }
+  static constexpr uint16_t message_type = 105;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "time_command_request"; }
 #endif
@@ -2812,7 +2812,7 @@ class TimeCommandRequest : public ProtoMessage {
 };
 class ListEntitiesEventResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 107; }
+  static constexpr uint16_t message_type = 107;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_event_response"; }
 #endif
@@ -2838,7 +2838,7 @@ class ListEntitiesEventResponse : public ProtoMessage {
 };
 class EventResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 108; }
+  static constexpr uint16_t message_type = 108;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "event_response"; }
 #endif
@@ -2856,7 +2856,7 @@ class EventResponse : public ProtoMessage {
 };
 class ListEntitiesValveResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 109; }
+  static constexpr uint16_t message_type = 109;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_valve_response"; }
 #endif
@@ -2884,7 +2884,7 @@ class ListEntitiesValveResponse : public ProtoMessage {
 };
 class ValveStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 110; }
+  static constexpr uint16_t message_type = 110;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "valve_state_response"; }
 #endif
@@ -2903,7 +2903,7 @@ class ValveStateResponse : public ProtoMessage {
 };
 class ValveCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 111; }
+  static constexpr uint16_t message_type = 111;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "valve_command_request"; }
 #endif
@@ -2923,7 +2923,7 @@ class ValveCommandRequest : public ProtoMessage {
 };
 class ListEntitiesDateTimeResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 112; }
+  static constexpr uint16_t message_type = 112;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_date_time_response"; }
 #endif
@@ -2947,7 +2947,7 @@ class ListEntitiesDateTimeResponse : public ProtoMessage {
 };
 class DateTimeStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 113; }
+  static constexpr uint16_t message_type = 113;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "date_time_state_response"; }
 #endif
@@ -2966,7 +2966,7 @@ class DateTimeStateResponse : public ProtoMessage {
 };
 class DateTimeCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 114; }
+  static constexpr uint16_t message_type = 114;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "date_time_command_request"; }
 #endif
@@ -2983,7 +2983,7 @@ class DateTimeCommandRequest : public ProtoMessage {
 };
 class ListEntitiesUpdateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 116; }
+  static constexpr uint16_t message_type = 116;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_update_response"; }
 #endif
@@ -3008,7 +3008,7 @@ class ListEntitiesUpdateResponse : public ProtoMessage {
 };
 class UpdateStateResponse : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 117; }
+  static constexpr uint16_t message_type = 117;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "update_state_response"; }
 #endif
@@ -3035,7 +3035,7 @@ class UpdateStateResponse : public ProtoMessage {
 };
 class UpdateCommandRequest : public ProtoMessage {
  public:
-  uint16_t get_message_type() const override { return 118; }
+  static constexpr uint16_t message_type = 118;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "update_command_request"; }
 #endif
