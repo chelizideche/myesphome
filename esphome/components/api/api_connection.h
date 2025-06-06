@@ -21,6 +21,7 @@ static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 
 class APIConnection : public APIServerConnection {
  public:
+  friend class APIServer;
   APIConnection(std::unique_ptr<socket::Socket> socket, APIServer *parent);
   virtual ~APIConnection();
 
@@ -314,7 +315,7 @@ class APIConnection : public APIServerConnection {
 
  protected:
   // Helper function to fill common entity fields
-  template<typename ResponseT> void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
+  template<typename ResponseT> static void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
     response.object_id = entity->get_object_id();
@@ -328,86 +329,86 @@ class APIConnection : public APIServerConnection {
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
   }
 #ifdef USE_BINARY_SENSOR
-  std::unique_ptr<ProtoMessage> try_send_binary_sensor_state_(EntityBase *binary_sensor);
-  std::unique_ptr<ProtoMessage> try_send_binary_sensor_info_(EntityBase *binary_sensor);
+  static std::unique_ptr<ProtoMessage> try_send_binary_sensor_state_(EntityBase *binary_sensor);
+  static std::unique_ptr<ProtoMessage> try_send_binary_sensor_info_(EntityBase *binary_sensor);
 #endif
 #ifdef USE_COVER
-  std::unique_ptr<ProtoMessage> try_send_cover_state_(EntityBase *cover);
-  std::unique_ptr<ProtoMessage> try_send_cover_info_(EntityBase *cover);
+  static std::unique_ptr<ProtoMessage> try_send_cover_state_(EntityBase *cover);
+  static std::unique_ptr<ProtoMessage> try_send_cover_info_(EntityBase *cover);
 #endif
 #ifdef USE_FAN
-  std::unique_ptr<ProtoMessage> try_send_fan_state_(EntityBase *fan);
-  std::unique_ptr<ProtoMessage> try_send_fan_info_(EntityBase *fan);
+  static std::unique_ptr<ProtoMessage> try_send_fan_state_(EntityBase *fan);
+  static std::unique_ptr<ProtoMessage> try_send_fan_info_(EntityBase *fan);
 #endif
 #ifdef USE_LIGHT
-  std::unique_ptr<ProtoMessage> try_send_light_state_(EntityBase *light);
-  std::unique_ptr<ProtoMessage> try_send_light_info_(EntityBase *light);
+  static std::unique_ptr<ProtoMessage> try_send_light_state_(EntityBase *light);
+  static std::unique_ptr<ProtoMessage> try_send_light_info_(EntityBase *light);
 #endif
 #ifdef USE_SENSOR
-  std::unique_ptr<ProtoMessage> try_send_sensor_state_(EntityBase *sensor);
-  std::unique_ptr<ProtoMessage> try_send_sensor_info_(EntityBase *sensor);
+  static std::unique_ptr<ProtoMessage> try_send_sensor_state_(EntityBase *sensor);
+  static std::unique_ptr<ProtoMessage> try_send_sensor_info_(EntityBase *sensor);
 #endif
 #ifdef USE_SWITCH
-  std::unique_ptr<ProtoMessage> try_send_switch_state_(EntityBase *a_switch);
-  std::unique_ptr<ProtoMessage> try_send_switch_info_(EntityBase *a_switch);
+  static std::unique_ptr<ProtoMessage> try_send_switch_state_(EntityBase *a_switch);
+  static std::unique_ptr<ProtoMessage> try_send_switch_info_(EntityBase *a_switch);
 #endif
 #ifdef USE_TEXT_SENSOR
-  std::unique_ptr<ProtoMessage> try_send_text_sensor_state_(EntityBase *text_sensor);
-  std::unique_ptr<ProtoMessage> try_send_text_sensor_info_(EntityBase *text_sensor);
+  static std::unique_ptr<ProtoMessage> try_send_text_sensor_state_(EntityBase *text_sensor);
+  static std::unique_ptr<ProtoMessage> try_send_text_sensor_info_(EntityBase *text_sensor);
 #endif
 #ifdef USE_CLIMATE
-  std::unique_ptr<ProtoMessage> try_send_climate_state_(EntityBase *climate);
-  std::unique_ptr<ProtoMessage> try_send_climate_info_(EntityBase *climate);
+  static std::unique_ptr<ProtoMessage> try_send_climate_state_(EntityBase *climate);
+  static std::unique_ptr<ProtoMessage> try_send_climate_info_(EntityBase *climate);
 #endif
 #ifdef USE_NUMBER
-  std::unique_ptr<ProtoMessage> try_send_number_state_(EntityBase *number);
-  std::unique_ptr<ProtoMessage> try_send_number_info_(EntityBase *number);
+  static std::unique_ptr<ProtoMessage> try_send_number_state_(EntityBase *number);
+  static std::unique_ptr<ProtoMessage> try_send_number_info_(EntityBase *number);
 #endif
 #ifdef USE_DATETIME_DATE
-  std::unique_ptr<ProtoMessage> try_send_date_state_(EntityBase *date);
-  std::unique_ptr<ProtoMessage> try_send_date_info_(EntityBase *date);
+  static std::unique_ptr<ProtoMessage> try_send_date_state_(EntityBase *date);
+  static std::unique_ptr<ProtoMessage> try_send_date_info_(EntityBase *date);
 #endif
 #ifdef USE_DATETIME_TIME
-  std::unique_ptr<ProtoMessage> try_send_time_state_(EntityBase *time);
-  std::unique_ptr<ProtoMessage> try_send_time_info_(EntityBase *time);
+  static std::unique_ptr<ProtoMessage> try_send_time_state_(EntityBase *time);
+  static std::unique_ptr<ProtoMessage> try_send_time_info_(EntityBase *time);
 #endif
 #ifdef USE_DATETIME_DATETIME
-  std::unique_ptr<ProtoMessage> try_send_datetime_state_(EntityBase *datetime);
-  std::unique_ptr<ProtoMessage> try_send_datetime_info_(EntityBase *datetime);
+  static std::unique_ptr<ProtoMessage> try_send_datetime_state_(EntityBase *datetime);
+  static std::unique_ptr<ProtoMessage> try_send_datetime_info_(EntityBase *datetime);
 #endif
 #ifdef USE_TEXT
-  std::unique_ptr<ProtoMessage> try_send_text_state_(EntityBase *text);
-  std::unique_ptr<ProtoMessage> try_send_text_info_(EntityBase *text);
+  static std::unique_ptr<ProtoMessage> try_send_text_state_(EntityBase *text);
+  static std::unique_ptr<ProtoMessage> try_send_text_info_(EntityBase *text);
 #endif
 #ifdef USE_SELECT
-  std::unique_ptr<ProtoMessage> try_send_select_state_(EntityBase *select);
-  std::unique_ptr<ProtoMessage> try_send_select_info_(EntityBase *select);
+  static std::unique_ptr<ProtoMessage> try_send_select_state_(EntityBase *select);
+  static std::unique_ptr<ProtoMessage> try_send_select_info_(EntityBase *select);
 #endif
 #ifdef USE_BUTTON
-  std::unique_ptr<ProtoMessage> try_send_button_info_(EntityBase *button);
+  static std::unique_ptr<ProtoMessage> try_send_button_info_(EntityBase *button);
 #endif
 #ifdef USE_LOCK
-  std::unique_ptr<ProtoMessage> try_send_lock_state_(EntityBase *a_lock);
-  std::unique_ptr<ProtoMessage> try_send_lock_info_(EntityBase *a_lock);
+  static std::unique_ptr<ProtoMessage> try_send_lock_state_(EntityBase *a_lock);
+  static std::unique_ptr<ProtoMessage> try_send_lock_info_(EntityBase *a_lock);
 #endif
 #ifdef USE_VALVE
-  std::unique_ptr<ProtoMessage> try_send_valve_state_(EntityBase *valve);
-  std::unique_ptr<ProtoMessage> try_send_valve_info_(EntityBase *valve);
+  static std::unique_ptr<ProtoMessage> try_send_valve_state_(EntityBase *valve);
+  static std::unique_ptr<ProtoMessage> try_send_valve_info_(EntityBase *valve);
 #endif
 #ifdef USE_MEDIA_PLAYER
-  std::unique_ptr<ProtoMessage> try_send_media_player_state_(EntityBase *media_player);
-  std::unique_ptr<ProtoMessage> try_send_media_player_info_(EntityBase *media_player);
+  static std::unique_ptr<ProtoMessage> try_send_media_player_state_(EntityBase *media_player);
+  static std::unique_ptr<ProtoMessage> try_send_media_player_info_(EntityBase *media_player);
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel);
-  std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel);
+  static std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel);
+  static std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel);
 #endif
 #ifdef USE_EVENT
-  std::unique_ptr<ProtoMessage> try_send_event_info_(EntityBase *event);
+  static std::unique_ptr<ProtoMessage> try_send_event_info_(EntityBase *event);
 #endif
 #ifdef USE_UPDATE
-  std::unique_ptr<ProtoMessage> try_send_update_state_(EntityBase *update);
-  std::unique_ptr<ProtoMessage> try_send_update_info_(EntityBase *update);
+  static std::unique_ptr<ProtoMessage> try_send_update_state_(EntityBase *update);
+  static std::unique_ptr<ProtoMessage> try_send_update_info_(EntityBase *update);
 #endif
 
   enum class ConnectionState {

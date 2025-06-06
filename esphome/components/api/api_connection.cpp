@@ -264,9 +264,8 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
   return this->schedule_batch_();
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(binary_sensor,
-                                 std::bind(&APIConnection::try_send_binary_sensor_info_, this, std::placeholders::_1));
+  // For info messages, we can use function pointer directly since it's static
+  this->deferred_batch_.add_item(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(EntityBase *entity) {
@@ -277,7 +276,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(Entity
   msg->unique_id = get_default_unique_id("binary_sensor", binary_sensor);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(binary_sensor, *msg);
+  fill_entity_info_base_(binary_sensor, *msg);
 
   return msg;
 }
@@ -285,12 +284,12 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(Entity
 
 #ifdef USE_COVER
 bool APIConnection::send_cover_state(cover::Cover *cover) {
-  // Cover state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(cover, std::bind(&APIConnection::try_send_cover_state_, this, std::placeholders::_1));
+  // Cover state doesn't need to capture extra values, so we can use function pointer directly
+  this->deferred_batch_.add_item(cover, &APIConnection::try_send_cover_state_);
   return this->schedule_batch_();
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
-  this->deferred_batch_.add_item(cover, std::bind(&APIConnection::try_send_cover_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(cover, &APIConnection::try_send_cover_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_cover_state_(EntityBase *entity) {
@@ -316,7 +315,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_cover_info_(EntityBase *en
   msg->supports_stop = traits.get_supports_stop();
   msg->device_class = cover->get_device_class();
   msg->unique_id = get_default_unique_id("cover", cover);
-  this->fill_entity_info_base_(cover, *msg);
+  fill_entity_info_base_(cover, *msg);
   return msg;
 }
 void APIConnection::cover_command(const CoverCommandRequest &msg) {
@@ -350,11 +349,11 @@ void APIConnection::cover_command(const CoverCommandRequest &msg) {
 
 #ifdef USE_FAN
 bool APIConnection::send_fan_state(fan::Fan *fan) {
-  this->deferred_batch_.add_item(fan, std::bind(&APIConnection::try_send_fan_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(fan, &APIConnection::try_send_fan_state_);
   return this->schedule_batch_();
 }
 void APIConnection::send_fan_info(fan::Fan *fan) {
-  this->deferred_batch_.add_item(fan, std::bind(&APIConnection::try_send_fan_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(fan, &APIConnection::try_send_fan_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_fan_state_(EntityBase *entity) {
@@ -385,7 +384,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_fan_info_(EntityBase *enti
   for (auto const &preset : traits.supported_preset_modes())
     msg->supported_preset_modes.push_back(preset);
   msg->unique_id = get_default_unique_id("fan", fan);
-  this->fill_entity_info_base_(fan, *msg);
+  fill_entity_info_base_(fan, *msg);
   return msg;
 }
 void APIConnection::fan_command(const FanCommandRequest &msg) {
@@ -412,11 +411,11 @@ void APIConnection::fan_command(const FanCommandRequest &msg) {
 
 #ifdef USE_LIGHT
 bool APIConnection::send_light_state(light::LightState *light) {
-  this->deferred_batch_.add_item(light, std::bind(&APIConnection::try_send_light_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(light, &APIConnection::try_send_light_state_);
   return this->schedule_batch_();
 }
 void APIConnection::send_light_info(light::LightState *light) {
-  this->deferred_batch_.add_item(light, std::bind(&APIConnection::try_send_light_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(light, &APIConnection::try_send_light_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_light_state_(EntityBase *entity) {
@@ -466,7 +465,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_light_info_(EntityBase *en
     }
   }
   msg->unique_id = get_default_unique_id("light", light);
-  this->fill_entity_info_base_(light, *msg);
+  fill_entity_info_base_(light, *msg);
   return msg;
 }
 void APIConnection::light_command(const LightCommandRequest &msg) {
@@ -520,7 +519,7 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
-  this->deferred_batch_.add_item(sensor, std::bind(&APIConnection::try_send_sensor_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(sensor, &APIConnection::try_send_sensor_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *entity) {
@@ -534,7 +533,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *e
   msg->unique_id = sensor->unique_id();
   if (msg->unique_id.empty())
     msg->unique_id = get_default_unique_id("sensor", sensor);
-  this->fill_entity_info_base_(sensor, *msg);
+  fill_entity_info_base_(sensor, *msg);
   return msg;
 }
 #endif
@@ -552,8 +551,7 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
-  this->deferred_batch_.add_item(a_switch,
-                                 std::bind(&APIConnection::try_send_switch_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(a_switch, &APIConnection::try_send_switch_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_switch_info_(EntityBase *entity) {
@@ -562,7 +560,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_switch_info_(EntityBase *e
   msg->assumed_state = a_switch->assumed_state();
   msg->device_class = a_switch->get_device_class();
   msg->unique_id = get_default_unique_id("switch", a_switch);
-  this->fill_entity_info_base_(a_switch, *msg);
+  fill_entity_info_base_(a_switch, *msg);
   return msg;
 }
 void APIConnection::switch_command(const SwitchCommandRequest &msg) {
@@ -594,8 +592,7 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(text_sensor,
-                                 std::bind(&APIConnection::try_send_text_sensor_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(text_sensor, &APIConnection::try_send_text_sensor_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBase *entity) {
@@ -607,7 +604,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBa
     msg->unique_id = get_default_unique_id("text_sensor", text_sensor);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(text_sensor, *msg);
+  fill_entity_info_base_(text_sensor, *msg);
 
   return msg;
 }
@@ -616,8 +613,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBa
 #ifdef USE_CLIMATE
 bool APIConnection::send_climate_state(climate::Climate *climate) {
   // Climate state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(climate,
-                                 std::bind(&APIConnection::try_send_climate_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(climate, &APIConnection::try_send_climate_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase *entity) {
@@ -654,8 +650,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase 
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(climate,
-                                 std::bind(&APIConnection::try_send_climate_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(climate, &APIConnection::try_send_climate_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_info_(EntityBase *entity) {
@@ -689,7 +684,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_info_(EntityBase *
   msg->unique_id = get_default_unique_id("climate", climate);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(climate, *msg);
+  fill_entity_info_base_(climate, *msg);
 
   return msg;
 }
@@ -738,7 +733,7 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
 }
 void APIConnection::send_number_info(number::Number *number) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(number, std::bind(&APIConnection::try_send_number_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(number, &APIConnection::try_send_number_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_number_info_(EntityBase *entity) {
@@ -753,7 +748,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_number_info_(EntityBase *e
   msg->unique_id = get_default_unique_id("number", number);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(number, *msg);
+  fill_entity_info_base_(number, *msg);
 
   return msg;
 }
@@ -771,7 +766,7 @@ void APIConnection::number_command(const NumberCommandRequest &msg) {
 #ifdef USE_DATETIME_DATE
 bool APIConnection::send_date_state(datetime::DateEntity *date) {
   // Date state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(date, std::bind(&APIConnection::try_send_date_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(date, &APIConnection::try_send_date_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *entity) {
@@ -786,7 +781,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *en
 }
 void APIConnection::send_date_info(datetime::DateEntity *date) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(date, std::bind(&APIConnection::try_send_date_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(date, &APIConnection::try_send_date_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_info_(EntityBase *entity) {
@@ -795,7 +790,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_date_info_(EntityBase *ent
   msg->unique_id = get_default_unique_id("date", date);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(date, *msg);
+  fill_entity_info_base_(date, *msg);
 
   return msg;
 }
@@ -813,7 +808,7 @@ void APIConnection::date_command(const DateCommandRequest &msg) {
 #ifdef USE_DATETIME_TIME
 bool APIConnection::send_time_state(datetime::TimeEntity *time) {
   // Time state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(time, std::bind(&APIConnection::try_send_time_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(time, &APIConnection::try_send_time_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *entity) {
@@ -828,7 +823,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *en
 }
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(time, std::bind(&APIConnection::try_send_time_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(time, &APIConnection::try_send_time_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_info_(EntityBase *entity) {
@@ -837,7 +832,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_time_info_(EntityBase *ent
   msg->unique_id = get_default_unique_id("time", time);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(time, *msg);
+  fill_entity_info_base_(time, *msg);
 
   return msg;
 }
@@ -855,8 +850,7 @@ void APIConnection::time_command(const TimeCommandRequest &msg) {
 #ifdef USE_DATETIME_DATETIME
 bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
   // DateTime state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(datetime,
-                                 std::bind(&APIConnection::try_send_datetime_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(datetime, &APIConnection::try_send_datetime_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase *entity) {
@@ -872,8 +866,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase
 }
 void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(datetime,
-                                 std::bind(&APIConnection::try_send_datetime_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(datetime, &APIConnection::try_send_datetime_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_info_(EntityBase *entity) {
@@ -882,7 +875,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_info_(EntityBase 
   msg->unique_id = get_default_unique_id("datetime", datetime);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(datetime, *msg);
+  fill_entity_info_base_(datetime, *msg);
 
   return msg;
 }
@@ -913,7 +906,7 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
 }
 void APIConnection::send_text_info(text::Text *text) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(text, std::bind(&APIConnection::try_send_text_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(text, &APIConnection::try_send_text_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_info_(EntityBase *entity) {
@@ -926,7 +919,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_text_info_(EntityBase *ent
   msg->unique_id = get_default_unique_id("text", text);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(text, *msg);
+  fill_entity_info_base_(text, *msg);
 
   return msg;
 }
@@ -957,7 +950,7 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
 }
 void APIConnection::send_select_info(select::Select *select) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(select, std::bind(&APIConnection::try_send_select_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(select, &APIConnection::try_send_select_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_select_info_(EntityBase *entity) {
@@ -968,7 +961,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_select_info_(EntityBase *e
   msg->unique_id = get_default_unique_id("select", select);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(select, *msg);
+  fill_entity_info_base_(select, *msg);
 
   return msg;
 }
@@ -986,7 +979,7 @@ void APIConnection::select_command(const SelectCommandRequest &msg) {
 #ifdef USE_BUTTON
 void esphome::api::APIConnection::send_button_info(button::Button *button) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(button, std::bind(&APIConnection::try_send_button_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(button, &APIConnection::try_send_button_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_button_info_(EntityBase *entity) {
@@ -996,7 +989,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_button_info_(EntityBase *e
   msg->unique_id = get_default_unique_id("button", button);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(button, *msg);
+  fill_entity_info_base_(button, *msg);
 
   return msg;
 }
@@ -1023,7 +1016,7 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(a_lock, std::bind(&APIConnection::try_send_lock_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(a_lock, &APIConnection::try_send_lock_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_lock_info_(EntityBase *entity) {
@@ -1035,7 +1028,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_lock_info_(EntityBase *ent
   msg->unique_id = get_default_unique_id("lock", a_lock);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(a_lock, *msg);
+  fill_entity_info_base_(a_lock, *msg);
 
   return msg;
 }
@@ -1061,7 +1054,7 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 #ifdef USE_VALVE
 bool APIConnection::send_valve_state(valve::Valve *valve) {
   // Valve state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(valve, std::bind(&APIConnection::try_send_valve_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(valve, &APIConnection::try_send_valve_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *entity) {
@@ -1074,7 +1067,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *e
 }
 void APIConnection::send_valve_info(valve::Valve *valve) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(valve, std::bind(&APIConnection::try_send_valve_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(valve, &APIConnection::try_send_valve_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_info_(EntityBase *entity) {
@@ -1088,7 +1081,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_info_(EntityBase *en
   msg->unique_id = get_default_unique_id("valve", valve);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(valve, *msg);
+  fill_entity_info_base_(valve, *msg);
 
   return msg;
 }
@@ -1109,8 +1102,7 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 #ifdef USE_MEDIA_PLAYER
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
   // Media player state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(media_player,
-                                 std::bind(&APIConnection::try_send_media_player_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(media_player, &APIConnection::try_send_media_player_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(EntityBase *entity) {
@@ -1127,8 +1119,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(Entity
 }
 void APIConnection::send_media_player_info(media_player::MediaPlayer *media_player) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(media_player,
-                                 std::bind(&APIConnection::try_send_media_player_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(media_player, &APIConnection::try_send_media_player_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_info_(EntityBase *entity) {
@@ -1148,7 +1139,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_info_(EntityB
   msg->unique_id = get_default_unique_id("media_player", media_player);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(media_player, *msg);
+  fill_entity_info_base_(media_player, *msg);
 
   return msg;
 }
@@ -1185,14 +1176,14 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  // Camera doesn't need to capture extra values, so we can use a lambda that creates the message inline
-  this->deferred_batch_.add_item(camera, [this](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  // Camera info can use a simple lambda without captures since functions are static
+  this->deferred_batch_.add_item(camera, [](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *cam = static_cast<esp32_camera::ESP32Camera *>(entity);
     auto msg = std::make_unique<ListEntitiesCameraResponse>();
     msg->unique_id = get_default_unique_id("camera", cam);
 
     // Fill common entity fields
-    this->fill_entity_info_base_(cam, *msg);
+    fill_entity_info_base_(cam, *msg);
 
     return msg;
   });
@@ -1385,9 +1376,8 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  // Alarm control panel state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(a_alarm_control_panel, std::bind(&APIConnection::try_send_alarm_control_panel_state_,
-                                                                  this, std::placeholders::_1));
+  // Alarm control panel state doesn't need to capture extra values, so we can use function pointer directly
+  this->deferred_batch_.add_item(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity) {
@@ -1398,9 +1388,8 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_
   return msg;
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(a_alarm_control_panel, std::bind(&APIConnection::try_send_alarm_control_panel_info_,
-                                                                  this, std::placeholders::_1));
+  // For info messages, we can use function pointer directly since it's static
+  this->deferred_batch_.add_item(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity) {
@@ -1412,7 +1401,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_info_(
   msg->unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(a_alarm_control_panel, *msg);
+  fill_entity_info_base_(a_alarm_control_panel, *msg);
 
   return msg;
 }
@@ -1465,7 +1454,7 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
 }
 void APIConnection::send_event_info(event::Event *event) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(event, std::bind(&APIConnection::try_send_event_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(event, &APIConnection::try_send_event_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *entity) {
@@ -1477,7 +1466,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *en
   msg->unique_id = get_default_unique_id("event", event);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(event, *msg);
+  fill_entity_info_base_(event, *msg);
 
   return msg;
 }
@@ -1486,8 +1475,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *en
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
   // Update state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(update,
-                                 std::bind(&APIConnection::try_send_update_state_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(update, &APIConnection::try_send_update_state_);
   return this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *entity) {
@@ -1511,7 +1499,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
   // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(update, std::bind(&APIConnection::try_send_update_info_, this, std::placeholders::_1));
+  this->deferred_batch_.add_item(update, &APIConnection::try_send_update_info_);
   this->schedule_batch_();
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_info_(EntityBase *entity) {
@@ -1521,7 +1509,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_update_info_(EntityBase *e
   msg->unique_id = get_default_unique_id("update", update);
 
   // Fill common entity fields
-  this->fill_entity_info_base_(update, *msg);
+  fill_entity_info_base_(update, *msg);
 
   return msg;
 }
