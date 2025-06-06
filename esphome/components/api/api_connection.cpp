@@ -1754,7 +1754,18 @@ void APIConnection::on_fatal_error() {
 }
 
 void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
-  // Add new item without deduplication for now
+  // Check if we already have a message of this type for this entity
+  // This provides deduplication per entity/message_type combination
+  for (auto &item : items) {
+    if (item.entity == entity && item.message_type == message_type) {
+      // Update the existing item with the new creator and timestamp
+      item.creator = std::move(creator);
+      item.timestamp = App.get_loop_component_start_time();
+      return;
+    }
+  }
+
+  // No existing item found, add new one
   items.push_back({entity, std::move(creator), App.get_loop_component_start_time(), message_type});
 }
 
