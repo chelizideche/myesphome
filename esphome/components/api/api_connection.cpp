@@ -252,7 +252,7 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 
 #ifdef USE_BINARY_SENSOR
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
-  return this->schedule_state_message_(binary_sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_message_(binary_sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
     auto msg = std::make_unique<BinarySensorStateResponse>();
     msg->state = state;
@@ -262,7 +262,7 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
   });
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
-  this->schedule_info_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
+  this->schedule_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(EntityBase *entity) {
   auto *binary_sensor = static_cast<binary_sensor::BinarySensor *>(entity);
@@ -280,10 +280,10 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(Entity
 
 #ifdef USE_COVER
 bool APIConnection::send_cover_state(cover::Cover *cover) {
-  return this->schedule_state_message_(cover, &APIConnection::try_send_cover_state_);
+  return this->schedule_message_(cover, &APIConnection::try_send_cover_state_);
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
-  this->schedule_info_message_(cover, &APIConnection::try_send_cover_info_);
+  this->schedule_message_(cover, &APIConnection::try_send_cover_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_cover_state_(EntityBase *entity) {
   auto *cover = static_cast<cover::Cover *>(entity);
@@ -342,11 +342,9 @@ void APIConnection::cover_command(const CoverCommandRequest &msg) {
 
 #ifdef USE_FAN
 bool APIConnection::send_fan_state(fan::Fan *fan) {
-  return this->schedule_state_message_(fan, &APIConnection::try_send_fan_state_);
+  return this->schedule_message_(fan, &APIConnection::try_send_fan_state_);
 }
-void APIConnection::send_fan_info(fan::Fan *fan) {
-  this->schedule_info_message_(fan, &APIConnection::try_send_fan_info_);
-}
+void APIConnection::send_fan_info(fan::Fan *fan) { this->schedule_message_(fan, &APIConnection::try_send_fan_info_); }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_fan_state_(EntityBase *entity) {
   auto *fan = static_cast<fan::Fan *>(entity);
   auto msg = std::make_unique<FanStateResponse>();
@@ -402,10 +400,10 @@ void APIConnection::fan_command(const FanCommandRequest &msg) {
 
 #ifdef USE_LIGHT
 bool APIConnection::send_light_state(light::LightState *light) {
-  return this->schedule_state_message_(light, &APIConnection::try_send_light_state_);
+  return this->schedule_message_(light, &APIConnection::try_send_light_state_);
 }
 void APIConnection::send_light_info(light::LightState *light) {
-  this->schedule_info_message_(light, &APIConnection::try_send_light_info_);
+  this->schedule_message_(light, &APIConnection::try_send_light_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_light_state_(EntityBase *entity) {
   auto *light = static_cast<light::LightState *>(entity);
@@ -496,7 +494,7 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 
 #ifdef USE_SENSOR
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
-  return this->schedule_state_message_(sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_message_(sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *s = static_cast<sensor::Sensor *>(entity);
     auto msg = std::make_unique<SensorStateResponse>();
     msg->state = state;
@@ -506,7 +504,7 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   });
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
-  this->schedule_info_message_(sensor, &APIConnection::try_send_sensor_info_);
+  this->schedule_message_(sensor, &APIConnection::try_send_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *entity) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
@@ -526,7 +524,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *e
 
 #ifdef USE_SWITCH
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
-  return this->schedule_state_message_(a_switch, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_message_(a_switch, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *sw = static_cast<switch_::Switch *>(entity);
     auto msg = std::make_unique<SwitchStateResponse>();
     msg->state = state;
@@ -535,7 +533,7 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   });
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
-  this->schedule_info_message_(a_switch, &APIConnection::try_send_switch_info_);
+  this->schedule_message_(a_switch, &APIConnection::try_send_switch_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_switch_info_(EntityBase *entity) {
   auto *a_switch = static_cast<switch_::Switch *>(entity);
@@ -561,18 +559,18 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 
 #ifdef USE_TEXT_SENSOR
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
-  return this->schedule_state_message_(text_sensor,
-                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-                                         auto msg = std::make_unique<TextSensorStateResponse>();
-                                         msg->state = std::move(state);
-                                         msg->missing_state = !ts->has_state();
-                                         msg->key = ts->get_object_id_hash();
-                                         return msg;
-                                       });
+  return this->schedule_message_(text_sensor,
+                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                   auto *ts = static_cast<text_sensor::TextSensor *>(entity);
+                                   auto msg = std::make_unique<TextSensorStateResponse>();
+                                   msg->state = std::move(state);
+                                   msg->missing_state = !ts->has_state();
+                                   msg->key = ts->get_object_id_hash();
+                                   return msg;
+                                 });
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
-  this->schedule_info_message_(text_sensor, &APIConnection::try_send_text_sensor_info_);
+  this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBase *entity) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
@@ -591,7 +589,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBa
 
 #ifdef USE_CLIMATE
 bool APIConnection::send_climate_state(climate::Climate *climate) {
-  return this->schedule_state_message_(climate, &APIConnection::try_send_climate_state_);
+  return this->schedule_message_(climate, &APIConnection::try_send_climate_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase *entity) {
   auto *climate = static_cast<climate::Climate *>(entity);
@@ -626,7 +624,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase 
   return msg;
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
-  this->schedule_info_message_(climate, &APIConnection::try_send_climate_info_);
+  this->schedule_message_(climate, &APIConnection::try_send_climate_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_info_(EntityBase *entity) {
   auto *climate = static_cast<climate::Climate *>(entity);
@@ -695,7 +693,7 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 
 #ifdef USE_NUMBER
 bool APIConnection::send_number_state(number::Number *number, float state) {
-  return this->schedule_state_message_(number, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_message_(number, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *n = static_cast<number::Number *>(entity);
     auto msg = std::make_unique<NumberStateResponse>();
     msg->state = state;
@@ -705,7 +703,7 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
   });
 }
 void APIConnection::send_number_info(number::Number *number) {
-  this->schedule_info_message_(number, &APIConnection::try_send_number_info_);
+  this->schedule_message_(number, &APIConnection::try_send_number_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_number_info_(EntityBase *entity) {
   auto *number = static_cast<number::Number *>(entity);
@@ -736,7 +734,7 @@ void APIConnection::number_command(const NumberCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATE
 bool APIConnection::send_date_state(datetime::DateEntity *date) {
-  return this->schedule_state_message_(date, &APIConnection::try_send_date_state_);
+  return this->schedule_message_(date, &APIConnection::try_send_date_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *entity) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
@@ -749,7 +747,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *en
   return msg;
 }
 void APIConnection::send_date_info(datetime::DateEntity *date) {
-  this->schedule_info_message_(date, &APIConnection::try_send_date_info_);
+  this->schedule_message_(date, &APIConnection::try_send_date_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_info_(EntityBase *entity) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
@@ -774,7 +772,7 @@ void APIConnection::date_command(const DateCommandRequest &msg) {
 
 #ifdef USE_DATETIME_TIME
 bool APIConnection::send_time_state(datetime::TimeEntity *time) {
-  return this->schedule_state_message_(time, &APIConnection::try_send_time_state_);
+  return this->schedule_message_(time, &APIConnection::try_send_time_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *entity) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
@@ -787,7 +785,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *en
   return msg;
 }
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
-  this->schedule_info_message_(time, &APIConnection::try_send_time_info_);
+  this->schedule_message_(time, &APIConnection::try_send_time_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_info_(EntityBase *entity) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
@@ -812,7 +810,7 @@ void APIConnection::time_command(const TimeCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATETIME
 bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
-  return this->schedule_state_message_(datetime, &APIConnection::try_send_datetime_state_);
+  return this->schedule_message_(datetime, &APIConnection::try_send_datetime_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase *entity) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
@@ -826,7 +824,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase
   return msg;
 }
 void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
-  this->schedule_info_message_(datetime, &APIConnection::try_send_datetime_info_);
+  this->schedule_message_(datetime, &APIConnection::try_send_datetime_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_info_(EntityBase *entity) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
@@ -851,18 +849,17 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
-  return this->schedule_state_message_(text,
-                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                         auto *t = static_cast<text::Text *>(entity);
-                                         auto msg = std::make_unique<TextStateResponse>();
-                                         msg->state = std::move(state);
-                                         msg->missing_state = !t->has_state();
-                                         msg->key = t->get_object_id_hash();
-                                         return msg;
-                                       });
+  return this->schedule_message_(text, [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+    auto *t = static_cast<text::Text *>(entity);
+    auto msg = std::make_unique<TextStateResponse>();
+    msg->state = std::move(state);
+    msg->missing_state = !t->has_state();
+    msg->key = t->get_object_id_hash();
+    return msg;
+  });
 }
 void APIConnection::send_text_info(text::Text *text) {
-  this->schedule_info_message_(text, &APIConnection::try_send_text_info_);
+  this->schedule_message_(text, &APIConnection::try_send_text_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_info_(EntityBase *entity) {
   auto *text = static_cast<text::Text *>(entity);
@@ -891,18 +888,18 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 
 #ifdef USE_SELECT
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
-  return this->schedule_state_message_(select,
-                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                         auto *s = static_cast<select::Select *>(entity);
-                                         auto msg = std::make_unique<SelectStateResponse>();
-                                         msg->state = std::move(state);
-                                         msg->missing_state = !s->has_state();
-                                         msg->key = s->get_object_id_hash();
-                                         return msg;
-                                       });
+  return this->schedule_message_(select,
+                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                   auto *s = static_cast<select::Select *>(entity);
+                                   auto msg = std::make_unique<SelectStateResponse>();
+                                   msg->state = std::move(state);
+                                   msg->missing_state = !s->has_state();
+                                   msg->key = s->get_object_id_hash();
+                                   return msg;
+                                 });
 }
 void APIConnection::send_select_info(select::Select *select) {
-  this->schedule_info_message_(select, &APIConnection::try_send_select_info_);
+  this->schedule_message_(select, &APIConnection::try_send_select_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_select_info_(EntityBase *entity) {
   auto *select = static_cast<select::Select *>(entity);
@@ -929,7 +926,7 @@ void APIConnection::select_command(const SelectCommandRequest &msg) {
 
 #ifdef USE_BUTTON
 void esphome::api::APIConnection::send_button_info(button::Button *button) {
-  this->schedule_info_message_(button, &APIConnection::try_send_button_info_);
+  this->schedule_message_(button, &APIConnection::try_send_button_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_button_info_(EntityBase *entity) {
   auto *button = static_cast<button::Button *>(entity);
@@ -953,7 +950,7 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 
 #ifdef USE_LOCK
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
-  return this->schedule_state_message_(a_lock, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_message_(a_lock, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *l = static_cast<lock::Lock *>(entity);
     auto msg = std::make_unique<LockStateResponse>();
     msg->state = static_cast<enums::LockState>(state);
@@ -962,7 +959,7 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
   });
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
-  this->schedule_info_message_(a_lock, &APIConnection::try_send_lock_info_);
+  this->schedule_message_(a_lock, &APIConnection::try_send_lock_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_lock_info_(EntityBase *entity) {
   auto *a_lock = static_cast<lock::Lock *>(entity);
@@ -998,7 +995,7 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 
 #ifdef USE_VALVE
 bool APIConnection::send_valve_state(valve::Valve *valve) {
-  return this->schedule_state_message_(valve, &APIConnection::try_send_valve_state_);
+  return this->schedule_message_(valve, &APIConnection::try_send_valve_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *entity) {
   auto *valve = static_cast<valve::Valve *>(entity);
@@ -1009,7 +1006,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *e
   return msg;
 }
 void APIConnection::send_valve_info(valve::Valve *valve) {
-  this->schedule_info_message_(valve, &APIConnection::try_send_valve_info_);
+  this->schedule_message_(valve, &APIConnection::try_send_valve_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_info_(EntityBase *entity) {
   auto *valve = static_cast<valve::Valve *>(entity);
@@ -1042,7 +1039,7 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 
 #ifdef USE_MEDIA_PLAYER
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
-  return this->schedule_state_message_(media_player, &APIConnection::try_send_media_player_state_);
+  return this->schedule_message_(media_player, &APIConnection::try_send_media_player_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(EntityBase *entity) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
@@ -1057,7 +1054,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(Entity
   return msg;
 }
 void APIConnection::send_media_player_info(media_player::MediaPlayer *media_player) {
-  this->schedule_info_message_(media_player, &APIConnection::try_send_media_player_info_);
+  this->schedule_message_(media_player, &APIConnection::try_send_media_player_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_info_(EntityBase *entity) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
@@ -1113,7 +1110,7 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  this->schedule_info_message_(camera, &APIConnection::try_send_camera_info_);
+  this->schedule_message_(camera, &APIConnection::try_send_camera_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_camera_info_(EntityBase *entity) {
   auto *camera = static_cast<esp32_camera::ESP32Camera *>(entity);
@@ -1312,7 +1309,7 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  return this->schedule_state_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
+  return this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
@@ -1322,7 +1319,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_
   return msg;
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  this->schedule_info_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
+  this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
@@ -1373,17 +1370,17 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
-  this->schedule_info_message_(
-      event, [event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-        auto *e = static_cast<event::Event *>(entity);
-        auto msg = std::make_unique<EventResponse>();
-        msg->event_type = std::move(event_type);
-        msg->key = e->get_object_id_hash();
-        return msg;
-      });
+  this->schedule_message_(event,
+                          [event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                            auto *e = static_cast<event::Event *>(entity);
+                            auto msg = std::make_unique<EventResponse>();
+                            msg->event_type = std::move(event_type);
+                            msg->key = e->get_object_id_hash();
+                            return msg;
+                          });
 }
 void APIConnection::send_event_info(event::Event *event) {
-  this->schedule_info_message_(event, &APIConnection::try_send_event_info_);
+  this->schedule_message_(event, &APIConnection::try_send_event_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *entity) {
   auto *event = static_cast<event::Event *>(entity);
@@ -1402,7 +1399,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *en
 
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
-  return this->schedule_state_message_(update, &APIConnection::try_send_update_state_);
+  return this->schedule_message_(update, &APIConnection::try_send_update_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *entity) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
@@ -1424,7 +1421,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *
   return msg;
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
-  this->schedule_info_message_(update, &APIConnection::try_send_update_info_);
+  this->schedule_message_(update, &APIConnection::try_send_update_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_info_(EntityBase *entity) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
