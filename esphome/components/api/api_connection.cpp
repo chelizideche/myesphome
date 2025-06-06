@@ -283,11 +283,11 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
       binary_sensor,
       [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) -> EncodedMessage {
         auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
-        BinarySensorStateResponse msg;
-        msg.state = state;
-        msg.missing_state = !bs->has_state();
-        msg.key = bs->get_object_id_hash();
-        return encode_message_to_buffer(msg, BinarySensorStateResponse::message_type, conn, remaining_size, is_single);
+        BinarySensorStateResponse resp;
+        resp.state = state;
+        resp.missing_state = !bs->has_state();
+        resp.key = bs->get_object_id_hash();
+        return encode_message_to_buffer(resp, BinarySensorStateResponse::message_type, conn, remaining_size, is_single);
       });
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
@@ -319,16 +319,16 @@ void APIConnection::send_cover_info(cover::Cover *cover) {
 APIConnection::EncodedMessage APIConnection::try_send_cover_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *cover = static_cast<cover::Cover *>(entity);
-  CoverStateResponse msg;
+  CoverStateResponse resp;
   auto traits = cover->get_traits();
-  msg.legacy_state =
+  resp.legacy_state =
       (cover->position == cover::COVER_OPEN) ? enums::LEGACY_COVER_STATE_OPEN : enums::LEGACY_COVER_STATE_CLOSED;
-  msg.position = cover->position;
+  resp.position = cover->position;
   if (traits.get_supports_tilt())
-    msg.tilt = cover->tilt;
-  msg.current_operation = static_cast<enums::CoverOperation>(cover->current_operation);
-  msg.key = cover->get_object_id_hash();
-  return encode_message_to_buffer(msg, CoverStateResponse::message_type, conn, remaining_size, is_single);
+    resp.tilt = cover->tilt;
+  resp.current_operation = static_cast<enums::CoverOperation>(cover->current_operation);
+  resp.key = cover->get_object_id_hash();
+  return encode_message_to_buffer(resp, CoverStateResponse::message_type, conn, remaining_size, is_single);
 }
 APIConnection::EncodedMessage APIConnection::try_send_cover_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
@@ -383,20 +383,20 @@ void APIConnection::send_fan_info(fan::Fan *fan) {
 APIConnection::EncodedMessage APIConnection::try_send_fan_state_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *fan = static_cast<fan::Fan *>(entity);
-  FanStateResponse msg;
+  FanStateResponse resp;
   auto traits = fan->get_traits();
-  msg.state = fan->state;
+  resp.state = fan->state;
   if (traits.supports_oscillation())
-    msg.oscillating = fan->oscillating;
+    resp.oscillating = fan->oscillating;
   if (traits.supports_speed()) {
-    msg.speed_level = fan->speed;
+    resp.speed_level = fan->speed;
   }
   if (traits.supports_direction())
-    msg.direction = static_cast<enums::FanDirection>(fan->direction);
+    resp.direction = static_cast<enums::FanDirection>(fan->direction);
   if (traits.supports_preset_modes())
-    msg.preset_mode = fan->preset_mode;
-  msg.key = fan->get_object_id_hash();
-  return encode_message_to_buffer(msg, FanStateResponse::message_type, conn, remaining_size, is_single);
+    resp.preset_mode = fan->preset_mode;
+  resp.key = fan->get_object_id_hash();
+  return encode_message_to_buffer(resp, FanStateResponse::message_type, conn, remaining_size, is_single);
 }
 APIConnection::EncodedMessage APIConnection::try_send_fan_info_(EntityBase *entity, APIConnection *conn,
                                                                 uint32_t remaining_size, bool is_single) {
@@ -536,11 +536,11 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *s = static_cast<sensor::Sensor *>(entity);
-                                   SensorStateResponse msg;
-                                   msg.state = state;
-                                   msg.missing_state = !s->has_state();
-                                   msg.key = s->get_object_id_hash();
-                                   return encode_message_to_buffer(msg, SensorStateResponse::message_type, conn,
+                                   SensorStateResponse resp;
+                                   resp.state = state;
+                                   resp.missing_state = !s->has_state();
+                                   resp.key = s->get_object_id_hash();
+                                   return encode_message_to_buffer(resp, SensorStateResponse::message_type, conn,
                                                                    remaining_size, is_single);
                                  });
 }
@@ -570,10 +570,10 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *sw = static_cast<switch_::Switch *>(entity);
-                                   SwitchStateResponse msg;
-                                   msg.state = state;
-                                   msg.key = sw->get_object_id_hash();
-                                   return encode_message_to_buffer(msg, SwitchStateResponse::message_type, conn,
+                                   SwitchStateResponse resp;
+                                   resp.state = state;
+                                   resp.key = sw->get_object_id_hash();
+                                   return encode_message_to_buffer(resp, SwitchStateResponse::message_type, conn,
                                                                    remaining_size, is_single);
                                  });
 }
@@ -610,11 +610,11 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
       [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                  bool is_single) -> APIConnection::EncodedMessage {
         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-        TextSensorStateResponse msg;
-        msg.state = state;
-        msg.missing_state = !ts->has_state();
-        msg.key = ts->get_object_id_hash();
-        return encode_message_to_buffer(msg, TextSensorStateResponse::message_type, conn, remaining_size, is_single);
+        TextSensorStateResponse resp;
+        resp.state = state;
+        resp.missing_state = !ts->has_state();
+        resp.key = ts->get_object_id_hash();
+        return encode_message_to_buffer(resp, TextSensorStateResponse::message_type, conn, remaining_size, is_single);
       });
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
@@ -644,35 +644,35 @@ bool APIConnection::send_climate_state(climate::Climate *climate) {
 APIConnection::EncodedMessage APIConnection::try_send_climate_state_(EntityBase *entity, APIConnection *conn,
                                                                      uint32_t remaining_size, bool is_single) {
   auto *climate = static_cast<climate::Climate *>(entity);
-  ClimateStateResponse msg;
-  msg.key = climate->get_object_id_hash();
+  ClimateStateResponse resp;
+  resp.key = climate->get_object_id_hash();
   auto traits = climate->get_traits();
-  msg.mode = static_cast<enums::ClimateMode>(climate->mode);
-  msg.action = static_cast<enums::ClimateAction>(climate->action);
+  resp.mode = static_cast<enums::ClimateMode>(climate->mode);
+  resp.action = static_cast<enums::ClimateAction>(climate->action);
   if (traits.get_supports_current_temperature())
-    msg.current_temperature = climate->current_temperature;
+    resp.current_temperature = climate->current_temperature;
   if (traits.get_supports_two_point_target_temperature()) {
-    msg.target_temperature_low = climate->target_temperature_low;
-    msg.target_temperature_high = climate->target_temperature_high;
+    resp.target_temperature_low = climate->target_temperature_low;
+    resp.target_temperature_high = climate->target_temperature_high;
   } else {
-    msg.target_temperature = climate->target_temperature;
+    resp.target_temperature = climate->target_temperature;
   }
   if (traits.get_supports_fan_modes() && climate->fan_mode.has_value())
-    msg.fan_mode = static_cast<enums::ClimateFanMode>(climate->fan_mode.value());
+    resp.fan_mode = static_cast<enums::ClimateFanMode>(climate->fan_mode.value());
   if (!traits.get_supported_custom_fan_modes().empty() && climate->custom_fan_mode.has_value())
-    msg.custom_fan_mode = climate->custom_fan_mode.value();
+    resp.custom_fan_mode = climate->custom_fan_mode.value();
   if (traits.get_supports_presets() && climate->preset.has_value()) {
-    msg.preset = static_cast<enums::ClimatePreset>(climate->preset.value());
+    resp.preset = static_cast<enums::ClimatePreset>(climate->preset.value());
   }
   if (!traits.get_supported_custom_presets().empty() && climate->custom_preset.has_value())
-    msg.custom_preset = climate->custom_preset.value();
+    resp.custom_preset = climate->custom_preset.value();
   if (traits.get_supports_swing_modes())
-    msg.swing_mode = static_cast<enums::ClimateSwingMode>(climate->swing_mode);
+    resp.swing_mode = static_cast<enums::ClimateSwingMode>(climate->swing_mode);
   if (traits.get_supports_current_humidity())
-    msg.current_humidity = climate->current_humidity;
+    resp.current_humidity = climate->current_humidity;
   if (traits.get_supports_target_humidity())
-    msg.target_humidity = climate->target_humidity;
-  return encode_message_to_buffer(msg, ClimateStateResponse::message_type, conn, remaining_size, is_single);
+    resp.target_humidity = climate->target_humidity;
+  return encode_message_to_buffer(resp, ClimateStateResponse::message_type, conn, remaining_size, is_single);
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
   this->schedule_message_(climate, &APIConnection::try_send_climate_info_, ListEntitiesClimateResponse::message_type);
@@ -749,11 +749,11 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *n = static_cast<number::Number *>(entity);
-                                   NumberStateResponse msg;
-                                   msg.state = state;
-                                   msg.missing_state = !n->has_state();
-                                   msg.key = n->get_object_id_hash();
-                                   return encode_message_to_buffer(msg, NumberStateResponse::message_type, conn,
+                                   NumberStateResponse resp;
+                                   resp.state = state;
+                                   resp.missing_state = !n->has_state();
+                                   resp.key = n->get_object_id_hash();
+                                   return encode_message_to_buffer(resp, NumberStateResponse::message_type, conn,
                                                                    remaining_size, is_single);
                                  });
 }
