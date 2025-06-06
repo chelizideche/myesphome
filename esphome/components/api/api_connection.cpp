@@ -851,16 +851,15 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(text, [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-    auto *t = static_cast<text::Text *>(entity);
-    auto msg = std::make_unique<TextStateResponse>();
-    msg->state = std::move(state);
-    msg->missing_state = !t->has_state();
-    msg->key = t->get_object_id_hash();
-    return msg;
-  });
-  return this->schedule_batch_();
+  return this->schedule_state_message_(text,
+                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                         auto *t = static_cast<text::Text *>(entity);
+                                         auto msg = std::make_unique<TextStateResponse>();
+                                         msg->state = std::move(state);
+                                         msg->missing_state = !t->has_state();
+                                         msg->key = t->get_object_id_hash();
+                                         return msg;
+                                       });
 }
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_info_message_(text, &APIConnection::try_send_text_info_);
@@ -892,17 +891,15 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 
 #ifdef USE_SELECT
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(select,
-                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                   auto *s = static_cast<select::Select *>(entity);
-                                   auto msg = std::make_unique<SelectStateResponse>();
-                                   msg->state = std::move(state);
-                                   msg->missing_state = !s->has_state();
-                                   msg->key = s->get_object_id_hash();
-                                   return msg;
-                                 });
-  return this->schedule_batch_();
+  return this->schedule_state_message_(select,
+                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                         auto *s = static_cast<select::Select *>(entity);
+                                         auto msg = std::make_unique<SelectStateResponse>();
+                                         msg->state = std::move(state);
+                                         msg->missing_state = !s->has_state();
+                                         msg->key = s->get_object_id_hash();
+                                         return msg;
+                                       });
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_info_message_(select, &APIConnection::try_send_select_info_);
@@ -956,15 +953,13 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 
 #ifdef USE_LOCK
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(a_lock, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_state_message_(a_lock, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *l = static_cast<lock::Lock *>(entity);
     auto msg = std::make_unique<LockStateResponse>();
     msg->state = static_cast<enums::LockState>(state);
     msg->key = l->get_object_id_hash();
     return msg;
   });
-  return this->schedule_batch_();
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_info_message_(a_lock, &APIConnection::try_send_lock_info_);
