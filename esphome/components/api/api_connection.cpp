@@ -633,7 +633,6 @@ APIConnection::EncodedMessage APIConnection::try_send_text_sensor_info_(EntityBa
   if (msg.unique_id.empty())
     msg.unique_id = get_default_unique_id("text_sensor", text_sensor);
 
-  // Fill common entity fields
   fill_entity_info_base_(text_sensor, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesTextSensorResponse::message_type, conn, remaining_size, is_single);
@@ -711,7 +710,6 @@ APIConnection::EncodedMessage APIConnection::try_send_climate_info_(EntityBase *
     msg.supported_swing_modes.push_back(static_cast<enums::ClimateSwingMode>(swing_mode));
   msg.unique_id = get_default_unique_id("climate", climate);
 
-  // Fill common entity fields
   fill_entity_info_base_(climate, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesClimateResponse::message_type, conn, remaining_size, is_single);
@@ -776,7 +774,6 @@ APIConnection::EncodedMessage APIConnection::try_send_number_info_(EntityBase *e
   msg.step = number->traits.get_step();
   msg.unique_id = get_default_unique_id("number", number);
 
-  // Fill common entity fields
   fill_entity_info_base_(number, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesNumberResponse::message_type, conn, remaining_size, is_single);
@@ -816,7 +813,6 @@ APIConnection::EncodedMessage APIConnection::try_send_date_info_(EntityBase *ent
   ListEntitiesDateResponse msg;
   msg.unique_id = get_default_unique_id("date", date);
 
-  // Fill common entity fields
   fill_entity_info_base_(date, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesDateResponse::message_type, conn, remaining_size, is_single);
@@ -856,7 +852,6 @@ APIConnection::EncodedMessage APIConnection::try_send_time_info_(EntityBase *ent
   ListEntitiesTimeResponse msg;
   msg.unique_id = get_default_unique_id("time", time);
 
-  // Fill common entity fields
   fill_entity_info_base_(time, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesTimeResponse::message_type, conn, remaining_size, is_single);
@@ -899,7 +894,6 @@ APIConnection::EncodedMessage APIConnection::try_send_datetime_info_(EntityBase 
   ListEntitiesDateTimeResponse msg;
   msg.unique_id = get_default_unique_id("datetime", datetime);
 
-  // Fill common entity fields
   fill_entity_info_base_(datetime, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesDateTimeResponse::message_type, conn, remaining_size, is_single);
@@ -943,7 +937,6 @@ APIConnection::EncodedMessage APIConnection::try_send_text_info_(EntityBase *ent
   msg.pattern = text->traits.get_pattern();
   msg.unique_id = get_default_unique_id("text", text);
 
-  // Fill common entity fields
   fill_entity_info_base_(text, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesTextResponse::message_type, conn, remaining_size, is_single);
@@ -985,7 +978,6 @@ APIConnection::EncodedMessage APIConnection::try_send_select_info_(EntityBase *e
     msg.options.push_back(option);
   msg.unique_id = get_default_unique_id("select", select);
 
-  // Fill common entity fields
   fill_entity_info_base_(select, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesSelectResponse::message_type, conn, remaining_size, is_single);
@@ -1012,7 +1004,6 @@ APIConnection::EncodedMessage APIConnection::try_send_button_info_(EntityBase *e
   msg.device_class = button->get_device_class();
   msg.unique_id = get_default_unique_id("button", button);
 
-  // Fill common entity fields
   fill_entity_info_base_(button, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesButtonResponse::message_type, conn, remaining_size, is_single);
@@ -1052,7 +1043,6 @@ APIConnection::EncodedMessage APIConnection::try_send_lock_info_(EntityBase *ent
   msg.requires_code = a_lock->traits.get_requires_code();
   msg.unique_id = get_default_unique_id("lock", a_lock);
 
-  // Fill common entity fields
   fill_entity_info_base_(a_lock, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesLockResponse::message_type, conn, remaining_size, is_single);
@@ -1103,7 +1093,6 @@ APIConnection::EncodedMessage APIConnection::try_send_valve_info_(EntityBase *en
   msg.supports_stop = traits.get_supports_stop();
   msg.unique_id = get_default_unique_id("valve", valve);
 
-  // Fill common entity fields
   fill_entity_info_base_(valve, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesValveResponse::message_type, conn, remaining_size, is_single);
@@ -1160,7 +1149,6 @@ APIConnection::EncodedMessage APIConnection::try_send_media_player_info_(EntityB
   }
   msg.unique_id = get_default_unique_id("media_player", media_player);
 
-  // Fill common entity fields
   fill_entity_info_base_(media_player, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesMediaPlayerResponse::message_type, conn, remaining_size, is_single);
@@ -1206,7 +1194,6 @@ APIConnection::EncodedMessage APIConnection::try_send_camera_info_(EntityBase *e
   ListEntitiesCameraResponse msg;
   msg.unique_id = get_default_unique_id("camera", camera);
 
-  // Fill common entity fields
   fill_entity_info_base_(camera, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesCameraResponse::message_type, conn, remaining_size, is_single);
@@ -1425,7 +1412,6 @@ APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_info_(
   msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
   msg.unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
 
-  // Fill common entity fields
   fill_entity_info_base_(a_alarm_control_panel, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesAlarmControlPanelResponse::message_type, conn, remaining_size,
@@ -1491,7 +1477,6 @@ APIConnection::EncodedMessage APIConnection::try_send_event_info_(EntityBase *en
     msg.event_types.push_back(event_type);
   msg.unique_id = get_default_unique_id("event", event);
 
-  // Fill common entity fields
   fill_entity_info_base_(event, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesEventResponse::message_type, conn, remaining_size, is_single);
@@ -1532,7 +1517,6 @@ APIConnection::EncodedMessage APIConnection::try_send_update_info_(EntityBase *e
   msg.device_class = update->get_device_class();
   msg.unique_id = get_default_unique_id("update", update);
 
-  // Fill common entity fields
   fill_entity_info_base_(update, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesUpdateResponse::message_type, conn, remaining_size, is_single);
