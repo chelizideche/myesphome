@@ -597,13 +597,15 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 
 #ifdef USE_TEXT_SENSOR
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
+  // TODO: Use [state = std::move(state)] when C++14 is available
+  std::string moved_state = std::move(state);
   return this->schedule_message_(
       text_sensor,
-      [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                 bool is_single) -> APIConnection::EncodedMessage {
+      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                    bool is_single) -> APIConnection::EncodedMessage {
         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
         TextSensorStateResponse resp;
-        resp.state = state;
+        resp.state = moved_state;
         resp.missing_state = !ts->has_state();
         resp.key = ts->get_object_id_hash();
         return encode_message_to_buffer(resp, TextSensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
@@ -888,13 +890,15 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
+  // TODO: Use [state = std::move(state)] when C++14 is available
+  std::string moved_state = std::move(state);
   return this->schedule_message_(
       text,
-      [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                 bool is_single) -> APIConnection::EncodedMessage {
+      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                    bool is_single) -> APIConnection::EncodedMessage {
         auto *t = static_cast<text::Text *>(entity);
         TextStateResponse resp;
-        resp.state = state;
+        resp.state = moved_state;
         resp.missing_state = !t->has_state();
         resp.key = t->get_object_id_hash();
         return encode_message_to_buffer(resp, TextStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
@@ -929,13 +933,15 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 
 #ifdef USE_SELECT
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
+  // TODO: Use [state = std::move(state)] when C++14 is available
+  std::string moved_state = std::move(state);
   return this->schedule_message_(
       select,
-      [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                 bool is_single) -> APIConnection::EncodedMessage {
+      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                    bool is_single) -> APIConnection::EncodedMessage {
         auto *s = static_cast<select::Select *>(entity);
         SelectStateResponse resp;
-        resp.state = state;
+        resp.state = moved_state;
         resp.missing_state = !s->has_state();
         resp.key = s->get_object_id_hash();
         return encode_message_to_buffer(resp, SelectStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
@@ -1414,13 +1420,15 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
+  // TODO: Use [event_type = std::move(event_type)] when C++14 is available
+  std::string moved_event_type = std::move(event_type);
   this->schedule_message_(
       event,
-      [event_type = std::move(event_type)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single) -> APIConnection::EncodedMessage {
+      [moved_event_type](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                         bool is_single) -> APIConnection::EncodedMessage {
         auto *e = static_cast<event::Event *>(entity);
         EventResponse msg;
-        msg.event_type = event_type;
+        msg.event_type = moved_event_type;
         msg.key = e->get_object_id_hash();
         return encode_message_to_buffer(msg, EventResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
       },
