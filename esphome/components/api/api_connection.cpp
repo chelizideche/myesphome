@@ -179,18 +179,7 @@ void APIConnection::loop() {
 
 #ifdef USE_ESP32_CAMERA
   if (this->image_reader_.available() && this->helper_->can_write_without_blocking()) {
-    // Message will use 8 more bytes than the minimum size, and typical
-    // MTU is 1500. Sometimes users will see as low as 1460 MTU.
-    // If its IPv6 the header is 40 bytes, and if its IPv4
-    // the header is 20 bytes. So we have 1460 - 40 = 1420 bytes
-    // available for the payload. But we also need to add the size of
-    // the protobuf overhead, which is 8 bytes.
-    //
-    // To be safe we pick 1390 bytes as the maximum size
-    // to send in one go. This is the maximum size of a single packet
-    // that can be sent over the network.
-    // This is to avoid fragmentation of the packet.
-    uint32_t to_send = std::min((size_t) 1390, this->image_reader_.available());
+    uint32_t to_send = std::min((size_t) MAX_PACKET_SIZE, this->image_reader_.available());
     bool done = this->image_reader_.available() == to_send;
     uint32_t msg_size = 0;
     ProtoSize::add_fixed_field<4>(msg_size, 1, true);
@@ -1829,7 +1818,7 @@ void APIConnection::process_batch_() {
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
-  uint32_t remaining_size = MAX_BATCH_SIZE_BYTES;
+  uint32_t remaining_size = MAX_PACKET_SIZE;
 
   // Track current position in buffer as we build it
   uint32_t current_offset = header_padding;
