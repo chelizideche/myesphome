@@ -1418,9 +1418,7 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
   this->schedule_batch_();
 }
 void APIConnection::send_event_info(event::Event *event) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(event, &APIConnection::try_send_event_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(event, &APIConnection::try_send_event_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *entity) {
   auto *event = static_cast<event::Event *>(entity);
@@ -1463,9 +1461,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *
   return msg;
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(update, &APIConnection::try_send_update_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(update, &APIConnection::try_send_update_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_info_(EntityBase *entity) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
