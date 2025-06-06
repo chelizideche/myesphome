@@ -1850,6 +1850,12 @@ void APIConnection::process_batch_() {
   }
 }
 
+APIConnection::EncodedMessage APIConnection::try_send_list_info_done(EntityBase *entity, APIConnection *conn,
+                                                                     uint32_t remaining_size, bool is_single) {
+  ListEntitiesDoneResponse resp;
+  return encode_message_to_buffer(resp, ListEntitiesDoneResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
+}
+
 }  // namespace api
 }  // namespace esphome
 #endif
