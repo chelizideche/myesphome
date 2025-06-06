@@ -1,7 +1,6 @@
 #include "xiaomi_jtyjgd03mi.h"
 #include "esphome/core/log.h"
 
-
 #ifdef USE_ESP32
 
 namespace esphome {
