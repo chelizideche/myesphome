@@ -73,6 +73,10 @@ bool parse_xiaomi_value(uint16_t value_type, const uint8_t *data, uint8_t value_
   else if ((value_type == 0x1013) && (value_length == 1)) {
     result.tablet = data[0];
   }
+  // smoke detection, 1 byte, 8-bit unsigned integer          
+  else if ((value_type == 0x1015) && (value_length == 1)) {     
+    result.has_smoke = data[0];                               
+  }															  
   // idle time since last motion, 4 byte, 32-bit unsigned integer, 1 min
   else if ((value_type == 0x1017) && (value_length == 4)) {
     const uint32_t idle_time = encode_uint32(data[3], data[2], data[1], data[0]);
@@ -240,7 +244,11 @@ optional<XiaomiParseResult> parse_xiaomi_header(const esp32_ble_tracker::Service
     result.name = "RTCGQ02LM";
     if (raw.size() == 19)
       result.raw_offset -= 6;
-  } else {
+  } 
+  } else if (device_uuid == 0x0997) { // Xiaomi (Honeywell)  smoke sensor JTYJGD03MI
+    result.type = XiaomiParseResult::TYPE_JTYJGD03MI; 
+    result.name = "JTYJGD03MI";	                     
+  else {
     ESP_LOGVV(TAG, "parse_xiaomi_header(): unknown device, no magic bytes.");
     return {};
   }
@@ -377,7 +385,9 @@ bool report_xiaomi_results(const optional<XiaomiParseResult> &result, const std:
   if (result->button_press.has_value()) {
     ESP_LOGD(TAG, "  Button: %s", (*result->button_press) ? "pressed" : "");
   }
-
+   if (result->has_smoke.has_value()) {                                   
+    ESP_LOGI(TAG, "  Smoke: %s", (*result->has_smoke) ? "yes" : "no");  
+  }                                                                      
   return true;
 }
 
