@@ -256,7 +256,7 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
   return this->schedule_message_(binary_sensor,
                                  [state](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                         OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                         OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
                                    auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
                                    BinarySensorStateResponse msg;  // Stack allocated!
                                    msg.state = state;
@@ -269,9 +269,9 @@ void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_
   this->schedule_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info_,
                           ListEntitiesBinarySensorResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_binary_sensor_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                       uint32_t remaining_size,
-                                                                       OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_binary_sensor_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                          uint32_t remaining_size,
+                                                                          OverheadCalculator overhead_calc) {
   auto *binary_sensor = static_cast<binary_sensor::BinarySensor *>(entity);
   ListEntitiesBinarySensorResponse msg;  // Stack allocated!
   msg.device_class = binary_sensor->get_device_class();
@@ -292,9 +292,9 @@ bool APIConnection::send_cover_state(cover::Cover *cover) {
 void APIConnection::send_cover_info(cover::Cover *cover) {
   this->schedule_message_(cover, &APIConnection::try_send_cover_info_, ListEntitiesCoverResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_cover_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_cover_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *cover = static_cast<cover::Cover *>(entity);
   CoverStateResponse msg;  // Stack allocated!
   auto traits = cover->get_traits();
@@ -307,9 +307,9 @@ APIConnection::MessageInfo APIConnection::try_send_cover_state_(EntityBase *enti
   msg.key = cover->get_object_id_hash();
   return encode_message_to_buffer(msg, allocator, remaining_size, overhead_calc);
 }
-APIConnection::MessageInfo APIConnection::try_send_cover_info_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_cover_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *cover = static_cast<cover::Cover *>(entity);
   ListEntitiesCoverResponse msg;  // Stack allocated!
   auto traits = cover->get_traits();
@@ -358,9 +358,9 @@ bool APIConnection::send_fan_state(fan::Fan *fan) {
 void APIConnection::send_fan_info(fan::Fan *fan) {
   this->schedule_message_(fan, &APIConnection::try_send_fan_info_, ListEntitiesFanResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_fan_state_(EntityBase *entity, BufferAllocator allocator,
-                                                              uint32_t remaining_size,
-                                                              OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_fan_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                 uint32_t remaining_size,
+                                                                 OverheadCalculator overhead_calc) {
   auto *fan = static_cast<fan::Fan *>(entity);
   FanStateResponse msg;  // Stack allocated!
   auto traits = fan->get_traits();
@@ -377,9 +377,9 @@ APIConnection::MessageInfo APIConnection::try_send_fan_state_(EntityBase *entity
   msg.key = fan->get_object_id_hash();
   return encode_message_to_buffer(msg, allocator, remaining_size, overhead_calc);
 }
-APIConnection::MessageInfo APIConnection::try_send_fan_info_(EntityBase *entity, BufferAllocator allocator,
-                                                             uint32_t remaining_size,
-                                                             OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_fan_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                uint32_t remaining_size,
+                                                                OverheadCalculator overhead_calc) {
   auto *fan = static_cast<fan::Fan *>(entity);
   ListEntitiesFanResponse msg;  // Stack allocated!
   auto traits = fan->get_traits();
@@ -422,9 +422,9 @@ bool APIConnection::send_light_state(light::LightState *light) {
 void APIConnection::send_light_info(light::LightState *light) {
   this->schedule_message_(light, &APIConnection::try_send_light_info_, ListEntitiesLightResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_light_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_light_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *light = static_cast<light::LightState *>(entity);
   LightStateResponse msg;  // Stack allocated!
   auto traits = light->get_traits();
@@ -446,9 +446,9 @@ APIConnection::MessageInfo APIConnection::try_send_light_state_(EntityBase *enti
   msg.key = light->get_object_id_hash();
   return encode_message_to_buffer(msg, allocator, remaining_size, overhead_calc);
 }
-APIConnection::MessageInfo APIConnection::try_send_light_info_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_light_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *light = static_cast<light::LightState *>(entity);
   ListEntitiesLightResponse msg;  // Stack allocated!
   auto traits = light->get_traits();
@@ -516,7 +516,7 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   return this->schedule_message_(sensor,
                                  [state](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                         OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                         OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
                                    auto *s = static_cast<sensor::Sensor *>(entity);
                                    SensorStateResponse msg;  // Stack allocated!
                                    msg.state = state;
@@ -528,9 +528,9 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   this->schedule_message_(sensor, &APIConnection::try_send_sensor_info_, ListEntitiesSensorResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_sensor_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_sensor_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
   ListEntitiesSensorResponse msg;  // Stack allocated!
   msg.unit_of_measurement = sensor->get_unit_of_measurement();
@@ -550,7 +550,7 @@ APIConnection::MessageInfo APIConnection::try_send_sensor_info_(EntityBase *enti
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   return this->schedule_message_(a_switch,
                                  [state](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                         OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                         OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
                                    auto *sw = static_cast<switch_::Switch *>(entity);
                                    SwitchStateResponse msg;  // Stack allocated!
                                    msg.state = state;
@@ -561,9 +561,9 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
   this->schedule_message_(a_switch, &APIConnection::try_send_switch_info_, ListEntitiesSwitchResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_switch_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_switch_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *a_switch = static_cast<switch_::Switch *>(entity);
   ListEntitiesSwitchResponse msg;  // Stack allocated!
   msg.assumed_state = a_switch->assumed_state();
@@ -590,7 +590,7 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
   return this->schedule_message_(
       text_sensor,
       [state = std::move(state)](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                 OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                 OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
         TextSensorStateResponse msg;  // Stack allocated!
         msg.state = state;
@@ -603,9 +603,9 @@ void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) 
   this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_info_,
                           ListEntitiesTextSensorResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_text_sensor_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                     uint32_t remaining_size,
-                                                                     OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_text_sensor_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                        uint32_t remaining_size,
+                                                                        OverheadCalculator overhead_calc) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
   ListEntitiesTextSensorResponse msg;  // Stack allocated!
   msg.device_class = text_sensor->get_device_class();
@@ -624,9 +624,9 @@ APIConnection::MessageInfo APIConnection::try_send_text_sensor_info_(EntityBase 
 bool APIConnection::send_climate_state(climate::Climate *climate) {
   return this->schedule_message_(climate, &APIConnection::try_send_climate_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_climate_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                  uint32_t remaining_size,
-                                                                  OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_climate_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                     uint32_t remaining_size,
+                                                                     OverheadCalculator overhead_calc) {
   auto *climate = static_cast<climate::Climate *>(entity);
   ClimateStateResponse msg;  // Stack allocated!
   msg.key = climate->get_object_id_hash();
@@ -661,9 +661,9 @@ APIConnection::MessageInfo APIConnection::try_send_climate_state_(EntityBase *en
 void APIConnection::send_climate_info(climate::Climate *climate) {
   this->schedule_message_(climate, &APIConnection::try_send_climate_info_, ListEntitiesClimateResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_climate_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                 uint32_t remaining_size,
-                                                                 OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_climate_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                    uint32_t remaining_size,
+                                                                    OverheadCalculator overhead_calc) {
   auto *climate = static_cast<climate::Climate *>(entity);
   ListEntitiesClimateResponse msg;  // Stack allocated!
   auto traits = climate->get_traits();
@@ -732,7 +732,7 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 bool APIConnection::send_number_state(number::Number *number, float state) {
   return this->schedule_message_(number,
                                  [state](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                         OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                         OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
                                    auto *n = static_cast<number::Number *>(entity);
                                    NumberStateResponse msg;  // Stack allocated!
                                    msg.state = state;
@@ -744,9 +744,9 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
 void APIConnection::send_number_info(number::Number *number) {
   this->schedule_message_(number, &APIConnection::try_send_number_info_, ListEntitiesNumberResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_number_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_number_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *number = static_cast<number::Number *>(entity);
   ListEntitiesNumberResponse msg;  // Stack allocated!
   msg.unit_of_measurement = number->traits.get_unit_of_measurement();
@@ -777,9 +777,9 @@ void APIConnection::number_command(const NumberCommandRequest &msg) {
 bool APIConnection::send_date_state(datetime::DateEntity *date) {
   return this->schedule_message_(date, &APIConnection::try_send_date_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_date_state_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_date_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
   DateStateResponse msg;  // Stack allocated!
   msg.missing_state = !date->has_state();
@@ -792,9 +792,9 @@ APIConnection::MessageInfo APIConnection::try_send_date_state_(EntityBase *entit
 void APIConnection::send_date_info(datetime::DateEntity *date) {
   this->schedule_message_(date, &APIConnection::try_send_date_info_, ListEntitiesDateResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_date_info_(EntityBase *entity, BufferAllocator allocator,
-                                                              uint32_t remaining_size,
-                                                              OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_date_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                 uint32_t remaining_size,
+                                                                 OverheadCalculator overhead_calc) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
   ListEntitiesDateResponse msg;  // Stack allocated!
   msg.unique_id = get_default_unique_id("date", date);
@@ -819,9 +819,9 @@ void APIConnection::date_command(const DateCommandRequest &msg) {
 bool APIConnection::send_time_state(datetime::TimeEntity *time) {
   return this->schedule_message_(time, &APIConnection::try_send_time_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_time_state_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_time_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
   TimeStateResponse msg;  // Stack allocated!
   msg.missing_state = !time->has_state();
@@ -834,9 +834,9 @@ APIConnection::MessageInfo APIConnection::try_send_time_state_(EntityBase *entit
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
   this->schedule_message_(time, &APIConnection::try_send_time_info_, ListEntitiesTimeResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_time_info_(EntityBase *entity, BufferAllocator allocator,
-                                                              uint32_t remaining_size,
-                                                              OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_time_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                 uint32_t remaining_size,
+                                                                 OverheadCalculator overhead_calc) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
   ListEntitiesTimeResponse msg;  // Stack allocated!
   msg.unique_id = get_default_unique_id("time", time);
@@ -861,9 +861,9 @@ void APIConnection::time_command(const TimeCommandRequest &msg) {
 bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
   return this->schedule_message_(datetime, &APIConnection::try_send_datetime_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_datetime_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                   uint32_t remaining_size,
-                                                                   OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_datetime_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                      uint32_t remaining_size,
+                                                                      OverheadCalculator overhead_calc) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
   DateTimeStateResponse msg;  // Stack allocated!
   msg.missing_state = !datetime->has_state();
@@ -878,9 +878,9 @@ void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
   this->schedule_message_(datetime, &APIConnection::try_send_datetime_info_,
                           ListEntitiesDateTimeResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_datetime_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                  uint32_t remaining_size,
-                                                                  OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_datetime_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                     uint32_t remaining_size,
+                                                                     OverheadCalculator overhead_calc) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
   ListEntitiesDateTimeResponse msg;  // Stack allocated!
   msg.unique_id = get_default_unique_id("datetime", datetime);
@@ -906,7 +906,7 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
   return this->schedule_message_(
       text,
       [state = std::move(state)](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                 OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                 OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
         auto *t = static_cast<text::Text *>(entity);
         TextStateResponse msg;  // Stack allocated!
         msg.state = state;
@@ -918,9 +918,9 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_message_(text, &APIConnection::try_send_text_info_, ListEntitiesTextResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_text_info_(EntityBase *entity, BufferAllocator allocator,
-                                                              uint32_t remaining_size,
-                                                              OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_text_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                 uint32_t remaining_size,
+                                                                 OverheadCalculator overhead_calc) {
   auto *text = static_cast<text::Text *>(entity);
   ListEntitiesTextResponse msg;  // Stack allocated!
   msg.mode = static_cast<enums::TextMode>(text->traits.get_mode());
@@ -950,7 +950,7 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
   return this->schedule_message_(
       select,
       [state = std::move(state)](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                 OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                 OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
         auto *s = static_cast<select::Select *>(entity);
         SelectStateResponse msg;  // Stack allocated!
         msg.state = state;
@@ -962,9 +962,9 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_message_(select, &APIConnection::try_send_select_info_, ListEntitiesSelectResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_select_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_select_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *select = static_cast<select::Select *>(entity);
   ListEntitiesSelectResponse msg;  // Stack allocated!
   for (const auto &option : select->traits.get_options())
@@ -991,9 +991,9 @@ void APIConnection::select_command(const SelectCommandRequest &msg) {
 void esphome::api::APIConnection::send_button_info(button::Button *button) {
   this->schedule_message_(button, &APIConnection::try_send_button_info_, ListEntitiesButtonResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_button_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_button_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *button = static_cast<button::Button *>(entity);
   ListEntitiesButtonResponse msg;  // Stack allocated!
   msg.device_class = button->get_device_class();
@@ -1017,7 +1017,7 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
   return this->schedule_message_(a_lock,
                                  [state](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                         OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                         OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
                                    auto *l = static_cast<lock::Lock *>(entity);
                                    LockStateResponse msg;  // Stack allocated!
                                    msg.state = static_cast<enums::LockState>(state);
@@ -1028,9 +1028,9 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_message_(a_lock, &APIConnection::try_send_lock_info_, ListEntitiesLockResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_lock_info_(EntityBase *entity, BufferAllocator allocator,
-                                                              uint32_t remaining_size,
-                                                              OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_lock_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                 uint32_t remaining_size,
+                                                                 OverheadCalculator overhead_calc) {
   auto *a_lock = static_cast<lock::Lock *>(entity);
   ListEntitiesLockResponse msg;  // Stack allocated!
   msg.assumed_state = a_lock->traits.get_assumed_state();
@@ -1066,9 +1066,9 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 bool APIConnection::send_valve_state(valve::Valve *valve) {
   return this->schedule_message_(valve, &APIConnection::try_send_valve_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_valve_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_valve_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *valve = static_cast<valve::Valve *>(entity);
   ValveStateResponse msg;  // Stack allocated!
   msg.position = valve->position;
@@ -1079,9 +1079,9 @@ APIConnection::MessageInfo APIConnection::try_send_valve_state_(EntityBase *enti
 void APIConnection::send_valve_info(valve::Valve *valve) {
   this->schedule_message_(valve, &APIConnection::try_send_valve_info_, ListEntitiesValveResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_valve_info_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_valve_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *valve = static_cast<valve::Valve *>(entity);
   ListEntitiesValveResponse msg;  // Stack allocated!
   auto traits = valve->get_traits();
@@ -1114,9 +1114,9 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
   return this->schedule_message_(media_player, &APIConnection::try_send_media_player_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_media_player_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                       uint32_t remaining_size,
-                                                                       OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_media_player_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                          uint32_t remaining_size,
+                                                                          OverheadCalculator overhead_calc) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
   MediaPlayerStateResponse msg;  // Stack allocated!
   media_player::MediaPlayerState report_state = media_player->state == media_player::MEDIA_PLAYER_STATE_ANNOUNCING
@@ -1132,9 +1132,9 @@ void APIConnection::send_media_player_info(media_player::MediaPlayer *media_play
   this->schedule_message_(media_player, &APIConnection::try_send_media_player_info_,
                           ListEntitiesMediaPlayerResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_media_player_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                      uint32_t remaining_size,
-                                                                      OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_media_player_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                         uint32_t remaining_size,
+                                                                         OverheadCalculator overhead_calc) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
   ListEntitiesMediaPlayerResponse msg;  // Stack allocated!
   auto traits = media_player->get_traits();
@@ -1190,9 +1190,9 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
   this->schedule_message_(camera, &APIConnection::try_send_camera_info_, ListEntitiesCameraResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_camera_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_camera_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *camera = static_cast<esp32_camera::ESP32Camera *>(entity);
   ListEntitiesCameraResponse msg;  // Stack allocated!
   msg.unique_id = get_default_unique_id("camera", camera);
@@ -1391,9 +1391,9 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
   return this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity,
-                                                                              BufferAllocator allocator,
-                                                                              uint32_t remaining_size) {
+APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity,
+                                                                                 BufferAllocator allocator,
+                                                                                 uint32_t remaining_size) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
   AlarmControlPanelStateResponse msg;  // Stack allocated!
   msg.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
@@ -1404,9 +1404,9 @@ void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmCont
   this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_,
                           ListEntitiesAlarmControlPanelResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity,
-                                                                             BufferAllocator allocator,
-                                                                             uint32_t remaining_size) {
+APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity,
+                                                                                BufferAllocator allocator,
+                                                                                uint32_t remaining_size) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
   ListEntitiesAlarmControlPanelResponse msg;  // Stack allocated!
   msg.supported_features = a_alarm_control_panel->get_supported_features();
@@ -1458,7 +1458,7 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
   this->schedule_message_(
       event,
       [event_type = std::move(event_type)](EntityBase *entity, BufferAllocator allocator, uint32_t remaining_size,
-                                           OverheadCalculator overhead_calc) -> APIConnection::MessageInfo {
+                                           OverheadCalculator overhead_calc) -> APIConnection::EncodedMessage {
         auto *e = static_cast<event::Event *>(entity);
         EventResponse msg;  // Stack allocated!
         msg.event_type = event_type;
@@ -1469,9 +1469,9 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_message_(event, &APIConnection::try_send_event_info_, ListEntitiesEventResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_event_info_(EntityBase *entity, BufferAllocator allocator,
-                                                               uint32_t remaining_size,
-                                                               OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_event_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                  uint32_t remaining_size,
+                                                                  OverheadCalculator overhead_calc) {
   auto *event = static_cast<event::Event *>(entity);
   ListEntitiesEventResponse msg;  // Stack allocated!
   msg.device_class = event->get_device_class();
@@ -1490,9 +1490,9 @@ APIConnection::MessageInfo APIConnection::try_send_event_info_(EntityBase *entit
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
   return this->schedule_message_(update, &APIConnection::try_send_update_state_);
 }
-APIConnection::MessageInfo APIConnection::try_send_update_state_(EntityBase *entity, BufferAllocator allocator,
-                                                                 uint32_t remaining_size,
-                                                                 OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_update_state_(EntityBase *entity, BufferAllocator allocator,
+                                                                    uint32_t remaining_size,
+                                                                    OverheadCalculator overhead_calc) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
   UpdateStateResponse msg;  // Stack allocated!
   msg.missing_state = !update->has_state();
@@ -1514,9 +1514,9 @@ APIConnection::MessageInfo APIConnection::try_send_update_state_(EntityBase *ent
 void APIConnection::send_update_info(update::UpdateEntity *update) {
   this->schedule_message_(update, &APIConnection::try_send_update_info_, ListEntitiesUpdateResponse::message_type);
 }
-APIConnection::MessageInfo APIConnection::try_send_update_info_(EntityBase *entity, BufferAllocator allocator,
-                                                                uint32_t remaining_size,
-                                                                OverheadCalculator overhead_calc) {
+APIConnection::EncodedMessage APIConnection::try_send_update_info_(EntityBase *entity, BufferAllocator allocator,
+                                                                   uint32_t remaining_size,
+                                                                   OverheadCalculator overhead_calc) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
   ListEntitiesUpdateResponse msg;  // Stack allocated!
   msg.device_class = update->get_device_class();
