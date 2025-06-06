@@ -352,31 +352,10 @@ class APIConnection : public APIServerConnection {
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
   }
 
-  // Helper function to encode a message to buffer
-  template<typename MessageT>
-  static EncodedMessage encode_message_to_buffer(MessageT &msg, APIConnection *conn, uint32_t remaining_size,
-                                                 bool is_single) {
-    // Calculate size
-    uint32_t size = 0;
-    msg.calculate_size(size);
+  // Non-template helper to encode any ProtoMessage
+  static EncodedMessage encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
+                                                 uint32_t remaining_size, bool is_single);
 
-    // Calculate overhead for this message
-    uint16_t overhead = conn->helper_->calculate_packet_overhead(MessageT::message_type, static_cast<uint16_t>(size));
-    uint32_t total_size = size + overhead;
-
-    // Check if it fits
-    if (total_size > remaining_size) {
-      return {0, 0};  // Doesn't fit
-    }
-
-    // Allocate exact buffer space needed (just the payload, not the overhead)
-    ProtoWriteBuffer buffer =
-        is_single ? conn->allocate_single_message_buffer(size) : conn->allocate_batch_message_buffer(size);
-
-    // Encode directly into buffer
-    msg.encode(buffer);
-    return {static_cast<uint16_t>(size), static_cast<uint16_t>(total_size)};
-  }
 #ifdef USE_BINARY_SENSOR
   static EncodedMessage try_send_binary_sensor_state_(EntityBase *binary_sensor, APIConnection *conn,
                                                       uint32_t remaining_size, bool is_single);
