@@ -1412,12 +1412,13 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
   this->schedule_message_(event,
-                          [event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                          [event_type = std::move(event_type)](EntityBase *entity, ProtoWriteBuffer &buffer,
+                                                               uint32_t max_size) -> APIConnection::MessageInfo {
                             auto *e = static_cast<event::Event *>(entity);
                             EventResponse msg;  // Stack allocated!
-                            msg.event_type = std::move(event_type);
+                            msg.event_type = event_type;
                             msg.key = e->get_object_id_hash();
-                            return encode_message_to_buffer(msg, buffer, max_size);
+                            return APIConnection::encode_message_to_buffer(msg, buffer, max_size);
                           });
 }
 void APIConnection::send_event_info(event::Event *event) {
