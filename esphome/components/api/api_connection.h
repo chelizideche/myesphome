@@ -313,6 +313,13 @@ class APIConnection : public APIServerConnection {
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
+  // Info about an encoded message
+  struct MessageInfo {
+    uint16_t type;
+    uint16_t size;
+    bool encoded;
+  };
+
  protected:
   // Helper function to fill common entity fields
   template<typename ResponseT> static void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
@@ -470,13 +477,6 @@ class APIConnection : public APIServerConnection {
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
-
-  // Info about an encoded message
-  struct MessageInfo {
-    uint16_t type;
-    uint16_t size;
-    bool encoded;
-  };
 
   // Function type that encodes a message directly to buffer
   using MessageCreator = std::function<MessageInfo(EntityBase *, ProtoWriteBuffer &, uint32_t max_size)>;
