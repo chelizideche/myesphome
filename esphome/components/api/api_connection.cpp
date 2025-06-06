@@ -251,9 +251,13 @@ APIConnection::EncodedMessage APIConnection::encode_message_to_buffer(ProtoMessa
   uint32_t size = 0;
   msg.calculate_size(size);
 
-  // Calculate overhead for this message
-  uint16_t overhead = conn->helper_->calculate_packet_overhead(message_type, static_cast<uint16_t>(size));
-  uint16_t total_size = static_cast<uint16_t>(size) + overhead;
+  // Calculate actual header + footer size (without padding) for this message
+  uint8_t header_footer_size = conn->helper_->calculate_header_footer_size(message_type, static_cast<uint16_t>(size));
+
+  // Calculate total size with padding for buffer allocation
+  uint8_t header_padding = conn->helper_->frame_header_padding();
+  uint8_t footer_size = conn->helper_->frame_footer_size();
+  uint16_t total_size = static_cast<uint16_t>(size) + header_padding + footer_size;
 
   // Check if it fits
   if (total_size > remaining_size) {
@@ -266,7 +270,7 @@ APIConnection::EncodedMessage APIConnection::encode_message_to_buffer(ProtoMessa
 
   // Encode directly into buffer
   msg.encode(buffer);
-  return {static_cast<uint16_t>(size), total_size};
+  return {static_cast<uint16_t>(size), header_footer_size};
 }
 
 #ifdef USE_BINARY_SENSOR
@@ -1692,8 +1696,18 @@ void APIConnection::process_batch_() {
 
   // Initialize buffer and tracking variables
   this->proto_write_buffer_.clear();
-  // Reserve based on typical message size + overhead per message
-  this->proto_write_buffer_.reserve((24 + header_padding + footer_size) * num_items);
+
+  // Pre-calculate exact buffer size needed based on message types
+  uint32_t total_estimated_size = 0;
+  for (const auto &item : this->deferred_batch_.items) {
+    total_estimated_size += get_estimated_message_size(item.message_type);
+  }
+
+  // Calculate total overhead for all messages
+  uint32_t total_overhead = (header_padding + footer_size) * num_items;
+
+  // Reserve based on estimated size (much more accurate than 24-byte worst-case)
+  this->proto_write_buffer_.reserve(total_estimated_size + total_overhead);
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
@@ -1717,10 +1731,10 @@ void APIConnection::process_batch_() {
     }
 
     // Message was encoded successfully
-    packet_info.emplace_back(item.message_type, current_offset, msg.payload_size);
+    packet_info.emplace_back(item.message_type, current_offset, msg.payload_size, msg.packet_overhead);
 
     // Update tracking variables
-    remaining_size -= msg.total_size;
+    remaining_size -= msg.payload_size + header_padding + footer_size;
     // Calculate where the next message's header padding will start
     // Current buffer size + footer space (that prepare_message_buffer will add for this message)
     current_offset = this->proto_write_buffer_.size() + footer_size;
@@ -1875,6 +1889,147 @@ APIConnection::EncodedMessage APIConnection::try_send_list_info_done(EntityBase 
                                                                      uint32_t remaining_size, bool is_single) {
   ListEntitiesDoneResponse resp;
   return encode_message_to_buffer(resp, ListEntitiesDoneResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
+}
+
+uint16_t APIConnection::get_estimated_message_size(uint16_t message_type) {
+  // Use generated ESTIMATED_SIZE constants from each message type
+  switch (message_type) {
+#ifdef USE_BINARY_SENSOR
+    case BinarySensorStateResponse::MESSAGE_TYPE:
+      return BinarySensorStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesBinarySensorResponse::MESSAGE_TYPE:
+      return ListEntitiesBinarySensorResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_SENSOR
+    case SensorStateResponse::MESSAGE_TYPE:
+      return SensorStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesSensorResponse::MESSAGE_TYPE:
+      return ListEntitiesSensorResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_SWITCH
+    case SwitchStateResponse::MESSAGE_TYPE:
+      return SwitchStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesSwitchResponse::MESSAGE_TYPE:
+      return ListEntitiesSwitchResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_TEXT_SENSOR
+    case TextSensorStateResponse::MESSAGE_TYPE:
+      return TextSensorStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesTextSensorResponse::MESSAGE_TYPE:
+      return ListEntitiesTextSensorResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_NUMBER
+    case NumberStateResponse::MESSAGE_TYPE:
+      return NumberStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesNumberResponse::MESSAGE_TYPE:
+      return ListEntitiesNumberResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_TEXT
+    case TextStateResponse::MESSAGE_TYPE:
+      return TextStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesTextResponse::MESSAGE_TYPE:
+      return ListEntitiesTextResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_SELECT
+    case SelectStateResponse::MESSAGE_TYPE:
+      return SelectStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesSelectResponse::MESSAGE_TYPE:
+      return ListEntitiesSelectResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_LOCK
+    case LockStateResponse::MESSAGE_TYPE:
+      return LockStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesLockResponse::MESSAGE_TYPE:
+      return ListEntitiesLockResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_EVENT
+    case EventResponse::MESSAGE_TYPE:
+      return EventResponse::ESTIMATED_SIZE;
+    case ListEntitiesEventResponse::MESSAGE_TYPE:
+      return ListEntitiesEventResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_COVER
+    case CoverStateResponse::MESSAGE_TYPE:
+      return CoverStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesCoverResponse::MESSAGE_TYPE:
+      return ListEntitiesCoverResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_FAN
+    case FanStateResponse::MESSAGE_TYPE:
+      return FanStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesFanResponse::MESSAGE_TYPE:
+      return ListEntitiesFanResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_LIGHT
+    case LightStateResponse::MESSAGE_TYPE:
+      return LightStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesLightResponse::MESSAGE_TYPE:
+      return ListEntitiesLightResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_CLIMATE
+    case ClimateStateResponse::MESSAGE_TYPE:
+      return ClimateStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesClimateResponse::MESSAGE_TYPE:
+      return ListEntitiesClimateResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_ESP32_CAMERA
+    case ListEntitiesCameraResponse::MESSAGE_TYPE:
+      return ListEntitiesCameraResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_BUTTON
+    case ListEntitiesButtonResponse::MESSAGE_TYPE:
+      return ListEntitiesButtonResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_MEDIA_PLAYER
+    case MediaPlayerStateResponse::MESSAGE_TYPE:
+      return MediaPlayerStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesMediaPlayerResponse::MESSAGE_TYPE:
+      return ListEntitiesMediaPlayerResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_ALARM_CONTROL_PANEL
+    case AlarmControlPanelStateResponse::MESSAGE_TYPE:
+      return AlarmControlPanelStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesAlarmControlPanelResponse::MESSAGE_TYPE:
+      return ListEntitiesAlarmControlPanelResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_DATETIME_DATE
+    case DateStateResponse::MESSAGE_TYPE:
+      return DateStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesDateResponse::MESSAGE_TYPE:
+      return ListEntitiesDateResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_DATETIME_TIME
+    case TimeStateResponse::MESSAGE_TYPE:
+      return TimeStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesTimeResponse::MESSAGE_TYPE:
+      return ListEntitiesTimeResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_DATETIME_DATETIME
+    case DateTimeStateResponse::MESSAGE_TYPE:
+      return DateTimeStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesDateTimeResponse::MESSAGE_TYPE:
+      return ListEntitiesDateTimeResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_VALVE
+    case ValveStateResponse::MESSAGE_TYPE:
+      return ValveStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesValveResponse::MESSAGE_TYPE:
+      return ListEntitiesValveResponse::ESTIMATED_SIZE;
+#endif
+#ifdef USE_UPDATE
+    case UpdateStateResponse::MESSAGE_TYPE:
+      return UpdateStateResponse::ESTIMATED_SIZE;
+    case ListEntitiesUpdateResponse::MESSAGE_TYPE:
+      return ListEntitiesUpdateResponse::ESTIMATED_SIZE;
+#endif
+    case ListEntitiesServicesResponse::MESSAGE_TYPE:
+      return ListEntitiesServicesResponse::ESTIMATED_SIZE;
+    case ListEntitiesDoneResponse::MESSAGE_TYPE:
+      return ListEntitiesDoneResponse::ESTIMATED_SIZE;
+    default:
+      // Fallback for unknown message types
+      return 24;
+  }
 }
 
 }  // namespace api

@@ -285,11 +285,11 @@ class APIConnection : public APIServerConnection {
 
   // Result of message encoding
   struct EncodedMessage {
-    uint16_t payload_size;  // Size of the message payload only
-    uint16_t total_size;    // Total size including overhead
+    uint16_t payload_size;    // Size of the message payload only
+    uint8_t packet_overhead;  // Actual packet overhead sent over wire
 
-    // Returns true if message was encoded (both sizes > 0)
-    operator bool() const { return total_size > 0; }
+    // Returns true if message was encoded (payload_size > 0)
+    operator bool() const { return payload_size > 0; }
   };
 
  protected:
@@ -442,6 +442,9 @@ class APIConnection : public APIServerConnection {
   // Method for ListEntitiesDone batching
   static EncodedMessage try_send_list_info_done(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                 bool is_single);
+
+  // Helper function to get estimated message size for buffer pre-allocation
+  static uint16_t get_estimated_message_size(uint16_t message_type);
 
   enum class ConnectionState {
     WAITING_FOR_HELLO,

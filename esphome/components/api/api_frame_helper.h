@@ -32,10 +32,11 @@ struct PacketInfo {
   uint16_t message_type;  // 2 bytes
   uint16_t offset;        // 2 bytes (sufficient for packet size ~1460 bytes)
   uint16_t payload_size;  // 2 bytes (up to 65535 bytes)
-  uint16_t padding;       // 2 bytes (for alignment)
+  uint8_t overhead_size;  // 1 byte (packet overhead)
+  uint8_t padding;        // 1 byte (for alignment)
 
-  PacketInfo(uint16_t type, uint16_t off, uint16_t size)
-      : message_type(type), offset(off), payload_size(size), padding(0) {}
+  PacketInfo(uint16_t type, uint16_t off, uint16_t size, uint8_t overhead)
+      : message_type(type), offset(off), payload_size(size), overhead_size(overhead), padding(0) {}
 };
 
 enum class APIError : int {
@@ -106,8 +107,8 @@ class APIFrameHelper {
   virtual uint8_t frame_header_padding() = 0;
   // Get the frame footer size required by this protocol
   virtual uint8_t frame_footer_size() = 0;
-  // Calculate the actual packet overhead (header + footer) for a given message
-  virtual uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) = 0;
+  // Calculate the actual header + footer size (without padding) sent over wire for a given message
+  virtual uint8_t calculate_header_footer_size(uint16_t message_type, uint16_t payload_len) = 0;
   // Check if socket has data ready to read
   bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
@@ -204,8 +205,8 @@ class APINoiseFrameHelper : public APIFrameHelper {
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
   uint8_t frame_footer_size() override { return frame_footer_size_; }
-  // Calculate the actual packet overhead for Noise protocol
-  uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) override {
+  // Calculate the actual header + footer size (without padding) for Noise protocol
+  uint8_t calculate_header_footer_size(uint16_t message_type, uint16_t payload_len) override {
     // Noise: fixed 3 byte header (indicator + 2-byte size) + 16 byte MAC
     return 3 + frame_footer_size_;
   }
@@ -253,8 +254,8 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
   uint8_t frame_footer_size() override { return frame_footer_size_; }
-  // Calculate the actual packet overhead for Plaintext protocol
-  uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) override;  // Implemented in .cpp
+  // Calculate the actual header + footer size (without padding) for Plaintext protocol
+  uint8_t calculate_header_footer_size(uint16_t message_type, uint16_t payload_len) override;  // Implemented in .cpp
 
  protected:
   APIError try_read_frame_(ParsedFrame *frame);
