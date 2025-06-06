@@ -1769,8 +1769,6 @@ void APIConnection::process_batch_() {
     return;
   }
 
-  ESP_LOGD(TAG, "Processing batch with %zu items", num_items);
-
   // Pre-allocate storage for packet info
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
   packet_info.reserve(num_items);
@@ -1825,8 +1823,6 @@ void APIConnection::process_batch_() {
   if (footer_size > 0) {
     this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + footer_size);
   }
-
-  ESP_LOGD(TAG, "Sending batch: %zu messages, %zu total bytes", items_processed, this->proto_write_buffer_.size());
 
   // Send all collected packets
   APIError err = this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->proto_write_buffer_}, packet_info);
