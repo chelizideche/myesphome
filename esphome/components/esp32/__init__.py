@@ -84,7 +84,10 @@ def get_cpu_frequencies(*frequencies):
 
 
 RISCV_ESP32_VARIANTS = [
-    VARIANT_ESP32C2, VARIANT_ESP32C3, VARIANT_ESP32C6, VARIANT_ESP32H2,
+    VARIANT_ESP32C2,
+    VARIANT_ESP32C3,
+    VARIANT_ESP32C6,
+    VARIANT_ESP32H2,
 ]
 
 CPU_FREQUENCIES = {
@@ -400,14 +403,14 @@ def _arduino_check_versions(value):
 
 
 def _is_plaform_supports_idf_version(value, idf_version):
-    split = value[CONF_PLATFORM_VERSION].split('@')
+    split = value[CONF_PLATFORM_VERSION].split("@")
     if len(split) != 2:
         _LOGGER.warning(
             "Can't check if platform_version supports esp-idf version. "
             "If there are connectivity or build issues please remove the manual platform_version."
         )
         return False
-    
+
     for op, platform_version_str in cv.platformio_version_constraint(split[1]):
         platform_version = cv.Version.parse(platform_version_str)
         if supported_version := SUPPORTED_IDF_BY_PLATFORM.get(platform_version):
@@ -416,10 +419,16 @@ def _is_plaform_supports_idf_version(value, idf_version):
                     return True
             elif op in ("<="):
                 if _version_less(supported_version, idf_version):
-                    raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
+                    raise cv.Invalid(
+                        f"because version constraint specified {op}{platform_version_str}",
+                        CONF_PLATFORM_VERSION,
+                    )
             elif op in ("<"):
                 if not _version_less(idf_version, supported_version):
-                    raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
+                    raise cv.Invalid(
+                        f"because version constraint specified {op}{platform_version_str}",
+                        CONF_PLATFORM_VERSION,
+                    )
             elif op in ("!="):
                 continue
 
@@ -429,6 +438,7 @@ def _is_plaform_supports_idf_version(value, idf_version):
     )
 
     return False
+
 
 def _esp_idf_check_versions(value):
     value = value.copy()
@@ -461,8 +471,13 @@ def _esp_idf_check_versions(value):
 
     if not has_platform_ver:
         # parduino doesn't have riscv builds
-        if get_esp32_variant() not in RISCV_ESP32_VARIANTS and version in SUPPORTED_PIOARDUINO_ESP_IDF_5X:
-            value[CONF_PLATFORM_VERSION] = _parse_platform_version(str(ESP_IDF_PLATFORM_VERSION))
+        if (
+            get_esp32_variant() not in RISCV_ESP32_VARIANTS
+            and version in SUPPORTED_PIOARDUINO_ESP_IDF_5X
+        ):
+            value[CONF_PLATFORM_VERSION] = _parse_platform_version(
+                str(ESP_IDF_PLATFORM_VERSION)
+            )
         else:
             minimal_platform_version = None
             for platform_version, idf_version in SUPPORTED_IDF_BY_PLATFORM.items():
@@ -477,9 +492,13 @@ def _esp_idf_check_versions(value):
                     minimal_platform_version = platform_version
 
             if minimal_platform_version is None:
-                raise cv.Invalid(f"Please specify {CONF_PLATFORM_VERSION} which supports esp-idf {str(version)}")
+                raise cv.Invalid(
+                    f"Please specify {CONF_PLATFORM_VERSION} which supports esp-idf {str(version)}"
+                )
 
-            value[CONF_PLATFORM_VERSION] = _parse_platform_version(f"{str(minimal_platform_version)}")
+            value[CONF_PLATFORM_VERSION] = _parse_platform_version(
+                f"{str(minimal_platform_version)}"
+            )
 
     is_platformio = _platform_is_platformio(value[CONF_PLATFORM_VERSION])
     if is_platformio:
@@ -496,10 +515,7 @@ def _esp_idf_check_versions(value):
                 f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
             )
 
-        if (
-            CONF_RELEASE not in value
-            and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
-        ):
+        if CONF_RELEASE not in value and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X:
             raise cv.Invalid(
                 f"ESP-IDF {value[CONF_VERSION]} is not available with pioarduino; you may need to specify '{CONF_RELEASE}'"
             )
