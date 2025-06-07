@@ -32,13 +32,11 @@ binary_sensor:
     id: test_binary_sensor1
     lambda: |-
       return true;
-    update_interval: 0.1s
   - platform: template
     name: "Test Binary Sensor 2"
     id: test_binary_sensor2
     lambda: |-
       return false;
-    update_interval: 0.1s
 
 switch:
   - platform: template
