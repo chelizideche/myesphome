@@ -265,7 +265,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
 
   // Encode directly into buffer
   msg.encode(buffer);
-  return static_cast<uint16_t>(size);
+  return total_size;
 }
 
 #ifdef USE_BINARY_SENSOR
@@ -1722,10 +1722,13 @@ void APIConnection::process_batch_() {
     }
 
     // Message was encoded successfully
-    packet_info.emplace_back(item.message_type, current_offset, payload_size);
+    // payload_size now includes overhead, calculate actual payload size for PacketInfo
+    uint16_t actual_payload_size = payload_size - header_padding - footer_size;
+    packet_info.emplace_back(item.message_type, current_offset, actual_payload_size);
 
     // Update tracking variables
-    remaining_size -= payload_size + header_padding + footer_size;
+    // payload_size now includes header_padding + footer_size
+    remaining_size -= payload_size;
     // Calculate where the next message's header padding will start
     // Current buffer size + footer space (that prepare_message_buffer will add for this message)
     current_offset = this->proto_write_buffer_.size() + footer_size;
