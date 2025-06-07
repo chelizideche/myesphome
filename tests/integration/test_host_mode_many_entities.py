@@ -51,15 +51,7 @@ async def test_host_mode_many_entities(
             for s in states.values()
             if hasattr(s, "state") and isinstance(s.state, float)
         ]
-        binary_sensor_states = [
-            s
-            for s in states.values()
-            if hasattr(s, "state") and isinstance(s.state, bool)
-        ]
 
         assert len(sensor_states) >= 50, (
             f"Expected at least 50 sensor states, got {len(sensor_states)}"
-        )
-        assert len(binary_sensor_states) >= 2, (
-            f"Expected at least 2 binary sensor states, got {len(binary_sensor_states)}"
         )

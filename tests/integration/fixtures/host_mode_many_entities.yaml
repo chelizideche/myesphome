@@ -215,12 +215,10 @@ sensor:
 binary_sensor:
   - platform: template
     name: "Test Binary Sensor 1"
-    id: test_binary_sensor_1
-    lambda: return true;
+    lambda: return millis() % 1000 < 500;
   - platform: template
     name: "Test Binary Sensor 2"
-    id: test_binary_sensor_2
-    lambda: return false;
+    lambda: return millis() % 2000 < 1000;
 
 switch:
   - platform: template
@@ -322,10 +320,3 @@ button:
     name: "Test Button"
     on_press:
       - logger.log: "Button pressed"
-
-# Interval to update binary sensors
-interval:
-  - interval: 100ms
-    then:
-      - component.update: test_binary_sensor_1
-      - component.update: test_binary_sensor_2

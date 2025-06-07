@@ -95,12 +95,10 @@ sensor:
 binary_sensor:
   - platform: template
     name: "Test Binary Sensor 1"
-    id: test_binary_sensor_1
-    lambda: return true;
+    lambda: return millis() % 1000 < 500;
   - platform: template
     name: "Test Binary Sensor 2"
-    id: test_binary_sensor_2
-    lambda: return false;
+    lambda: return millis() % 2000 < 1000;
 
 text_sensor:
   - platform: template
@@ -136,10 +134,3 @@ number:
     lambda: return 50.0;
     set_action:
       - logger.log: "Number set"
-
-# Interval to update binary sensors
-interval:
-  - interval: 100ms
-    then:
-      - component.update: test_binary_sensor_1
-      - component.update: test_binary_sensor_2
