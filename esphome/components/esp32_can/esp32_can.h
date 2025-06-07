@@ -26,6 +26,8 @@
 
 #include <driver/twai.h>
 
+#define USE_ESP32_CAN_CONFIG_CALLBACK
+
 namespace esphome {
 namespace esp32_can {
 
@@ -68,14 +70,14 @@ class ESP32Can : public canbus::Canbus {
 
   void loop() override;
   float get_setup_priority() const override { return 500 /* setup_priority::HARDWARE_LATE */; }
-
+#ifdef USE_ESP32_CAN_CONFIG_CALLBACK
   void add_config_callback(
       std::function<void(const twai_general_config_t &g_config, const twai_timing_config_t &t_config,
                          const twai_filter_config_t &f_config, esp_err_t err)>
           foo) {
     this->config_callback_manager_.add(std::move(foo));
   }
-
+#endif
   esp_err_t start();
   esp_err_t stop();
   esp_err_t initiate_recovery();
@@ -98,9 +100,11 @@ class ESP32Can : public canbus::Canbus {
   twai_filter_config_t f_config_ = TWAI_FILTER_CONFIG_ACCEPT_ALL();
   twai_timing_config_t t_config_;
   optional<twai_general_config_t> initialized_g_config_;
+#ifdef USE_ESP32_CAN_CONFIG_CALLBACK
   CallbackManager<void(const twai_general_config_t &g_config, const twai_timing_config_t &t_config,
                        const twai_filter_config_t &f_config, esp_err_t err)>
       config_callback_manager_{};
+#endif
 };
 
 }  // namespace esp32_can

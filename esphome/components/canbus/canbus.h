@@ -7,6 +7,8 @@
 #include <cinttypes>
 #include <vector>
 
+#define USE_CANBUS_TX_CALLBACK
+
 namespace esphome {
 namespace canbus {
 
@@ -64,7 +66,7 @@ struct CanFrame {
 
 class Canbus : public Component {
  public:
-  Canbus(){};
+  Canbus() {};
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
@@ -95,10 +97,12 @@ class Canbus : public Component {
       std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
     this->callback_manager_.add(std::move(callback));
   }
+#ifdef USE_CANBUS_TX_CALLBACK
   void add_transmit_callback(
       std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
     this->transmit_callback_manager_.add(std::move(callback));
   }
+#endif
 
  protected:
   template<typename... Ts> friend class CanbusSendAction;
@@ -108,9 +112,10 @@ class Canbus : public Component {
   CanSpeed bit_rate_;
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       callback_manager_{};
+#ifdef USE_CANBUS_TX_CALLBACK
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       transmit_callback_manager_{};
-
+#endif
   virtual bool setup_internal();
   virtual Error send_message(struct CanFrame *frame);
   virtual Error read_message(struct CanFrame *frame);
@@ -162,7 +167,7 @@ class CanbusTrigger : public Trigger<std::vector<uint8_t>, uint32_t, bool>, publ
  public:
   explicit CanbusTrigger(Canbus *parent, const std::uint32_t can_id, const std::uint32_t can_id_mask,
                          const bool use_extended_id)
-      : parent_(parent), can_id_(can_id), can_id_mask_(can_id_mask), use_extended_id_(use_extended_id){};
+      : parent_(parent), can_id_(can_id), can_id_mask_(can_id_mask), use_extended_id_(use_extended_id) {};
 
   void set_remote_transmission_request(bool remote_transmission_request) {
     this->remote_transmission_request_ = remote_transmission_request;

@@ -266,7 +266,9 @@ bool ESP32Can::install_and_start_() {
   ESP_LOGV(TAG, "Install TWAI driver");
   this->initialized_g_config_.reset();
   const auto install_err = twai_driver_install(&this->g_config_, &this->t_config_, &this->f_config_);
+#ifdef USE_ESP32_CAN_CONFIG_CALLBACK
   config_callback_manager_.call(this->g_config_, this->t_config_, this->f_config_, install_err);
+#endif
   switch (install_err) {
     case ESP_OK:
       this->initialized_g_config_ = this->g_config_;
