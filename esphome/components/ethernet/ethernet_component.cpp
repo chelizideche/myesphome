@@ -17,8 +17,8 @@
 // Workaround of error: invalid conversion from 'int' to 'emac_rmii_clock_gpio_t' [-fpermissive]
 // on esp-idf 5.3.1
 #if DEFAULT_RMII_CLK_GPIO == 0 && EMAC_CLK_IN_GPIO == 0
-  #undef DEFAULT_RMII_CLK_GPIO
-  #define DEFAULT_RMII_CLK_GPIO EMAC_CLK_IN_GPIO
+#undef DEFAULT_RMII_CLK_GPIO
+#define DEFAULT_RMII_CLK_GPIO EMAC_CLK_IN_GPIO
 #endif
 
 namespace esphome {
