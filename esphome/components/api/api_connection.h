@@ -283,15 +283,6 @@ class APIConnection : public APIServerConnection {
   ProtoWriteBuffer allocate_single_message_buffer(uint32_t size);
   ProtoWriteBuffer allocate_batch_message_buffer(uint32_t size);
 
-  // Result of message encoding
-  struct EncodedMessage {
-    uint16_t payload_size;    // Size of the message payload only
-    uint8_t packet_overhead;  // Actual packet overhead sent over wire
-
-    // Returns true if message was encoded (payload_size > 0)
-    operator bool() const { return payload_size > 0; }
-  };
-
  protected:
   // Helper function to fill common entity fields
   template<typename ResponseT> static void fill_entity_info_base(esphome::EntityBase *entity, ResponseT &response) {
@@ -309,139 +300,125 @@ class APIConnection : public APIServerConnection {
   }
 
   // Non-template helper to encode any ProtoMessage
-  static EncodedMessage encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
-                                                 uint32_t remaining_size, bool is_single);
+  static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
+                                           uint32_t remaining_size, bool is_single);
 
 #ifdef USE_BINARY_SENSOR
-  static EncodedMessage try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn,
-                                                     uint32_t remaining_size, bool is_single);
-  static EncodedMessage try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                    bool is_single);
+  static uint16_t try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn, uint32_t remaining_size,
+                                               bool is_single);
+  static uint16_t try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single);
 #endif
 #ifdef USE_COVER
-  static EncodedMessage try_send_cover_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_cover_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
+  static uint16_t try_send_cover_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
+  static uint16_t try_send_cover_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_FAN
-  static EncodedMessage try_send_fan_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single);
-  static EncodedMessage try_send_fan_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                          bool is_single);
+  static uint16_t try_send_fan_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_fan_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_LIGHT
-  static EncodedMessage try_send_light_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_light_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
+  static uint16_t try_send_light_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
+  static uint16_t try_send_light_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SENSOR
-  static EncodedMessage try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
+  static uint16_t try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_SWITCH
-  static EncodedMessage try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_switch_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
+  static uint16_t try_send_switch_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static EncodedMessage try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                   bool is_single);
-  static EncodedMessage try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                  bool is_single);
+  static uint16_t try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
+  static uint16_t try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_CLIMATE
-  static EncodedMessage try_send_climate_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_climate_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
+  static uint16_t try_send_climate_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                         bool is_single);
+  static uint16_t try_send_climate_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
 #endif
 #ifdef USE_NUMBER
-  static EncodedMessage try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
+  static uint16_t try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_DATETIME_DATE
-  static EncodedMessage try_send_date_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
-  static EncodedMessage try_send_date_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single);
+  static uint16_t try_send_date_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_date_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_DATETIME_TIME
-  static EncodedMessage try_send_time_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
-  static EncodedMessage try_send_time_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single);
+  static uint16_t try_send_time_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_time_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_DATETIME_DATETIME
-  static EncodedMessage try_send_datetime_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                bool is_single);
-  static EncodedMessage try_send_datetime_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
+  static uint16_t try_send_datetime_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                          bool is_single);
+  static uint16_t try_send_datetime_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                         bool is_single);
 #endif
 #ifdef USE_TEXT
-  static EncodedMessage try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
-  static EncodedMessage try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single);
+  static uint16_t try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SELECT
-  static EncodedMessage try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
+  static uint16_t try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_BUTTON
-  static EncodedMessage try_send_button_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_button_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_LOCK
-  static EncodedMessage try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
-  static EncodedMessage try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                           bool is_single);
+  static uint16_t try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_VALVE
-  static EncodedMessage try_send_valve_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_valve_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
+  static uint16_t try_send_valve_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
+  static uint16_t try_send_valve_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_MEDIA_PLAYER
-  static EncodedMessage try_send_media_player_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                    bool is_single);
-  static EncodedMessage try_send_media_player_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                   bool is_single);
+  static uint16_t try_send_media_player_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single);
+  static uint16_t try_send_media_player_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  static EncodedMessage try_send_alarm_control_panel_state(EntityBase *entity, APIConnection *conn,
-                                                           uint32_t remaining_size, bool is_single);
-  static EncodedMessage try_send_alarm_control_panel_info(EntityBase *entity, APIConnection *conn,
-                                                          uint32_t remaining_size, bool is_single);
+  static uint16_t try_send_alarm_control_panel_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                     bool is_single);
+  static uint16_t try_send_alarm_control_panel_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                    bool is_single);
 #endif
 #ifdef USE_EVENT
-  static EncodedMessage try_send_event_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
+  static uint16_t try_send_event_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_UPDATE
-  static EncodedMessage try_send_update_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_update_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_update_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                        bool is_single);
+  static uint16_t try_send_update_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 #ifdef USE_ESP32_CAMERA
-  static EncodedMessage try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static uint16_t try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                       bool is_single);
 #endif
 
   // Method for ListEntitiesDone batching
-  static EncodedMessage try_send_list_info_done(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                bool is_single);
+  static uint16_t try_send_list_info_done(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                          bool is_single);
 
   // Helper function to get estimated message size for buffer pre-allocation
   static uint16_t get_estimated_message_size(uint16_t message_type);
@@ -482,7 +459,7 @@ class APIConnection : public APIServerConnection {
   int state_subs_at_ = -1;
 
   // Function pointer type for message encoding
-  using MessageCreatorPtr = EncodedMessage (*)(EntityBase *, APIConnection *, uint32_t remaining_size, bool is_single);
+  using MessageCreatorPtr = uint16_t (*)(EntityBase *, APIConnection *, uint32_t remaining_size, bool is_single);
 
   // Optimized MessageCreator class using union dispatch
   class MessageCreator {
@@ -568,7 +545,7 @@ class APIConnection : public APIServerConnection {
     }
 
     // Call operator
-    EncodedMessage operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) const;
+    uint16_t operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) const;
 
    private:
     // Helper to check if this message type uses heap-allocated strings

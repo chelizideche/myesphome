@@ -32,11 +32,10 @@ struct PacketInfo {
   uint16_t message_type;  // 2 bytes
   uint16_t offset;        // 2 bytes (sufficient for packet size ~1460 bytes)
   uint16_t payload_size;  // 2 bytes (up to 65535 bytes)
-  uint8_t overhead_size;  // 1 byte (packet overhead)
-  uint8_t padding;        // 1 byte (for alignment)
+  uint16_t padding;       // 2 byte (for alignment)
 
-  PacketInfo(uint16_t type, uint16_t off, uint16_t size, uint8_t overhead)
-      : message_type(type), offset(off), payload_size(size), overhead_size(overhead), padding(0) {}
+  PacketInfo(uint16_t type, uint16_t off, uint16_t size)
+      : message_type(type), offset(off), payload_size(size), padding(0) {}
 };
 
 enum class APIError : int {

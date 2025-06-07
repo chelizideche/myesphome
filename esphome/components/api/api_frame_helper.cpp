@@ -613,8 +613,7 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
 
   // Use write_protobuf_packets with a single packet
   std::vector<PacketInfo> packets;
-  uint8_t header_footer_size = calculate_header_footer_size(type, payload_len);
-  packets.emplace_back(type, 0, payload_len, header_footer_size);
+  packets.emplace_back(type, 0, payload_len);
 
   return write_protobuf_packets(buffer, packets);
 }
@@ -1032,8 +1031,7 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
 
   // Use write_protobuf_packets with a single packet
   std::vector<PacketInfo> packets;
-  uint8_t header_footer_size = calculate_header_footer_size(type, payload_len);
-  packets.emplace_back(type, 0, payload_len, header_footer_size);
+  packets.emplace_back(type, 0, payload_len);
 
   return write_protobuf_packets(buffer, packets);
 }
@@ -1056,7 +1054,11 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
     uint16_t type = packet.message_type;
     uint16_t offset = packet.offset;
     uint16_t payload_len = packet.payload_size;
-    uint8_t total_header_len = packet.overhead_size;
+
+    // Calculate varint sizes for header layout
+    uint8_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));
+    uint8_t type_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(type));
+    uint8_t total_header_len = 1 + size_varint_len + type_varint_len;
 
     // Calculate where to start writing the header
     // The header starts at the latest possible position to minimize unused padding
