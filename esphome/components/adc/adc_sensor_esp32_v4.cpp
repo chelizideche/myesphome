@@ -3,6 +3,8 @@
 #include "adc_sensor.h"
 #include "esphome/core/log.h"
 
+#if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0))
+
 namespace esphome {
 namespace adc {
 
@@ -57,6 +59,7 @@ void ADCSensor::setup() {
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
+
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
   } else {
@@ -162,5 +165,7 @@ float ADCSensor::sample() {
 
 }  // namespace adc
 }  // namespace esphome
+
+#endif  // ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
 
 #endif  // USE_ESP32
