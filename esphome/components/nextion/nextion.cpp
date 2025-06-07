@@ -31,17 +31,38 @@ bool Nextion::send_command_(const std::string &command) {
     return false;
   }
 
+#ifdef USE_NEXTION_COMMAND_SPACING
+  if (!this->ignore_is_setup_ && !this->command_pacer_.can_send()) {
+    return false;
+  }
+#endif  // USE_NEXTION_COMMAND_SPACING
+
   ESP_LOGN(TAG, "send_command %s", command.c_str());
 
   this->write_str(command.c_str());
   const uint8_t to_send[3] = {0xFF, 0xFF, 0xFF};
   this->write_array(to_send, sizeof(to_send));
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  this->command_pacer_.mark_sent();
+#endif  // USE_NEXTION_COMMAND_SPACING
+
   return true;
 }
 
 bool Nextion::check_connect_() {
-  if (this->get_is_connected_())
+  if (this->is_connected_)
     return true;
+
+  // Check if the handshake should be skipped for the Nextion connection
+  if (this->skip_connection_handshake_) {
+    // Log the connection status without handshake
+    ESP_LOGW(TAG, "Nextion display set as connected without performing handshake");
+    // Set the connection status to true
+    this->is_connected_ = true;
+    // Return true indicating the connection is set
+    return true;
+  }
 
   if (this->comok_sent_ == 0) {
     this->reset_(false);
@@ -126,10 +147,14 @@ void Nextion::reset_(bool reset_nextion) {
 
 void Nextion::dump_config() {
   ESP_LOGCONFIG(TAG, "Nextion:");
-  ESP_LOGCONFIG(TAG, "  Device Model:     %s", this->device_model_.c_str());
-  ESP_LOGCONFIG(TAG, "  Firmware Version: %s", this->firmware_version_.c_str());
-  ESP_LOGCONFIG(TAG, "  Serial Number:    %s", this->serial_number_.c_str());
-  ESP_LOGCONFIG(TAG, "  Flash Size:       %s", this->flash_size_.c_str());
+  if (this->skip_connection_handshake_) {
+    ESP_LOGCONFIG(TAG, "  Skip handshake:   %s", YESNO(this->skip_connection_handshake_));
+  } else {
+    ESP_LOGCONFIG(TAG, "  Device Model:     %s", this->device_model_.c_str());
+    ESP_LOGCONFIG(TAG, "  Firmware Version: %s", this->firmware_version_.c_str());
+    ESP_LOGCONFIG(TAG, "  Serial Number:    %s", this->serial_number_.c_str());
+    ESP_LOGCONFIG(TAG, "  Flash Size:       %s", this->flash_size_.c_str());
+  }
   ESP_LOGCONFIG(TAG, "  Wake On Touch:    %s", YESNO(this->auto_wake_on_touch_));
   ESP_LOGCONFIG(TAG, "  Exit reparse:     %s", YESNO(this->exit_reparse_on_start_));
 
@@ -144,6 +169,14 @@ void Nextion::dump_config() {
   if (this->start_up_page_ != -1) {
     ESP_LOGCONFIG(TAG, "  Start Up Page:    %" PRId16, this->start_up_page_);
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  ESP_LOGCONFIG(TAG, "  Command spacing:  %" PRIu8 "ms", this->command_pacer_.get_spacing());
+#endif  // USE_NEXTION_COMMAND_SPACING
+
+#ifdef USE_NEXTION_MAX_QUEUE_SIZE
+  ESP_LOGCONFIG(TAG, "  Max queue size:   %zu", this->max_queue_size_);
+#endif
 }
 
 float Nextion::get_setup_priority() const { return setup_priority::DATA; }
@@ -174,6 +207,10 @@ void Nextion::add_new_page_callback(std::function<void(uint8_t)> &&callback) {
 
 void Nextion::add_touch_event_callback(std::function<void(uint8_t, uint8_t, bool)> &&callback) {
   this->touch_callback_.add(std::move(callback));
+}
+
+void Nextion::add_buffer_overflow_event_callback(std::function<void()> &&callback) {
+  this->buffer_overflow_callback_.add(std::move(callback));
 }
 
 void Nextion::update_all_components() {
@@ -255,18 +292,13 @@ void Nextion::loop() {
     this->sent_setup_commands_ = true;
     this->send_command_("bkcmd=3");  // Always, returns 0x00 to 0x23 result of serial command.
 
-    this->set_backlight_brightness(this->brightness_);
+    if (this->brightness_.has_value()) {
+      this->set_backlight_brightness(this->brightness_.value());
+    }
 
     // Check if a startup page has been set and send the command
     if (this->start_up_page_ != -1) {
       this->goto_page(this->start_up_page_);
-    }
-
-    this->set_auto_wake_on_touch(this->auto_wake_on_touch_);
-    this->set_exit_reparse_on_start(this->exit_reparse_on_start_);
-
-    if (this->touch_sleep_timeout_ != 0) {
-      this->set_touch_sleep_timeout(this->touch_sleep_timeout_);
     }
 
     if (this->wake_up_page_ != -1) {
@@ -299,6 +331,11 @@ bool Nextion::remove_from_q_(bool report_empty) {
   }
 
   NextionQueue *nb = this->nextion_queue_.front();
+  if (!nb || !nb->component) {
+    ESP_LOGE(TAG, "Invalid queue entry!");
+    this->nextion_queue_.pop_front();
+    return false;
+  }
   NextionComponentBase *component = nb->component;
 
   ESP_LOGN(TAG, "Removing %s from the queue", component->get_variable_name().c_str());
@@ -324,9 +361,15 @@ void Nextion::process_serial_() {
 }
 // nextion.tech/instruction-set/
 void Nextion::process_nextion_commands_() {
-  if (this->command_data_.length() == 0) {
+  if (this->command_data_.empty()) {
     return;
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  if (!this->command_pacer_.can_send()) {
+    return;  // Will try again in next loop iteration
+  }
+#endif
 
   size_t to_process_length = 0;
   std::string to_process;
@@ -367,7 +410,9 @@ void Nextion::process_nextion_commands_() {
             this->setup_callback_.call();
           }
         }
-
+#ifdef USE_NEXTION_COMMAND_SPACING
+        this->command_pacer_.mark_sent();  // Here is where we should mark the command as sent
+#endif
         break;
       case 0x02:  // invalid Component ID or name was used
         ESP_LOGW(TAG, "Nextion reported component ID or name invalid!");
@@ -443,7 +488,9 @@ void Nextion::process_nextion_commands_() {
         this->remove_from_q_();
         break;
       case 0x24:  //  Serial Buffer overflow occurs
-        ESP_LOGW(TAG, "Nextion reported Serial Buffer overflow!");
+        // Buffer will continue to receive the current instruction, all previous instructions are lost.
+        ESP_LOGE(TAG, "Nextion reported Serial Buffer overflow!");
+        this->buffer_overflow_callback_.call();
         break;
       case 0x65: {  // touch event return data
         if (to_process_length != 3) {
@@ -509,6 +556,11 @@ void Nextion::process_nextion_commands_() {
         }
 
         NextionQueue *nb = this->nextion_queue_.front();
+        if (!nb || !nb->component) {
+          ESP_LOGE(TAG, "Invalid queue entry!");
+          this->nextion_queue_.pop_front();
+          return;
+        }
         NextionComponentBase *component = nb->component;
 
         if (component->get_queue_type() != NextionQueueType::TEXT_SENSOR) {
@@ -542,16 +594,18 @@ void Nextion::process_nextion_commands_() {
           break;
         }
 
-        int dataindex = 0;
-
         int value = 0;
 
         for (int i = 0; i < 4; ++i) {
           value += to_process[i] << (8 * i);
-          ++dataindex;
         }
 
         NextionQueue *nb = this->nextion_queue_.front();
+        if (!nb || !nb->component) {
+          ESP_LOGE(TAG, "Invalid queue entry!");
+          this->nextion_queue_.pop_front();
+          return;
+        }
         NextionComponentBase *component = nb->component;
 
         if (component->get_queue_type() != NextionQueueType::SENSOR &&
@@ -948,13 +1002,31 @@ uint16_t Nextion::recv_ret_string_(std::string &response, uint32_t timeout, bool
 }
 
 /**
- * @brief
+ * @brief Add a command to the Nextion queue that expects no response.
  *
- * @param variable_name Name for the queue
+ * This is typically used for write-only operations such as variable assignments or component updates
+ * where no return value or acknowledgment is expected from the display.
+ *
+ * If the `max_queue_size` limit is configured and reached, the command will be skipped.
+ *
+ * @param variable_name Name of the variable or component associated with the command.
  */
 void Nextion::add_no_result_to_queue_(const std::string &variable_name) {
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+#ifdef USE_NEXTION_MAX_QUEUE_SIZE
+  if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
+    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping NORESULT command: %s", this->nextion_queue_.size(),
+             variable_name.c_str());
+    return;
+  }
+#endif
+
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
   nextion_queue->component = new nextion::NextionComponentBase;
@@ -1083,12 +1155,34 @@ void Nextion::add_no_result_to_queue_with_set_internal_(const std::string &varia
                                             state_value.c_str());
 }
 
+/**
+ * @brief Queue a GET command for a component that expects a response from the Nextion display.
+ *
+ * This method is used for querying values such as sensor states, text content, or switch status.
+ * The component will be added to the Nextion queue only if the display is already set up,
+ * the queue has not reached the configured maximum size (if set), and the command is sent successfully.
+ *
+ * @param component Pointer to the Nextion component that will handle the response.
+ */
 void Nextion::add_to_get_queue(NextionComponentBase *component) {
   if ((!this->is_setup() && !this->ignore_is_setup_))
     return;
 
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+#ifdef USE_NEXTION_MAX_QUEUE_SIZE
+  if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
+    ESP_LOGW(TAG, "Nextion queue full (%zu entries), dropping GET for \"%s\"", this->nextion_queue_.size(),
+             component->get_variable_name().c_str());
+    return;
+  }
+#endif
+
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
   nextion_queue->queue_time = millis();
@@ -1115,8 +1209,13 @@ void Nextion::add_addt_command_to_queue(NextionComponentBase *component) {
   if ((!this->is_setup() && !this->ignore_is_setup_) || this->is_sleeping())
     return;
 
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
   nextion_queue->queue_time = millis();

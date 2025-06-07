@@ -5,13 +5,16 @@ from esphome.components import mqtt, web_server
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CODE,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ID,
     CONF_MQTT_ID,
     CONF_ON_STATE,
     CONF_TRIGGER_ID,
-    CONF_WEB_SERVER_ID,
+    CONF_WEB_SERVER,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.cpp_generator import MockObjClass
 from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@grahambrown11", "@hwstar"]
@@ -78,12 +81,11 @@ AlarmControlPanelCondition = alarm_control_panel_ns.class_(
     "AlarmControlPanelCondition", automation.Condition
 )
 
-ALARM_CONTROL_PANEL_SCHEMA = (
+_ALARM_CONTROL_PANEL_SCHEMA = (
     cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
     .extend(cv.MQTT_COMMAND_COMPONENT_SCHEMA)
     .extend(
         {
-            cv.GenerateID(): cv.declare_id(AlarmControlPanel),
             cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(
                 mqtt.MQTTAlarmControlPanelComponent
             ),
@@ -146,6 +148,33 @@ ALARM_CONTROL_PANEL_SCHEMA = (
     )
 )
 
+
+def alarm_control_panel_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {
+        cv.GenerateID(): cv.declare_id(class_),
+    }
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _ALARM_CONTROL_PANEL_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+ALARM_CONTROL_PANEL_SCHEMA = alarm_control_panel_schema(AlarmControlPanel)
+ALARM_CONTROL_PANEL_SCHEMA.add_extra(
+    cv.deprecated_schema_constant("alarm_control_panel")
+)
+
 ALARM_CONTROL_PANEL_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.GenerateID(): cv.use_id(AlarmControlPanel),
@@ -195,9 +224,8 @@ async def setup_alarm_control_panel_core_(var, config):
     for conf in config.get(CONF_ON_READY, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
-    if (webserver_id := config.get(CONF_WEB_SERVER_ID)) is not None:
-        web_server_ = await cg.get_variable(webserver_id)
-        web_server.add_entity_to_sorting_list(web_server_, var, config)
+    if web_server_config := config.get(CONF_WEB_SERVER):
+        await web_server.add_entity_config(var, web_server_config)
     if mqtt_id := config.get(CONF_MQTT_ID):
         mqtt_ = cg.new_Pvariable(mqtt_id, var)
         await mqtt.register_mqtt_component(mqtt_, config)
@@ -208,6 +236,12 @@ async def register_alarm_control_panel(var, config):
         var = cg.Pvariable(config[CONF_ID], var)
     cg.add(cg.App.register_alarm_control_panel(var))
     await setup_alarm_control_panel_core_(var, config)
+
+
+async def new_alarm_control_panel(config, *args):
+    var = cg.new_Pvariable(config[CONF_ID], *args)
+    await register_alarm_control_panel(var, config)
+    return var
 
 
 @automation.register_action(

@@ -34,7 +34,7 @@ MQTTClientComponent::MQTTClientComponent() {
 
 // Connection
 void MQTTClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
         if (index == 0)
@@ -50,6 +50,8 @@ void MQTTClientComponent::setup() {
         }
       });
   this->mqtt_backend_.set_on_disconnect([this](MQTTClientDisconnectReason reason) {
+    if (this->state_ == MQTT_CLIENT_DISABLED)
+      return;
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
@@ -77,8 +79,9 @@ void MQTTClientComponent::setup() {
         topic, [this](const std::string &topic, const std::string &payload) { this->send_device_info_(); }, 2);
   }
 
-  this->last_connected_ = millis();
-  this->start_dnslookup_();
+  if (this->enable_on_boot_) {
+    this->enable();
+  }
 }
 
 void MQTTClientComponent::send_device_info_() {
@@ -135,7 +138,11 @@ void MQTTClientComponent::send_device_info_() {
 #endif
 
 #ifdef USE_API_NOISE
-        root["api_encryption"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        if (api::global_api_server->get_noise_ctx()->has_psk()) {
+          root["api_encryption"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        } else {
+          root["api_encryption_supported"] = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
+        }
 #endif
       },
       2, this->discovery_info_.retain);
@@ -147,6 +154,7 @@ void MQTTClientComponent::dump_config() {
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
+  ESP_LOGCONFIG(TAG, "  Clean Session: %s", YESNO(this->credentials_.clean_session));
   if (this->is_discovery_ip_enabled()) {
     ESP_LOGCONFIG(TAG, "  Discovery IP enabled");
   }
@@ -162,7 +170,9 @@ void MQTTClientComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Availability: '%s'", this->availability_.topic.c_str());
   }
 }
-bool MQTTClientComponent::can_proceed() { return network::is_disabled() || this->is_connected(); }
+bool MQTTClientComponent::can_proceed() {
+  return network::is_disabled() || this->state_ == MQTT_CLIENT_DISABLED || this->is_connected();
+}
 
 void MQTTClientComponent::start_dnslookup_() {
   for (auto &subscription : this->subscriptions_) {
@@ -191,13 +201,13 @@ void MQTTClientComponent::start_dnslookup_() {
     }
     case ERR_INPROGRESS: {
       // wait for callback
-      ESP_LOGD(TAG, "Resolving MQTT broker IP address...");
+      ESP_LOGD(TAG, "Resolving broker IP address");
       break;
     }
     default:
     case ERR_ARG: {
       // error
-      ESP_LOGW(TAG, "Error resolving MQTT broker IP address: %d", err);
+      ESP_LOGW(TAG, "Error resolving broker IP address: %d", err);
       break;
     }
   }
@@ -211,7 +221,7 @@ void MQTTClientComponent::check_dnslookup_() {
   }
 
   if (this->dns_resolve_error_) {
-    ESP_LOGW(TAG, "Couldn't resolve IP address for '%s'!", this->credentials_.address.c_str());
+    ESP_LOGW(TAG, "Couldn't resolve IP address for '%s'", this->credentials_.address.c_str());
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     return;
   }
@@ -241,11 +251,12 @@ void MQTTClientComponent::start_connect_() {
   if (!network::is_connected())
     return;
 
-  ESP_LOGI(TAG, "Connecting to MQTT...");
+  ESP_LOGI(TAG, "Connecting");
   // Force disconnect first
   this->mqtt_backend_.disconnect();
 
   this->mqtt_backend_.set_client_id(this->credentials_.client_id.c_str());
+  this->mqtt_backend_.set_clean_session(this->credentials_.clean_session);
   const char *username = nullptr;
   if (!this->credentials_.username.empty())
     username = this->credentials_.username.c_str();
@@ -281,7 +292,7 @@ void MQTTClientComponent::check_connected() {
   this->state_ = MQTT_CLIENT_CONNECTED;
   this->sent_birth_message_ = false;
   this->status_clear_warning();
-  ESP_LOGI(TAG, "MQTT Connected!");
+  ESP_LOGI(TAG, "Connected");
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
@@ -330,13 +341,15 @@ void MQTTClientComponent::loop() {
     if (!network::is_connected()) {
       reason_s = LOG_STR("WiFi disconnected");
     }
-    ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
+    ESP_LOGW(TAG, "Disconnected: %s", LOG_STR_ARG(reason_s));
     this->disconnect_reason_.reset();
   }
 
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   switch (this->state_) {
+    case MQTT_CLIENT_DISABLED:
+      return;  // Return to avoid a reboot when disabled
     case MQTT_CLIENT_DISCONNECTED:
       if (now - this->connect_begin_ > 5000) {
         this->start_dnslookup_();
@@ -351,7 +364,7 @@ void MQTTClientComponent::loop() {
     case MQTT_CLIENT_CONNECTED:
       if (!this->mqtt_backend_.connected()) {
         this->state_ = MQTT_CLIENT_DISCONNECTED;
-        ESP_LOGW(TAG, "Lost MQTT Client connection!");
+        ESP_LOGW(TAG, "Lost client connection");
         this->start_dnslookup_();
       } else {
         if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
@@ -365,7 +378,7 @@ void MQTTClientComponent::loop() {
   }
 
   if (millis() - this->last_connected_ > this->reboot_timeout_ && this->reboot_timeout_ != 0) {
-    ESP_LOGE(TAG, "Can't connect to MQTT... Restarting...");
+    ESP_LOGE(TAG, "Can't connect; restarting");
     App.reboot();
   }
 }
@@ -383,7 +396,7 @@ bool MQTTClientComponent::subscribe_(const char *topic, uint8_t qos) {
     ESP_LOGV(TAG, "subscribe(topic='%s')", topic);
   } else {
     delay(5);
-    ESP_LOGV(TAG, "Subscribe failed for topic='%s'. Will retry later.", topic);
+    ESP_LOGV(TAG, "Subscribe failed for topic='%s'. Will retry", topic);
     this->status_momentary_warning("subscribe", 1000);
   }
   return ret != 0;
@@ -486,7 +499,7 @@ bool MQTTClientComponent::publish(const MQTTMessage &message) {
       ESP_LOGV(TAG, "Publish(topic='%s' payload='%s' retain=%d qos=%d)", message.topic.c_str(), message.payload.c_str(),
                message.retain, message.qos);
     } else {
-      ESP_LOGV(TAG, "Publish failed for topic='%s' (len=%u). will retry later..", message.topic.c_str(),
+      ESP_LOGV(TAG, "Publish failed for topic='%s' (len=%u). Will retry", message.topic.c_str(),
                message.payload.length());
       this->status_momentary_warning("publish", 1000);
     }
@@ -497,6 +510,23 @@ bool MQTTClientComponent::publish_json(const std::string &topic, const json::jso
                                        bool retain) {
   std::string message = json::build_json(f);
   return this->publish(topic, message, qos, retain);
+}
+
+void MQTTClientComponent::enable() {
+  if (this->state_ != MQTT_CLIENT_DISABLED)
+    return;
+  ESP_LOGD(TAG, "Enabling");
+  this->state_ = MQTT_CLIENT_DISCONNECTED;
+  this->last_connected_ = millis();
+  this->start_dnslookup_();
+}
+
+void MQTTClientComponent::disable() {
+  if (this->state_ == MQTT_CLIENT_DISABLED)
+    return;
+  ESP_LOGD(TAG, "Disabling");
+  this->state_ = MQTT_CLIENT_DISABLED;
+  this->on_shutdown();
 }
 
 /** Check if the message topic matches the given subscription topic
@@ -580,8 +610,18 @@ void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MQTTClientComponent::set_log_message_template(MQTTMessage &&message) { this->log_message_ = std::move(message); }
 const MQTTDiscoveryInfo &MQTTClientComponent::get_discovery_info() const { return this->discovery_info_; }
-void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix) { this->topic_prefix_ = topic_prefix; }
+void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix, const std::string &check_topic_prefix) {
+  if (App.is_name_add_mac_suffix_enabled() && (topic_prefix == check_topic_prefix)) {
+    this->topic_prefix_ = str_sanitize(App.get_name());
+  } else {
+    this->topic_prefix_ = topic_prefix;
+  }
+}
 const std::string &MQTTClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
+void MQTTClientComponent::set_publish_nan_as_none(bool publish_nan_as_none) {
+  this->publish_nan_as_none_ = publish_nan_as_none;
+}
+bool MQTTClientComponent::is_publish_nan_as_none() const { return this->publish_nan_as_none_; }
 void MQTTClientComponent::disable_birth_message() {
   this->birth_message_.topic = "";
   this->recalculate_availability_();

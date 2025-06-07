@@ -11,7 +11,7 @@ from esphome.const import (
     CONF_MQTT_ID,
     CONF_ON_PRESS,
     CONF_TRIGGER_ID,
-    CONF_WEB_SERVER_ID,
+    CONF_WEB_SERVER,
     DEVICE_CLASS_EMPTY,
     DEVICE_CLASS_IDENTIFY,
     DEVICE_CLASS_RESTART,
@@ -44,7 +44,7 @@ ButtonPressTrigger = button_ns.class_(
 validate_device_class = cv.one_of(*DEVICE_CLASSES, lower=True, space="_")
 
 
-BUTTON_SCHEMA = (
+_BUTTON_SCHEMA = (
     cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
     .extend(cv.MQTT_COMMAND_COMPONENT_SCHEMA)
     .extend(
@@ -60,15 +60,13 @@ BUTTON_SCHEMA = (
     )
 )
 
-_UNDEF = object()
-
 
 def button_schema(
     class_: MockObjClass,
     *,
-    icon: str = _UNDEF,
-    entity_category: str = _UNDEF,
-    device_class: str = _UNDEF,
+    icon: str = cv.UNDEFINED,
+    entity_category: str = cv.UNDEFINED,
+    device_class: str = cv.UNDEFINED,
 ) -> cv.Schema:
     schema = {cv.GenerateID(): cv.declare_id(class_)}
 
@@ -77,10 +75,15 @@ def button_schema(
         (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
         (CONF_DEVICE_CLASS, device_class, validate_device_class),
     ]:
-        if default is not _UNDEF:
+        if default is not cv.UNDEFINED:
             schema[cv.Optional(key, default=default)] = validator
 
-    return BUTTON_SCHEMA.extend(schema)
+    return _BUTTON_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BUTTON_SCHEMA = button_schema(Button)
+BUTTON_SCHEMA.add_extra(cv.deprecated_schema_constant("button"))
 
 
 async def setup_button_core_(var, config):
@@ -97,9 +100,8 @@ async def setup_button_core_(var, config):
         mqtt_ = cg.new_Pvariable(mqtt_id, var)
         await mqtt.register_mqtt_component(mqtt_, config)
 
-    if (webserver_id := config.get(CONF_WEB_SERVER_ID)) is not None:
-        web_server_ = await cg.get_variable(webserver_id)
-        web_server.add_entity_to_sorting_list(web_server_, var, config)
+    if web_server_config := config.get(CONF_WEB_SERVER):
+        await web_server.add_entity_config(var, web_server_config)
 
 
 async def register_button(var, config):

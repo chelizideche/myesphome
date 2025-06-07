@@ -25,7 +25,7 @@ from esphome.const import (
     CONF_STATE,
     CONF_TIMING,
     CONF_TRIGGER_ID,
-    CONF_WEB_SERVER_ID,
+    CONF_WEB_SERVER,
     DEVICE_CLASS_BATTERY,
     DEVICE_CLASS_BATTERY_CHARGING,
     DEVICE_CLASS_CARBON_MONOXIDE,
@@ -386,7 +386,7 @@ def validate_click_timing(value):
     return value
 
 
-BINARY_SENSOR_SCHEMA = (
+_BINARY_SENSOR_SCHEMA = (
     cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
     .extend(cv.MQTT_COMPONENT_SCHEMA)
     .extend(
@@ -458,19 +458,17 @@ BINARY_SENSOR_SCHEMA = (
     )
 )
 
-_UNDEF = object()
-
 
 def binary_sensor_schema(
-    class_: MockObjClass = _UNDEF,
+    class_: MockObjClass = cv.UNDEFINED,
     *,
-    icon: str = _UNDEF,
-    entity_category: str = _UNDEF,
-    device_class: str = _UNDEF,
+    icon: str = cv.UNDEFINED,
+    entity_category: str = cv.UNDEFINED,
+    device_class: str = cv.UNDEFINED,
 ) -> cv.Schema:
     schema = {}
 
-    if class_ is not _UNDEF:
+    if class_ is not cv.UNDEFINED:
         # Not cv.optional
         schema[cv.GenerateID()] = cv.declare_id(class_)
 
@@ -479,10 +477,15 @@ def binary_sensor_schema(
         (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
         (CONF_DEVICE_CLASS, device_class, validate_device_class),
     ]:
-        if default is not _UNDEF:
+        if default is not cv.UNDEFINED:
             schema[cv.Optional(key, default=default)] = validator
 
-    return BINARY_SENSOR_SCHEMA.extend(schema)
+    return _BINARY_SENSOR_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BINARY_SENSOR_SCHEMA = binary_sensor_schema()
+BINARY_SENSOR_SCHEMA.add_extra(cv.deprecated_schema_constant("binary_sensor"))
 
 
 async def setup_binary_sensor_core_(var, config):
@@ -543,9 +546,8 @@ async def setup_binary_sensor_core_(var, config):
         mqtt_ = cg.new_Pvariable(mqtt_id, var)
         await mqtt.register_mqtt_component(mqtt_, config)
 
-    if (webserver_id := config.get(CONF_WEB_SERVER_ID)) is not None:
-        web_server_ = await cg.get_variable(webserver_id)
-        web_server.add_entity_to_sorting_list(web_server_, var, config)
+    if web_server_config := config.get(CONF_WEB_SERVER):
+        await web_server.add_entity_config(var, web_server_config)
 
 
 async def register_binary_sensor(var, config):
