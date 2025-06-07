@@ -349,7 +349,7 @@ void APIServer::on_lock_update(lock::Lock *obj) {
   if (obj->is_internal())
     return;
   for (auto &c : this->clients_)
-    c->send_lock_state(obj, obj->state);
+    c->send_lock_state(obj);
 }
 #endif
 
