@@ -139,13 +139,12 @@ def set_core_data(config):
     CORE.data[KEY_ESP32][KEY_BOARD] = config[CONF_BOARD]
     CORE.data[KEY_ESP32][KEY_VARIANT] = config[CONF_VARIANT]
     CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES] = {}
-    
+
     config = _check_versions(config)
-    
+
     CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] = cv.Version.parse(
         config[CONF_FRAMEWORK][CONF_VERSION]
     )
-
 
     return config
 
@@ -476,7 +475,7 @@ def _esp_idf_check_versions(value):
                             raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
                     elif op in ("!="):
                         continue
-                
+
                 if not supported:
                     _LOGGER.warning(
                         "Can't check if platform_version supports esp-idf version. "
@@ -530,6 +529,7 @@ def _check_versions(config):
     else:
         raise cv.Invalid("type invalid")
     return config
+
 
 def _parse_platform_version(value):
     try:
