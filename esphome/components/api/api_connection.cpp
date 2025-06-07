@@ -273,6 +273,10 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
   return this->schedule_message_(binary_sensor, MessageCreator(state, BinarySensorStateResponse::MESSAGE_TYPE),
                                  BinarySensorStateResponse::MESSAGE_TYPE);
 }
+bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor) {
+  return this->schedule_message_(binary_sensor, &APIConnection::try_send_binary_sensor_state,
+                                 BinarySensorStateResponse::MESSAGE_TYPE);
+}
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
   this->schedule_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info,
                           ListEntitiesBinarySensorResponse::MESSAGE_TYPE);
@@ -531,6 +535,9 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   return this->schedule_message_(sensor, MessageCreator(state, SensorStateResponse::MESSAGE_TYPE),
                                  SensorStateResponse::MESSAGE_TYPE);
 }
+bool APIConnection::send_sensor_state(sensor::Sensor *sensor) {
+  return this->schedule_message_(sensor, &APIConnection::try_send_sensor_state, SensorStateResponse::MESSAGE_TYPE);
+}
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   this->schedule_message_(sensor, &APIConnection::try_send_sensor_info, ListEntitiesSensorResponse::MESSAGE_TYPE);
 }
@@ -570,6 +577,9 @@ uint16_t APIConnection::try_send_sensor_info(EntityBase *entity, APIConnection *
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   return this->schedule_message_(a_switch, MessageCreator(state, SwitchStateResponse::MESSAGE_TYPE),
                                  SwitchStateResponse::MESSAGE_TYPE);
+}
+bool APIConnection::send_switch_state(switch_::Switch *a_switch) {
+  return this->schedule_message_(a_switch, &APIConnection::try_send_switch_state, SwitchStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
   this->schedule_message_(a_switch, &APIConnection::try_send_switch_info, ListEntitiesSwitchResponse::MESSAGE_TYPE);
@@ -614,6 +624,10 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 #ifdef USE_TEXT_SENSOR
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state) {
   return this->schedule_message_(text_sensor, MessageCreator(state, TextSensorStateResponse::MESSAGE_TYPE),
+                                 TextSensorStateResponse::MESSAGE_TYPE);
+}
+bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor) {
+  return this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_state,
                                  TextSensorStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
@@ -755,6 +769,9 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 bool APIConnection::send_number_state(number::Number *number, float state) {
   return this->schedule_message_(number, MessageCreator(state, NumberStateResponse::MESSAGE_TYPE),
                                  NumberStateResponse::MESSAGE_TYPE);
+}
+bool APIConnection::send_number_state(number::Number *number) {
+  return this->schedule_message_(number, &APIConnection::try_send_number_state, NumberStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_number_info(number::Number *number) {
   this->schedule_message_(number, &APIConnection::try_send_number_info, ListEntitiesNumberResponse::MESSAGE_TYPE);
@@ -917,6 +934,9 @@ bool APIConnection::send_text_state(text::Text *text, const std::string &state) 
   return this->schedule_message_(text, MessageCreator(state, TextStateResponse::MESSAGE_TYPE),
                                  TextStateResponse::MESSAGE_TYPE);
 }
+bool APIConnection::send_text_state(text::Text *text) {
+  return this->schedule_message_(text, &APIConnection::try_send_text_state, TextStateResponse::MESSAGE_TYPE);
+}
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_message_(text, &APIConnection::try_send_text_info, ListEntitiesTextResponse::MESSAGE_TYPE);
 }
@@ -962,6 +982,9 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 bool APIConnection::send_select_state(select::Select *select, const std::string &state) {
   return this->schedule_message_(select, MessageCreator(state, SelectStateResponse::MESSAGE_TYPE),
                                  SelectStateResponse::MESSAGE_TYPE);
+}
+bool APIConnection::send_select_state(select::Select *select) {
+  return this->schedule_message_(select, &APIConnection::try_send_select_state, SelectStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_message_(select, &APIConnection::try_send_select_info, ListEntitiesSelectResponse::MESSAGE_TYPE);
@@ -1028,6 +1051,9 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
   return this->schedule_message_(a_lock, MessageCreator(state, LockStateResponse::MESSAGE_TYPE),
                                  LockStateResponse::MESSAGE_TYPE);
+}
+bool APIConnection::send_lock_state(lock::Lock *a_lock) {
+  return this->schedule_message_(a_lock, &APIConnection::try_send_lock_state, LockStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_message_(a_lock, &APIConnection::try_send_lock_info, ListEntitiesLockResponse::MESSAGE_TYPE);

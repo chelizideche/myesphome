@@ -34,6 +34,7 @@ class APIConnection : public APIServerConnection {
   }
 #ifdef USE_BINARY_SENSOR
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
+  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor);
   void send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor);
 #endif
 #ifdef USE_COVER
@@ -53,15 +54,18 @@ class APIConnection : public APIServerConnection {
 #endif
 #ifdef USE_SENSOR
   bool send_sensor_state(sensor::Sensor *sensor, float state);
+  bool send_sensor_state(sensor::Sensor *sensor);
   void send_sensor_info(sensor::Sensor *sensor);
 #endif
 #ifdef USE_SWITCH
   bool send_switch_state(switch_::Switch *a_switch, bool state);
+  bool send_switch_state(switch_::Switch *a_switch);
   void send_switch_info(switch_::Switch *a_switch);
   void switch_command(const SwitchCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT_SENSOR
   bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state);
+  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor);
   void send_text_sensor_info(text_sensor::TextSensor *text_sensor);
 #endif
 #ifdef USE_ESP32_CAMERA
@@ -76,6 +80,7 @@ class APIConnection : public APIServerConnection {
 #endif
 #ifdef USE_NUMBER
   bool send_number_state(number::Number *number, float state);
+  bool send_number_state(number::Number *number);
   void send_number_info(number::Number *number);
   void number_command(const NumberCommandRequest &msg) override;
 #endif
@@ -96,11 +101,13 @@ class APIConnection : public APIServerConnection {
 #endif
 #ifdef USE_TEXT
   bool send_text_state(text::Text *text, const std::string &state);
+  bool send_text_state(text::Text *text);
   void send_text_info(text::Text *text);
   void text_command(const TextCommandRequest &msg) override;
 #endif
 #ifdef USE_SELECT
   bool send_select_state(select::Select *select, const std::string &state);
+  bool send_select_state(select::Select *select);
   void send_select_info(select::Select *select);
   void select_command(const SelectCommandRequest &msg) override;
 #endif
@@ -110,6 +117,7 @@ class APIConnection : public APIServerConnection {
 #endif
 #ifdef USE_LOCK
   bool send_lock_state(lock::Lock *a_lock, lock::LockState state);
+  bool send_lock_state(lock::Lock *a_lock);
   void send_lock_info(lock::Lock *a_lock);
   void lock_command(const LockCommandRequest &msg) override;
 #endif
