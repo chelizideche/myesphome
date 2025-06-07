@@ -308,6 +308,8 @@ class APIConnection : public APIServerConnection {
                                            uint32_t remaining_size, bool is_single);
 
 #ifdef USE_BINARY_SENSOR
+  static uint16_t try_send_binary_sensor_state_response(binary_sensor::BinarySensor *binary_sensor, bool state,
+                                                        APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn, uint32_t remaining_size,
                                                bool is_single);
   static uint16_t try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -328,18 +330,24 @@ class APIConnection : public APIServerConnection {
   static uint16_t try_send_light_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SENSOR
+  static uint16_t try_send_sensor_state_response(sensor::Sensor *sensor, float state, APIConnection *conn,
+                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
 #ifdef USE_SWITCH
+  static uint16_t try_send_switch_state_response(switch_::Switch *a_switch, bool state, APIConnection *conn,
+                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_switch_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
 #ifdef USE_TEXT_SENSOR
+  static uint16_t try_send_text_sensor_state_response(text_sensor::TextSensor *text_sensor, const std::string &state,
+                                                      APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
   static uint16_t try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -352,6 +360,8 @@ class APIConnection : public APIServerConnection {
                                         bool is_single);
 #endif
 #ifdef USE_NUMBER
+  static uint16_t try_send_number_state_response(number::Number *number, float state, APIConnection *conn,
+                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -372,10 +382,14 @@ class APIConnection : public APIServerConnection {
                                          bool is_single);
 #endif
 #ifdef USE_TEXT
+  static uint16_t try_send_text_state_response(text::Text *text, const std::string &state, APIConnection *conn,
+                                               uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SELECT
+  static uint16_t try_send_select_state_response(select::Select *select, const std::string &state, APIConnection *conn,
+                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -386,6 +400,8 @@ class APIConnection : public APIServerConnection {
                                        bool is_single);
 #endif
 #ifdef USE_LOCK
+  static uint16_t try_send_lock_state_response(lock::Lock *a_lock, lock::LockState state, APIConnection *conn,
+                                               uint32_t remaining_size, bool is_single);
   static uint16_t try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
@@ -407,6 +423,8 @@ class APIConnection : public APIServerConnection {
                                                     bool is_single);
 #endif
 #ifdef USE_EVENT
+  static uint16_t try_send_event_response(event::Event *event, const std::string &event_type, APIConnection *conn,
+                                          uint32_t remaining_size, bool is_single);
   static uint16_t try_send_event_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_UPDATE
