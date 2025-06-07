@@ -222,8 +222,9 @@ void APIServer::handle_disconnect(APIConnection *conn) {}
 void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_binary_sensor_state(obj, state);
+    use_current ? c->send_binary_sensor_state(obj) : c->send_binary_sensor_state(obj, state);
 }
 #endif
 
@@ -258,8 +259,9 @@ void APIServer::on_light_update(light::LightState *obj) {
 void APIServer::on_sensor_update(sensor::Sensor *obj, float state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_sensor_state(obj, state);
+    use_current ? c->send_sensor_state(obj) : c->send_sensor_state(obj, state);
 }
 #endif
 
@@ -267,8 +269,9 @@ void APIServer::on_sensor_update(sensor::Sensor *obj, float state) {
 void APIServer::on_switch_update(switch_::Switch *obj, bool state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_switch_state(obj, state);
+    use_current ? c->send_switch_state(obj) : c->send_switch_state(obj, state);
 }
 #endif
 
@@ -276,8 +279,9 @@ void APIServer::on_switch_update(switch_::Switch *obj, bool state) {
 void APIServer::on_text_sensor_update(text_sensor::TextSensor *obj, const std::string &state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_text_sensor_state(obj, state);
+    use_current ? c->send_text_sensor_state(obj) : c->send_text_sensor_state(obj, state);
 }
 #endif
 
@@ -294,8 +298,9 @@ void APIServer::on_climate_update(climate::Climate *obj) {
 void APIServer::on_number_update(number::Number *obj, float state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_number_state(obj, state);
+    use_current ? c->send_number_state(obj) : c->send_number_state(obj, state);
 }
 #endif
 
@@ -330,8 +335,9 @@ void APIServer::on_datetime_update(datetime::DateTimeEntity *obj) {
 void APIServer::on_text_update(text::Text *obj, const std::string &state) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_text_state(obj, state);
+    use_current ? c->send_text_state(obj) : c->send_text_state(obj, state);
 }
 #endif
 
@@ -339,8 +345,9 @@ void APIServer::on_text_update(text::Text *obj, const std::string &state) {
 void APIServer::on_select_update(select::Select *obj, const std::string &state, size_t index) {
   if (obj->is_internal())
     return;
+  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    c->send_select_state(obj, state);
+    use_current ? c->send_select_state(obj) : c->send_select_state(obj, state);
 }
 #endif
 
