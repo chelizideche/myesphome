@@ -163,7 +163,8 @@ void CM1106Component::dump_config() {
   this->check_uart_settings(9600);
 
   if (this->abc_boot_logic_ != CM1106_ABC_NONE) {
-    ESP_LOGCONFIG(TAG, "  Automatic baseline calibration on boot: %s", ONOFF(this->abc_boot_logic_ == CM1106_ABC_ENABLED));
+    ESP_LOGCONFIG(TAG, "  Automatic baseline calibration on boot: %s",
+                  ONOFF(this->abc_boot_logic_ == CM1106_ABC_ENABLED));
   }
 
   if (this->is_failed()) {
