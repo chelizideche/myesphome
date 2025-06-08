@@ -986,7 +986,7 @@ def dump_dict(
         if error is not None:
             ret += f"\n{color(AnsiFore.BOLD_RED, _format_vol_invalid(error, config))}\n"
 
-    if isinstance(conf, list | tuple):
+    if isinstance(conf, (list, tuple)):
         multiline = True
         if not conf:
             ret += "[]"
