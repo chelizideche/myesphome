@@ -82,7 +82,8 @@ void PIDClimate::dump_config() {
     ESP_LOGCONFIG(TAG, "  Deadband disabled.");
   } else {
     ESP_LOGCONFIG(TAG,
-                  "  Deadband Parameters:\n    threshold: %0.5f to %0.5f, multipliers(kp: %.5f, ki: %.5f, kd: %.5f), "
+                  "  Deadband Parameters:\n"
+                  "    threshold: %0.5f to %0.5f, multipliers(kp: %.5f, ki: %.5f, kd: %.5f), "
                   "output samples: %d",
                   controller_.threshold_low_, controller_.threshold_high_, controller_.kp_multiplier_,
                   controller_.ki_multiplier_, controller_.kd_multiplier_, controller_.deadband_output_samples_);
