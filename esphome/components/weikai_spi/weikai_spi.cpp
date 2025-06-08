@@ -173,8 +173,10 @@ void WeikaiComponentSPI::setup() {
 }
 
 void WeikaiComponentSPI::dump_config() {
-  ESP_LOGCONFIG(TAG, "Initialization of %s with %d UARTs completed\n  Crystal: %" PRIu32 "", this->get_name(),
-                this->children_.size(), this->crystal_);
+  ESP_LOGCONFIG(TAG,
+                "Initialization of %s with %d UARTs completed\n"
+                "  Crystal: %" PRIu32,
+                this->get_name(), this->children_.size(), this->crystal_);
   if (test_mode_)
     ESP_LOGCONFIG(TAG,
                   "  Test mode: %d\n"
