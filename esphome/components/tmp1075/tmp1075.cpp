@@ -48,8 +48,14 @@ void TMP1075Sensor::dump_config() {
     return;
   }
   ESP_LOGCONFIG(TAG,
-                "  limit low  : %.4f °C\n  limit high : %.4f °C\n  oneshot    : %d\n  rate       : %d\n"
-                "  fault_count: %d\n  polarity   : %d\n  alert_mode : %d\n  shutdown   : %d",
+                "  limit low  : %.4f °C\n"
+                "  limit high : %.4f °C\n"
+                "  oneshot    : %d\n"
+                "  rate       : %d\n"
+                "  fault_count: %d\n"
+                "  polarity   : %d\n"
+                "  alert_mode : %d\n"
+                "  shutdown   : %d",
                 alert_limit_low_, alert_limit_high_, config_.fields.oneshot, config_.fields.rate, config_.fields.faults,
                 config_.fields.polarity, config_.fields.alert_mode, config_.fields.shutdown);
 }

@@ -63,8 +63,14 @@ void XPT2046Component::dump_config() {
 
   LOG_PIN("  IRQ Pin: ", this->irq_pin_);
   ESP_LOGCONFIG(TAG,
-                "  X min: %d\n  X max: %d\n  Y min: %d\n  Y max: %d\n  Swap X/Y: %s\n  Invert X: %s\n  Invert Y: %s\n  "
-                "threshold: %d",
+                "  X min: %d\n"
+                "  X max: %d\n"
+                "  Y min: %d\n"
+                "  Y max: %d\n"
+                "  Swap X/Y: %s\n"
+                "  Invert X: %s\n"
+                "  Invert Y: %s\n"
+                "  threshold: %d",
                 this->x_raw_min_, this->x_raw_max_, this->y_raw_min_, this->y_raw_max_, YESNO(this->swap_x_y_),
                 YESNO(this->invert_x_), YESNO(this->invert_y_), this->threshold_);
 
