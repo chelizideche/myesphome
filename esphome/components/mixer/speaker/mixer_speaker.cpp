@@ -43,7 +43,10 @@ enum MixerEventGroupBits : uint32_t {
 };
 
 void SourceSpeaker::dump_config() {
-  ESP_LOGCONFIG(TAG, "Mixer Source Speaker\n  Buffer Duration: %" PRIu32 " ms", this->buffer_duration_ms_);
+  ESP_LOGCONFIG(TAG,
+                "Mixer Source Speaker\n"
+                "  Buffer Duration: %" PRIu32 " ms",
+                this->buffer_duration_ms_);
   if (this->timeout_ms_.has_value()) {
     ESP_LOGCONFIG(TAG, "  Timeout: %" PRIu32 " ms", this->timeout_ms_.value());
   } else {
