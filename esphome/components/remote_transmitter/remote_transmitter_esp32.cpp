@@ -19,8 +19,10 @@ void RemoteTransmitterComponent::setup() {
 void RemoteTransmitterComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Transmitter:");
 #if ESP_IDF_VERSION_MAJOR >= 5
-  ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz\n  RMT symbols: %" PRIu32, this->clock_resolution_,
-                this->rmt_symbols_);
+  ESP_LOGCONFIG(TAG,
+                "  Clock resolution: %" PRIu32 " hz\n"
+                "  RMT symbols: %" PRIu32,
+                this->clock_resolution_, this->rmt_symbols_);
 #else
   ESP_LOGCONFIG(TAG,
                 "  Channel: %d\n"
