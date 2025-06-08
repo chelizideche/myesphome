@@ -424,7 +424,6 @@ class ListEntitiesBinarySensorResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string device_class{};
   bool is_status_binary_sensor{false};
   bool disabled_by_default{false};
@@ -461,7 +460,6 @@ class ListEntitiesCoverResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   bool assumed_state{false};
   bool supports_position{false};
   bool supports_tilt{false};
@@ -523,7 +521,6 @@ class ListEntitiesFanResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   bool supports_oscillation{false};
   bool supports_speed{false};
   bool supports_direction{false};
@@ -594,7 +591,6 @@ class ListEntitiesLightResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::vector<enums::ColorMode> supported_color_modes{};
   bool legacy_supports_brightness{false};
   bool legacy_supports_rgb{false};
@@ -688,7 +684,6 @@ class ListEntitiesSensorResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   std::string unit_of_measurement{};
   int32_t accuracy_decimals{0};
@@ -729,7 +724,6 @@ class ListEntitiesSwitchResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool assumed_state{false};
   bool disabled_by_default{false};
@@ -779,7 +773,6 @@ class ListEntitiesTextSensorResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -1034,7 +1027,6 @@ class ListEntitiesCameraResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
@@ -1083,7 +1075,6 @@ class ListEntitiesClimateResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   bool supports_current_temperature{false};
   bool supports_two_point_target_temperature{false};
   std::vector<enums::ClimateMode> supported_modes{};
@@ -1185,7 +1176,6 @@ class ListEntitiesNumberResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   float min_value{0.0f};
   float max_value{0.0f};
@@ -1239,7 +1229,6 @@ class ListEntitiesSelectResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   std::vector<std::string> options{};
   bool disabled_by_default{false};
@@ -1290,7 +1279,6 @@ class ListEntitiesSirenResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   std::vector<std::string> tones{};
@@ -1349,7 +1337,6 @@ class ListEntitiesLockResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -1404,7 +1391,6 @@ class ListEntitiesButtonResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -1454,7 +1440,6 @@ class ListEntitiesMediaPlayerResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2138,7 +2123,6 @@ class ListEntitiesAlarmControlPanelResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2191,7 +2175,6 @@ class ListEntitiesTextResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2245,7 +2228,6 @@ class ListEntitiesDateResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2298,7 +2280,6 @@ class ListEntitiesTimeResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2351,7 +2332,6 @@ class ListEntitiesEventResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2387,7 +2367,6 @@ class ListEntitiesValveResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2442,7 +2421,6 @@ class ListEntitiesDateTimeResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};
@@ -2490,7 +2468,6 @@ class ListEntitiesUpdateResponse : public ProtoMessage {
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
-  std::string unique_id{};
   std::string icon{};
   bool disabled_by_default{false};
   enums::EntityCategory entity_category{};

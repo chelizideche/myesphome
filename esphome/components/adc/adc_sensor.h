@@ -72,10 +72,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_sampling_mode(SamplingMode sampling_mode);
   float sample() override;
 
-#ifdef USE_ESP8266
-  std::string unique_id() override;
-#endif  // USE_ESP8266
-
 #ifdef USE_RP2040
   void set_is_temperature() { this->is_temperature_ = true; }
 #endif  // USE_RP2040

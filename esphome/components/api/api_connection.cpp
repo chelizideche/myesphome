@@ -261,10 +261,6 @@ void APIConnection::loop() {
   }
 }
 
-std::string get_default_unique_id(const std::string &component_type, EntityBase *entity) {
-  return App.get_name() + component_type + entity->get_object_id();
-}
-
 DisconnectResponse APIConnection::disconnect(const DisconnectRequest &msg) {
   // remote initiated disconnect_client
   // don't close yet, we still need to send the disconnect response
@@ -301,7 +297,6 @@ bool APIConnection::try_send_binary_sensor_info_(binary_sensor::BinarySensor *bi
   ListEntitiesBinarySensorResponse msg;
   msg.device_class = binary_sensor->get_device_class();
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
-  msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
   return this->try_send_entity_info_(static_cast<EntityBase *>(binary_sensor), msg,
                                      &APIConnection::send_list_entities_binary_sensor_response);
 }
@@ -336,7 +331,6 @@ bool APIConnection::try_send_cover_info_(cover::Cover *cover) {
   msg.supports_tilt = traits.get_supports_tilt();
   msg.supports_stop = traits.get_supports_stop();
   msg.device_class = cover->get_device_class();
-  msg.unique_id = get_default_unique_id("cover", cover);
   return this->try_send_entity_info_(static_cast<EntityBase *>(cover), msg,
                                      &APIConnection::send_list_entities_cover_response);
 }
@@ -403,7 +397,6 @@ bool APIConnection::try_send_fan_info_(fan::Fan *fan) {
   msg.supported_speed_count = traits.supported_speed_count();
   for (auto const &preset : traits.supported_preset_modes())
     msg.supported_preset_modes.push_back(preset);
-  msg.unique_id = get_default_unique_id("fan", fan);
   return this->try_send_entity_info_(static_cast<EntityBase *>(fan), msg,
                                      &APIConnection::send_list_entities_fan_response);
 }
@@ -481,7 +474,6 @@ bool APIConnection::try_send_light_info_(light::LightState *light) {
       msg.effects.push_back(effect->get_name());
     }
   }
-  msg.unique_id = get_default_unique_id("light", light);
   return this->try_send_entity_info_(static_cast<EntityBase *>(light), msg,
                                      &APIConnection::send_list_entities_light_response);
 }
@@ -549,9 +541,6 @@ bool APIConnection::try_send_sensor_info_(sensor::Sensor *sensor) {
   msg.force_update = sensor->get_force_update();
   msg.device_class = sensor->get_device_class();
   msg.state_class = static_cast<enums::SensorStateClass>(sensor->get_state_class());
-  msg.unique_id = sensor->unique_id();
-  if (msg.unique_id.empty())
-    msg.unique_id = get_default_unique_id("sensor", sensor);
   return this->try_send_entity_info_(static_cast<EntityBase *>(sensor), msg,
                                      &APIConnection::send_list_entities_sensor_response);
 }
@@ -580,7 +569,6 @@ bool APIConnection::try_send_switch_info_(switch_::Switch *a_switch) {
   ListEntitiesSwitchResponse msg;
   msg.assumed_state = a_switch->assumed_state();
   msg.device_class = a_switch->get_device_class();
-  msg.unique_id = get_default_unique_id("switch", a_switch);
   return this->try_send_entity_info_(static_cast<EntityBase *>(a_switch), msg,
                                      &APIConnection::send_list_entities_switch_response);
 }
@@ -620,9 +608,6 @@ bool APIConnection::try_send_text_sensor_state_(text_sensor::TextSensor *text_se
 bool APIConnection::try_send_text_sensor_info_(text_sensor::TextSensor *text_sensor) {
   ListEntitiesTextSensorResponse msg;
   msg.device_class = text_sensor->get_device_class();
-  msg.unique_id = text_sensor->unique_id();
-  if (msg.unique_id.empty())
-    msg.unique_id = get_default_unique_id("text_sensor", text_sensor);
   return this->try_send_entity_info_(static_cast<EntityBase *>(text_sensor), msg,
                                      &APIConnection::send_list_entities_text_sensor_response);
 }
@@ -695,7 +680,6 @@ bool APIConnection::try_send_climate_info_(climate::Climate *climate) {
     msg.supported_custom_presets.push_back(custom_preset);
   for (auto swing_mode : traits.get_supported_swing_modes())
     msg.supported_swing_modes.push_back(static_cast<enums::ClimateSwingMode>(swing_mode));
-  msg.unique_id = get_default_unique_id("climate", climate);
   return this->try_send_entity_info_(static_cast<EntityBase *>(climate), msg,
                                      &APIConnection::send_list_entities_climate_response);
 }
@@ -757,7 +741,6 @@ bool APIConnection::try_send_number_info_(number::Number *number) {
   msg.min_value = number->traits.get_min_value();
   msg.max_value = number->traits.get_max_value();
   msg.step = number->traits.get_step();
-  msg.unique_id = get_default_unique_id("number", number);
   return this->try_send_entity_info_(static_cast<EntityBase *>(number), msg,
                                      &APIConnection::send_list_entities_number_response);
 }
@@ -793,7 +776,6 @@ bool APIConnection::try_send_date_state_(datetime::DateEntity *date) {
 }
 bool APIConnection::try_send_date_info_(datetime::DateEntity *date) {
   ListEntitiesDateResponse msg;
-  msg.unique_id = get_default_unique_id("date", date);
   return this->try_send_entity_info_(static_cast<EntityBase *>(date), msg,
                                      &APIConnection::send_list_entities_date_response);
 }
@@ -829,7 +811,6 @@ bool APIConnection::try_send_time_state_(datetime::TimeEntity *time) {
 }
 bool APIConnection::try_send_time_info_(datetime::TimeEntity *time) {
   ListEntitiesTimeResponse msg;
-  msg.unique_id = get_default_unique_id("time", time);
   return this->try_send_entity_info_(static_cast<EntityBase *>(time), msg,
                                      &APIConnection::send_list_entities_time_response);
 }
@@ -866,7 +847,6 @@ bool APIConnection::try_send_datetime_state_(datetime::DateTimeEntity *datetime)
 }
 bool APIConnection::try_send_datetime_info_(datetime::DateTimeEntity *datetime) {
   ListEntitiesDateTimeResponse msg;
-  msg.unique_id = get_default_unique_id("datetime", datetime);
   return this->try_send_entity_info_(static_cast<EntityBase *>(datetime), msg,
                                      &APIConnection::send_list_entities_date_time_response);
 }
@@ -905,7 +885,6 @@ bool APIConnection::try_send_text_info_(text::Text *text) {
   msg.min_length = text->traits.get_min_length();
   msg.max_length = text->traits.get_max_length();
   msg.pattern = text->traits.get_pattern();
-  msg.unique_id = get_default_unique_id("text", text);
   return this->try_send_entity_info_(static_cast<EntityBase *>(text), msg,
                                      &APIConnection::send_list_entities_text_response);
 }
@@ -944,7 +923,6 @@ bool APIConnection::try_send_select_info_(select::Select *select) {
   ListEntitiesSelectResponse msg;
   for (const auto &option : select->traits.get_options())
     msg.options.push_back(option);
-  msg.unique_id = get_default_unique_id("select", select);
   return this->try_send_entity_info_(static_cast<EntityBase *>(select), msg,
                                      &APIConnection::send_list_entities_select_response);
 }
@@ -967,7 +945,6 @@ void esphome::api::APIConnection::send_button_info(button::Button *button) {
 bool esphome::api::APIConnection::try_send_button_info_(button::Button *button) {
   ListEntitiesButtonResponse msg;
   msg.device_class = button->get_device_class();
-  msg.unique_id = get_default_unique_id("button", button);
   return this->try_send_entity_info_(static_cast<EntityBase *>(button), msg,
                                      &APIConnection::send_list_entities_button_response);
 }
@@ -1004,7 +981,6 @@ bool APIConnection::try_send_lock_info_(lock::Lock *a_lock) {
   msg.assumed_state = a_lock->traits.get_assumed_state();
   msg.supports_open = a_lock->traits.get_supports_open();
   msg.requires_code = a_lock->traits.get_requires_code();
-  msg.unique_id = get_default_unique_id("lock", a_lock);
   return this->try_send_entity_info_(static_cast<EntityBase *>(a_lock), msg,
                                      &APIConnection::send_list_entities_lock_response);
 }
@@ -1051,7 +1027,6 @@ bool APIConnection::try_send_valve_info_(valve::Valve *valve) {
   msg.assumed_state = traits.get_is_assumed_state();
   msg.supports_position = traits.get_supports_position();
   msg.supports_stop = traits.get_supports_stop();
-  msg.unique_id = get_default_unique_id("valve", valve);
   return this->try_send_entity_info_(static_cast<EntityBase *>(valve), msg,
                                      &APIConnection::send_list_entities_valve_response);
 }
@@ -1103,7 +1078,6 @@ bool APIConnection::try_send_media_player_info_(media_player::MediaPlayer *media
     media_format.sample_bytes = supported_format.sample_bytes;
     msg.supported_formats.push_back(media_format);
   }
-  msg.unique_id = get_default_unique_id("media_player", media_player);
   return this->try_send_entity_info_(static_cast<EntityBase *>(media_player), msg,
                                      &APIConnection::send_list_entities_media_player_response);
 }
@@ -1145,7 +1119,6 @@ void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
 }
 bool APIConnection::try_send_camera_info_(esp32_camera::ESP32Camera *camera) {
   ListEntitiesCameraResponse msg;
-  msg.unique_id = get_default_unique_id("camera", camera);
   return this->try_send_entity_info_(static_cast<EntityBase *>(camera), msg,
                                      &APIConnection::send_list_entities_camera_response);
 }
@@ -1355,7 +1328,6 @@ bool APIConnection::try_send_alarm_control_panel_info_(alarm_control_panel::Alar
   msg.supported_features = a_alarm_control_panel->get_supported_features();
   msg.requires_code = a_alarm_control_panel->get_requires_code();
   msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
-  msg.unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
   return this->try_send_entity_info_(static_cast<EntityBase *>(a_alarm_control_panel), msg,
                                      &APIConnection::send_list_entities_alarm_control_panel_response);
 }
@@ -1417,7 +1389,6 @@ bool APIConnection::try_send_event_info_(event::Event *event) {
   msg.device_class = event->get_device_class();
   for (const auto &event_type : event->get_event_types())
     msg.event_types.push_back(event_type);
-  msg.unique_id = get_default_unique_id("event", event);
   return this->try_send_entity_info_(static_cast<EntityBase *>(event), msg,
                                      &APIConnection::send_list_entities_event_response);
 }
@@ -1454,7 +1425,6 @@ bool APIConnection::try_send_update_state_(update::UpdateEntity *update) {
 bool APIConnection::try_send_update_info_(update::UpdateEntity *update) {
   ListEntitiesUpdateResponse msg;
   msg.device_class = update->get_device_class();
-  msg.unique_id = get_default_unique_id("update", update);
   return this->try_send_entity_info_(static_cast<EntityBase *>(update), msg,
                                      &APIConnection::send_list_entities_update_response);
 }

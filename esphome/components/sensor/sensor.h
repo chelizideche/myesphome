@@ -23,9 +23,6 @@ namespace sensor {
     if (!(obj)->get_icon().empty()) { \
       ESP_LOGCONFIG(TAG, "%s  Icon: '%s'", prefix, (obj)->get_icon().c_str()); \
     } \
-    if (!(obj)->unique_id().empty()) { \
-      ESP_LOGV(TAG, "%s  Unique ID: '%s'", prefix, (obj)->unique_id().c_str()); \
-    } \
     if ((obj)->get_force_update()) { \
       ESP_LOGV(TAG, "%s  Force Update: YES", prefix); \
     } \
@@ -138,12 +135,6 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
 
   /// Return whether this sensor has gotten a full state (that passed through all filters) yet.
   bool has_state() const;
-
-  /** Override this method to set the unique ID of this sensor.
-   *
-   * @deprecated Do not use for new sensors, a suitable unique ID is automatically generated (2023.4).
-   */
-  virtual std::string unique_id();
 
   void internal_send_state_to_frontend(float state);
 

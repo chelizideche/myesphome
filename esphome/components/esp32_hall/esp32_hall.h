@@ -13,8 +13,6 @@ class ESP32HallSensor : public sensor::Sensor, public PollingComponent {
   void dump_config() override;
 
   void update() override;
-
-  std::string unique_id() override;
 };
 
 }  // namespace esp32_hall
