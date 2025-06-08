@@ -680,7 +680,7 @@ async def to_code(config):
     conf = config[CONF_FRAMEWORK]
     cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
 
-    if CONF_ADVANCED in conf and conf[CONF_ADVANCED][CONF_IGNORE_EFUSE_CUSTOM_MAC]:
+    if conf[CONF_ADVANCED][CONF_IGNORE_EFUSE_CUSTOM_MAC]:
         cg.add_define("USE_ESP32_IGNORE_EFUSE_CUSTOM_MAC")
 
     add_extra_script(
@@ -725,19 +725,18 @@ async def to_code(config):
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
 
         # Apply LWIP optimization settings
-        if CONF_ADVANCED in conf:
-            advanced = conf[CONF_ADVANCED]
-            # DHCP server: only disable if explicitly set to false
-            # WiFi component handles its own optimization when AP mode is not used
-            if (
-                CONF_ENABLE_LWIP_DHCP_SERVER in advanced
-                and not advanced[CONF_ENABLE_LWIP_DHCP_SERVER]
-            ):
-                add_idf_sdkconfig_option("CONFIG_LWIP_DHCPS", False)
-            if not advanced.get(CONF_ENABLE_LWIP_MDNS_QUERIES, False):
-                add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
-            if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
-                add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
+        advanced = conf[CONF_ADVANCED]
+        # DHCP server: only disable if explicitly set to false
+        # WiFi component handles its own optimization when AP mode is not used
+        if (
+            CONF_ENABLE_LWIP_DHCP_SERVER in advanced
+            and not advanced[CONF_ENABLE_LWIP_DHCP_SERVER]
+        ):
+            add_idf_sdkconfig_option("CONFIG_LWIP_DHCPS", False)
+        if not advanced.get(CONF_ENABLE_LWIP_MDNS_QUERIES, False):
+            add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
+        if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
+            add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
