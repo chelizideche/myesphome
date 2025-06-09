@@ -179,7 +179,7 @@ void Nextion::dump_config() {
   }
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-  ESP_LOGCONFIG(TAG, "  Command spacing:       %" PRIu8 "ms", this->command_pacer_.get_spacing());
+  ESP_LOGCONFIG(TAG, "  Command spacing:       %u ms", this->command_pacer_.get_spacing());
 #endif  // USE_NEXTION_COMMAND_SPACING
 
 #ifdef USE_NEXTION_MAX_QUEUE_SIZE
