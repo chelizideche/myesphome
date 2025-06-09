@@ -18,9 +18,9 @@ from .base_component import (
     CONF_EXIT_REPARSE_ON_START,
     CONF_MAX_QUEUE_SIZE,
     CONF_ON_BUFFER_OVERFLOW,
+    CONF_ON_PAGE,
     CONF_ON_SETUP,
     CONF_ON_SLEEP,
-    CONF_ON_PAGE,
     CONF_ON_WAKE,
     CONF_SKIP_CONNECTION_HANDSHAKE,
     CONF_START_UP_PAGE,
@@ -148,7 +148,7 @@ async def to_code(config):
         cg.add_define("USE_NEXTION_TFT_UPLOAD")
         cg.add(var.set_tft_url(config[CONF_TFT_URL]))
         if CORE.is_esp32 and CORE.using_arduino:
-            cg.add_library("WiFiClientSecure", None)
+            cg.add_library("NetworkClientSecure", None)
             cg.add_library("HTTPClient", None)
         elif CORE.is_esp32 and CORE.using_esp_idf:
             esp32.add_idf_sdkconfig_option("CONFIG_ESP_TLS_INSECURE", True)
