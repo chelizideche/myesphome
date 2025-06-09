@@ -48,6 +48,9 @@ void Hpma115C0PollingComponent::update() {
     // Mark inactive inernally
     this->active_ = false;
 
+    this->stop_autosend_();
+    this->clear_uart_buffer_();
+
     // Count (re)activation attempts
     this->activation_attempts_ += 1;
 
@@ -197,26 +200,21 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
   HpmaFrameT request;
   uint8_t expected_reply_data_length = 0;
 
-  // Set frame type for request
+  // Set frame type and command for request
   request.type = FRAME_TYPE_CMD;
+  request.command = command;
 
   // Sanity check on command data length
   switch (command) {
     case CMD_START_PARTICLE_MEASUREMENT:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 0;
-      break;
-
     case CMD_STOP_PARTICLE_MEASUREMENT:
       request.length = 1;
-      request.command = command;
+
       expected_reply_data_length = 0;
       break;
 
     case CMD_READ_PARTICLE_MEASURING_RESULTS:
       request.length = 1;
-      request.command = command;
       expected_reply_data_length = 13;
       break;
 
@@ -227,14 +225,12 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
         return false;
       }
       request.length = 2;
-      request.command = command;
       memcpy(request.data, data, request.length - 1);
       expected_reply_data_length = 0;
       break;
 
     case CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT:
       request.length = 1;
-      request.command = command;
       expected_reply_data_length = 2;
       break;
 
@@ -256,9 +252,10 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
   // Wait until first reply byte becomes available, (measured around 27ms)
   uint64_t wait_time, wait_start = millis();
   while (true) {
+    int available_bytes = this->available();
     wait_time = millis() - wait_start;
-    if (this->available() > 0) {
-      ESP_LOGD(TAG, "response time is %d ms", (int16_t) wait_time);
+    if (available_bytes > 0) {
+      ESP_LOGD(TAG, "Got %d bytes after %d ms", available_bytes, (int16_t) wait_time);
       break;
     };
 
@@ -267,6 +264,8 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
       this->last_error_ = ERROR_TIMEOUT;
       return false;
     }
+
+    delay(1);
   }
 
   // Read first two bytes of response
