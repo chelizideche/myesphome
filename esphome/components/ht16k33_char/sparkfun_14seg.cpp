@@ -155,15 +155,14 @@ uint16_t Sparkfun14Seg::convert_font_(uint16_t font_in) {
 void Sparkfun14Seg::write_to_buffer_(uint16_t char_to_write, uint8_t char_position) {
   // char_position should be 0-3
   if ((char_position >= 0) && (char_position <= 3)) {
-    uint16_t DigitDef = this->convert_font_(char_to_write);
+    uint16_t digit_def = this->convert_font_(char_to_write);
 
     for (uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i * 2 + 1] |= ((DigitDef >> i) & 0x01) << (char_position);
-      this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (char_position + 4);
+      this->buffer_[i * 2 + 1] |= ((digit_def >> i) & 0x01) << (char_position);
+      this->buffer_[i * 2 + 1] |= ((digit_def >> (i + 8)) & 0x01) << (char_position + 4);
     }
   }
-  return;
 }
 
 // Position is the position in the character buffer. position 0 is the begining of the buffer
@@ -304,16 +303,15 @@ uint16_t Sparkfun14SegFlip::convert_font_(uint16_t font_in) {
 void Sparkfun14SegFlip::write_to_buffer_(uint16_t char_to_write, uint8_t char_position) {
   // char_position should be 0-3
   if ((char_position >= 0) && (char_position <= 3)) {
-    uint16_t DigitDef = this->convert_font_(char_to_write);
+    uint16_t digit_def = this->convert_font_(char_to_write);
     uint8_t flipped_char_position = 3 - char_position;
 
     for (uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i * 2 + 1] |= ((DigitDef >> i) & 0x01) << (flipped_char_position);
-      this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (flipped_char_position + 4);
+      this->buffer_[i * 2 + 1] |= ((digit_def >> i) & 0x01) << (flipped_char_position);
+      this->buffer_[i * 2 + 1] |= ((digit_def >> (i + 8)) & 0x01) << (flipped_char_position + 4);
     }
   }
-  return;
 }
 
 }  // namespace ht16k33_char
