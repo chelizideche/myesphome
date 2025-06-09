@@ -175,7 +175,7 @@ void Nextion::dump_config() {
   }
 
   if (this->start_up_page_ != -1) {
-    ESP_LOGCONFIG(TAG, "  Start Up Page:         %" PRId16, this->start_up_page_);
+    ESP_LOGCONFIG(TAG, "  Start Up Page:         %d", this->start_up_page_);
   }
 
 #ifdef USE_NEXTION_COMMAND_SPACING
