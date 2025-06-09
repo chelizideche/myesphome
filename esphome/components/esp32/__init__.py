@@ -355,8 +355,8 @@ SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
 def _arduino_check_versions(value):
     value = value.copy()
     lookups = {
-        "dev": (cv.Version(2, 1, 0), "https://github.com/espressif/arduino-esp32.git"),
-        "latest": (cv.Version(2, 0, 9), None),
+        "dev": (cv.Version(3, 1, 3), "https://github.com/espressif/arduino-esp32.git"),
+        "latest": (cv.Version(3, 1, 3), None),
         "recommended": (RECOMMENDED_ARDUINO_FRAMEWORK_VERSION, None),
     }
 
