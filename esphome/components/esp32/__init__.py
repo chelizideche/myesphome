@@ -83,13 +83,6 @@ def get_cpu_frequencies(*frequencies):
     return [str(x) + "MHZ" for x in frequencies]
 
 
-RISCV_ESP32_VARIANTS = [
-    VARIANT_ESP32C2,
-    VARIANT_ESP32C3,
-    VARIANT_ESP32C6,
-    VARIANT_ESP32H2,
-]
-
 CPU_FREQUENCIES = {
     VARIANT_ESP32: get_cpu_frequencies(80, 160, 240),
     VARIANT_ESP32S2: get_cpu_frequencies(80, 160, 240),
@@ -313,7 +306,7 @@ ARDUINO_PLATFORM_VERSION = cv.Version(5, 4, 0)
 # The default/recommended esp-idf framework version
 #  - https://github.com/espressif/esp-idf/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/tool/framework-espidf
-RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 3, 1)
+RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 3, 2)
 # The platformio/espressif32 version to use for esp-idf frameworks
 #  - https://github.com/platformio/platform-espressif32/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
@@ -471,10 +464,7 @@ def _esp_idf_check_versions(value):
 
     if not has_platform_ver:
         # parduino doesn't have riscv builds
-        if (
-            get_esp32_variant() not in RISCV_ESP32_VARIANTS
-            and version in SUPPORTED_PIOARDUINO_ESP_IDF_5X
-        ):
+        if version in SUPPORTED_PIOARDUINO_ESP_IDF_5X:
             value[CONF_PLATFORM_VERSION] = _parse_platform_version(
                 str(ESP_IDF_PLATFORM_VERSION)
             )
