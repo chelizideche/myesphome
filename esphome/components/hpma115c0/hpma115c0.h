@@ -70,19 +70,19 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
 #endif
 
   void update_adjustment_coefficient(float new_value) {
-    set_customer_adjustment_coefficient((AdjustmentCoefficient_t) new_value);
+    this->set_customer_adjustment_coefficient_((AdjustmentCoefficient_t) new_value);
     adjustment_coefficient_needs_refresh_ = true;
   };
 
   void factory_reset_action() {
-    reset_customer_adjustment_coefficient();
-    adjustment_coefficient_needs_refresh_ = true;
+    this->reset_customer_adjustment_coefficient_();
+    this->adjustment_coefficient_needs_refresh_ = true;
   }
 
   void register_listener(Hpma115C0Listener *listener) { this->listeners_.push_back(listener); }
 
-  AdjustmentCoefficient_t get_adjustment_coefficient_min_value(void) { return ADJUSTMENT_COEFFICIENT_MIN; }
-  AdjustmentCoefficient_t get_adjustment_coefficient_max_value(void) { return ADJUSTMENT_COEFFICIENT_MAX; }
+  AdjustmentCoefficient_t get_adjustment_coefficient_min_value() { return ADJUSTMENT_COEFFICIENT_MIN; }
+  AdjustmentCoefficient_t get_adjustment_coefficient_max_value() { return ADJUSTMENT_COEFFICIENT_MAX; }
 
  protected:
   // Protected internal class types and constants
@@ -125,7 +125,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
   const static uint8_t AUTOSEND_FRAME_DATA_LENGTH = 32;
 
   // Byte index in frame data section
-  enum DataByte_t {
+  enum DataByteT {
     DATA_DF1 = 0,
     DATA_DF2,
     DATA_DF3,
@@ -143,7 +143,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
   // Frame structure, for both request and reply with data
 
 #pragma pack(1)  // Structure alignment on byte boundary
-  union _Frame_Union {
+  union Frame_Union {
     // Frame structure
     struct {
       FrameType_t type;
@@ -160,7 +160,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
   };
 
   // Autosend frame for documentation purpose only, not used in this module
-  union _AutosendFrame_Union {
+  union AutosendFrame_Union {
     // Autosend frame structure
     struct {
       uint16_t header;       // Header, should be 0x424d
@@ -178,8 +178,8 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
   };
 #pragma pack(0)
 
-  using Frame_t = union _Frame_Union;
-  using AutosendFrame_t = union _AutosendFrame_Union;
+  using Frame_t = union Frame_Union;
+  using AutosendFrame_t = union AutosendFrame_Union;
 
   // Protected member variables
   Error_t last_error_ = ERROR_SUCCESS;
@@ -196,25 +196,25 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
 #endif
 
   // Protected member functions
-  const float scale_value(float value, float inMin, float inMax, float outMin, float outMax);
-  void print_frame(const Frame_t frame);
-  bool update_frame_crc(Frame_t &frame);
-  bool check_frame_crc(const Frame_t &frame);
-  bool send_request(Cmd_t command, uint8_t *data, Frame_t &reply);
+  const float scale_value_(float value, float inMin, float inMax, float outMin, float outMax);
+  void print_frame_(const Frame_t frame);
+  bool update_frame_crc_(Frame_t &frame);
+  bool check_frame_crc_(const Frame_t &frame);
+  bool send_request_(Cmd_t command, uint8_t *data, Frame_t &reply);
 
-  void clear_uart_buffer(void);
+  void clear_uart_buffer_(void);
 
-  bool read_particle_measuring_results(float *pm_1_0, float *pm_2_5, float *pm_4_0, float *pm_10_0);
-  bool start_particle_measurement(void);
-  bool stop_particle_measurement(void);
-  bool set_customer_adjustment_coefficient(AdjustmentCoefficient_t new_coefficient);
-  bool reset_customer_adjustment_coefficient(void);
-  bool read_customer_adjustment_coefficient(float *value = nullptr);
-  bool stop_autosend(void);
-  bool enable_autosend(void);
+  bool read_particle_measuring_results_(float *pm_1_0, float *pm_2_5, float *pm_4_0, float *pm_10_0);
+  bool start_particle_measurement_(void);
+  bool stop_particle_measurement_(void);
+  bool set_customer_adjustment_coefficient_(AdjustmentCoefficient_t new_coefficient);
+  bool reset_customer_adjustment_coefficient_(void);
+  bool read_customer_adjustment_coefficient_(float *value = nullptr);
+  bool stop_autosend_(void);
+  bool enable_autosend_(void);
 
-  float compute_aqi_pm_2_5(float value);
-  float compute_aqi_pm_10_0(float value);
+  float compute_aqi_pm_2_5_(float value);
+  float compute_aqi_pm_10_0_(float value);
 
   std::vector<Hpma115C0Listener *> listeners_{};
 };

@@ -25,17 +25,17 @@ void Hpma115C0PollingComponent::setup() {
   this->should_warn_of_blocking(MAX_ALLOWED_REPLY_DELAY + 10U);
 
   // Clear uart buffers
-  this->clear_uart_buffer();
+  this->clear_uart_buffer_();
 
   // Stop autosend mode at startup
   ESP_LOGI(TAG, "Attempting to Stop Autosend");
-  if (!this->stop_autosend()) {
+  if (!this->stop_autosend_()) {
     ESP_LOGW(TAG, "Failed to stop autosend.");
   }
 
   // Start measuring
   ESP_LOGI(TAG, "Attempting to Start measuring");
-  if (!this->start_particle_measurement()) {
+  if (!this->start_particle_measurement_()) {
     ESP_LOGW(TAG, "Failed to start measuring.");
   }
 }
@@ -44,7 +44,7 @@ void Hpma115C0PollingComponent::setup() {
 void Hpma115C0PollingComponent::update() {
   float pm_1_0, pm_2_5, pm_4_0, pm_10_0, aqi_2_5, aqi_10_0;
 
-  if (!read_particle_measuring_results(&pm_1_0, &pm_2_5, &pm_4_0, &pm_10_0)) {
+  if (!read_particle_measuring_results_(&pm_1_0, &pm_2_5, &pm_4_0, &pm_10_0)) {
     // Mark inactive inernally
     this->active_ = false;
 
@@ -69,8 +69,8 @@ void Hpma115C0PollingComponent::update() {
   }
 
   // Compute air quality indexes
-  aqi_2_5 = compute_aqi_pm_2_5(pm_2_5);
-  aqi_10_0 = compute_aqi_pm_10_0(pm_10_0);
+  aqi_2_5 = this->compute_aqi_pm_2_5_(pm_2_5);
+  aqi_10_0 = this->compute_aqi_pm_10_0_(pm_10_0);
 
   ESP_LOGI(TAG, "pm(µg/m3):  1µm(%.0f), 2.5µm(%.0f), 4µm(%.0f), 10µm(%.0f)", pm_1_0, pm_2_5, pm_4_0, pm_10_0);
   ESP_LOGI(TAG, "aqi(index): 2.5(%.0f), 10(%.0f)", aqi_2_5, aqi_10_0);
@@ -79,7 +79,7 @@ void Hpma115C0PollingComponent::update() {
   if (this->adjustment_coefficient_needs_refresh_) {
     float adjustment_coefficient;
 
-    if (read_customer_adjustment_coefficient(&adjustment_coefficient)) {
+    if (this->read_customer_adjustment_coefficient_(&adjustment_coefficient)) {
       this->adjustment_coefficient_number_->publish_state(adjustment_coefficient);
       this->adjustment_coefficient_needs_refresh_ = false;
     }
@@ -92,14 +92,14 @@ void Hpma115C0PollingComponent::update() {
 }
 
 // Scale a float value
-const float Hpma115C0PollingComponent::scale_value(float value, float inMin, float inMax, float outMin, float outMax) {
+const float Hpma115C0PollingComponent::scale_value_(float value, float inMin, float inMax, float outMin, float outMax) {
   if (abs(inMax - inMin) <= 0.0)
     return NAN;
   return (value - inMin) / (inMax - inMin) * (outMax - outMin) + outMin;
 }
 
 // Compute and update frame CRC
-bool Hpma115C0PollingComponent::update_frame_crc(Frame_t &frame) {
+bool Hpma115C0PollingComponent::update_frame_crc_(Frame_t &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
@@ -121,7 +121,7 @@ bool Hpma115C0PollingComponent::update_frame_crc(Frame_t &frame) {
 }
 
 // Check frame CRC return computed
-bool Hpma115C0PollingComponent::check_frame_crc(const Frame_t &frame) {
+bool Hpma115C0PollingComponent::check_frame_crc_(const Frame_t &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
@@ -152,7 +152,7 @@ bool Hpma115C0PollingComponent::check_frame_crc(const Frame_t &frame) {
 }
 
 // Clear UART buffer(s)
-void Hpma115C0PollingComponent::clear_uart_buffer(void) {
+void Hpma115C0PollingComponent::clear_uart_buffer_(void) {
   this->flush();
 
   while (this->available()) {
@@ -163,7 +163,7 @@ void Hpma115C0PollingComponent::clear_uart_buffer(void) {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
-void Hpma115C0PollingComponent::print_frame(const Frame_t frame) {
+void Hpma115C0PollingComponent::print_frame_(const Frame_t frame) {
   char buffer[1024];
 
   // Sanity check on lentgh
@@ -192,7 +192,7 @@ void Hpma115C0PollingComponent::print_frame(const Frame_t frame) {
 }
 
 // Send a command to the sensor, read and parse reply
-bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame_t &reply) {
+bool Hpma115C0PollingComponent::send_request_(Cmd_t command, uint8_t *data, Frame_t &reply) {
   Frame_t request;
   uint16_t first_two_bytes;
   uint8_t expected_reply_data_length = 0;
@@ -245,9 +245,9 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
   }
 
   // Compute crc and update request frame
-  if (!this->update_frame_crc(request))
+  if (!this->update_frame_crc_(request))
     return false;
-  this->print_frame(request);
+  this->print_frame_(request);
 
   // Send request frame to sensor
   this->write_array(request.bytes, request.length + 3);
@@ -327,8 +327,8 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
   }
 
   // Print frame (debug) and check crc
-  this->print_frame(reply);
-  if (!this->check_frame_crc(reply))
+  this->print_frame_(reply);
+  if (!this->check_frame_crc_(reply))
     return false;
 
   this->last_error_ = ERROR_SUCCESS;
@@ -336,11 +336,11 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
 }
 
 // Read current particulate mater values from sensor
-bool Hpma115C0PollingComponent::read_particle_measuring_results(float *pm_1_0, float *pm_2_5, float *pm_4_0,
-                                                                float *pm_10_0) {
+bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, float *pm_2_5, float *pm_4_0,
+                                                                 float *pm_10_0) {
   Frame_t request, reply;
 
-  if (!this->send_request(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
+  if (!this->send_request_(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
     return false;
   }
 
@@ -354,21 +354,21 @@ bool Hpma115C0PollingComponent::read_particle_measuring_results(float *pm_1_0, f
 }
 
 // Start measurements
-bool Hpma115C0PollingComponent::start_particle_measurement(void) {
+bool Hpma115C0PollingComponent::start_particle_measurement_(void) {
   Frame_t request, reply;
 
-  return this->send_request(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
+  return this->send_request_(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Stop measurements
-bool Hpma115C0PollingComponent::stop_particle_measurement(void) {
+bool Hpma115C0PollingComponent::stop_particle_measurement_(void) {
   Frame_t request, reply;
 
-  return this->send_request(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
+  return this->send_request_(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Set adjustment coefficient
-bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient(AdjustmentCoefficient_t new_coefficient) {
+bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient_(AdjustmentCoefficient_t new_coefficient) {
   Frame_t request, reply;
 
   if ((new_coefficient < ADJUSTMENT_COEFFICIENT_MIN) || (new_coefficient > ADJUSTMENT_COEFFICIENT_MAX)) {
@@ -378,19 +378,19 @@ bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient(AdjustmentCo
     return false;
   }
 
-  return this->send_request(CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT, &new_coefficient, reply);
+  return this->send_request_(CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT, &new_coefficient, reply);
 }
 
 // Reset adjustment coefficient to default value
-bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient(void) {
-  return this->set_customer_adjustment_coefficient(ADJUSTMENT_COEFFICIENT_DEFAULT);
+bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient_(void) {
+  return this->set_customer_adjustment_coefficient_(ADJUSTMENT_COEFFICIENT_DEFAULT);
 }
 
 // Get current adjustment coefficient
-bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient(float *value) {
+bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *value) {
   Frame_t reply;
 
-  if (!this->send_request(CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT, nullptr, reply))
+  if (!this->send_request_(CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT, nullptr, reply))
     return false;
 
   if ((reply.data[DATA_DF1] < ADJUSTMENT_COEFFICIENT_MIN) || (reply.data[DATA_DF1] > ADJUSTMENT_COEFFICIENT_MAX)) {
@@ -407,53 +407,53 @@ bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient(float *valu
 }
 
 // Stop autosend mode
-bool Hpma115C0PollingComponent::stop_autosend(void) {
+bool Hpma115C0PollingComponent::stop_autosend_(void) {
   Frame_t request, reply;
 
-  return this->send_request(CMD_STOP_AUTO_SEND, nullptr, reply);
+  return this->send_request_(CMD_STOP_AUTO_SEND, nullptr, reply);
 }
 
 // Enable autosend mode
-bool Hpma115C0PollingComponent::enable_autosend(void) {
+bool Hpma115C0PollingComponent::enable_autosend_(void) {
   Frame_t request, reply;
 
-  return this->send_request(CMD_ENABLE_AUTO_SEND, nullptr, reply);
+  return this->send_request_(CMD_ENABLE_AUTO_SEND, nullptr, reply);
 }
 
 // Computation of AQI PM 2.5 according to airnow.gov
 // See https://document.airnow.gov/technical-assistance-document-for-the-reporting-of-daily-air-quailty.pdf
-float Hpma115C0PollingComponent::compute_aqi_pm_2_5(float value) {
+float Hpma115C0PollingComponent::compute_aqi_pm_2_5_(float value) {
   if (value < 0.0)
     return -1.0;
   if (value < 9.1)
-    return this->scale_value(value, 0.0, 9.0, 0, 50);
+    return this->scale_value_(value, 0.0, 9.0, 0, 50);
   if (value < 35.5)
-    return this->scale_value(value, 9.1, 35.4, 51, 100);
+    return this->scale_value_(value, 9.1, 35.4, 51, 100);
   if (value < 55.5)
-    return this->scale_value(value, 35.5, 55.4, 101, 150);
+    return this->scale_value_(value, 35.5, 55.4, 101, 150);
   if (value < 125.5)
-    return this->scale_value(value, 55.5, 125.4, 151, 200);
+    return this->scale_value_(value, 55.5, 125.4, 151, 200);
   if (value < 225.5)
-    return this->scale_value(value, 125.5, 225.4, 201, 300);
-  return this->scale_value(value, 225.5, (float) MAX_PM_CONCENTRATION, 301, MAX_PM_CONCENTRATION);
+    return this->scale_value_(value, 125.5, 225.4, 201, 300);
+  return this->scale_value_(value, 225.5, (float) MAX_PM_CONCENTRATION, 301, MAX_PM_CONCENTRATION);
 }
 
 // Computation of AQI PM 10 according to airnow.gov
 // See https://document.airnow.gov/technical-assistance-document-for-the-reporting-of-daily-air-quailty.pdf
-float Hpma115C0PollingComponent::compute_aqi_pm_10_0(float value) {
+float Hpma115C0PollingComponent::compute_aqi_pm_10_0_(float value) {
   if (value < 0.0)
     return -1.0;
   if (value < 55)
-    return this->scale_value(value, 0.0, 54, 0, 50);
+    return this->scale_value_(value, 0.0, 54, 0, 50);
   if (value < 155)
-    return this->scale_value(value, 55, 154, 51, 100);
+    return this->scale_value_(value, 55, 154, 51, 100);
   if (value < 255)
-    return this->scale_value(value, 155, 254, 101, 150);
+    return this->scale_value_(value, 155, 254, 101, 150);
   if (value < 355)
-    return this->scale_value(value, 255, 354, 151, 200);
+    return this->scale_value_(value, 255, 354, 151, 200);
   if (value < 425)
-    return this->scale_value(value, 355, 424, 201, 300);
-  return this->scale_value(value, 425, (float) MAX_PM_CONCENTRATION, 301, MAX_PM_CONCENTRATION);
+    return this->scale_value_(value, 355, 424, 201, 300);
+  return this->scale_value_(value, 425, (float) MAX_PM_CONCENTRATION, 301, MAX_PM_CONCENTRATION);
 }
 
 }  // namespace hpma115c0
