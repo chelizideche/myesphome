@@ -4,7 +4,6 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 
-#include <ArduinoJson.h>
 #include <map>
 #include <vector>
 

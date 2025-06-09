@@ -1,5 +1,6 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
+#include "esphome/components/json/json_util.h"
 
 namespace esphome {
 namespace emontx {
@@ -52,24 +53,23 @@ void EmonTx::loop() {
 void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
 
-  StaticJsonDocument<1024> doc;
-  DeserializationError error = deserializeJson(doc, data);
+  bool success = json::parse_json(data, [this](JsonObject root) {
+    // Update all registered sensors
+    for (auto &sensor_pair : this->sensors_) {
+      const std::string &tag = sensor_pair.first;
+      sensor::Sensor *sensor = sensor_pair.second;
 
-  if (error) {
-    ESP_LOGW(TAG, "Failed to parse JSON: %s", error.c_str());
-    return;
-  }
-
-  // Update all registered sensors
-  for (auto &sensor_pair : sensors_) {
-    const std::string &tag = sensor_pair.first;
-    sensor::Sensor *sensor = sensor_pair.second;
-
-    if (doc.containsKey(tag)) {
-      float value = doc[tag];
-      ESP_LOGD(TAG, "Updating sensor '%s' with value: %.2f", tag.c_str(), value);
-      sensor->publish_state(value);
+      if (root.containsKey(tag)) {
+        float value = root[tag];
+        ESP_LOGD(TAG, "Updating sensor '%s' with value: %.2f", tag.c_str(), value);
+        sensor->publish_state(value);
+      }
     }
+    return true;  // Parsing was handled successfully
+  });
+
+  if (!success) {
+    ESP_LOGW(TAG, "Failed to parse JSON");
   }
 }
 
