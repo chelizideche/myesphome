@@ -446,7 +446,7 @@ void Nextion::process_nextion_commands_() {
         break;
       case 0x12:  // invalid Waveform ID or Channel # was used
         if (this->waveform_queue_.empty()) {
-          ESP_LOGW(TAG, "Invalid waveform ID %d/ch %d");
+          ESP_LOGW(TAG, "Waveform ID/ch used but no sensor queued");
         } else {
           auto &nb = this->waveform_queue_.front();
           NextionComponentBase *component = nb->component;
