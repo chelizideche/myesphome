@@ -188,7 +188,7 @@ void Hpma115C0PollingComponent::print_frame(const Frame_t frame) {
   }
   sprintf(buffer + strlen(buffer), "]#%02X", frame.data[byte_index]);
 
-  ESP_LOGD(TAG, buffer);
+  ESP_LOGD(TAG, "%s", buffer);
 }
 
 // Send a command to the sensor, read and parse reply
