@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID
+from esphome.const import CONF_BAUD_RATE, CONF_ID
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
@@ -17,6 +17,12 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
         cv.Required(CONF_TAG_NAME): cv.string,
+    }
+)
+
+UART_SCHEMA = uart.UART_DEVICE_SCHEMA.extend(
+    {
+        cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
     }
 )
 
