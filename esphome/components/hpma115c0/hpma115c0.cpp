@@ -163,7 +163,7 @@ void Hpma115C0PollingComponent::clear_uart_buffer_() {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
-#define DEBUG_PRINT_BUFFER_MAX_SIZE 1024
+static const uint16_t DEBUG_PRINT_BUFFER_MAX_SIZE = 1024;
 void Hpma115C0PollingComponent::print_frame_(const HpmaFrameT frame) {
   char buffer[DEBUG_PRINT_BUFFER_MAX_SIZE];
 
