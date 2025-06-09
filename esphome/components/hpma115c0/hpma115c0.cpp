@@ -83,7 +83,9 @@ void Hpma115C0PollingComponent::update() {
     float adjustment_coefficient;
 
     if (this->read_customer_adjustment_coefficient_(&adjustment_coefficient)) {
+#ifdef USE_NUMBER
       this->adjustment_coefficient_number_->publish_state(adjustment_coefficient);
+#endif
       this->adjustment_coefficient_needs_refresh_ = false;
     }
   }
