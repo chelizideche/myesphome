@@ -142,7 +142,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
 
   // Frame structure, for both request and reply with data
 
-#pragma pack(1)  // Structure alignment on byte boundary
+#pragma pack(push, 1)  // Structure alignment on byte boundary
   union Frame_Union {
     // Frame structure
     struct {
@@ -176,7 +176,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
     // Raw data
     uint8_t bytes[AUTOSEND_FRAME_DATA_LENGTH];
   };
-#pragma pack(0)
+#pragma pack(pop)
 
   using Frame_t = union Frame_Union;
   using AutosendFrame_t = union AutosendFrame_Union;
