@@ -46,10 +46,27 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
 
+  // Set EmonCMS configuration
+  void set_emoncms_config(const std::string &server, const std::string &node, const std::string &apikey) {
+    emoncms_server_ = server;
+    emoncms_node_ = node;
+    emoncms_apikey_ = apikey;
+    has_emoncms_config_ = true;
+  }
+
  protected:
   std::map<std::string, sensor::Sensor *> sensors_{};
   std::string buffer_;
   void parse_json_(const std::string &data);
+
+  // EmonCMS configuration
+  bool has_emoncms_config_{false};
+  std::string emoncms_server_;
+  std::string emoncms_node_;
+  std::string emoncms_apikey_;
+
+  // Send data to EmonCMS
+  void send_to_emoncms_(const std::string &json_data);
 };
 
 }  // namespace emontx
