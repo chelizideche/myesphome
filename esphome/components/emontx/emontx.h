@@ -44,10 +44,12 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
   std::vector<EmonTxListener *> emontx_listeners_{};
 
-  void register_sensor(const std::string &tag, sensor::Sensor *sensor);
+  void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
+
+  float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
-  std::map<std::string, sensor::Sensor *> sensors_;
+  std::map<std::string, sensor::Sensor *> sensors_{};
   std::string buffer_;
   void parse_json_(const std::string &data);
 };

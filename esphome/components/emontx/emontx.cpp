@@ -10,7 +10,15 @@ static const char *const TAG = "emontx";
 /**
  * @brief Initializes the EmonTx by setting the initial state to OFF.
  */
-void EmonTx::setup() { ESP_LOGCONFIG(TAG, "Setting up EmonTx Component..."); }
+void EmonTx::setup() {
+  ESP_LOGD(TAG, "Setting up EmonTx component");
+
+  // Log sensors at setup time
+  ESP_LOGD(TAG, "Currently registered sensors: %u", this->sensors_.size());
+  for (const auto &sensor_pair : this->sensors_) {
+    ESP_LOGD(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
+  }
+}
 
 /**
  * @brief Updates the EmonTx state. Resets the buffer index and transitions the state from OFF to ON.
@@ -73,9 +81,9 @@ void EmonTx::parse_json_(const std::string &data) {
   }
 }
 
-void EmonTx::register_sensor(const std::string &tag, sensor::Sensor *sensor) {
-  ESP_LOGD(TAG, "Registering sensor for tag: %s", tag.c_str());
-  sensors_[tag] = sensor;
+void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
+  ESP_LOGD(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+  this->sensors_[tag_name] = sensor;
 }
 
 /**
@@ -84,10 +92,12 @@ void EmonTx::register_sensor(const std::string &tag, sensor::Sensor *sensor) {
  * @note Logs the UART settings and other configuration details.
  */
 void EmonTx::dump_config() {
-  ESP_LOGCONFIG(TAG, "EmonTx Component:");
-  ESP_LOGCONFIG(TAG, "  Registered sensors: %d", sensors_.size());
-  for (auto &sensor_pair : sensors_) {
-    ESP_LOGCONFIG(TAG, "    Tag: %s", sensor_pair.first.c_str());
+  ESP_LOGCONFIG(TAG, "EmonTx:");
+  ESP_LOGCONFIG(TAG, "  Registered sensors: %u", this->sensors_.size());
+
+  // List all registered sensors with their tags
+  for (const auto &sensor_pair : this->sensors_) {
+    ESP_LOGCONFIG(TAG, "  Sensor: %s", sensor_pair.first.c_str());
   }
 }
 
