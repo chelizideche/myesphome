@@ -3,13 +3,17 @@ from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
+    DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
+    DEVICE_CLASS_POWER_FACTOR,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_VOLTAGE,
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
+    UNIT_AMPERE,
     UNIT_CELSIUS,
+    UNIT_EMPTY,
     UNIT_PULSES,
     UNIT_VOLT,
     UNIT_WATT,
@@ -40,6 +44,12 @@ SENSOR_CONFIGS = {
         "state_class": STATE_CLASS_MEASUREMENT,
         "accuracy_decimals": 2,
     },
+    "I": {
+        "unit_of_measurement": UNIT_AMPERE,
+        "device_class": DEVICE_CLASS_CURRENT,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "accuracy_decimals": 2,
+    },
     "T": {
         "unit_of_measurement": UNIT_CELSIUS,
         "device_class": DEVICE_CLASS_TEMPERATURE,
@@ -53,7 +63,13 @@ PATTERN_CONFIGS = {
     "PULSE": {
         "unit_of_measurement": UNIT_PULSES,
         "accuracy_decimals": 0,
-    }
+    },
+    "PF": {
+        "unit_of_measurement": UNIT_EMPTY,
+        "device_class": DEVICE_CLASS_POWER_FACTOR,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "accuracy_decimals": 2,
+    },
 }
 
 # Create a base schema that's flexible for any tag
@@ -81,6 +97,13 @@ def apply_tag_defaults(config):
     tag_upper = tag.upper()
 
     for pattern, pattern_config in PATTERN_CONFIGS.items():
+        if pattern == "PF" and tag_upper.startswith("PF"):
+            # Apply pattern defaults if not overridden by user
+            for key, value in pattern_config.items():
+                if key not in config:
+                    config[key] = value
+            # Once matched a pattern, don't check prefixes
+            return config
         if pattern.upper() in tag_upper:
             # Apply pattern defaults if not overridden by user
             for key, value in pattern_config.items():
