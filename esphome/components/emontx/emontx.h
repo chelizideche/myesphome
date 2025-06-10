@@ -37,7 +37,6 @@ class EmonTxListener {
  */
 class EmonTx : public PollingComponent, public uart::UARTDevice {
  public:
-  EmonTx();
   void register_emontx_listener(EmonTxListener *listener);
   void loop() override;
   void setup() override;
