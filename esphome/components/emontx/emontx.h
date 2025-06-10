@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/http_request/http_request.h"
 
 #include <map>
 #include <vector>
@@ -35,6 +36,8 @@ class EmonTxListener {
  */
 class EmonTx : public PollingComponent, public uart::UARTDevice {
  public:
+  EmonTx() = default;
+
   void register_emontx_listener(EmonTxListener *listener);
   void loop() override;
   void setup() override;
@@ -45,10 +48,12 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
 
   // Set EmonCMS configuration
-  void set_emoncms_config(const std::string &server, const std::string &node, const std::string &apikey) {
+  void set_emoncms_config(const std::string &server, const std::string &node, const std::string &apikey,
+                          http_request::HttpRequestComponent *http_client) {
     emoncms_server_ = server;
     emoncms_node_ = node;
     emoncms_apikey_ = apikey;
+    http_client_ = http_client;
     has_emoncms_config_ = true;
   }
 
@@ -62,6 +67,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::string emoncms_server_;
   std::string emoncms_node_;
   std::string emoncms_apikey_;
+
+  // Reference to external HTTP client component
+  http_request::HttpRequestComponent *http_client_{nullptr};
 
   // Send data to EmonCMS
   void send_to_emoncms_(const std::string &json_data);

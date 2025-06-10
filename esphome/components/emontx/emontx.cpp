@@ -27,12 +27,12 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
   }
 
-  // Log EmonCMS configuration
+  // Initialize HTTP client if EmonCMS is configured
   if (has_emoncms_config_) {
     ESP_LOGCONFIG(TAG, "EmonCMS forwarding enabled:");
     ESP_LOGCONFIG(TAG, "  Server: %s", this->emoncms_server_.c_str());
     ESP_LOGCONFIG(TAG, "  Node: %s", this->emoncms_node_.c_str());
-    ESP_LOGCONFIG(TAG, "  API Key: %s", this->emoncms_apikey_.substr(0, 5).c_str());
+    ESP_LOGCONFIG(TAG, "  API Key: %s...", this->emoncms_apikey_.substr(0, 5).c_str());
   }
 }
 
@@ -124,50 +124,61 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 
   ESP_LOGV(TAG, "Sending data to EmonCMS: %s", json_data.c_str());
 
-  // Build the URL - format: server/input/post.json?node=nodename&apikey=apikey&json={...}
+  // Build the URL for POST
   std::string url = emoncms_server_;
   if (url.back() != '/') {
     url += '/';
   }
+  url += "input/post";
 
-  url += "input/post.json?node=";
-  url += emoncms_node_;
-  url += "&apikey=";
-  url += emoncms_apikey_;
-  url += "&fulljson=";
-  url += json_data;
+  // Create body format: node=nodename&apikey=apikey&json=jsondata
+  std::string body = "node=";
+  body += emoncms_node_;
+  body += "&apikey=";
+  body += emoncms_apikey_;
+  body += "&json=";
+  body += json_data;
 
-  ESP_LOGV(TAG, "EmonCMS URL: %s", url.c_str());
+  ESP_LOGV(TAG, "EmonCMS POST data: %s", body.c_str());
 
-#if defined(USE_ESP32) || defined(USE_ESP8266)
-  HTTPClient http;
+  // Send POST request and capture the response container
+  auto container = http_client_->post(url, body);
 
-#ifdef USE_ESP32
-  http.begin(url.c_str());
-#elif defined(USE_ESP8266)
-  WiFiClient client;
-  http.begin(client, url.c_str());
-#endif
+  // Check if request was successfully initiated
+  if (container != nullptr) {
+    ESP_LOGI(TAG, "HTTP POST request to EmonCMS initiated successfully");
 
-  http.setUserAgent("esphome/emontx");
+    // Access status code from the container
+    int status_code = container->status_code;
 
-  int http_response_code = http.GET();
+    if (status_code >= 200 && status_code < 300) {
+      ESP_LOGI(TAG, "EmonCMS data sent successfully (HTTP %d)", status_code);
 
-  if (http_response_code > 0) {
-    ESP_LOGV(TAG, "HTTP Response code: %d", http_response_code);
-    std::string payload = http.getString().c_str();
-    ESP_LOGV(TAG, "Response: %s", payload.c_str());
+      // Check if there's content to read
+      if (container->content_length > 0) {
+        // Read response body in chunks
+        const size_t buffer_size = 128;
+        uint8_t buffer[buffer_size];
+        std::string response;
+
+        int bytes_read;
+        while ((bytes_read = container->read(buffer, buffer_size)) > 0) {
+          response.append(reinterpret_cast<char *>(buffer), bytes_read);
+        }
+
+        if (!response.empty()) {
+          ESP_LOGV(TAG, "Response: %s", response.c_str());
+        }
+      }
+    } else {
+      ESP_LOGW(TAG, "Error sending data to EmonCMS (HTTP %d)", status_code);
+    }
+
+    // Always end the connection when done
+    container->end();
   } else {
-    ESP_LOGW(TAG, "Error sending to EmonCMS. Error code: %d", http_response_code);
+    ESP_LOGW(TAG, "Failed to initiate HTTP POST request to EmonCMS");
   }
-
-  http.end();
-#endif
-}
-
-void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
-  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
-  this->sensors_[tag_name] = sensor;
 }
 
 /**
