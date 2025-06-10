@@ -41,7 +41,7 @@ def create_sensor_schema(tag):
         ).extend(BASE_SCHEMA)
 
     # Energy sensors (E1, E2, E3, etc.)
-    elif tag_upper.startswith("E") and len(tag_upper) >= 2 and len(tag_upper) <= 3:
+    if tag_upper.startswith("E") and len(tag_upper) >= 2 and len(tag_upper) <= 3:
         return sensor.sensor_schema(
             unit_of_measurement=UNIT_WATT_HOURS,
             device_class=DEVICE_CLASS_ENERGY,
@@ -50,7 +50,7 @@ def create_sensor_schema(tag):
         ).extend(BASE_SCHEMA)
 
     # Voltage sensors
-    elif tag_upper.startswith("VRMS") and len(tag_upper) == 5:
+    if tag_upper.startswith("VRMS") and len(tag_upper) == 5:
         return sensor.sensor_schema(
             unit_of_measurement=UNIT_VOLT,
             device_class=DEVICE_CLASS_VOLTAGE,
@@ -59,7 +59,7 @@ def create_sensor_schema(tag):
         ).extend(BASE_SCHEMA)
 
     # Temperature sensors (T1, T2, etc.)
-    elif tag_upper.startswith("T") and len(tag_upper) == 2:
+    if tag_upper.startswith("T") and len(tag_upper) == 2:
         return sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             device_class=DEVICE_CLASS_TEMPERATURE,
@@ -68,11 +68,10 @@ def create_sensor_schema(tag):
         ).extend(BASE_SCHEMA)
 
     # Default for all other sensors
-    else:
-        return sensor.sensor_schema(
-            state_class=STATE_CLASS_MEASUREMENT,
-            accuracy_decimals=0,
-        ).extend(BASE_SCHEMA)
+    return sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
+        accuracy_decimals=0,
+    ).extend(BASE_SCHEMA)
 
 
 # Use a multi schema validator to select the right schema based on the tag
