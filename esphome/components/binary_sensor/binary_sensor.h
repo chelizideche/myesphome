@@ -39,23 +39,23 @@ class BinarySensor : public StatefulEntityBase<bool>, public EntityBase_DeviceCl
 
   /** Publish a new state to the front-end.
    *
-   * @param state The new state.
+   * @param new_state The new state.
    */
-  void publish_state(bool state);
+  void publish_state(bool new_state);
 
   /** Publish the initial state, this will not make the callback manager send callbacks
    * and is meant only for the initial state on boot.
    *
-   * @param state The new state.
+   * @param new_state The new state.
    */
-  void publish_initial_state(bool state);
+  void publish_initial_state(bool new_state);
 
   void add_filter(Filter *filter);
   void add_filters(const std::vector<Filter *> &filters);
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
-  void send_state_internal(bool state);
+  void send_state_internal(bool new_state);
 
   /// Return whether this binary sensor has outputted a state.
   virtual bool is_status_binary_sensor() const;
