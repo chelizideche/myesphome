@@ -42,7 +42,7 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
   uint8_t bindkey_[16];
 
 #ifdef USE_BINARY_SENSOR
-  uint16_t motion_timeout_;
+  uint16_t smoke_timeout_;
   uint16_t button_timeout_;
 
   binary_sensor::BinarySensor *smoke_{nullptr};
