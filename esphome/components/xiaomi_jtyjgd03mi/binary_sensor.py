@@ -40,7 +40,6 @@ async def to_code(config):
         sens = await binary_sensor.new_binary_sensor(smoke_config)
         cg.add(parent.set_smoke(sens))
 
-    if CONF_BUTTON in config:
-        sens = await binary_sensor.new_binary_sensor(config[CONF_BUTTON])
-        cg.add(parent.set_button(sens))
-        cg.add(parent.set_button_timeout(config[CONF_BUTTON][CONF_TIMEOUT]))
+    if button_config := config.get(CONF_BUTTON):
+        sens = await binary_sensor.new_binary_sensor(button_config)
+        cg.add(parent.set_button(sens, button_config[CONF_TIMEOUT]))
