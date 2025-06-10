@@ -1,3 +1,4 @@
+import json
 import logging
 import math
 import re
@@ -36,9 +37,21 @@ def validate_module_name(value):
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.Optional("modules"): {
-            validate_module_name: cv.ensure_list(cv.string_strict)
-        },
+        cv.Optional("macros"): cv.ensure_list(
+            cv.Schema(
+                {
+                    cv.Required("name"): validate_module_name,
+                    cv.Optional("parameters"): cv.ensure_schema(
+                        cv.Schema({validate_module_name: object})
+                    ),
+                    cv.Required("return"): cv.string,
+                }
+            )
+        ),
+        cv.Optional("vars"): cv.ensure_schema(
+            cv.Schema({validate_module_name: object})
+        ),
+        cv.Optional("templates"): cv.ensure_list(cv.string_strict),
     }
 )
 
@@ -84,22 +97,39 @@ class Jinja:
             with cv.prepend_path(CONF_JINJA):
                 config[CONF_JINJA] = CONFIG_SCHEMA(config[CONF_JINJA])
 
-            modules = config[CONF_JINJA].get("modules", {})
-            self.load_modules(modules)
+            jinja_config = config[CONF_JINJA]
+            if "vars" in jinja_config:
+                self.load_vars(jinja_config["vars"])
+            if "macros" in jinja_config:
+                self.load_macros(jinja_config["macros"])
+            if "templates" in jinja_config:
+                self.load_templates(jinja_config["templates"])
 
-    def load_modules(self, modules):
-        for module_name, template_list in modules.items():
-            for content in template_list:
-                template = self.env.from_string(content)
-                if module_name == "global":
-                    for symbol_name in dir(template.module):
-                        if symbol_name.startswith("_"):
-                            continue
-                        self.env.globals[symbol_name] = getattr(
-                            template.module, symbol_name
-                        )
-                else:
-                    self.env.globals[module_name] = template.module
+    def parse_template(self, content):
+        template = self.env.from_string(content)
+        for symbol_name in dir(template.module):
+            if symbol_name.startswith("_"):
+                continue
+            self.env.globals[symbol_name] = getattr(template.module, symbol_name)
+
+    def load_macros(self, macros):
+        for macro in macros:
+            name = macro["name"]
+            parameters = ", ".join(
+                [f"{k}={json.dumps(v)}" for k, v in macro["parameters"].items()]
+            )
+            return_value = macro["return"]
+            self.parse_template(
+                f"<% macro {name}({parameters}) %>${{{return_value}}}<% endmacro %>",
+            )
+
+    def load_vars(self, vars):
+        for var_name, value in vars.items():
+            self.env.globals[var_name] = value
+
+    def load_templates(self, templates):
+        for content in templates:
+            self.parse_template(content)
 
     def expand(self, st, vars):
         """

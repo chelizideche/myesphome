@@ -1,0 +1,71 @@
+substitutions:
+  display_scale: 1.5
+  a: 7
+  b: 9
+  c: 3
+  d: 82
+jinja:
+  macros:
+    - name: multiply
+      parameters:
+        a: 3
+        b: 4
+      return: a*b
+    - name: modulus
+      parameters:
+        vec:
+          x: 0
+          y: 0
+      return: math.sqrt(vec.x*vec.x+vec.y*vec.y)
+  vars:
+    a: 7
+    b: 0
+    c: 99
+    position:
+      x: 4
+      y: 3
+  templates:
+    - '<% macro scale(x, factor = None) %>
+
+      ${ (x * (display_scale if factor is none else factor)) | round | int }
+
+      <% endmacro %>
+
+      '
+    - '<% macro square(x) %>
+
+      ${ x*x }
+
+      <% endmacro %>
+
+      '
+    - '<% macro double(x) %>
+
+      ${ 2*x }
+
+      <% endmacro %>
+
+      '
+    - "<% macro pin(number=10, inverted=false) %>\n  <% if number > 20 %>${\n    {\n\
+      \        \"number\": number,\n        \"inverted\" : inverted,\n        \"pullup\"\
+      : true\n    }\n  }<% else %>${\n    {\n        \"number\": number,\n       \
+      \ \"inverted\" : inverted,\n    }\n  }<% endif %>\n<% endmacro %>\n"
+testlist:
+  - The value of c is 3, substitution overriden by var
+  - The value of d is 82 since it has not been overriden
+  - Position x=4, y=3
+  - Distance = 5.0
+  - multiply(6,7) = 42
+  - multiply(2) = 8, because parameter b has a default value of 4
+  - multiply(a=5, b=7) = 35
+  - scale(100) = 150
+  - scale(100, 1.377892) = 138
+  - square(a) = 49
+  - double(b) = 18
+  - number: 10
+    inverted: true
+  - number: 10
+    inverted: false
+  - number: 22
+    inverted: false
+    pullup: true
