@@ -147,8 +147,11 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
   ESP_LOGV(TAG, "EmonCMS request to URL: %s", this->emoncms_url_.c_str());
   ESP_LOGV(TAG, "EmonCMS POST data: %s", body.c_str());
 
+  // Create headers list with Content-Type
+  std::list<http_request::Header> headers = {{"Content-Type", "application/x-www-form-urlencoded"}};
+
   // Send POST request and capture the response container
-  auto container = http_client_->post(this->emoncms_url_, body);
+  auto container = http_client_->post(this->emoncms_url_, body, headers);
 
   // Check if request was successfully initiated
   if (container != nullptr) {
