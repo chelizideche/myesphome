@@ -1,0 +1,14 @@
+uart:
+  tx_pin: GPIO021
+  rx_pin: GPIO016
+  baud_rate: 9600
+  stop_bits: 1
+  id: uart_bus
+
+sensor:
+  - platform: sc01_o3
+    id: o3_sensor
+    uart_id: uart_bus
+    name: "Ozone Concentration"
+    icon: "mdi:chemical-weapon"
+    update_interval: 5s
