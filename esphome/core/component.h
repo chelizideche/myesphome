@@ -110,6 +110,19 @@ class Component {
   virtual void on_shutdown() {}
   virtual void on_safe_shutdown() {}
 
+  /** Called during teardown to allow component to gracefully finish operations.
+   *
+   * @return true if teardown is complete, false if more time is needed
+   */
+  virtual bool teardown() { return true; }
+
+  /** Called after teardown is complete to power down hardware.
+   *
+   * This is called after all components have finished their teardown process,
+   * making it safe to power down hardware like ethernet PHY.
+   */
+  virtual void on_powerdown() {}
+
   uint32_t get_component_state() const;
 
   /** Mark this component as failed. Any future timeouts/intervals/setup/loop will no longer be called.
@@ -339,7 +352,11 @@ class PollingComponent : public Component {
 
 class WarnIfComponentBlockingGuard {
  public:
-  WarnIfComponentBlockingGuard(Component *component);
+  WarnIfComponentBlockingGuard(Component *component, uint32_t start_time);
+
+  // Finish the timing operation and return the current time
+  uint32_t finish();
+
   ~WarnIfComponentBlockingGuard();
 
  protected:
