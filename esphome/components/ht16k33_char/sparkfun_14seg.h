@@ -9,7 +9,6 @@ class Sparkfun14Seg : public HT16k33CharComponent {
   uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) override;
 
  protected:
-  uint16_t convert_font_(uint16_t font_in);
   void write_to_buffer_(uint16_t char_to_write, uint8_t char_position);
 };
 
@@ -18,7 +17,6 @@ class Sparkfun14SegFlip : public HT16k33CharComponent {
   uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) override;
 
  protected:
-  uint16_t convert_font_(uint16_t font_in);
   void write_to_buffer_(uint16_t char_to_write, uint8_t char_position);
 };
 
