@@ -2,7 +2,11 @@ import esphome.codegen as cg
 from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_ACCURACY_DECIMALS,
+    CONF_DEVICE_CLASS,
     CONF_ID,
+    CONF_STATE_CLASS,
+    CONF_UNIT_OF_MEASUREMENT,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
@@ -27,48 +31,48 @@ EmonTxSensor = emontx_ns.class_("EmonTxSensor", sensor.Sensor, cg.Component)
 # Define sensor type configurations by prefix
 SENSOR_CONFIGS = {
     "P": {
-        "unit_of_measurement": UNIT_WATT,
-        "device_class": DEVICE_CLASS_POWER,
-        "state_class": STATE_CLASS_MEASUREMENT,
-        "accuracy_decimals": 1,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_WATT,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_POWER,
+        CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        CONF_ACCURACY_DECIMALS: 1,
     },
     "E": {
-        "unit_of_measurement": UNIT_WATT_HOURS,
-        "device_class": DEVICE_CLASS_ENERGY,
-        "state_class": STATE_CLASS_TOTAL_INCREASING,
-        "accuracy_decimals": 3,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_WATT_HOURS,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_ENERGY,
+        CONF_STATE_CLASS: STATE_CLASS_TOTAL_INCREASING,
+        CONF_ACCURACY_DECIMALS: 3,
     },
     "V": {
-        "unit_of_measurement": UNIT_VOLT,
-        "device_class": DEVICE_CLASS_VOLTAGE,
-        "state_class": STATE_CLASS_MEASUREMENT,
-        "accuracy_decimals": 2,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_VOLT,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_VOLTAGE,
+        CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        CONF_ACCURACY_DECIMALS: 2,
     },
     "I": {
-        "unit_of_measurement": UNIT_AMPERE,
-        "device_class": DEVICE_CLASS_CURRENT,
-        "state_class": STATE_CLASS_MEASUREMENT,
-        "accuracy_decimals": 2,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_AMPERE,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_CURRENT,
+        CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        CONF_ACCURACY_DECIMALS: 2,
     },
     "T": {
-        "unit_of_measurement": UNIT_CELSIUS,
-        "device_class": DEVICE_CLASS_TEMPERATURE,
-        "state_class": STATE_CLASS_MEASUREMENT,
-        "accuracy_decimals": 1,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_CELSIUS,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_TEMPERATURE,
+        CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        CONF_ACCURACY_DECIMALS: 1,
     },
 }
 
 # Pattern-based configurations
 PATTERN_CONFIGS = {
     "PULSE": {
-        "unit_of_measurement": UNIT_PULSES,
-        "accuracy_decimals": 0,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_PULSES,
+        CONF_ACCURACY_DECIMALS: 0,
     },
     "PF": {
-        "unit_of_measurement": UNIT_EMPTY,
-        "device_class": DEVICE_CLASS_POWER_FACTOR,
-        "state_class": STATE_CLASS_MEASUREMENT,
-        "accuracy_decimals": 2,
+        CONF_UNIT_OF_MEASUREMENT: UNIT_EMPTY,
+        CONF_DEVICE_CLASS: DEVICE_CLASS_POWER_FACTOR,
+        CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        CONF_ACCURACY_DECIMALS: 2,
     },
 }
 
