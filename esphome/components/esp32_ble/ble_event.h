@@ -86,6 +86,8 @@ class BLEEvent {
     this->event_.gattc.gattc_if = i;
 
     // Allocate external storage for param and data
+    // External allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
 
     // Copy data for events that need it
@@ -113,6 +115,8 @@ class BLEEvent {
     this->event_.gatts.gatts_if = i;
 
     // Allocate external storage for param and data
+    // External allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
 
     // Copy data for events that need it
