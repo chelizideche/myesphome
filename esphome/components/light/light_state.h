@@ -134,6 +134,9 @@ class LightState : public EntityBase, public Component {
   void set_default_transition_length(uint32_t default_transition_length);
   uint32_t get_default_transition_length() const;
 
+  void set_dynamic_default_transition(bool dynamic_default_transition);
+  bool get_dynamic_default_transition() const;
+
   /// Set the flash transition length
   void set_flash_transition_length(uint32_t flash_transition_length);
   uint32_t get_flash_transition_length() const;
@@ -238,6 +241,8 @@ class LightState : public EntityBase, public Component {
 
   /// Default transition length for all transitions in ms.
   uint32_t default_transition_length_{};
+  /// Enables correction of transition length depending on the transition size.
+  uint32_t dynamic_default_transition_{};
   /// Transition length to use for flash transitions.
   uint32_t flash_transition_length_{};
   /// Gamma correction factor for the light.

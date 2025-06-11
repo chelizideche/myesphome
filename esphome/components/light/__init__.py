@@ -14,6 +14,7 @@ from esphome.const import (
     CONF_COLOR_MODE,
     CONF_COLOR_TEMPERATURE,
     CONF_DEFAULT_TRANSITION_LENGTH,
+    CONF_DYNAMIC_DEFAULT_TRANSITION,
     CONF_EFFECTS,
     CONF_ENTITY_CATEGORY,
     CONF_FLASH_TRANSITION_LENGTH,
@@ -122,6 +123,7 @@ BRIGHTNESS_ONLY_LIGHT_SCHEMA = LIGHT_SCHEMA.extend(
         cv.Optional(
             CONF_DEFAULT_TRANSITION_LENGTH, default="1s"
         ): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_DYNAMIC_DEFAULT_TRANSITION, default="false"): cv.boolean,
         cv.Optional(
             CONF_FLASH_TRANSITION_LENGTH, default="0s"
         ): cv.positive_time_period_milliseconds,
@@ -231,6 +233,10 @@ async def setup_light_core_(light_var, output_var, config):
         default_transition_length := config.get(CONF_DEFAULT_TRANSITION_LENGTH)
     ) is not None:
         cg.add(light_var.set_default_transition_length(default_transition_length))
+    if (
+        dynamic_default_transition := config.get(CONF_DYNAMIC_DEFAULT_TRANSITION)
+    ) is not None:
+        cg.add(light_var.set_dynamic_default_transition(dynamic_default_transition))
     if (
         flash_transition_length := config.get(CONF_FLASH_TRANSITION_LENGTH)
     ) is not None:

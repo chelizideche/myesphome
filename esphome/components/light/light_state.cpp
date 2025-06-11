@@ -161,10 +161,19 @@ void LightState::add_new_target_state_reached_callback(std::function<void()> &&s
 void LightState::set_default_transition_length(uint32_t default_transition_length) {
   this->default_transition_length_ = default_transition_length;
 }
+
+void LightState::set_dynamic_default_transition(bool dynamic_default_transition) {
+  this->dynamic_default_transition_ = dynamic_default_transition;
+}
+
 uint32_t LightState::get_default_transition_length() const { return this->default_transition_length_; }
+
+bool LightState::get_dynamic_default_transition() const { return this->dynamic_default_transition_; }
+
 void LightState::set_flash_transition_length(uint32_t flash_transition_length) {
   this->flash_transition_length_ = flash_transition_length;
 }
+
 uint32_t LightState::get_flash_transition_length() const { return this->flash_transition_length_; }
 void LightState::set_gamma_correct(float gamma_correct) { this->gamma_correct_ = gamma_correct; }
 void LightState::set_restore_mode(LightRestoreMode restore_mode) { this->restore_mode_ = restore_mode; }
