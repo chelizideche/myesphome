@@ -79,7 +79,9 @@ CONFIG_SCHEMA = cv.All(
                 esp32=192,
                 esp32_s2=192,
                 esp32_s3=192,
+                esp32_p4=192,
                 esp32_c3=96,
+                esp32_c5=96,
                 esp32_c6=96,
                 esp32_h2=96,
             ): cv.All(cv.int_range(min=2)),
@@ -88,7 +90,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
             cv.Optional(CONF_IS_WRGB, default=False): cv.boolean,
             cv.Optional(CONF_USE_DMA): cv.All(
-                esp32.only_on_variant(supported=[esp32.const.VARIANT_ESP32S3]),
+                esp32.only_on_variant(
+                    supported=[esp32.const.VARIANT_ESP32S3, esp32.const.VARIANT_ESP32P4]
+                ),
                 cv.boolean,
             ),
             cv.Optional(CONF_USE_PSRAM, default=True): cv.boolean,
