@@ -1,8 +1,8 @@
 #pragma once
 
-#include "esphome/core/component.h"
-#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/openthread/openthread.h"
+#include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/core/component.h"
 #ifdef USE_OPENTHREAD
 
 namespace esphome {
@@ -44,7 +44,6 @@ class IPAddressOpenThreadInfo : public PollingComponent, public text_sensor::Tex
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-ip"; }
   void dump_config() override;
 
  protected:
@@ -61,7 +60,6 @@ class RoleOpenThreadInfo : public OpenThreadInstancePollingComponent, public tex
       this->publish_state(otThreadDeviceRoleToString(this->last_role_));
     }
   }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-role"; }
   void dump_config() override;
 
  protected:
@@ -80,7 +78,6 @@ class Rloc16OpenThreadInfo : public OpenThreadInstancePollingComponent, public t
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-rloc16"; }
   void dump_config() override;
 
  protected:
@@ -97,7 +94,6 @@ class ExtAddrOpenThreadInfo : public OpenThreadInstancePollingComponent, public 
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-extaddr"; }
   void dump_config() override;
 
  protected:
@@ -116,7 +112,6 @@ class Eui64OpenThreadInfo : public OpenThreadInstancePollingComponent, public te
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-extaddr"; }
   void dump_config() override;
 
  protected:
@@ -133,7 +128,6 @@ class ChannelOpenThreadInfo : public OpenThreadInstancePollingComponent, public 
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-extaddr"; }
   void dump_config() override;
 
  protected:
@@ -164,7 +158,6 @@ class NetworkNameOpenThreadInfo : public DatasetOpenThreadInfo, public text_sens
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-networkname"; }
   void dump_config() override;
 
  protected:
@@ -180,7 +173,6 @@ class NetworkKeyOpenThreadInfo : public DatasetOpenThreadInfo, public text_senso
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-networkkey"; }
   void dump_config() override;
 
  protected:
@@ -199,7 +191,6 @@ class PanIdOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::Te
     }
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-panid"; }
   void dump_config() override;
 
  protected:
@@ -216,7 +207,6 @@ class ExtPanIdOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor:
   }
 
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-  std::string unique_id() override { return get_mac_address() + "-openthreadinfo-extpanid"; }
   void dump_config() override;
 
  protected:

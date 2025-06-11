@@ -2,14 +2,14 @@
 #include "esphome/core/defines.h"
 #ifdef USE_OPENTHREAD
 
-#include "esphome/core/component.h"
 #include "esphome/components/mdns/mdns_component.h"
 #include "esphome/components/network/ip_address.h"
+#include "esphome/core/component.h"
 
 #include <openthread/thread.h>
 
-#include <vector>
 #include <optional>
+#include <vector>
 
 namespace esphome {
 namespace openthread {
@@ -37,7 +37,6 @@ extern OpenThreadComponent *global_openthread_component;
 class OpenThreadSrpComponent : public Component {
  public:
   void set_mdns(esphome::mdns::MDNSComponent *mdns);
-  void set_host_name(std::string host_name);
   // This has to run after the mdns component or else no services are available to advertise
   float get_setup_priority() const override { return this->mdns_->get_setup_priority() - 1.0; }
 
@@ -45,7 +44,6 @@ class OpenThreadSrpComponent : public Component {
   void setup() override;
 
  private:
-  std::string host_name_;
   esphome::mdns::MDNSComponent *mdns_{nullptr};
   std::vector<esphome::mdns::MDNSService> mdns_services_;
   std::vector<std::unique_ptr<uint8_t[]>> memory_pool_;

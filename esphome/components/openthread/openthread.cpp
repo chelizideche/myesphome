@@ -14,10 +14,11 @@
 
 #include <cstring>
 
+#include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#define TAG "openthread"
+static const char *const TAG = "openthread";
 
 namespace esphome {
 namespace openthread {
@@ -109,12 +110,14 @@ void OpenThreadSrpComponent::setup() {
   // set the host name
   uint16_t size;
   char *existing_host_name = otSrpClientBuffersGetHostNameString(instance, &size);
-  uint16_t len = this->host_name_.size();
-  if (len > size) {
+  const std::string &host_name = App.get_name();
+  uint16_t host_name_len = host_name.size();
+  if (host_name_len > size) {
     ESP_LOGW(TAG, "Hostname is too long, choose a shorter project name");
     return;
   }
-  memcpy(existing_host_name, this->host_name_.c_str(), len + 1);
+  memset(existing_host_name, 0, size);
+  memcpy(existing_host_name, host_name.c_str(), host_name_len);
 
   error = otSrpClientSetHostName(instance, existing_host_name);
   if (error != 0) {
@@ -150,11 +153,12 @@ void OpenThreadSrpComponent::setup() {
 
     // Set instance name (using host_name)
     string = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &size);
-    if (this->host_name_.size() > size) {
-      ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
+    if (host_name_len > size) {
+      ESP_LOGW(TAG, "Instance name too long: %s", host_name.c_str());
       continue;
     }
-    memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
+    memset(string, 0, size);
+    memcpy(string, host_name.c_str(), host_name_len);
 
     // Set port
     entry->mService.mPort = const_cast<TemplatableValue<uint16_t> &>(service.port).value();
@@ -166,8 +170,8 @@ void OpenThreadSrpComponent::setup() {
     for (size_t i = 0; i < service.txt_records.size(); i++) {
       const auto &txt = service.txt_records[i];
       auto value = const_cast<TemplatableValue<std::string> &>(txt.value).value();
-      mTxtEntries[i].mKey = txt.key.c_str();
-      mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(value.c_str());
+      mTxtEntries[i].mKey = strdup(txt.key.c_str());
+      mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(strdup(value.c_str()));
       mTxtEntries[i].mValueLength = value.size();
     }
     entry->mService.mTxtEntries = mTxtEntries;
@@ -190,8 +194,6 @@ void *OpenThreadSrpComponent::pool_alloc_(size_t size) {
   this->memory_pool_.emplace_back(std::unique_ptr<uint8_t[]>(ptr));
   return ptr;
 }
-
-void OpenThreadSrpComponent::set_host_name(std::string host_name) { this->host_name_ = host_name; }
 
 void OpenThreadSrpComponent::set_mdns(esphome::mdns::MDNSComponent *mdns) { this->mdns_ = mdns; }
 
