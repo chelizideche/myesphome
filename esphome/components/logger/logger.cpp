@@ -130,15 +130,6 @@ inline int Logger::level_for(const char *tag) {
 }
 
 void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg) {
-#ifdef USE_ESP32
-  // Suppress network-logging if memory constrained
-  // In some configurations (eg BLE enabled) there may be some transient
-  // memory exhaustion, and trying to log when OOM can lead to a crash. Skipping
-  // here usually allows the stack to recover instead.
-  // See issue #1234 for analysis.
-  if (xPortGetFreeHeapSize() < 2048)
-    return;
-#endif
   this->log_callback_.call(level, tag, msg);
 }
 
