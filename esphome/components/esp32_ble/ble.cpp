@@ -28,7 +28,7 @@ static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoi
 
 void ESP32BLE::setup() {
   global_ble = this;
-  ESP_LOGCONFIG(TAG, "Setting up BLE...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   if (!ble_pre_setup_()) {
     ESP_LOGE(TAG, "BLE could not be prepared for configuration");
@@ -270,14 +270,14 @@ void ESP32BLE::loop() {
     case BLE_COMPONENT_STATE_DISABLED:
       return;
     case BLE_COMPONENT_STATE_DISABLE: {
-      ESP_LOGD(TAG, "Disabling BLE...");
+      ESP_LOGD(TAG, "Disabling");
 
       for (auto *ble_event_handler : this->ble_status_event_handlers_) {
         ble_event_handler->ble_before_disabled_event_handler();
       }
 
       if (!ble_dismantle_()) {
-        ESP_LOGE(TAG, "BLE could not be dismantled");
+        ESP_LOGE(TAG, "Could not be dismantled");
         this->mark_failed();
         return;
       }
@@ -285,11 +285,11 @@ void ESP32BLE::loop() {
       return;
     }
     case BLE_COMPONENT_STATE_ENABLE: {
-      ESP_LOGD(TAG, "Enabling BLE...");
+      ESP_LOGD(TAG, "Enabling");
       this->state_ = BLE_COMPONENT_STATE_OFF;
 
       if (!ble_setup_()) {
-        ESP_LOGE(TAG, "BLE could not be set up");
+        ESP_LOGE(TAG, "Could not be set up");
         this->mark_failed();
         return;
       }
@@ -408,10 +408,12 @@ void ESP32BLE::dump_config() {
         io_capability_s = "invalid";
         break;
     }
-    ESP_LOGCONFIG(TAG, "ESP32 BLE:");
-    ESP_LOGCONFIG(TAG, "  MAC address: %02X:%02X:%02X:%02X:%02X:%02X", mac_address[0], mac_address[1], mac_address[2],
-                  mac_address[3], mac_address[4], mac_address[5]);
-    ESP_LOGCONFIG(TAG, "  IO Capability: %s", io_capability_s);
+    ESP_LOGCONFIG(TAG,
+                  "ESP32 BLE:\n"
+                  "  MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n"
+                  "  IO Capability: %s",
+                  mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5],
+                  io_capability_s);
   } else {
     ESP_LOGCONFIG(TAG, "ESP32 BLE: bluetooth stack is not enabled");
   }

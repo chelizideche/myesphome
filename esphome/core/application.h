@@ -9,6 +9,10 @@
 #include "esphome/core/preferences.h"
 #include "esphome/core/scheduler.h"
 
+#ifdef USE_SOCKET_SELECT_SUPPORT
+#include <sys/select.h>
+#endif
+
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -74,6 +78,12 @@
 #endif
 
 namespace esphome {
+
+// Teardown timeout constant (in milliseconds)
+// For reboots, it's more important to shut down quickly than disconnect cleanly
+// since we're not entering deep sleep. The only consequence of not shutting down
+// cleanly is a warning in the log.
+static const uint32_t TEARDOWN_TIMEOUT_REBOOT_MS = 1000;  // 1 second for quick reboot
 
 class Application {
  public:
@@ -188,6 +198,73 @@ class Application {
   void register_update(update::UpdateEntity *update) { this->updates_.push_back(update); }
 #endif
 
+  /// Reserve space for components to avoid memory fragmentation
+  void reserve_components(size_t count) { this->components_.reserve(count); }
+
+#ifdef USE_BINARY_SENSOR
+  void reserve_binary_sensor(size_t count) { this->binary_sensors_.reserve(count); }
+#endif
+#ifdef USE_SWITCH
+  void reserve_switch(size_t count) { this->switches_.reserve(count); }
+#endif
+#ifdef USE_BUTTON
+  void reserve_button(size_t count) { this->buttons_.reserve(count); }
+#endif
+#ifdef USE_SENSOR
+  void reserve_sensor(size_t count) { this->sensors_.reserve(count); }
+#endif
+#ifdef USE_TEXT_SENSOR
+  void reserve_text_sensor(size_t count) { this->text_sensors_.reserve(count); }
+#endif
+#ifdef USE_FAN
+  void reserve_fan(size_t count) { this->fans_.reserve(count); }
+#endif
+#ifdef USE_COVER
+  void reserve_cover(size_t count) { this->covers_.reserve(count); }
+#endif
+#ifdef USE_CLIMATE
+  void reserve_climate(size_t count) { this->climates_.reserve(count); }
+#endif
+#ifdef USE_LIGHT
+  void reserve_light(size_t count) { this->lights_.reserve(count); }
+#endif
+#ifdef USE_NUMBER
+  void reserve_number(size_t count) { this->numbers_.reserve(count); }
+#endif
+#ifdef USE_DATETIME_DATE
+  void reserve_date(size_t count) { this->dates_.reserve(count); }
+#endif
+#ifdef USE_DATETIME_TIME
+  void reserve_time(size_t count) { this->times_.reserve(count); }
+#endif
+#ifdef USE_DATETIME_DATETIME
+  void reserve_datetime(size_t count) { this->datetimes_.reserve(count); }
+#endif
+#ifdef USE_SELECT
+  void reserve_select(size_t count) { this->selects_.reserve(count); }
+#endif
+#ifdef USE_TEXT
+  void reserve_text(size_t count) { this->texts_.reserve(count); }
+#endif
+#ifdef USE_LOCK
+  void reserve_lock(size_t count) { this->locks_.reserve(count); }
+#endif
+#ifdef USE_VALVE
+  void reserve_valve(size_t count) { this->valves_.reserve(count); }
+#endif
+#ifdef USE_MEDIA_PLAYER
+  void reserve_media_player(size_t count) { this->media_players_.reserve(count); }
+#endif
+#ifdef USE_ALARM_CONTROL_PANEL
+  void reserve_alarm_control_panel(size_t count) { this->alarm_control_panels_.reserve(count); }
+#endif
+#ifdef USE_EVENT
+  void reserve_event(size_t count) { this->events_.reserve(count); }
+#endif
+#ifdef USE_UPDATE
+  void reserve_update(size_t count) { this->updates_.reserve(count); }
+#endif
+
   /// Register the component in this Application instance.
   template<class C> C *register_component(C *c) {
     static_assert(std::is_base_of<Component, C>::value, "Only Component subclasses can be registered");
@@ -246,6 +323,14 @@ class Application {
   void safe_reboot();
 
   void run_safe_shutdown_hooks();
+
+  void run_powerdown_hooks();
+
+  /** Teardown all components with a timeout.
+   *
+   * @param timeout_ms Maximum time to wait for teardown in milliseconds
+   */
+  void teardown_components(uint32_t timeout_ms);
 
   uint32_t get_app_state() const { return this->app_state_; }
 
@@ -467,6 +552,19 @@ class Application {
 
   Scheduler scheduler;
 
+  /// Register/unregister a socket file descriptor to be monitored for read events.
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  /// These functions update the fd_set used by select() in the main loop.
+  /// WARNING: These functions are NOT thread-safe. They must only be called from the main loop.
+  /// NOTE: File descriptors >= FD_SETSIZE (typically 10 on ESP) will be rejected with an error.
+  /// @return true if registration was successful, false if fd exceeds limits
+  bool register_socket_fd(int fd);
+  void unregister_socket_fd(int fd);
+  /// Check if there's data available on a socket without blocking
+  /// This function is thread-safe for reading, but should be called after select() has run
+  bool is_socket_ready(int fd) const;
+#endif
+
  protected:
   friend Component;
 
@@ -475,6 +573,9 @@ class Application {
   void calculate_looping_components_();
 
   void feed_wdt_arch_();
+
+  /// Perform a delay while also monitoring socket file descriptors for readiness
+  void delay_with_select_(uint32_t delay_ms);
 
   std::vector<Component *> components_{};
   std::vector<Component *> looping_components_{};
@@ -555,6 +656,15 @@ class Application {
   uint32_t app_state_{0};
   Component *current_component_{nullptr};
   uint32_t loop_component_start_time_{0};
+
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  // Socket select management
+  std::vector<int> socket_fds_;     // Vector of all monitored socket file descriptors
+  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
+  int max_fd_{-1};                  // Highest file descriptor number for select()
+  fd_set base_read_fds_{};          // Cached fd_set rebuilt only when socket_fds_ changes
+  fd_set read_fds_{};               // Working fd_set for select(), copied from base_read_fds_
+#endif
 };
 
 /// Global storage of Application pointer - only one Application can exist.
