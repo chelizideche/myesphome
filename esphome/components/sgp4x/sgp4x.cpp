@@ -9,7 +9,7 @@ namespace sgp4x {
 static const char *const TAG = "sgp4x";
 
 void SGP4xComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up SGP4x...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   // Serial Number identification
   uint16_t raw_serial_number[3];
@@ -275,23 +275,25 @@ void SGP4xComponent::dump_config() {
   if (this->is_failed()) {
     switch (this->error_code_) {
       case COMMUNICATION_FAILED:
-        ESP_LOGW(TAG, "Communication failed! Is the sensor connected?");
+        ESP_LOGW(TAG, ESP_LOG_MSG_COMM_FAIL);
         break;
       case SERIAL_NUMBER_IDENTIFICATION_FAILED:
-        ESP_LOGW(TAG, "Get Serial number failed.");
+        ESP_LOGW(TAG, "Get Serial number failed");
         break;
       case SELF_TEST_FAILED:
-        ESP_LOGW(TAG, "Self test failed.");
+        ESP_LOGW(TAG, "Self test failed");
         break;
 
       default:
-        ESP_LOGW(TAG, "Unknown setup error!");
+        ESP_LOGW(TAG, "Unknown setup error");
         break;
     }
   } else {
-    ESP_LOGCONFIG(TAG, "  Type: %s", sgp_type_ == SGP41 ? "SGP41" : "SPG40");
-    ESP_LOGCONFIG(TAG, "  Serial number: %" PRIu64, this->serial_number_);
-    ESP_LOGCONFIG(TAG, "  Minimum Samples: %f", GasIndexAlgorithm_INITIAL_BLACKOUT);
+    ESP_LOGCONFIG(TAG,
+                  "  Type: %s\n"
+                  "  Serial number: %" PRIu64 "\n"
+                  "  Minimum Samples: %f",
+                  sgp_type_ == SGP41 ? "SGP41" : "SPG40", this->serial_number_, GasIndexAlgorithm_INITIAL_BLACKOUT);
   }
   LOG_UPDATE_INTERVAL(this);
 

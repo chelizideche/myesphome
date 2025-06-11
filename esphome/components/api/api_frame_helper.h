@@ -13,6 +13,7 @@
 
 #include "api_noise_context.h"
 #include "esphome/components/socket/socket.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace api {
@@ -24,6 +25,17 @@ struct ReadPacketBuffer {
   uint16_t type;
   uint16_t data_offset;
   uint16_t data_len;
+};
+
+// Packed packet info structure to minimize memory usage
+struct PacketInfo {
+  uint16_t message_type;  // 2 bytes
+  uint16_t offset;        // 2 bytes (sufficient for packet size ~1460 bytes)
+  uint16_t payload_size;  // 2 bytes (up to 65535 bytes)
+  uint16_t padding;       // 2 byte (for alignment)
+
+  PacketInfo(uint16_t type, uint16_t off, uint16_t size)
+      : message_type(type), offset(off), payload_size(size), padding(0) {}
 };
 
 enum class APIError : int {
@@ -86,10 +98,16 @@ class APIFrameHelper {
   // Give this helper a name for logging
   void set_log_info(std::string info) { info_ = std::move(info); }
   virtual APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) = 0;
+  // Write multiple protobuf packets in a single operation
+  // packets contains (message_type, offset, length) for each message in the buffer
+  // The buffer contains all messages with appropriate padding before each
+  virtual APIError write_protobuf_packets(ProtoWriteBuffer buffer, const std::vector<PacketInfo> &packets) = 0;
   // Get the frame header padding required by this protocol
   virtual uint8_t frame_header_padding() = 0;
   // Get the frame footer size required by this protocol
   virtual uint8_t frame_footer_size() = 0;
+  // Check if socket has data ready to read
+  bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
  protected:
   // Struct for holding parsed frame data
@@ -154,6 +172,9 @@ class APIFrameHelper {
   uint8_t frame_header_padding_{0};
   uint8_t frame_footer_size_{0};
 
+  // Reusable IOV array for write_protobuf_packets to avoid repeated allocations
+  std::vector<struct iovec> reusable_iovs_;
+
   // Receive buffer for reading frame data
   std::vector<uint8_t> rx_buf_;
   uint16_t rx_buf_len_ = 0;
@@ -179,6 +200,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
   APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packets(ProtoWriteBuffer buffer, const std::vector<PacketInfo> &packets) override;
   // Get the frame header padding required by this protocol
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
@@ -223,6 +245,7 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
   APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packets(ProtoWriteBuffer buffer, const std::vector<PacketInfo> &packets) override;
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
   uint8_t frame_footer_size() override { return frame_footer_size_; }
@@ -230,14 +253,14 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
  protected:
   APIError try_read_frame_(ParsedFrame *frame);
   // Fixed-size header buffer for plaintext protocol:
-  // We only need space for the two varints since we validate the indicator byte separately.
+  // We now store the indicator byte + the two varints.
   // To match noise protocol's maximum message size (UINT16_MAX = 65535), we need:
-  // 3 bytes for message size varint (supports up to 2097151) + 2 bytes for message type varint
+  // 1 byte for indicator + 3 bytes for message size varint (supports up to 2097151) + 2 bytes for message type varint
   //
   // While varints could theoretically be up to 10 bytes each for 64-bit values,
   // attempting to process messages with headers that large would likely crash the
   // ESP32 due to memory constraints.
-  uint8_t rx_header_buf_[5];  // 5 bytes for varints (3 for size + 2 for type)
+  uint8_t rx_header_buf_[6];  // 1 byte indicator + 5 bytes for varints (3 for size + 2 for type)
   uint8_t rx_header_buf_pos_ = 0;
   bool rx_header_parsed_ = false;
   uint16_t rx_header_parsed_type_ = 0;
