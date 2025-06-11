@@ -84,7 +84,7 @@ CONFIG_SCHEMA = cv.All(
                 esp32_c5=96,
                 esp32_c6=96,
                 esp32_h2=96,
-            ): cv.All(cv.int_range(min=2)),
+            ): cv.int_range(min=2),
             cv.Optional(CONF_MAX_REFRESH_RATE): cv.positive_time_period_microseconds,
             cv.Optional(CONF_CHIPSET): cv.one_of(*CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
