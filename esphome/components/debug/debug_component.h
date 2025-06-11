@@ -40,6 +40,9 @@ class DebugComponent : public PollingComponent {
     this->cpu_frequency_sensor_ = cpu_frequency_sensor;
   }
 #endif  // USE_SENSOR
+#ifdef USE_ESP32
+  void on_shutdown() override;
+#endif  // USE_ESP32
  protected:
   uint32_t free_heap_{};
 

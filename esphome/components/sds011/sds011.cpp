@@ -1,5 +1,6 @@
 #include "sds011.h"
 #include "esphome/core/log.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace sds011 {
@@ -66,16 +67,18 @@ void SDS011Component::set_working_state(bool working_state) {
 }
 
 void SDS011Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "SDS011:");
-  ESP_LOGCONFIG(TAG, "  Update Interval: %u min", this->update_interval_min_);
-  ESP_LOGCONFIG(TAG, "  RX-only mode: %s", ONOFF(this->rx_mode_only_));
+  ESP_LOGCONFIG(TAG,
+                "SDS011:\n"
+                "  Update Interval: %u min\n"
+                "  RX-only mode: %s",
+                this->update_interval_min_, ONOFF(this->rx_mode_only_));
   LOG_SENSOR("  ", "PM2.5", this->pm_2_5_sensor_);
   LOG_SENSOR("  ", "PM10.0", this->pm_10_0_sensor_);
   this->check_uart_settings(9600);
 }
 
 void SDS011Component::loop() {
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
   if ((now - this->last_transmission_ >= 500) && this->data_index_) {
     // last transmission too long ago. Reset RX index.
     ESP_LOGV(TAG, "Last transmission too long ago. Reset RX index.");
