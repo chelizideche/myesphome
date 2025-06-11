@@ -123,7 +123,7 @@ void ESP32BLETracker::loop() {
       this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
       xSemaphoreTake(this->scan_result_lock_, 0)) {
     uint32_t index = this->scan_result_index_;
-    if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
+    if (index >= SCAN_RESULT_BUFFER_SIZE) {
       ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
     }
 
@@ -139,24 +139,7 @@ void ESP32BLETracker::loop() {
     if (this->parse_advertisements_) {
       for (size_t i = 0; i < index; i++) {
         ESPBTDevice device;
-        // Convert BLEScanResult to ESP-IDF format for parse_scan_rst
-        esp_ble_gap_cb_param_t::ble_scan_result_evt_param param;
-        memcpy(param.bda, this->scan_result_buffer_[i].bda, sizeof(esp_bd_addr_t));
-        param.ble_addr_type = this->scan_result_buffer_[i].ble_addr_type;
-        param.rssi = this->scan_result_buffer_[i].rssi;
-        param.adv_data_len = this->scan_result_buffer_[i].adv_data_len;
-        param.scan_rsp_len = this->scan_result_buffer_[i].scan_rsp_len;
-        param.search_evt = this->scan_result_buffer_[i].search_evt;
-        memcpy(param.ble_adv, this->scan_result_buffer_[i].ble_adv,
-               ESP_BLE_ADV_DATA_LEN_MAX + ESP_BLE_SCAN_RSP_DATA_LEN_MAX);
-        // Fill in fields we don't store
-        param.dev_type = 0;
-        param.ble_evt_type = 0;
-        param.flag = 0;
-        param.num_resps = 1;
-        param.num_dis = 0;
-
-        device.parse_scan_rst(param);
+        device.parse_scan_rst(this->scan_result_buffer_[i]);
 
         bool found = false;
         for (auto *listener : this->listeners_) {
@@ -443,14 +426,14 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
     esp_ble_gap_cb_param_t param;
     memset(&param, 0, sizeof(param));
     memcpy(param.scan_rst.bda, scan_result.bda, sizeof(esp_bd_addr_t));
-    param.scan_rst.ble_addr_type = scan_result.ble_addr_type;
+    param.scan_rst.ble_addr_type = static_cast<esp_ble_addr_type_t>(scan_result.ble_addr_type);
     param.scan_rst.rssi = scan_result.rssi;
     param.scan_rst.adv_data_len = scan_result.adv_data_len;
     param.scan_rst.scan_rsp_len = scan_result.scan_rsp_len;
-    param.scan_rst.search_evt = scan_result.search_evt;
+    param.scan_rst.search_evt = static_cast<esp_gap_search_evt_t>(scan_result.search_evt);
     memcpy(param.scan_rst.ble_adv, scan_result.ble_adv, ESP_BLE_ADV_DATA_LEN_MAX + ESP_BLE_SCAN_RSP_DATA_LEN_MAX);
-    param.scan_rst.dev_type = 0;
-    param.scan_rst.ble_evt_type = 0;
+    param.scan_rst.dev_type = static_cast<esp_bt_dev_type_t>(0);
+    param.scan_rst.ble_evt_type = static_cast<esp_ble_evt_type_t>(0);
     param.scan_rst.flag = 0;
     param.scan_rst.num_resps = 1;
     param.scan_rst.num_dis = 0;
@@ -539,13 +522,15 @@ optional<ESPBLEiBeacon> ESPBLEiBeacon::from_manufacturer_data(const ServiceData 
   return ESPBLEiBeacon(data.data.data());
 }
 
-void ESPBTDevice::parse_scan_rst(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
-  this->scan_result_ = param;
+void ESPBTDevice::parse_scan_rst(const BLEScanResult &scan_result) {
   for (uint8_t i = 0; i < ESP_BD_ADDR_LEN; i++)
-    this->address_[i] = param.bda[i];
-  this->address_type_ = param.ble_addr_type;
-  this->rssi_ = param.rssi;
-  this->parse_adv_(param);
+    this->address_[i] = scan_result.bda[i];
+  this->address_type_ = static_cast<esp_ble_addr_type_t>(scan_result.ble_addr_type);
+  this->rssi_ = scan_result.rssi;
+
+  // Parse advertisement data directly
+  uint8_t total_len = scan_result.adv_data_len + scan_result.scan_rsp_len;
+  this->parse_adv_(scan_result.ble_adv, total_len);
 
 #ifdef ESPHOME_LOG_HAS_VERY_VERBOSE
   ESP_LOGVV(TAG, "Parse Result:");
@@ -603,13 +588,13 @@ void ESPBTDevice::parse_scan_rst(const esp_ble_gap_cb_param_t::ble_scan_result_e
     ESP_LOGVV(TAG, "    Data: %s", format_hex_pretty(data.data).c_str());
   }
 
-  ESP_LOGVV(TAG, "  Adv data: %s", format_hex_pretty(param.ble_adv, param.adv_data_len + param.scan_rsp_len).c_str());
+  ESP_LOGVV(TAG, "  Adv data: %s",
+            format_hex_pretty(scan_result.ble_adv, scan_result.adv_data_len + scan_result.scan_rsp_len).c_str());
 #endif
 }
-void ESPBTDevice::parse_adv_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
+
+void ESPBTDevice::parse_adv_(const uint8_t *payload, uint8_t len) {
   size_t offset = 0;
-  const uint8_t *payload = param.ble_adv;
-  uint8_t len = param.adv_data_len + param.scan_rsp_len;
 
   while (offset + 2 < len) {
     const uint8_t field_length = payload[offset++];  // First byte is length of adv record

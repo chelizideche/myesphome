@@ -8,6 +8,8 @@
 #include <esp_gattc_api.h>
 #include <esp_gatts_api.h>
 
+#include "ble_scan_result.h"
+
 namespace esphome {
 namespace esp32_ble {
 

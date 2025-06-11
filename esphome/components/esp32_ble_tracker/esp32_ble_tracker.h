@@ -62,7 +62,7 @@ class ESPBLEiBeacon {
 
 class ESPBTDevice {
  public:
-  void parse_scan_rst(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param);
+  void parse_scan_rst(const BLEScanResult &scan_result);
 
   std::string address_str() const;
 
@@ -84,8 +84,6 @@ class ESPBTDevice {
 
   const std::vector<ServiceData> &get_service_datas() const { return service_datas_; }
 
-  const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &get_scan_result() const { return scan_result_; }
-
   bool resolve_irk(const uint8_t *irk) const;
 
   optional<ESPBLEiBeacon> get_ibeacon() const {
@@ -98,7 +96,7 @@ class ESPBTDevice {
   }
 
  protected:
-  void parse_adv_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param);
+  void parse_adv_(const uint8_t *payload, uint8_t len);
 
   esp_bd_addr_t address_{
       0,
@@ -112,7 +110,6 @@ class ESPBTDevice {
   std::vector<ESPBTUUID> service_uuids_{};
   std::vector<ServiceData> manufacturer_datas_{};
   std::vector<ServiceData> service_datas_{};
-  esp_ble_gap_cb_param_t::ble_scan_result_evt_param scan_result_{};
 };
 
 class ESP32BLETracker;
