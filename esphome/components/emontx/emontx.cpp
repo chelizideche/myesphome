@@ -134,7 +134,7 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
   body += emoncms_node_;
   body += "&apikey=";
   body += emoncms_apikey_;
-  body += "&fulljson=";
+  body += "&data=";
   body += json_data;
 
   ESP_LOGV(TAG, "EmonCMS POST data: %s", body.c_str());
