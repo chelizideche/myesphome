@@ -193,6 +193,11 @@ class FlickerLightEffect : public LightEffect {
   explicit FlickerLightEffect(const std::string &name) : LightEffect(name) {}
 
   void apply() override {
+    const uint32_t now = millis();
+    if (now - this->last_change_ < this->update_interval_) {
+      return;
+    }
+
     LightColorValues remote = this->state_->remote_values;
     LightColorValues current = this->state_->current_values;
     LightColorValues out;
@@ -217,14 +222,19 @@ class FlickerLightEffect : public LightEffect {
     call.from_light_color_values(out);
     call.set_state(true);
     call.perform();
+
+    this->last_change_ = now;
   }
 
   void set_alpha(float alpha) { this->alpha_ = alpha; }
   void set_intensity(float intensity) { this->intensity_ = intensity; }
+  void set_update_interval(uint32_t update_interval) { this->update_interval_ = update_interval; }
 
  protected:
   float intensity_{};
   float alpha_{};
+  uint32_t last_change_{0};
+  uint32_t update_interval_{};
 };
 
 }  // namespace light
