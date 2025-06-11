@@ -50,7 +50,7 @@ bool XiaomiJTYJQD03MI::parse_device(const esp32_ble_tracker::ESPBTDevice &device
 
     if (res->button_press.has_value() && this->button_ != nullptr) {
       this->button_->publish_state(*res->button_press);
-     
+     this->set_timeout("button_timeout", timeout_, [this]() { this->publish_state(false); });
     }
 
     if (res->battery_level.has_value() && this->battery_level_ != nullptr)
