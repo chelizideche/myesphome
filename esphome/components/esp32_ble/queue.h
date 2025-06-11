@@ -52,6 +52,7 @@ template<class T> class Queue {
     // With a queue limit of 40-64 events and normal processing, dropping events should
     // be extremely rare. When it does approach capacity, being off by 1-2 events is
     // acceptable to avoid blocking the BLE stack's time-sensitive callbacks.
+    // Trade-off: We prefer occasional dropped events over potential BLE stack delays.
     return q_.size();
   }
 
