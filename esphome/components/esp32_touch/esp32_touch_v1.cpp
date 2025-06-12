@@ -249,7 +249,10 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
       continue;
     }
 
-    // For original ESP32, lower value means touched
+    // IMPORTANT: ESP32 v1 touch detection logic - INVERTED compared to v2!
+    // ESP32 v1: Touch is detected when capacitance INCREASES, causing the measured value to DECREASE
+    // Therefore: touched = (value < threshold)
+    // This is opposite to ESP32-S2/S3 v2 where touched = (value > threshold)
     bool is_touched = value < child->get_threshold();
 
     // Always send the current state - the main loop will filter for changes

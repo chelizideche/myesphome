@@ -250,7 +250,10 @@ void ESP32TouchComponent::loop() {
         touch_pad_read_benchmark(child->get_touch_pad(), &value);
       }
 
-      // For S2/S3 v2, higher value means touched (opposite of v1)
+      // IMPORTANT: ESP32-S2/S3 v2 touch detection logic - INVERTED compared to v1!
+      // ESP32-S2/S3 v2: Touch is detected when capacitance INCREASES, causing the measured value to INCREASE
+      // Therefore: touched = (value > threshold)
+      // This is opposite to original ESP32 v1 where touched = (value < threshold)
       bool is_touched = value > child->get_threshold();
       child->last_state_ = is_touched;
       child->publish_state(is_touched);
