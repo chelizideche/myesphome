@@ -80,11 +80,9 @@ void ESP32TouchComponent::setup() {
 #endif
 
 #if ESP_IDF_VERSION_MAJOR >= 5 && defined(USE_ESP32_VARIANT_ESP32)
-  ESP_LOGD(TAG, "Setting measurement_clock_cycles=%u, measurement_interval=%u", this->meas_cycle_, this->sleep_cycle_);
   touch_pad_set_measurement_clock_cycles(this->meas_cycle_);
   touch_pad_set_measurement_interval(this->sleep_cycle_);
 #else
-  ESP_LOGD(TAG, "Setting meas_time: sleep_cycle=%u, meas_cycle=%u", this->sleep_cycle_, this->meas_cycle_);
   touch_pad_set_meas_time(this->sleep_cycle_, this->meas_cycle_);
 #endif
   touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
