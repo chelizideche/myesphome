@@ -379,12 +379,19 @@ void ESP32TouchComponent::loop() {
       continue;
     }
 
-    if (child->last_state_) {
-      uint32_t last_time = this->last_touch_time_[pad];
+    uint32_t last_time = this->last_touch_time_[pad];
+
+    // If we've never seen this pad touched (last_time == 0) and enough time has passed
+    // since startup, publish OFF state and mark as published with value 1
+    if (last_time == 0 && now > this->release_timeout_ms_) {
+      child->publish_state(false);
+      this->last_touch_time_[pad] = 1;  // Mark as "initial state published"
+      ESP_LOGD(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
+    } else if (child->last_state_) {
       uint32_t time_diff = now - last_time;
 
       // Check if we haven't seen this pad recently
-      if (last_time == 0 || time_diff > this->release_timeout_ms_) {
+      if (time_diff > this->release_timeout_ms_) {
         // Haven't seen this pad recently, assume it's released
         child->last_state_ = false;
         child->publish_state(false);
