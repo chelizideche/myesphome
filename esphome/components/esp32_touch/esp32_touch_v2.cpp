@@ -290,30 +290,37 @@ void ESP32TouchComponent::loop() {
       continue;
     }
 
-    // Handle active/inactive events
-    if (event.intr_mask & (TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE)) {
-      bool is_touch_event = (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) != 0;
+    // Skip if not an active/inactive event
+    if (!(event.intr_mask & (TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE))) {
+      continue;
+    }
 
-      // Find the child for the pad that triggered the interrupt
-      for (auto *child : this->children_) {
-        if (child->get_touch_pad() == event.pad) {
-          if (child->last_state_ != is_touch_event) {
-            // Read current value
-            uint32_t value = 0;
-            if (this->filter_configured_()) {
-              touch_pad_filter_read_smooth(event.pad, &value);
-            } else {
-              touch_pad_read_benchmark(event.pad, &value);
-            }
+    bool is_touch_event = (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) != 0;
 
-            child->last_state_ = is_touch_event;
-            child->publish_state(is_touch_event);
-            ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
-                     is_touch_event ? "touched" : "released", value, child->get_threshold());
-          }
-          break;
-        }
+    // Find the child for the pad that triggered the interrupt
+    for (auto *child : this->children_) {
+      if (child->get_touch_pad() != event.pad) {
+        continue;
       }
+
+      // Skip if state hasn't changed
+      if (child->last_state_ == is_touch_event) {
+        break;
+      }
+
+      // Read current value
+      uint32_t value = 0;
+      if (this->filter_configured_()) {
+        touch_pad_filter_read_smooth(event.pad, &value);
+      } else {
+        touch_pad_read_benchmark(event.pad, &value);
+      }
+
+      child->last_state_ = is_touch_event;
+      child->publish_state(is_touch_event);
+      ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
+               is_touch_event ? "touched" : "released", value, child->get_threshold());
+      break;
     }
   }
 }
