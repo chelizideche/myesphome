@@ -115,12 +115,7 @@ void ESP32TouchComponent::setup() {
   // Read initial states after all hardware is initialized
   for (auto *child : this->children_) {
     // Read current value
-    uint32_t value = 0;
-    if (this->filter_configured_()) {
-      touch_pad_filter_read_smooth(child->get_touch_pad(), &value);
-    } else {
-      touch_pad_read_raw_data(child->get_touch_pad(), &value);
-    }
+    uint32_t value = this->read_touch_value(child->get_touch_pad());
 
     // IMPORTANT: ESP32-S2/S3 v2 touch detection logic - INVERTED compared to v1!
     // ESP32-S2/S3 v2: Touch is detected when capacitance INCREASES, causing the measured value to INCREASE
@@ -290,12 +285,7 @@ void ESP32TouchComponent::loop() {
       }
 
       // Read current value
-      uint32_t value = 0;
-      if (this->filter_configured_()) {
-        touch_pad_filter_read_smooth(event.pad, &value);
-      } else {
-        touch_pad_read_raw_data(event.pad, &value);
-      }
+      uint32_t value = this->read_touch_value(event.pad);
 
       child->last_state_ = is_touch_event;
       child->publish_state(is_touch_event);
@@ -309,14 +299,8 @@ void ESP32TouchComponent::loop() {
   // In setup mode, periodically log all pad values
   if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
     for (auto *child : this->children_) {
-      uint32_t value = 0;
-
       // Read the value being used for touch detection
-      if (this->filter_configured_()) {
-        touch_pad_filter_read_smooth(child->get_touch_pad(), &value);
-      } else {
-        touch_pad_read_raw_data(child->get_touch_pad(), &value);
-      }
+      uint32_t value = this->read_touch_value(child->get_touch_pad());
 
       ESP_LOGD(TAG, "Touch Pad '%s' (T%d): %d", child->get_name().c_str(), child->get_touch_pad(), value);
     }
@@ -366,6 +350,21 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   if (x_higher_priority_task_woken) {
     portYIELD_FROM_ISR();
   }
+}
+
+uint32_t ESP32TouchComponent::read_touch_value(touch_pad_t pad) const {
+  // Unlike ESP32 v1, touch reads on ESP32-S2/S3 v2 are non-blocking operations.
+  // The hardware continuously samples in the background and we can read the
+  // latest value at any time without waiting.
+  uint32_t value = 0;
+  if (this->filter_configured_()) {
+    // Read filtered/smoothed value when filter is enabled
+    touch_pad_filter_read_smooth(pad, &value);
+  } else {
+    // Read raw value when filter is not configured
+    touch_pad_read_raw_data(pad, &value);
+  }
+  return value;
 }
 
 }  // namespace esp32_touch

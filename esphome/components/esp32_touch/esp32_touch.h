@@ -133,6 +133,11 @@ class ESP32TouchComponent : public Component {
     return (this->waterproof_guard_ring_pad_ != TOUCH_PAD_MAX) &&
            (this->waterproof_shield_driver_ != TOUCH_PAD_SHIELD_DRV_MAX);
   }
+
+  // Helper method to read touch values - non-blocking operation
+  // Returns the current touch pad value using either filtered or raw reading
+  // based on the filter configuration
+  uint32_t read_touch_value(touch_pad_t pad) const;
 #endif
 
   // Helper functions for dump_config - common to both implementations
