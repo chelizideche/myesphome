@@ -94,6 +94,13 @@ COMPILER_OPTIMIZATIONS = {
     "SIZE": "CONFIG_COMPILER_OPTIMIZATION_SIZE",
 }
 
+ARDUINO_ALLOWED_VARIANTS = [
+    VARIANT_ESP32,
+    VARIANT_ESP32C3,
+    VARIANT_ESP32S2,
+    VARIANT_ESP32S3,
+]
+
 
 def get_cpu_frequencies(*frequencies):
     return [str(x) + "MHZ" for x in frequencies]
@@ -143,12 +150,17 @@ def set_core_data(config):
         CORE.data[KEY_ESP32][KEY_COMPONENTS] = {}
     elif conf[CONF_TYPE] == FRAMEWORK_ARDUINO:
         CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = "arduino"
+        if variant not in ARDUINO_ALLOWED_VARIANTS:
+            raise cv.Invalid(
+                f"ESPHome does not support using the Arduino framework for the {variant}. Please use the ESP-IDF framework instead.",
+                path=[CONF_FRAMEWORK, CONF_TYPE],
+            )
     CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] = cv.Version.parse(
         config[CONF_FRAMEWORK][CONF_VERSION]
     )
 
     CORE.data[KEY_ESP32][KEY_BOARD] = config[CONF_BOARD]
-    CORE.data[KEY_ESP32][KEY_VARIANT] = config[CONF_VARIANT]
+    CORE.data[KEY_ESP32][KEY_VARIANT] = variant
     CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES] = {}
 
     return config
