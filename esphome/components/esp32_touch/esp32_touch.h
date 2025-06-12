@@ -75,6 +75,7 @@ class ESP32TouchComponent : public Component {
   std::vector<ESP32TouchBinarySensor *> children_;
   uint8_t current_child_{0};
   bool setup_mode_{false};
+  bool should_print_{false};
   uint32_t setup_mode_last_log_print_{0};
   // common parameters
   uint16_t sleep_cycle_{4095};

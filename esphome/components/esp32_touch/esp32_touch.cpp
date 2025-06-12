@@ -293,10 +293,8 @@ uint32_t ESP32TouchComponent::component_touch_pad_read(touch_pad_t tp) {
 
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
-  bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
-  if (should_print && this->current_child_ == this->children_.size() - 1) {
-    // Avoid spamming logs
-    this->setup_mode_last_log_print_ = now;
+  if (this->current_child_ == 0) {
+    this->should_print_ = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
   }
   if (this->children_.empty()) {
     return;
@@ -310,9 +308,15 @@ void ESP32TouchComponent::loop() {
   child->publish_state(child->value_ > child->get_threshold());
 #endif
 
-  if (should_print) {
+  if (this->should_print_) {
     ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
              (uint32_t) child->get_touch_pad(), child->value_);
+  }
+
+  if (this->should_print_ && this->current_child_ == this->children_.size() - 1) {
+    // Avoid spamming logs
+    this->setup_mode_last_log_print_ = now;
+    this->should_print_ = false;
   }
 
   this->current_child_ = (this->current_child_ + 1) % this->children_.size();
