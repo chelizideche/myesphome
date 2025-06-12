@@ -118,14 +118,6 @@ void ESP32TouchComponent::setup() {
 
   // Enable touch pad interrupt
   touch_pad_intr_enable();
-
-  // Initialize all sensors as not touched
-  // The ISR will immediately update with actual state
-  for (auto *child : this->children_) {
-    // Initialize as not touched
-    child->last_state_ = false;
-    child->publish_initial_state(false);
-  }
 }
 
 void ESP32TouchComponent::dump_config() {
