@@ -2,9 +2,9 @@
 
 #ifdef USE_ESP32
 
-#include "esphome/core/component.h"
-#include "esphome/components/binary_sensor/binary_sensor.h"
 #include <esp_idf_version.h>
+#include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/core/component.h"
 
 #include <vector>
 
@@ -73,6 +73,7 @@ class ESP32TouchComponent : public Component {
 #endif
 
   std::vector<ESP32TouchBinarySensor *> children_;
+  uint8_t current_child_{0};
   bool setup_mode_{false};
   uint32_t setup_mode_last_log_print_{0};
   // common parameters

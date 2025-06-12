@@ -2,8 +2,8 @@
 
 #include "esp32_touch.h"
 #include "esphome/core/application.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/log.h"
 
 #include <cinttypes>
 
@@ -294,26 +294,28 @@ uint32_t ESP32TouchComponent::component_touch_pad_read(touch_pad_t tp) {
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
   bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
-  for (auto *child : this->children_) {
-    child->value_ = this->component_touch_pad_read(child->get_touch_pad());
-#if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
-    child->publish_state(child->value_ < child->get_threshold());
-#else
-    child->publish_state(child->value_ > child->get_threshold());
-#endif
-
-    if (should_print) {
-      ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
-               (uint32_t) child->get_touch_pad(), child->value_);
-    }
-
-    App.feed_wdt();
-  }
-
   if (should_print) {
     // Avoid spamming logs
     this->setup_mode_last_log_print_ = now;
   }
+  if (this->children_.empty()) {
+    return;
+  }
+
+  auto *child = this->children_[this->current_child_];
+  child->value_ = this->component_touch_pad_read(child->get_touch_pad());
+#if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
+  child->publish_state(child->value_ < child->get_threshold());
+#else
+  child->publish_state(child->value_ > child->get_threshold());
+#endif
+
+  if (should_print) {
+    ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
+             (uint32_t) child->get_touch_pad(), child->value_);
+  }
+
+  this->current_child_ = (this->current_child_ + 1) % this->children_.size();
 }
 
 void ESP32TouchComponent::on_shutdown() {
