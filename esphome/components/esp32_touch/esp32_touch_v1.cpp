@@ -1,0 +1,270 @@
+#ifdef USE_ESP32_VARIANT_ESP32
+
+#include "esp32_touch.h"
+#include "esphome/core/application.h"
+#include "esphome/core/log.h"
+#include "esphome/core/hal.h"
+
+#include <algorithm>
+#include <cinttypes>
+
+// Include HAL for ISR-safe touch reading
+#include "hal/touch_sensor_ll.h"
+// Include for RTC clock frequency
+#include "soc/rtc.h"
+
+namespace esphome {
+namespace esp32_touch {
+
+static const char *const TAG = "esp32_touch";
+
+void ESP32TouchComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup for ESP32");
+
+  touch_pad_init();
+  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+
+  // Create queue for touch events
+  size_t queue_size = this->children_.size() * 4;
+  if (queue_size < 8)
+    queue_size = 8;
+
+  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEvent));
+  if (this->touch_queue_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
+    this->mark_failed();
+    return;
+  }
+
+  // Set up IIR filter if enabled
+  if (this->iir_filter_enabled_()) {
+    touch_pad_filter_start(this->iir_filter_);
+  }
+
+  // Configure measurement parameters
+#if ESP_IDF_VERSION_MAJOR >= 5
+  touch_pad_set_measurement_clock_cycles(this->meas_cycle_);
+  touch_pad_set_measurement_interval(this->sleep_cycle_);
+#else
+  touch_pad_set_meas_time(this->sleep_cycle_, this->meas_cycle_);
+#endif
+  touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
+
+  // Configure each touch pad
+  for (auto *child : this->children_) {
+    touch_pad_config(child->get_touch_pad(), child->get_threshold());
+  }
+
+  // Register ISR handler
+  esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
+    vQueueDelete(this->touch_queue_);
+    this->touch_queue_ = nullptr;
+    this->mark_failed();
+    return;
+  }
+
+  // Calculate release timeout based on sleep cycle
+  uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
+  this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
+  if (this->release_timeout_ms_ < 100) {
+    this->release_timeout_ms_ = 100;
+  }
+  this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
+
+  // Enable touch pad interrupt
+  touch_pad_intr_enable();
+}
+
+void ESP32TouchComponent::dump_config() {
+  const char *lv_s = get_low_voltage_reference_str(this->low_voltage_reference_);
+  const char *hv_s = get_high_voltage_reference_str(this->high_voltage_reference_);
+  const char *atten_s = get_voltage_attenuation_str(this->voltage_attenuation_);
+
+  ESP_LOGCONFIG(TAG,
+                "Config for ESP32 Touch Hub:\n"
+                "  Meas cycle: %.2fms\n"
+                "  Sleep cycle: %.2fms\n"
+                "  Low Voltage Reference: %s\n"
+                "  High Voltage Reference: %s\n"
+                "  Voltage Attenuation: %s\n"
+                "  ISR Configuration:\n"
+                "    Release timeout: %" PRIu32 "ms\n"
+                "    Release check interval: %" PRIu32 "ms",
+                this->meas_cycle_ / (8000000.0f / 1000.0f), this->sleep_cycle_ / (150000.0f / 1000.0f), lv_s, hv_s,
+                atten_s, this->release_timeout_ms_, this->release_check_interval_ms_);
+
+  if (this->iir_filter_enabled_()) {
+    ESP_LOGCONFIG(TAG, "    IIR Filter: %" PRIu32 "ms", this->iir_filter_);
+  } else {
+    ESP_LOGCONFIG(TAG, "  IIR Filter DISABLED");
+  }
+
+  if (this->setup_mode_) {
+    ESP_LOGCONFIG(TAG, "  Setup Mode ENABLED");
+  }
+
+  for (auto *child : this->children_) {
+    LOG_BINARY_SENSOR("  ", "Touch Pad", child);
+    ESP_LOGCONFIG(TAG, "    Pad: T%" PRIu32, (uint32_t) child->get_touch_pad());
+    ESP_LOGCONFIG(TAG, "    Threshold: %" PRIu32, child->get_threshold());
+  }
+}
+
+void ESP32TouchComponent::loop() {
+  const uint32_t now = App.get_loop_component_start_time();
+  bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
+
+  // Print debug info for all pads in setup mode
+  if (should_print) {
+    for (auto *child : this->children_) {
+      ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
+               (uint32_t) child->get_touch_pad(), child->value_);
+    }
+    this->setup_mode_last_log_print_ = now;
+  }
+
+  // Process any queued touch events from interrupts
+  TouchPadEvent event;
+  while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
+    // Find the corresponding sensor
+    for (auto *child : this->children_) {
+      if (child->get_touch_pad() == event.pad) {
+        child->value_ = event.value;
+
+        // The interrupt gives us the touch state directly
+        bool new_state = event.is_touched;
+
+        // Track when we last saw this pad as touched
+        if (new_state) {
+          this->last_touch_time_[event.pad] = now;
+        }
+
+        // Only publish if state changed
+        if (new_state != child->last_state_) {
+          child->last_state_ = new_state;
+          child->publish_state(new_state);
+          // Original ESP32: ISR only fires when touched, release is detected by timeout
+          ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 ", threshold: %" PRIu32 ")",
+                   child->get_name().c_str(), event.value, child->get_threshold());
+        }
+        break;
+      }
+    }
+  }
+
+  // Check for released pads periodically
+  static uint32_t last_release_check = 0;
+  if (now - last_release_check < this->release_check_interval_ms_) {
+    return;
+  }
+  last_release_check = now;
+
+  for (auto *child : this->children_) {
+    touch_pad_t pad = child->get_touch_pad();
+    uint32_t last_time = this->last_touch_time_[pad];
+
+    // If we've never seen this pad touched (last_time == 0) and enough time has passed
+    // since startup, publish OFF state and mark as published with value 1
+    if (last_time == 0 && now > this->release_timeout_ms_) {
+      child->publish_state(false);
+      this->last_touch_time_[pad] = 1;  // Mark as "initial state published"
+      ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
+    } else if (child->last_state_ && last_time > 1) {  // last_time > 1 means it's a real timestamp
+      uint32_t time_diff = now - last_time;
+
+      // Check if we haven't seen this pad recently
+      if (time_diff > this->release_timeout_ms_) {
+        // Haven't seen this pad recently, assume it's released
+        child->last_state_ = false;
+        child->publish_state(false);
+        this->last_touch_time_[pad] = 1;  // Reset to "initial published" state
+        ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (timeout)", child->get_name().c_str());
+      }
+    }
+  }
+}
+
+void ESP32TouchComponent::on_shutdown() {
+  touch_pad_intr_disable();
+  touch_pad_isr_deregister(touch_isr_handler, this);
+  if (this->touch_queue_) {
+    vQueueDelete(this->touch_queue_);
+  }
+
+  bool is_wakeup_source = false;
+
+  if (this->iir_filter_enabled_()) {
+    touch_pad_filter_stop();
+    touch_pad_filter_delete();
+  }
+
+  for (auto *child : this->children_) {
+    if (child->get_wakeup_threshold() != 0) {
+      if (!is_wakeup_source) {
+        is_wakeup_source = true;
+        // Touch sensor FSM mode must be 'TOUCH_FSM_MODE_TIMER' to use it to wake-up.
+        touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+      }
+
+      // No filter available when using as wake-up source.
+      touch_pad_config(child->get_touch_pad(), child->get_wakeup_threshold());
+    }
+  }
+
+  if (!is_wakeup_source) {
+    touch_pad_deinit();
+  }
+}
+
+void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
+  ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
+
+  uint32_t pad_status = touch_pad_get_status();
+  touch_pad_clear_status();
+
+  // Process all configured pads to check their current state
+  for (auto *child : component->children_) {
+    touch_pad_t pad = child->get_touch_pad();
+
+    // Read current value using ISR-safe API
+    uint32_t value;
+    if (component->iir_filter_enabled_()) {
+      uint16_t temp_value = 0;
+      touch_pad_read_filtered(pad, &temp_value);
+      value = temp_value;
+    } else {
+      // Use low-level HAL function when filter is not enabled
+      value = touch_ll_read_raw_data(pad);
+    }
+
+    // Skip pads with 0 value - they haven't been measured in this cycle
+    if (value == 0) {
+      continue;
+    }
+
+    // For original ESP32, lower value means touched
+    bool is_touched = value < child->get_threshold();
+
+    // Always send the current state - the main loop will filter for changes
+    TouchPadEvent event;
+    event.pad = pad;
+    event.value = value;
+    event.is_touched = is_touched;
+
+    // Send to queue from ISR
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+      portYIELD_FROM_ISR();
+    }
+  }
+}
+
+bool ESP32TouchComponent::iir_filter_enabled_() const { return this->iir_filter_ > 0; }
+
+}  // namespace esp32_touch
+}  // namespace esphome
+
+#endif  // USE_ESP32_VARIANT_ESP32

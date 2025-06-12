@@ -21,6 +21,10 @@ struct TouchPadEvent {
   touch_pad_t pad;
   uint32_t value;
   bool is_touched;  // Whether this pad is currently touched
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  uint32_t intr_mask;   // Interrupt mask for S2/S3
+  uint32_t pad_status;  // Pad status bitmap for S2/S3
+#endif
 };
 
 class ESP32TouchComponent : public Component {
@@ -84,6 +88,52 @@ class ESP32TouchComponent : public Component {
   bool iir_filter_enabled_() const { return this->iir_filter_ > 0; }
 #endif
 
+  // Helper functions for dump_config - common to both implementations
+  static const char *get_low_voltage_reference_str(touch_low_volt_t ref) {
+    switch (ref) {
+      case TOUCH_LVOLT_0V5:
+        return "0.5V";
+      case TOUCH_LVOLT_0V6:
+        return "0.6V";
+      case TOUCH_LVOLT_0V7:
+        return "0.7V";
+      case TOUCH_LVOLT_0V8:
+        return "0.8V";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  static const char *get_high_voltage_reference_str(touch_high_volt_t ref) {
+    switch (ref) {
+      case TOUCH_HVOLT_2V4:
+        return "2.4V";
+      case TOUCH_HVOLT_2V5:
+        return "2.5V";
+      case TOUCH_HVOLT_2V6:
+        return "2.6V";
+      case TOUCH_HVOLT_2V7:
+        return "2.7V";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  static const char *get_voltage_attenuation_str(touch_volt_atten_t atten) {
+    switch (atten) {
+      case TOUCH_HVOLT_ATTEN_1V5:
+        return "1.5V";
+      case TOUCH_HVOLT_ATTEN_1V:
+        return "1V";
+      case TOUCH_HVOLT_ATTEN_0V5:
+        return "0.5V";
+      case TOUCH_HVOLT_ATTEN_0V:
+        return "0V";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
   std::vector<ESP32TouchBinarySensor *> children_;
   bool setup_mode_{false};
   uint32_t setup_mode_last_log_print_{0};
@@ -111,7 +161,8 @@ class ESP32TouchComponent : public Component {
 /// Simple helper class to expose a touch pad value as a binary sensor.
 class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
  public:
-  ESP32TouchBinarySensor(touch_pad_t touch_pad, uint32_t threshold, uint32_t wakeup_threshold);
+  ESP32TouchBinarySensor(touch_pad_t touch_pad, uint32_t threshold, uint32_t wakeup_threshold)
+      : touch_pad_(touch_pad), threshold_(threshold), wakeup_threshold_(wakeup_threshold) {}
 
   touch_pad_t get_touch_pad() const { return this->touch_pad_; }
   uint32_t get_threshold() const { return this->threshold_; }
