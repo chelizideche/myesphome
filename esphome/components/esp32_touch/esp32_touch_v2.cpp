@@ -355,7 +355,7 @@ void ESP32TouchComponent::on_shutdown() {
 
 void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  BaseType_t x_higher_priority_task_woken = pdFALSE;
 
   // Read interrupt status and pad status
   TouchPadEventV2 event;
@@ -364,9 +364,9 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   event.pad = touch_pad_get_current_meas_channel();
 
   // Send event to queue for processing in main loop
-  xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
+  xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
 
-  if (xHigherPriorityTaskWoken) {
+  if (x_higher_priority_task_woken) {
     portYIELD_FROM_ISR();
   }
 }
