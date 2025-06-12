@@ -239,9 +239,9 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     event.is_touched = is_touched;
 
     // Send to queue from ISR
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
-    if (xHigherPriorityTaskWoken) {
+    BaseType_t x_higher_priority_task_woken = pdFALSE;
+    xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
+    if (x_higher_priority_task_woken) {
       portYIELD_FROM_ISR();
     }
   }
