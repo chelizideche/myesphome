@@ -69,6 +69,10 @@ class ESP32TouchComponent : public Component {
  protected:
   static void touch_isr_handler(void *arg);
 
+  // Common helper methods used by both v1 and v2
+  void dump_config_base_();
+  void dump_config_sensors_();
+
   QueueHandle_t touch_queue_{nullptr};
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};  // Track last time each pad was seen as touched
   uint32_t release_timeout_ms_{1500};              // Calculated timeout for release detection

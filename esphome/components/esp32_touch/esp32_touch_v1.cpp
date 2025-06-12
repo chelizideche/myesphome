@@ -78,22 +78,7 @@ void ESP32TouchComponent::setup() {
 }
 
 void ESP32TouchComponent::dump_config() {
-  const char *lv_s = get_low_voltage_reference_str(this->low_voltage_reference_);
-  const char *hv_s = get_high_voltage_reference_str(this->high_voltage_reference_);
-  const char *atten_s = get_voltage_attenuation_str(this->voltage_attenuation_);
-
-  ESP_LOGCONFIG(TAG,
-                "Config for ESP32 Touch Hub:\n"
-                "  Meas cycle: %.2fms\n"
-                "  Sleep cycle: %.2fms\n"
-                "  Low Voltage Reference: %s\n"
-                "  High Voltage Reference: %s\n"
-                "  Voltage Attenuation: %s\n"
-                "  ISR Configuration:\n"
-                "    Release timeout: %" PRIu32 "ms\n"
-                "    Release check interval: %" PRIu32 "ms",
-                this->meas_cycle_ / (8000000.0f / 1000.0f), this->sleep_cycle_ / (150000.0f / 1000.0f), lv_s, hv_s,
-                atten_s, this->release_timeout_ms_, this->release_check_interval_ms_);
+  this->dump_config_base_();
 
   if (this->iir_filter_enabled_()) {
     ESP_LOGCONFIG(TAG, "    IIR Filter: %" PRIu32 "ms", this->iir_filter_);
@@ -105,11 +90,7 @@ void ESP32TouchComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Setup Mode ENABLED");
   }
 
-  for (auto *child : this->children_) {
-    LOG_BINARY_SENSOR("  ", "Touch Pad", child);
-    ESP_LOGCONFIG(TAG, "    Pad: T%" PRIu32, (uint32_t) child->get_touch_pad());
-    ESP_LOGCONFIG(TAG, "    Threshold: %" PRIu32, child->get_threshold());
-  }
+  this->dump_config_sensors_();
 }
 
 void ESP32TouchComponent::loop() {
