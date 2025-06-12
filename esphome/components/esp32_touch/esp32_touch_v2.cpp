@@ -270,8 +270,6 @@ void ESP32TouchComponent::loop() {
         touch_pad_read_benchmark(child->get_touch_pad(), &value);
       }
 
-      child->value_ = value;
-
       // For S2/S3 v2, higher value means touched (opposite of v1)
       bool is_touched = value > child->get_threshold();
       child->last_state_ = is_touched;
@@ -306,8 +304,6 @@ void ESP32TouchComponent::loop() {
           } else {
             touch_pad_read_benchmark(event.pad, &value);
           }
-
-          child->value_ = value;
 
           // Update state if changed
           if (child->last_state_ != is_touch_event) {

@@ -178,7 +178,9 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
   touch_pad_t get_touch_pad() const { return this->touch_pad_; }
   uint32_t get_threshold() const { return this->threshold_; }
   void set_threshold(uint32_t threshold) { this->threshold_ = threshold; }
+#ifdef USE_ESP32_VARIANT_ESP32
   uint32_t get_value() const { return this->value_; }
+#endif
   uint32_t get_wakeup_threshold() const { return this->wakeup_threshold_; }
 
  protected:
@@ -186,7 +188,9 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
 
   touch_pad_t touch_pad_{TOUCH_PAD_MAX};
   uint32_t threshold_{0};
+#ifdef USE_ESP32_VARIANT_ESP32
   uint32_t value_{0};
+#endif
   bool last_state_{false};
   const uint32_t wakeup_threshold_{0};
 };
