@@ -339,7 +339,6 @@ if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG
   }
   this->setup_mode_last_log_print_ = now;
 }
-}
 
 void ESP32TouchComponent::on_shutdown() {
   // Disable interrupts
