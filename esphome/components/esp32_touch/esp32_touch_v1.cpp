@@ -207,7 +207,6 @@ void ESP32TouchComponent::on_shutdown() {
 void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
 
-  uint32_t pad_status = touch_pad_get_status();
   touch_pad_clear_status();
 
   // Process all configured pads to check their current state
