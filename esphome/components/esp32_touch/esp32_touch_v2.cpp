@@ -296,7 +296,7 @@ void ESP32TouchComponent::loop() {
 
       // Find the child for the pad that triggered the interrupt
       for (auto *child : this->children_) {
-        if (child->get_touch_pad() == event.pad)
+        if (child->get_touch_pad() == event.pad) {
           if (child->last_state_ != is_touch_event) {
             // Read current value
             uint32_t value = 0;
@@ -311,7 +311,8 @@ void ESP32TouchComponent::loop() {
             ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
                      is_touch_event ? "touched" : "released", value, child->get_threshold());
           }
-        break;
+          break;
+        }
       }
     }
   }
