@@ -242,6 +242,17 @@ void ESP32TouchComponent::dump_config() {
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
+  // In setup mode, periodically log all pad values
+  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
+    for (auto *child : this->children_) {
+      // Read the value being used for touch detection
+      uint32_t value = this->read_touch_value(child->get_touch_pad());
+
+      ESP_LOGD(TAG, "Touch Pad '%s' (T%d): %d", child->get_name().c_str(), child->get_touch_pad(), value);
+    }
+    this->setup_mode_last_log_print_ = now;
+  }
+
   // Process any queued touch events from interrupts
   TouchPadEventV2 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
@@ -280,17 +291,6 @@ void ESP32TouchComponent::loop() {
                is_touch_event ? "touched" : "released", value, is_touch_event ? ">" : "<=", child->get_threshold());
       break;
     }
-  }
-
-  // In setup mode, periodically log all pad values
-  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
-    for (auto *child : this->children_) {
-      // Read the value being used for touch detection
-      uint32_t value = this->read_touch_value(child->get_touch_pad());
-
-      ESP_LOGD(TAG, "Touch Pad '%s' (T%d): %d", child->get_name().c_str(), child->get_touch_pad(), value);
-    }
-    this->setup_mode_last_log_print_ = now;
   }
 }
 
