@@ -487,19 +487,19 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     uint32_t value;
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
     if (component->filter_configured_()) {
-      touch_pad_read_raw_data(pad, &value);
+      touch_pad_filter_read_smooth(pad, &value);
     } else {
       // Use low-level HAL function when filter is not configured
-      value = touch_ll_read_raw_data(pad);
+      touch_pad_read_raw_data(pad, &value);
     }
 #else
     if (component->iir_filter_enabled_()) {
       uint16_t temp_value = 0;
-      touch_pad_read_raw_data(pad, &temp_value);
+      touch_pad_read_filtered(pad, &temp_value);
       value = temp_value;
     } else {
       // Use low-level HAL function when filter is not enabled
-      value = touch_ll_read_raw_data(pad);
+      touch_pad_read_raw_data(pad, &value);
     }
 #endif
 
