@@ -490,7 +490,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
       touch_pad_filter_read_smooth(pad, &value);
     } else {
       // Use low-level HAL function when filter is not configured
-      touch_pad_read_raw_data(pad, &value);
+      value = touch_ll_read_raw_data(pad);
     }
 #else
     if (component->iir_filter_enabled_()) {
@@ -499,7 +499,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
       value = temp_value;
     } else {
       // Use low-level HAL function when filter is not enabled
-      touch_pad_read_raw_data(pad, &value);
+      value = touch_ll_read_raw_data(pad);
     }
 #endif
 
