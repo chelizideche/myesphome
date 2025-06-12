@@ -227,7 +227,7 @@ bool APIServer::check_password(const std::string &password) const {
 void APIServer::handle_disconnect(APIConnection *conn) {}
 
 #ifdef USE_BINARY_SENSOR
-void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) {
+void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj) {
   if (obj->is_internal())
     return;
   for (auto &c : this->clients_)
@@ -496,11 +496,15 @@ void APIServer::on_shutdown() {
     this->socket_ = nullptr;
   }
 
+  // Change batch delay to 5ms for quick flushing during shutdown
+  this->batch_delay_ = 5;
+
   // Send disconnect requests to all connected clients
   for (auto &c : this->clients_) {
     if (!c->send_message(DisconnectRequest())) {
-      // If we can't send the disconnect request, mark for immediate closure
-      c->next_close_ = true;
+      // If we can't send the disconnect request directly (tx_buffer full),
+      // schedule it in the batch so it will be sent with the 5ms timer
+      c->schedule_message_(nullptr, &APIConnection::try_send_disconnect_request, DisconnectRequest::MESSAGE_TYPE);
     }
   }
 }
