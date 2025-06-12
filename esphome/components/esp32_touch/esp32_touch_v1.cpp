@@ -31,6 +31,9 @@ void ESP32TouchComponent::setup() {
   touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
 
   // Create queue for touch events
+  // Queue size calculation: children * 4 allows for burst scenarios where ISR
+  // fires multiple times before main loop processes. This is important because
+  // ESP32 v1 scans all pads on each interrupt, potentially sending multiple events.
   size_t queue_size = this->children_.size() * 4;
   if (queue_size < 8)
     queue_size = 8;
@@ -75,11 +78,13 @@ void ESP32TouchComponent::setup() {
   // Design note: ESP32 v1 hardware limitation - interrupts only fire on touch (not release)
   // We must use timeout-based detection for release events
   // Formula: 3 sleep cycles converted to ms, with MINIMUM_RELEASE_TIME_MS minimum
+  // The division by 2 accounts for the fact that sleep_cycle is in half-cycles
   uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
   this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
   if (this->release_timeout_ms_ < MINIMUM_RELEASE_TIME_MS) {
     this->release_timeout_ms_ = MINIMUM_RELEASE_TIME_MS;
   }
+  // Check for releases at 1/4 the timeout interval, capped at 50ms
   this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
 
   // Enable touch pad interrupt
@@ -115,9 +120,11 @@ void ESP32TouchComponent::loop() {
   }
 
   // Process any queued touch events from interrupts
+  // Note: Events are only sent by ISR for pads that were measured in that cycle (value != 0)
+  // This is more efficient than sending all pad states every interrupt
   TouchPadEventV1 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
-    // Find the corresponding sensor
+    // Find the corresponding sensor - O(n) search is acceptable since events are infrequent
     for (auto *child : this->children_) {
       if (child->get_touch_pad() == event.pad) {
         child->value_ = event.value;
@@ -130,7 +137,7 @@ void ESP32TouchComponent::loop() {
           this->last_touch_time_[event.pad] = now;
         }
 
-        // Only publish if state changed
+        // Only publish if state changed - this filters out repeated events
         if (new_state != child->last_state_) {
           child->last_state_ = new_state;
           child->publish_state(new_state);
@@ -219,6 +226,8 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   touch_pad_clear_status();
 
   // Process all configured pads to check their current state
+  // Note: ESP32 v1 doesn't tell us which specific pad triggered the interrupt,
+  // so we must scan all configured pads to find which ones were touched
   for (auto *child : component->children_) {
     touch_pad_t pad = child->get_touch_pad();
 
@@ -234,6 +243,8 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     }
 
     // Skip pads with 0 value - they haven't been measured in this cycle
+    // This is important: not all pads are measured every interrupt cycle,
+    // only those that the hardware has updated
     if (value == 0) {
       continue;
     }
@@ -242,12 +253,14 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     bool is_touched = value < child->get_threshold();
 
     // Always send the current state - the main loop will filter for changes
+    // We send both touched and untouched states because the ISR doesn't
+    // track previous state (to keep ISR fast and simple)
     TouchPadEventV1 event;
     event.pad = pad;
     event.value = value;
     event.is_touched = is_touched;
 
-    // Send to queue from ISR
+    // Send to queue from ISR - non-blocking, drops if queue full
     BaseType_t x_higher_priority_task_woken = pdFALSE;
     xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
     if (x_higher_priority_task_woken) {
