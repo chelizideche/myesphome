@@ -369,11 +369,6 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   event.pad_status = touch_pad_get_status();
   event.pad = touch_pad_get_current_meas_channel();
 
-  // Debug logging from ISR (using ROM functions for ISR safety) - only log non-timeout events for now
-  // if (event.intr_mask != 0x10 || event.pad_status != 0) {
-  //   ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
-  // }
-
   // Send event to queue for processing in main loop
   xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
 
