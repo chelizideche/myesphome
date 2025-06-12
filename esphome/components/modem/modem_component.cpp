@@ -298,8 +298,6 @@ void ModemComponent::loop() {
   }
 
   if (this->internal_state_.power_transition) {
-    watchdog::WatchdogManager wdt(30000);
-
     // A power state is used to handle long tonuart/toffuart delay
     switch (this->internal_state_.power_state) {
       case ModemPowerState::TON:
