@@ -15,6 +15,7 @@ namespace esphome {
 namespace ld2450 {
 
 static const char *const TAG = "ld2450";
+static const char *const NO_MAC("08:05:04:03:02:01");
 static const char *const UNKNOWN_MAC("unknown");
 
 // LD2450 UART Serial Commands
@@ -108,7 +109,7 @@ static inline std::string format_version(uint8_t *buffer) {
 LD2450Component::LD2450Component() {}
 
 void LD2450Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up HLK-LD2450...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 #ifdef USE_NUMBER
   if (this->presence_timeout_number_ != nullptr) {
     this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
@@ -187,9 +188,11 @@ void LD2450Component::dump_config() {
 #ifdef USE_NUMBER
   LOG_NUMBER("  ", "PresenceTimeoutNumber", this->presence_timeout_number_);
 #endif
-  ESP_LOGCONFIG(TAG, "  Throttle : %ums", this->throttle_);
-  ESP_LOGCONFIG(TAG, "  MAC Address : %s", const_cast<char *>(this->mac_.c_str()));
-  ESP_LOGCONFIG(TAG, "  Firmware version : %s", const_cast<char *>(this->version_.c_str()));
+  ESP_LOGCONFIG(TAG,
+                "  Throttle : %ums\n"
+                "  MAC Address : %s\n"
+                "  Firmware version : %s",
+                this->throttle_, const_cast<char *>(this->mac_.c_str()), const_cast<char *>(this->version_.c_str()));
 }
 
 void LD2450Component::loop() {
@@ -614,12 +617,12 @@ bool LD2450Component::handle_ack_data_(uint8_t *buffer, uint8_t len) {
       ESP_LOGV(TAG, "MAC address: %s", this->mac_.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->mac_text_sensor_ != nullptr) {
-        this->mac_text_sensor_->publish_state(this->mac_);
+        this->mac_text_sensor_->publish_state(this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_);
       }
 #endif
 #ifdef USE_SWITCH
       if (this->bluetooth_switch_ != nullptr) {
-        this->bluetooth_switch_->publish_state(this->mac_ != UNKNOWN_MAC);
+        this->bluetooth_switch_->publish_state(this->mac_ != NO_MAC);
       }
 #endif
       break;

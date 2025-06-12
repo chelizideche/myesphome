@@ -40,7 +40,7 @@ static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_r
 #endif
 
 void RemoteReceiverComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Remote Receiver...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 #if ESP_IDF_VERSION_MAJOR >= 5
   rmt_rx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
@@ -161,23 +161,33 @@ void RemoteReceiverComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Receiver:");
   LOG_PIN("  Pin: ", this->pin_);
 #if ESP_IDF_VERSION_MAJOR >= 5
-  ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
-  ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
-  ESP_LOGCONFIG(TAG, "  Filter symbols: %" PRIu32, this->filter_symbols_);
-  ESP_LOGCONFIG(TAG, "  Receive symbols: %" PRIu32, this->receive_symbols_);
+  ESP_LOGCONFIG(TAG,
+                "  Clock resolution: %" PRIu32 " hz\n"
+                "  RMT symbols: %" PRIu32 "\n"
+                "  Filter symbols: %" PRIu32 "\n"
+                "  Receive symbols: %" PRIu32 "\n"
+                "  Tolerance: %" PRIu32 "%s\n"
+                "  Filter out pulses shorter than: %" PRIu32 " us\n"
+                "  Signal is done after %" PRIu32 " us of no changes",
+                this->clock_resolution_, this->rmt_symbols_, this->filter_symbols_, this->receive_symbols_,
+                this->tolerance_, (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%",
+                this->filter_us_, this->idle_us_);
 #else
   if (this->pin_->digital_read()) {
     ESP_LOGW(TAG, "Remote Receiver Signal starts with a HIGH value. Usually this means you have to "
                   "invert the signal using 'inverted: True' in the pin schema!");
   }
-  ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
-  ESP_LOGCONFIG(TAG, "  RMT memory blocks: %d", this->mem_block_num_);
-  ESP_LOGCONFIG(TAG, "  Clock divider: %u", this->clock_divider_);
+  ESP_LOGCONFIG(TAG,
+                "  Channel: %d\n"
+                "  RMT memory blocks: %d\n"
+                "  Clock divider: %u\n"
+                "  Tolerance: %" PRIu32 "%s\n"
+                "  Filter out pulses shorter than: %" PRIu32 " us\n"
+                "  Signal is done after %" PRIu32 " us of no changes",
+                this->channel_, this->mem_block_num_, this->clock_divider_, this->tolerance_,
+                (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%", this->filter_us_,
+                this->idle_us_);
 #endif
-  ESP_LOGCONFIG(TAG, "  Tolerance: %" PRIu32 "%s", this->tolerance_,
-                (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%");
-  ESP_LOGCONFIG(TAG, "  Filter out pulses shorter than: %" PRIu32 " us", this->filter_us_);
-  ESP_LOGCONFIG(TAG, "  Signal is done after %" PRIu32 " us of no changes", this->idle_us_);
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Configuring RMT driver failed: %s (%s)", esp_err_to_name(this->error_code_),
              this->error_string_.c_str());
@@ -208,7 +218,6 @@ void RemoteReceiverComponent::loop() {
     this->store_.buffer_read = next_read;
 
     if (!this->temp_.empty()) {
-      this->temp_.push_back(-this->idle_us_);
       this->call_listeners_dumpers_();
     }
   }
@@ -219,11 +228,9 @@ void RemoteReceiverComponent::loop() {
     this->decode_rmt_(item, len / sizeof(rmt_item32_t));
     vRingbufferReturnItem(this->ringbuf_, item);
 
-    if (this->temp_.empty())
-      return;
-
-    this->temp_.push_back(-this->idle_us_);
-    this->call_listeners_dumpers_();
+    if (!this->temp_.empty()) {
+      this->call_listeners_dumpers_();
+    }
   }
 #endif
 }
@@ -234,6 +241,7 @@ void RemoteReceiverComponent::decode_rmt_(rmt_symbol_word_t *item, size_t item_c
 void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count) {
 #endif
   bool prev_level = false;
+  bool idle_level = false;
   uint32_t prev_length = 0;
   this->temp_.clear();
   int32_t multiplier = this->pin_->is_inverted() ? -1 : 1;
@@ -266,7 +274,7 @@ void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count)
     } else if ((bool(item[i].level0) == prev_level) || (item[i].duration0 < filter_ticks)) {
       prev_length += item[i].duration0;
     } else {
-      if (prev_length > 0) {
+      if (prev_length >= filter_ticks) {
         if (prev_level) {
           this->temp_.push_back(this->to_microseconds_(prev_length) * multiplier);
         } else {
@@ -276,6 +284,7 @@ void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count)
       prev_level = bool(item[i].level0);
       prev_length = item[i].duration0;
     }
+    idle_level = !bool(item[i].level0);
 
     if (item[i].duration1 == 0u) {
       // EOF, sometimes garbage follows, break early
@@ -283,7 +292,7 @@ void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count)
     } else if ((bool(item[i].level1) == prev_level) || (item[i].duration1 < filter_ticks)) {
       prev_length += item[i].duration1;
     } else {
-      if (prev_length > 0) {
+      if (prev_length >= filter_ticks) {
         if (prev_level) {
           this->temp_.push_back(this->to_microseconds_(prev_length) * multiplier);
         } else {
@@ -293,12 +302,20 @@ void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count)
       prev_level = bool(item[i].level1);
       prev_length = item[i].duration1;
     }
+    idle_level = !bool(item[i].level1);
   }
-  if (prev_length > 0) {
+  if (prev_length >= filter_ticks && prev_level != idle_level) {
     if (prev_level) {
       this->temp_.push_back(this->to_microseconds_(prev_length) * multiplier);
     } else {
       this->temp_.push_back(-int32_t(this->to_microseconds_(prev_length)) * multiplier);
+    }
+  }
+  if (!this->temp_.empty()) {
+    if (idle_level) {
+      this->temp_.push_back(this->idle_us_ * multiplier);
+    } else {
+      this->temp_.push_back(-int32_t(this->idle_us_) * multiplier);
     }
   }
 }

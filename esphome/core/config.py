@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_BUILD_PATH,
     CONF_COMMENT,
     CONF_COMPILE_PROCESS_LIMIT,
+    CONF_DEBUG_SCHEDULER,
     CONF_ESPHOME,
     CONF_FRIENDLY_NAME,
     CONF_INCLUDES,
@@ -144,6 +145,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_INCLUDES, default=[]): cv.ensure_list(valid_include),
             cv.Optional(CONF_LIBRARIES, default=[]): cv.ensure_list(cv.string_strict),
             cv.Optional(CONF_NAME_ADD_MAC_SUFFIX, default=False): cv.boolean,
+            cv.Optional(CONF_DEBUG_SCHEDULER, default=False): cv.boolean,
             cv.Optional(CONF_PROJECT): cv.Schema(
                 {
                     cv.Required(CONF_NAME): cv.All(
@@ -189,9 +191,10 @@ def _is_target_platform(name):
     from esphome.loader import get_component
 
     try:
-        if get_component(name, True).is_target_platform:
-            return True
+        return get_component(name, True).is_target_platform
     except KeyError:
+        pass
+    except ImportError:
         pass
     return False
 
@@ -326,6 +329,12 @@ async def _add_automations(config):
         await automation.build_automation(trigger, [], conf)
 
 
+@coroutine_with_priority(-100.0)
+async def _add_platform_reserves() -> None:
+    for platform_name, count in sorted(CORE.platform_counts.items()):
+        cg.add(cg.RawStatement(f"App.reserve_{platform_name}({count});"), prepend=True)
+
+
 @coroutine_with_priority(100.0)
 async def to_code(config):
     cg.add_global(cg.global_ns.namespace("esphome").using)
@@ -344,6 +353,12 @@ async def to_code(config):
             config[CONF_NAME_ADD_MAC_SUFFIX],
         )
     )
+    # Reserve space for components to avoid reallocation during registration
+    cg.add(
+        cg.RawStatement(f"App.reserve_components({len(CORE.component_ids)});"),
+    )
+
+    CORE.add_job(_add_platform_reserves)
 
     CORE.add_job(_add_automations, config)
 
@@ -368,6 +383,8 @@ async def to_code(config):
     cg.add_build_flag("-Wno-unused-variable")
     cg.add_build_flag("-Wno-unused-but-set-variable")
     cg.add_build_flag("-Wno-sign-compare")
+    if config[CONF_DEBUG_SCHEDULER]:
+        cg.add_define("ESPHOME_DEBUG_SCHEDULER")
 
     if CORE.using_arduino and not CORE.is_bk72xx:
         CORE.add_job(add_arduino_global_workaround)
