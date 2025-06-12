@@ -75,15 +75,17 @@ void IDFI2CBus::setup() {
   }
   initialized_ = true;
   if (this->scan_) {
-    ESP_LOGV(TAG, "Scanning i2c bus for active devices...");
+    ESP_LOGV(TAG, "Scanning bus for active devices");
     this->i2c_scan_();
   }
 }
 void IDFI2CBus::dump_config() {
   ESP_LOGCONFIG(TAG, "I2C Bus:");
-  ESP_LOGCONFIG(TAG, "  SDA Pin: GPIO%u", this->sda_pin_);
-  ESP_LOGCONFIG(TAG, "  SCL Pin: GPIO%u", this->scl_pin_);
-  ESP_LOGCONFIG(TAG, "  Frequency: %" PRIu32 " Hz", this->frequency_);
+  ESP_LOGCONFIG(TAG,
+                "  SDA Pin: GPIO%u\n"
+                "  SCL Pin: GPIO%u\n"
+                "  Frequency: %" PRIu32 " Hz",
+                this->sda_pin_, this->scl_pin_, this->frequency_);
   if (timeout_ > 0) {
     ESP_LOGCONFIG(TAG, "  Timeout: %" PRIu32 "us", this->timeout_);
   }

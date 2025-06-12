@@ -1,7 +1,7 @@
 #include "tem3200.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace tem3200 {
@@ -43,7 +43,6 @@ void TEM3200Component::setup() {
       this->status_set_warning();
       break;
   }
-  ESP_LOGCONFIG(TAG, "    Success...");
 }
 
 void TEM3200Component::dump_config() {
