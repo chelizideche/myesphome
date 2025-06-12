@@ -331,55 +331,56 @@ void ESP32TouchComponent::loop() {
     }
     this->setup_mode_last_log_print_ = now;
   }
+}
 
-  void ESP32TouchComponent::on_shutdown() {
-    // Disable interrupts
-    touch_pad_intr_disable(static_cast<touch_pad_intr_mask_t>(
-        TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE | TOUCH_PAD_INTR_MASK_TIMEOUT));
-    touch_pad_isr_deregister(touch_isr_handler, this);
-    if (this->touch_queue_) {
-      vQueueDelete(this->touch_queue_);
-    }
+void ESP32TouchComponent::on_shutdown() {
+  // Disable interrupts
+  touch_pad_intr_disable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE |
+                                                            TOUCH_PAD_INTR_MASK_TIMEOUT));
+  touch_pad_isr_deregister(touch_isr_handler, this);
+  if (this->touch_queue_) {
+    vQueueDelete(this->touch_queue_);
+  }
 
-    // Check if any pad is configured for wakeup
-    bool is_wakeup_source = false;
-    for (auto *child : this->children_) {
-      if (child->get_wakeup_threshold() != 0) {
-        if (!is_wakeup_source) {
-          is_wakeup_source = true;
-          // Touch sensor FSM mode must be 'TOUCH_FSM_MODE_TIMER' to use it to wake-up.
-          touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
-        }
+  // Check if any pad is configured for wakeup
+  bool is_wakeup_source = false;
+  for (auto *child : this->children_) {
+    if (child->get_wakeup_threshold() != 0) {
+      if (!is_wakeup_source) {
+        is_wakeup_source = true;
+        // Touch sensor FSM mode must be 'TOUCH_FSM_MODE_TIMER' to use it to wake-up.
+        touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
       }
     }
-
-    if (!is_wakeup_source) {
-      touch_pad_deinit();
-    }
   }
 
-  void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
-    ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-    // Read interrupt status and pad status
-    TouchPadEventV2 event;
-    event.intr_mask = touch_pad_read_intr_status_mask();
-    event.pad_status = touch_pad_get_status();
-    event.pad = touch_pad_get_current_meas_channel();
-
-    // Debug logging from ISR (using ROM functions for ISR safety) - only log non-timeout events for now
-    // if (event.intr_mask != 0x10 || event.pad_status != 0) {
-    //   ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
-    // }
-
-    // Send event to queue for processing in main loop
-    xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
-
-    if (xHigherPriorityTaskWoken) {
-      portYIELD_FROM_ISR();
-    }
+  if (!is_wakeup_source) {
+    touch_pad_deinit();
   }
+}
+
+void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
+  ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+  // Read interrupt status and pad status
+  TouchPadEventV2 event;
+  event.intr_mask = touch_pad_read_intr_status_mask();
+  event.pad_status = touch_pad_get_status();
+  event.pad = touch_pad_get_current_meas_channel();
+
+  // Debug logging from ISR (using ROM functions for ISR safety) - only log non-timeout events for now
+  // if (event.intr_mask != 0x10 || event.pad_status != 0) {
+  //   ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
+  // }
+
+  // Send event to queue for processing in main loop
+  xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
+
+  if (xHigherPriorityTaskWoken) {
+    portYIELD_FROM_ISR();
+  }
+}
 
 }  // namespace esp32_touch
 }  // namespace esphome
