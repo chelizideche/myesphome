@@ -15,6 +15,8 @@
 namespace esphome {
 namespace esp32_touch {
 
+static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
+
 class ESP32TouchBinarySensor;
 
 struct TouchPadEvent {

@@ -268,54 +268,43 @@ void ESP32TouchComponent::loop() {
 
     // Handle active/inactive events
     if (event.intr_mask & (TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE)) {
-      // For INACTIVE events, we need to check which pad was released
-      // The pad number is in event.pad
-      if (event.intr_mask & TOUCH_PAD_INTR_MASK_INACTIVE) {
-        // Find the child for this pad
-        for (auto *child : this->children_) {
-          if (child->get_touch_pad() == event.pad) {
-            // Read current value
-            uint32_t value = 0;
-            if (this->filter_configured_()) {
-              touch_pad_filter_read_smooth(event.pad, &value);
-            } else {
-              touch_pad_read_benchmark(event.pad, &value);
-            }
+      bool is_touch_event = (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) != 0;
 
-            child->value_ = value;
+      // For INACTIVE events, we check specific pad. For ACTIVE events, check pad status mask
+      for (auto *child : this->children_) {
+        touch_pad_t pad = child->get_touch_pad();
+        bool should_process = false;
 
-            // This is an INACTIVE event, so not touched
-            child->last_state_ = false;
-            child->publish_state(false);
-            ESP_LOGD(TAG, "Touch Pad '%s' released (value: %d, threshold: %d)", child->get_name().c_str(), value,
-                     child->get_threshold());
-            break;
-          }
+        if (is_touch_event) {
+          // ACTIVE event - check if this pad is in the status mask
+          should_process = (event.pad_status & BIT(pad)) != 0;
+        } else {
+          // INACTIVE event - check if this is the specific pad that was released
+          should_process = (pad == event.pad);
         }
-      } else if (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) {
-        // For ACTIVE events, check the pad status mask
-        for (auto *child : this->children_) {
-          touch_pad_t pad = child->get_touch_pad();
 
-          // Check if this pad is in the status mask
-          if (event.pad_status & BIT(pad)) {
-            // Read current value
-            uint32_t value = 0;
-            if (this->filter_configured_()) {
-              touch_pad_filter_read_smooth(pad, &value);
-            } else {
-              touch_pad_read_benchmark(pad, &value);
-            }
+        if (should_process) {
+          // Read current value
+          uint32_t value = 0;
+          if (this->filter_configured_()) {
+            touch_pad_filter_read_smooth(pad, &value);
+          } else {
+            touch_pad_read_benchmark(pad, &value);
+          }
 
-            child->value_ = value;
+          child->value_ = value;
 
-            // This is an ACTIVE event, so touched
-            if (!child->last_state_) {
-              child->last_state_ = true;
-              child->publish_state(true);
-              ESP_LOGD(TAG, "Touch Pad '%s' touched (value: %d, threshold: %d)", child->get_name().c_str(), value,
-                       child->get_threshold());
-            }
+          // Update state if changed
+          if (child->last_state_ != is_touch_event) {
+            child->last_state_ = is_touch_event;
+            child->publish_state(is_touch_event);
+            ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
+                     is_touch_event ? "touched" : "released", value, child->get_threshold());
+          }
+
+          // For INACTIVE events, we only process one pad
+          if (!is_touch_event) {
+            break;
           }
         }
       }
@@ -323,8 +312,7 @@ void ESP32TouchComponent::loop() {
   }
 
   // In setup mode, periodically log all pad values
-  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > 1000) {
-    ESP_LOGD(TAG, "=== Touch Pad Status ===");
+  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
     for (auto *child : this->children_) {
       uint32_t raw = 0;
       uint32_t benchmark = 0;

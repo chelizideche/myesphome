@@ -95,10 +95,9 @@ void ESP32TouchComponent::dump_config() {
 
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
-  bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
 
   // Print debug info for all pads in setup mode
-  if (should_print) {
+  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
     for (auto *child : this->children_) {
       ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
                (uint32_t) child->get_touch_pad(), child->value_);
