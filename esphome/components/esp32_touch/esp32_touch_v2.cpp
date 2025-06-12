@@ -109,8 +109,9 @@ void ESP32TouchComponent::setup() {
   // Start FSM
   touch_pad_fsm_start();
 
-  // Wait a bit for initial measurements
-  vTaskDelay(10 / portTICK_PERIOD_MS);
+  // Wait longer for initial measurements to complete
+  // Need to wait for at least one full measurement cycle
+  vTaskDelay(100 / portTICK_PERIOD_MS);
 
   // Read initial benchmark values and set thresholds if not explicitly configured
   for (auto *child : this->children_) {
