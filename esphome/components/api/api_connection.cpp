@@ -256,7 +256,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
   const uint8_t footer_size = conn->helper_->frame_footer_size();
 
   // Calculate total size with padding for buffer allocation
-  uint16_t total_calculated_size = static_cast<uint16_t>(calculated_size) + header_padding + footer_size;
+  size_t total_calculated_size = calculated_size + header_padding + footer_size;
 
   // Check if it fits
   if (total_calculated_size > remaining_size) {
@@ -278,11 +278,11 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
 
   // Return actual total size (header + actual payload + footer)
-  uint16_t actual_total_size = header_padding + static_cast<uint16_t>(actual_payload_size) + footer_size;
+  size_t actual_total_size = header_padding + actual_payload_size + footer_size;
 
   // Verify that calculate_size() returned the correct value
   assert(calculated_size == actual_payload_size);
-  return actual_total_size;
+  return static_cast<uint16_t>(actual_total_size);
 }
 
 #ifdef USE_BINARY_SENSOR
