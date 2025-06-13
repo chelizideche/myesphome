@@ -303,7 +303,11 @@ void WebServer::handle_index_request(AsyncWebServerRequest *request) {
 void WebServer::handle_index_request(AsyncWebServerRequest *request) {
 #ifndef USE_ESP8266
   AsyncWebServerResponse *response =
+      request->beginResponse(200, "text/html", ESPHOME_WEBSERVER_INDEX_HTML, ESPHOME_WEBSERVER_INDEX_HTML_SIZE);
+#else
+  AsyncWebServerResponse *response =
       request->beginResponse_P(200, "text/html", ESPHOME_WEBSERVER_INDEX_HTML, ESPHOME_WEBSERVER_INDEX_HTML_SIZE);
+#endif
   // No gzip header here because the HTML file is so small
   request->send(response);
 }
