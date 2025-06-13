@@ -430,8 +430,9 @@ jobs:
           . venv/bin/activate
           mkdir -p build_cache
           export PLATFORMIO_BUILD_CACHE_DIR=$PWD/build_cache
-          # Use 2 parallel jobs for compilation (resource intensive)
-          ./script/test_build_components -e compile -c ${{ matrix.file }} -j 2 -f -b $PWD/build_cache
+          # Use sequential compilation to avoid race conditions
+          # PlatformIO handles its own parallelization internally
+          ./script/test_build_components -e compile -c ${{ matrix.file }} -j 1 -f -b $PWD/build_cache
 
   test-build-components-splitter:
     name: Split components for testing into 20 groups maximum

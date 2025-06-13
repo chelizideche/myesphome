@@ -86,7 +86,11 @@ def run_platformio_cli(*args, **kwargs) -> str | int:
     if os.environ.get("ESPHOME_USE_SUBPROCESS") is not None:
         return run_external_process(*cmd, **kwargs)
 
-    import platformio.__main__
+    # Import platformio with lock to prevent race conditions during initialization
+    from esphome.git_lock import platformio_init_lock
+
+    with platformio_init_lock():
+        import platformio.__main__
 
     patch_structhash()
     return run_external_command(platformio.__main__.main, *cmd, **kwargs)

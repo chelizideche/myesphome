@@ -10,6 +10,7 @@ import urllib.parse
 
 import esphome.config_validation as cv
 from esphome.core import CORE, TimePeriodSeconds
+from esphome.git_lock import git_operation_lock
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,66 +60,72 @@ def clone_or_update(
         )
 
     repo_dir = _compute_destination_path(key, domain)
-    if not repo_dir.is_dir():
-        _LOGGER.info("Cloning %s", key)
-        _LOGGER.debug("Location: %s", repo_dir)
-        cmd = ["git", "clone", "--depth=1"]
-        cmd += ["--", url, str(repo_dir)]
-        run_git_command(cmd)
 
-        if ref is not None:
-            # We need to fetch the PR branch first, otherwise git will complain
-            # about missing objects
-            _LOGGER.info("Fetching %s", ref)
-            run_git_command(["git", "fetch", "--", "origin", ref], str(repo_dir))
-            run_git_command(["git", "reset", "--hard", "FETCH_HEAD"], str(repo_dir))
-
-        if submodules is not None:
-            _LOGGER.info(
-                "Initialising submodules (%s) for %s", ", ".join(submodules), key
-            )
-            run_git_command(
-                ["git", "submodule", "update", "--init"] + submodules, str(repo_dir)
-            )
-
-    else:
-        # Check refresh needed
-        file_timestamp = Path(repo_dir / ".git" / "FETCH_HEAD")
-        # On first clone, FETCH_HEAD does not exists
-        if not file_timestamp.exists():
-            file_timestamp = Path(repo_dir / ".git" / "HEAD")
-        age = datetime.now() - datetime.fromtimestamp(file_timestamp.stat().st_mtime)
-        if refresh is None or age.total_seconds() > refresh.total_seconds:
-            old_sha = run_git_command(["git", "rev-parse", "HEAD"], str(repo_dir))
-            _LOGGER.info("Updating %s", key)
+    # Use lock to prevent concurrent access to the same repository
+    with git_operation_lock(key):
+        if not repo_dir.is_dir():
+            _LOGGER.info("Cloning %s", key)
             _LOGGER.debug("Location: %s", repo_dir)
-            # Stash local changes (if any)
-            run_git_command(
-                ["git", "stash", "push", "--include-untracked"], str(repo_dir)
-            )
-            # Fetch remote ref
-            cmd = ["git", "fetch", "--", "origin"]
+            cmd = ["git", "clone", "--depth=1"]
+            cmd += ["--", url, str(repo_dir)]
+            run_git_command(cmd)
+
             if ref is not None:
-                cmd.append(ref)
-            run_git_command(cmd, str(repo_dir))
-            # Hard reset to FETCH_HEAD (short-lived git ref corresponding to most recent fetch)
-            run_git_command(["git", "reset", "--hard", "FETCH_HEAD"], str(repo_dir))
+                # We need to fetch the PR branch first, otherwise git will complain
+                # about missing objects
+                _LOGGER.info("Fetching %s", ref)
+                run_git_command(["git", "fetch", "--", "origin", ref], str(repo_dir))
+                run_git_command(["git", "reset", "--hard", "FETCH_HEAD"], str(repo_dir))
 
             if submodules is not None:
                 _LOGGER.info(
-                    "Updating submodules (%s) for %s", ", ".join(submodules), key
+                    "Initialising submodules (%s) for %s", ", ".join(submodules), key
                 )
                 run_git_command(
                     ["git", "submodule", "update", "--init"] + submodules, str(repo_dir)
                 )
 
-            def revert():
-                _LOGGER.info("Reverting changes to %s -> %s", key, old_sha)
-                run_git_command(["git", "reset", "--hard", old_sha], str(repo_dir))
+        else:
+            # Check refresh needed
+            file_timestamp = Path(repo_dir / ".git" / "FETCH_HEAD")
+            # On first clone, FETCH_HEAD does not exists
+            if not file_timestamp.exists():
+                file_timestamp = Path(repo_dir / ".git" / "HEAD")
+            age = datetime.now() - datetime.fromtimestamp(
+                file_timestamp.stat().st_mtime
+            )
+            if refresh is None or age.total_seconds() > refresh.total_seconds:
+                old_sha = run_git_command(["git", "rev-parse", "HEAD"], str(repo_dir))
+                _LOGGER.info("Updating %s", key)
+                _LOGGER.debug("Location: %s", repo_dir)
+                # Stash local changes (if any)
+                run_git_command(
+                    ["git", "stash", "push", "--include-untracked"], str(repo_dir)
+                )
+                # Fetch remote ref
+                cmd = ["git", "fetch", "--", "origin"]
+                if ref is not None:
+                    cmd.append(ref)
+                run_git_command(cmd, str(repo_dir))
+                # Hard reset to FETCH_HEAD (short-lived git ref corresponding to most recent fetch)
+                run_git_command(["git", "reset", "--hard", "FETCH_HEAD"], str(repo_dir))
 
-            return repo_dir, revert
+                if submodules is not None:
+                    _LOGGER.info(
+                        "Updating submodules (%s) for %s", ", ".join(submodules), key
+                    )
+                    run_git_command(
+                        ["git", "submodule", "update", "--init"] + submodules,
+                        str(repo_dir),
+                    )
 
-    return repo_dir, None
+                def revert():
+                    _LOGGER.info("Reverting changes to %s -> %s", key, old_sha)
+                    run_git_command(["git", "reset", "--hard", old_sha], str(repo_dir))
+
+                return repo_dir, revert
+
+        return repo_dir, None
 
 
 GIT_DOMAINS = {
