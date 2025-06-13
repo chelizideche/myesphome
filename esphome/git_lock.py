@@ -24,15 +24,25 @@ LOCK_DIR.mkdir(exist_ok=True)
 def _acquire_lock_unix(lock_file, timeout, identifier):
     """Acquire lock on Unix systems using fcntl."""
     start_time = time.time()
+    last_log_time = start_time
     while True:
         try:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             return True
         except OSError:
-            if time.time() - start_time > timeout:
+            elapsed = time.time() - start_time
+            if elapsed > timeout:
                 raise TimeoutError(
                     f"Could not acquire lock for {identifier} within {timeout}s"
                 )
+
+            # Log progress every 10 seconds
+            if time.time() - last_log_time > 10:
+                _LOGGER.info(
+                    f"Still waiting for lock {identifier} ({elapsed:.1f}s elapsed)..."
+                )
+                last_log_time = time.time()
+
             time.sleep(0.1)
 
 
