@@ -1,6 +1,6 @@
 """Constants used by esphome."""
 
-__version__ = "2025.6.0-dev"
+__version__ = "2025.7.0-dev"
 
 ALLOWED_NAME_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
 VALID_SUBSTITUTIONS_CHARACTERS = (
@@ -976,7 +976,9 @@ CONF_WIND_DIRECTION_DEGREES = "wind_direction_degrees"
 CONF_WIND_SPEED = "wind_speed"
 CONF_WINDOW_SIZE = "window_size"
 CONF_WRITE_PIN = "write_pin"
+CONF_X = "x"
 CONF_X_GRID = "x_grid"
+CONF_Y = "y"
 CONF_Y_GRID = "y_grid"
 CONF_YEAR = "year"
 CONF_ZERO = "zero"
