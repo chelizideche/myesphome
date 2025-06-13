@@ -311,7 +311,7 @@ class AsyncEventSource : public AsyncWebHandler {
   connect_handler_t on_connect_{};
   esphome::web_server::WebServer *web_server_;
 };
-#endif
+#endif  // USE_WEBSERVER
 
 class DefaultHeaders {
   friend class AsyncWebServerRequest;
