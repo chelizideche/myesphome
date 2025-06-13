@@ -2,37 +2,34 @@ import math
 
 from esphome import pins
 import esphome.codegen as cg
-import esphome.final_validate as fv
 from esphome.components import canbus
-from esphome.components.canbus import CONF_BIT_RATE, CanSpeed, CONF_CANBUS
+from esphome.components.canbus import CONF_BIT_RATE, CONF_CANBUS, CanSpeed
 from esphome.components.esp32 import get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
+    VARIANT_ESP32C2,
     VARIANT_ESP32C3,
     VARIANT_ESP32C6,
     VARIANT_ESP32H2,
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
-    VARIANT_ESP32C2,
 )
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_FRAMEWORK,
     CONF_ID,
+    CONF_PLATFORM,
     CONF_RX_PIN,
     CONF_RX_QUEUE_LEN,
     CONF_TX_PIN,
     CONF_TX_QUEUE_LEN,
-    PLATFORM_ESP32,
-    CONF_PLATFORM,
-    CONF_FRAMEWORK,
     CONF_TYPE,
     CONF_VERSION,
+    PLATFORM_ESP32,
 )
-from . import (
-    esp32_can,
-    esp32_can_ns,
-    TXMode,
-)
+import esphome.final_validate as fv
+
+from . import TXMode, esp32_can, esp32_can_ns
 
 CODEOWNERS = ["@Sympatron"]
 DEPENDENCIES = ["esp32"]
@@ -90,8 +87,7 @@ CAN_TX_MODE_LISTEN_ONLY = "listen_only"
 def validate_bit_rate(value):
     variant = get_esp32_variant()
     if variant not in CAN_SPEEDS:
-        raise cv.Invalid(
-            f"{variant} is not supported by component {esp32_can_ns}")
+        raise cv.Invalid(f"{variant} is not supported by component {esp32_can_ns}")
     value = value.upper()
     if value not in CAN_SPEEDS[variant]:
         raise cv.Invalid(f"Bit rate {value} is not supported on {variant}")
@@ -107,11 +103,13 @@ CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
         cv.Optional(CONF_RX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_ENQUEUE_TIMEOUT): cv.positive_time_period_milliseconds,
-        cv.Optional(CONF_TX_MODE, CAN_TX_MODE_NORMAL): cv.enum({
-            CAN_TX_MODE_LISTEN_ONLY: TXMode.LISTEN_ONLY,
-            CAN_TX_MODE_NO_ACK: TXMode.NO_ACK,
-            CAN_TX_MODE_NORMAL: TXMode.NORMAL
-        }),
+        cv.Optional(CONF_TX_MODE, CAN_TX_MODE_NORMAL): cv.enum(
+            {
+                CAN_TX_MODE_LISTEN_ONLY: TXMode.LISTEN_ONLY,
+                CAN_TX_MODE_NO_ACK: TXMode.NO_ACK,
+                CAN_TX_MODE_NORMAL: TXMode.NORMAL,
+            }
+        ),
     }
 )
 
@@ -148,7 +146,6 @@ def final_validate_(config):
         VARIANT_ESP32S2: 1,
         VARIANT_ESP32S3: 1,
         VARIANT_ESP32C2: 1,
-        VARIANT_ESP32C3: 1,
         VARIANT_ESP32C6: 2,
         VARIANT_ESP32H2: 1,
     }[get_esp32_variant()]
@@ -198,8 +195,7 @@ async def to_code(config):
     if CONF_TX_ENQUEUE_TIMEOUT in config:
         tx_enqueue_timeout_ms = config[CONF_TX_ENQUEUE_TIMEOUT].total_milliseconds
     else:
-        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(
-            config[CONF_BIT_RATE])
+        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(config[CONF_BIT_RATE])
 
     cg.add(var.set_tx_enqueue_timeout_ms(tx_enqueue_timeout_ms))
     cg.add(var.set_tx_mode(config[CONF_TX_MODE]))
