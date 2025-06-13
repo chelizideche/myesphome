@@ -93,6 +93,8 @@ def _try_load_with_cache(
                 cache.move_to_end(file_path)
             # Return cached content (deep copy for YAML to avoid modifications)
             if cache is _YAML_FILE_CACHE:
+                # Only deep copy if we're in the main YAML cache
+                # Secrets are not mutated after loading
                 import copy
 
                 return copy.deepcopy(cached_content)
