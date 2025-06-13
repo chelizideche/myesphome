@@ -9,13 +9,13 @@ from esphome.const import (
     ICON_BUG,
     ICON_CHIP,
 )
-from . import ESP32Can
+from . import esp32_can
 
 DEPENDENCIES = ["canbus"]
 
 CANBUS_SENSOR_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_CANBUS_ID): cv.use_id(ESP32Can),
+        cv.GenerateID(CONF_CANBUS_ID): cv.use_id(esp32_can),
     }
 )
 

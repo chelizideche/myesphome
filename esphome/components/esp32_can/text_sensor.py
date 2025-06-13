@@ -8,12 +8,12 @@ from esphome.const import (
 from esphome.components.canbus import (
     CONF_CANBUS_ID,
 )
-from . import ESP32Can
+from . import esp32_can
 
 DEPENDENCIES = ["canbus"]
 
 CONFIG_SCHEMA = {
-    cv.GenerateID(CONF_CANBUS_ID): cv.use_id(ESP32Can),
+    cv.GenerateID(CONF_CANBUS_ID): cv.use_id(esp32_can),
     cv.Optional(CONF_STATE): text_sensor.text_sensor_schema(
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC
     ),

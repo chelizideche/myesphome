@@ -29,7 +29,7 @@ from esphome.const import (
     CONF_VERSION,
 )
 from . import (
-    ESP32Can,
+    esp32_can,
     esp32_can_ns,
     TXMode,
 )
@@ -100,7 +100,7 @@ def validate_bit_rate(value):
 
 CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
     {
-        cv.GenerateID(): cv.declare_id(ESP32Can),
+        cv.GenerateID(): cv.declare_id(esp32_can),
         cv.Optional(CONF_BIT_RATE, default="125KBPS"): validate_bit_rate,
         cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_number,
         cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_number,
@@ -153,7 +153,7 @@ def final_validate_(config):
         VARIANT_ESP32H2: 1,
     }[get_esp32_variant()]
 
-    if can_controller_count > count:
+    if can_controller_count < count:
         raise cv.Invalid(
             f"Only {can_controller_count} CAN bus controllers available. {count} requested"
         )
