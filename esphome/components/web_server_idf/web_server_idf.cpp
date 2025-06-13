@@ -2,7 +2,6 @@
 
 #include <cstdarg>
 
-#include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
@@ -10,12 +9,12 @@
 
 #include "utils.h"
 
+#include "web_server_idf.h"
+
 #ifdef USE_WEBSERVER
 #include "esphome/components/web_server/web_server.h"
 #include "esphome/components/web_server/list_entities.h"
 #endif
-
-#include "web_server_idf.h"
 
 namespace esphome {
 namespace web_server_idf {
