@@ -1,0 +1,30 @@
+substitutions:
+  multiplier: 5
+jinja:
+  macros:
+    testmacro:
+      parameters:
+        x: 1
+      return: factor * x
+package_result: 'This result is 45.
+
+  Size value of size=9 is captured from defaults
+
+  in macro_package.yaml when it is imported, but
+
+  evaluated later, when substitution "multiplier"
+
+  is available.'
+local_result: 'The value of testmacro(4) is ${testmacro(4)},
+
+  since the ''factor'' package var is captured
+
+  by testmacro() as a closure.
+
+  You will see, however, that
+
+  ${factor} is not substituted here, since
+
+  it is out of scope.
+
+  '

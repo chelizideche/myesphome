@@ -4,6 +4,7 @@ import os
 
 from esphome import yaml_util
 from esphome.components import substitutions
+from esphome.const import CONF_PACKAGES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,12 @@ def test_substitutions_fixtures(fixture_path):
 
         # Load using ESPHome's YAML loader
         config = yaml_util.load_yaml(source_path)
+
+        if CONF_PACKAGES in config:
+            from esphome.components.packages import do_packages_pass
+
+            config = do_packages_pass(config)
+
         substitutions.do_substitution_pass(config, None)
 
         # Also load expected using ESPHome's loader, or use {} if missing and DEV_MODE

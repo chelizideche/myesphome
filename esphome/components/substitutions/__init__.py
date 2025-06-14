@@ -3,15 +3,14 @@ import logging
 from esphome import core
 from esphome.config_helpers import Extend, Remove, merge_config
 import esphome.config_validation as cv
-from esphome.const import CONF_SUBSTITUTIONS, VALID_SUBSTITUTIONS_CHARACTERS
+from esphome.const import CONF_JINJA, CONF_SUBSTITUTIONS, VALID_SUBSTITUTIONS_CHARACTERS
 from esphome.components.jinja import (
     Jinja,
-    UndefinedError,
+    JinjaStr,
     has_jinja,
     TemplateError,
     TemplateSyntaxError,
     TemplateRuntimeError,
-    Undefined,
 )
 from esphome.yaml_util import ESPHomeDataBase, make_data_base
 
@@ -64,22 +63,23 @@ def _expand_substitutions(substitutions, value, path, jinja, ignore_missing):
         if not m:
             # No more variable substitutions found. See if the remainder looks like a jinja template
             if has_jinja(value):
-                expr_result = None
+                # If value passed in to this function is a JinjaStr, it means it contains an unresolved
+                # Jinja expression from a previous pass. Therefore, extract the captured scope from that
+                # previous pass
+                if isinstance(orig_value, JinjaStr):
+                    value = JinjaStr(value, orig_value.vars)
                 try:
                     # Invoke the jinja engine to evaluate the expression.
-                    expr_result = jinja.expand(value, substitutions)
-                    if isinstance(expr_result, Undefined):
-                        print("" + expr_result)  # force a UndefinedError exception
-                    value = expr_result
-                except UndefinedError as err:
-                    if not ignore_missing and "password" not in path:
-                        _LOGGER.warning(
-                            "Found '%s' (see %s) which looks like an expression,"
-                            " but could not resolve all the variables: %s",
-                            value,
-                            "->".join(str(x) for x in path),
-                            err.message,
-                        )
+                    value, err = jinja.expand(value)
+                    if err is not None:
+                        if not ignore_missing and "password" not in path:
+                            _LOGGER.warning(
+                                "Found '%s' (see %s) which looks like an expression,"
+                                " but could not resolve all the variables: %s",
+                                value,
+                                "->".join(str(x) for x in path),
+                                err.message,
+                            )
                 except (
                     TemplateError,
                     TemplateSyntaxError,
@@ -131,7 +131,7 @@ def _expand_substitutions(substitutions, value, path, jinja, ignore_missing):
     if isinstance(orig_value, ESPHomeDataBase):
         # even though string can get larger or smaller, the range should point
         # to original document marks
-        return make_data_base(value, orig_value)
+        value = make_data_base(value, orig_value)
 
     return value
 
@@ -159,7 +159,7 @@ def _substitute_item(substitutions, item, path, jinja, ignore_missing):
             del item[old]
     elif isinstance(item, str):
         sub = _expand_substitutions(substitutions, item, path, jinja, ignore_missing)
-        if sub != item:
+        if isinstance(sub, JinjaStr) or sub != item:
             return sub
     elif isinstance(item, (core.Lambda, Extend, Remove)):
         sub = _expand_substitutions(
@@ -171,14 +171,18 @@ def _substitute_item(substitutions, item, path, jinja, ignore_missing):
 
 
 def do_substitution_pass(config, command_line_substitutions, ignore_missing=False):
-    if CONF_SUBSTITUTIONS not in config and not command_line_substitutions:
+    if (
+        CONF_SUBSTITUTIONS not in config
+        and not command_line_substitutions
+        and CONF_JINJA not in config
+    ):
         return
 
-    substitutions = config.get(CONF_SUBSTITUTIONS)
-    if substitutions is None:
-        substitutions = command_line_substitutions
-    elif command_line_substitutions:
-        substitutions = {**substitutions, **command_line_substitutions}
+    # Merge substitutions in config, overriding with substitutions coming from command line:
+    substitutions = {
+        **config.get(CONF_SUBSTITUTIONS, {}),
+        **(command_line_substitutions or {}),
+    }
     with cv.prepend_path("substitutions"):
         if not isinstance(substitutions, dict):
             raise cv.Invalid(
@@ -199,5 +203,7 @@ def do_substitution_pass(config, command_line_substitutions, ignore_missing=Fals
     config[CONF_SUBSTITUTIONS] = substitutions
     # Move substitutions to the first place to replace substitutions in them correctly
     config.move_to_end(CONF_SUBSTITUTIONS, False)
-    jinja = Jinja(config)
+
+    # Create a Jinja environment that will consider substitutions in scope:
+    jinja = Jinja(config, substitutions)
     _substitute_item(substitutions, config, [], jinja, ignore_missing)

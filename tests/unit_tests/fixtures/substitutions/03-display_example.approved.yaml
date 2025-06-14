@@ -1,7 +1,5 @@
-packages:
-  my_display:
-    display:
-      - platform: ili9xxx
-        dimensions:
-          width: 960
-          height: 544
+display:
+  - platform: ili9xxx
+    dimensions:
+      width: 960
+      height: 544
