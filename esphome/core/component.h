@@ -302,7 +302,7 @@ class Component {
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
   uint32_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};
-  std::string error_message_{};
+  const char *error_message_{nullptr};
 };
 
 /** This class simplifies creating components that periodically check a state.
