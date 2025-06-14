@@ -252,25 +252,21 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
   msg.calculate_size(size);
 
   // Calculate total size with padding for buffer allocation
-  uint32_t total_size = size + conn->helper_->frame_header_padding() + conn->helper_->frame_footer_size();
-
-  // Check if total size fits in uint16_t (API messages are limited to 64KB)
-  if (total_size > std::numeric_limits<uint16_t>::max()) {
-    return 0;  // Message too large
-  }
+  uint16_t total_size =
+      static_cast<uint16_t>(size) + conn->helper_->frame_header_padding() + conn->helper_->frame_footer_size();
 
   // Check if it fits
   if (total_size > remaining_size) {
     return 0;  // Doesn't fit
   }
 
-  // Allocate exact buffer space needed (just the payload, not the overhead)
+  // Allocate buffer space - pass payload size, allocation functions add header/footer space
   ProtoWriteBuffer buffer =
       is_single ? conn->allocate_single_message_buffer(size) : conn->allocate_batch_message_buffer(size);
 
   // Encode directly into buffer
   msg.encode(buffer);
-  return static_cast<uint16_t>(total_size);  // Safe cast - we checked the size above
+  return total_size;
 }
 
 #ifdef USE_BINARY_SENSOR
