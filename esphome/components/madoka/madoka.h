@@ -105,7 +105,6 @@ class Madoka : public climate::Climate, public esphome::ble_client::BLEClientNod
     traits.set_supports_current_temperature(true);
     return traits;
   }
-  void set_unit_of_measurement(const char *);
 };
 
 }  // namespace madoka
