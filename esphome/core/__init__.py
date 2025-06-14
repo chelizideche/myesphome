@@ -769,15 +769,14 @@ class EsphomeCore:
             self.libraries.append(library)
         return library
 
-    def add_build_flag(self, build_flag):
+    def add_build_flag(self, build_flag: str) -> str:
         self.build_flags.add(build_flag)
         _LOGGER.debug("Adding build flag: %s", build_flag)
         return build_flag
 
-    def add_build_unflag(self, build_unflag):
+    def add_build_unflag(self, build_unflag: str) -> None:
         self.build_unflags.add(build_unflag)
         _LOGGER.debug("Adding build unflag: %s", build_unflag)
-        return build_unflag
 
     def add_define(self, define):
         if isinstance(define, str):
