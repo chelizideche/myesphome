@@ -24,9 +24,6 @@ namespace madoka {
 
 static const char *const TAG = "madoka";
 
-using chunk = std::vector<uint8_t>;
-using message = std::vector<uint8_t>;
-
 struct Setpoint {
   uint16_t cooling;
   uint16_t heating;
@@ -58,18 +55,18 @@ static const espbt::ESPBTUUID WWR_CHARACTERISTIC_UUID =
 class Madoka : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent {
  protected:
   bool should_update_ = false;
-  std::queue<chunk> received_chunks_ = {};
-  std::map<uint8_t, chunk> pending_chunks_ = {};
+  std::queue<std::vector<uint8_t>> received_chunks_ = {};
+  std::map<uint8_t, std::vector<uint8_t>> pending_chunks_ = {};
   uint16_t notify_handle_;
   uint16_t wwr_handle_;
   SemaphoreHandle_t receive_semaphore_ = nullptr;
   Status cur_status_;
 
-  std::vector<chunk> split_payload_(message msg);
-  message prepare_message_(uint16_t cmd, message args);
-  void query_(uint16_t cmd, message args, int t_d);
-  void parse_cb_(message msg);
-  void process_incoming_chunk_(chunk chk);
+  std::vector<std::vector<uint8_t>> split_payload_(std::vector<uint8_t> msg);
+  std::vector<uint8_t> prepare_message_(uint16_t cmd, std::vector<uint8_t> args);
+  void query_(uint16_t cmd, std::vector<uint8_t> args, int t_d);
+  void parse_cb_(std::vector<uint8_t> msg);
+  void process_incoming_chunk_(std::vector<uint8_t> chk);
 
   void control(const climate::ClimateCall &call) override;
 

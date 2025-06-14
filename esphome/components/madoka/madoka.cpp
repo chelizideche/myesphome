@@ -15,7 +15,7 @@ void Madoka::dump_config() { LOG_CLIMATE(TAG, "Daikin Madoka Climate Controller"
 void Madoka::setup() { this->receive_semaphore_ = xSemaphoreCreateMutex(); }
 
 void Madoka::loop() {
-  chunk chk = {};
+  std::vector<uint8_t> chk = {};
   if (xSemaphoreTake(this->receive_semaphore_, 0L)) {
     if (!this->received_chunks_.empty()) {
       chk = this->received_chunks_.front();
@@ -37,7 +37,7 @@ void Madoka::control(const ClimateCall &call) {
     return;
   if (call.get_mode().has_value()) {
     ClimateMode mode = *call.get_mode();
-    std::vector<chunk> pkt;
+    std::vector<std::vector<uint8_t>> pkt;
     uint8_t mode_out = 255, status_out = 0;
     switch (mode) {
       case climate::CLIMATE_MODE_OFF:
@@ -69,17 +69,18 @@ void Madoka::control(const ClimateCall &call) {
     }
     ESP_LOGD(TAG, "status: %d, mode: %d", status_out, mode_out);
     if (mode_out != 255) {
-      this->query_(0x4030, message({0x20, 0x01, (uint8_t) mode_out}), 600);
+      this->query_(0x4030, std::vector<uint8_t>({0x20, 0x01, (uint8_t) mode_out}), 600);
     }
-    this->query_(0x4020, message({0x20, 0x01, (uint8_t) status_out}), 200);
+    this->query_(0x4020, std::vector<uint8_t>({0x20, 0x01, (uint8_t) status_out}), 200);
   }
   if (call.get_target_temperature_low().has_value() && call.get_target_temperature_high().has_value()) {
     uint16_t target_low = *call.get_target_temperature_low() * 128;
     uint16_t target_high = *call.get_target_temperature_high() * 128;
-    this->query_(0x4040,
-                 message({0x20, 0x02, (uint8_t) ((target_high >> 8) & 0xFF), (uint8_t) (target_high & 0xFF), 0x21, 0x02,
-                          (uint8_t) ((target_low >> 8) & 0xFF), (uint8_t) (target_low & 0xFF)}),
-                 400);
+    this->query_(
+        0x4040,
+        std::vector<uint8_t>({0x20, 0x02, (uint8_t) ((target_high >> 8) & 0xFF), (uint8_t) (target_high & 0xFF), 0x21,
+                              0x02, (uint8_t) ((target_low >> 8) & 0xFF), (uint8_t) (target_low & 0xFF)}),
+        400);
   }
   if (call.get_fan_mode().has_value()) {
     uint8_t fan_mode = call.get_fan_mode().value();
@@ -102,7 +103,8 @@ void Madoka::control(const ClimateCall &call) {
         break;
     }
     if (fan_mode_out != 255) {
-      this->query_(0x4050, message({0x20, 0x01, (uint8_t) fan_mode_out, 0x21, 0x01, (uint8_t) fan_mode_out}), 200);
+      this->query_(0x4050,
+                   std::vector<uint8_t>({0x20, 0x01, (uint8_t) fan_mode_out, 0x21, 0x01, (uint8_t) fan_mode_out}), 200);
     }
   }
   this->should_update_ = true;
@@ -174,7 +176,8 @@ void Madoka::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc
         ESP_LOGW(TAG, "Different notify handle");
         break;
       }
-      chunk chk = chunk(param->notify.value, param->notify.value + param->notify.value_len);
+      std::vector<uint8_t> chk =
+          std::vector<uint8_t>(param->notify.value, param->notify.value + param->notify.value_len);
       xSemaphoreTake(this->receive_semaphore_, portMAX_DELAY);
       this->received_chunks_.push(chk);
       xSemaphoreGive(this->receive_semaphore_);
@@ -194,25 +197,25 @@ void Madoka::update() {
 
   std::vector<uint16_t> all_cmds({0x0020, 0x0030, 0x0040, 0x0050, 0x0110});
   for (auto cmd : all_cmds) {
-    this->query_(cmd, message({0x00, 0x00}), 50);
+    this->query_(cmd, std::vector<uint8_t>({0x00, 0x00}), 50);
   }
 }
 
-bool validate_buffer(message buffer) { return buffer[0] == buffer.size(); }
+bool validate_buffer(std::vector<uint8_t> buffer) { return buffer[0] == buffer.size(); }
 
-void Madoka::process_incoming_chunk_(chunk chk) {
+void Madoka::process_incoming_chunk_(std::vector<uint8_t> chk) {
   if (chk.size() < 2) {
     ESP_LOGI(TAG, "Chunk discarded: invalid length.");
     return;
   }
   uint8_t chunk_id = chk[0];
-  message stripped(chk.begin() + 1, chk.end());
+  std::vector<uint8_t> stripped(chk.begin() + 1, chk.end());
   if (chunk_id == 0 && validate_buffer(stripped)) {
     this->parse_cb_(stripped);
     return;
   }
   if (this->pending_chunks_.count(chunk_id)) {
-    ESP_LOGE(TAG, "Another packet with the same chunk ID is already in the buffer.");
+    ESP_LOGE(TAG, "Another packet with the same std::vector<uint8_t> ID is already in the buffer.");
     ESP_LOGD(TAG, "Chunk ID: %d.", chunk_id);
     return;
   }
@@ -223,7 +226,7 @@ void Madoka::process_incoming_chunk_(chunk chk) {
     return;
   }
 
-  message msg;
+  std::vector<uint8_t> msg;
   int lim = this->pending_chunks_.size();
   for (int i = 0; i < lim; i++) {
     msg.insert(msg.end(), this->pending_chunks_[i].begin() + 1, this->pending_chunks_[i].end());
@@ -234,10 +237,10 @@ void Madoka::process_incoming_chunk_(chunk chk) {
   }
 }
 
-std::vector<chunk> Madoka::split_payload_(message msg) {
-  std::vector<chunk> result;
+std::vector<std::vector<uint8_t>> Madoka::split_payload_(std::vector<uint8_t> msg) {
+  std::vector<std::vector<uint8_t>> result;
   size_t len = msg.size();
-  result.push_back(chunk({0x00, (uint8_t) (len + 1)}));
+  result.push_back(std::vector<uint8_t>({0x00, (uint8_t) (len + 1)}));
   result[0].insert(result[0].end(), msg.begin(), min(msg.begin() + (MAX_CHUNK_SIZE - 2), msg.end()));
   int i = 0;
   for (i = 1; i < len / (MAX_CHUNK_SIZE - 1); i++) {  // from second to second-last
@@ -251,19 +254,19 @@ std::vector<chunk> Madoka::split_payload_(message msg) {
   return result;
 }
 
-message Madoka::prepare_message_(uint16_t cmd, message args) {
-  message result({0x00, (uint8_t) ((cmd >> 8) & 0xFF), (uint8_t) (cmd & 0xFF)});
+std::vector<uint8_t> Madoka::prepare_message_(uint16_t cmd, std::vector<uint8_t> args) {
+  std::vector<uint8_t> result({0x00, (uint8_t) ((cmd >> 8) & 0xFF), (uint8_t) (cmd & 0xFF)});
   result.insert(result.end(), args.begin(), args.end());
   return result;
 }
 
-void Madoka::query_(uint16_t cmd, message args, int t_d) {
-  message payload = this->prepare_message_(cmd, std::move(args));
+void Madoka::query_(uint16_t cmd, std::vector<uint8_t> args, int t_d) {
+  std::vector<uint8_t> payload = this->prepare_message_(cmd, std::move(args));
 
   if (this->node_state != espbt::ClientState::ESTABLISHED) {
     return;
   }
-  std::vector<chunk> chunks = this->split_payload_(payload);
+  std::vector<std::vector<uint8_t>> chunks = this->split_payload_(payload);
 
   for (auto chk : chunks) {
     esp_err_t status;
@@ -284,7 +287,7 @@ void Madoka::query_(uint16_t cmd, message args, int t_d) {
   delay(t_d);
 }
 
-void Madoka::parse_cb_(message msg) {
+void Madoka::parse_cb_(std::vector<uint8_t> msg) {
   uint16_t function_id = msg[2] << 8 | msg[3];
   uint8_t i = 4;
   uint8_t message_size = msg.size();
@@ -295,7 +298,7 @@ void Madoka::parse_cb_(message msg) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
         if (argument_id == 0x20) {
-          message val(msg.begin() + i, msg.begin() + i + len);
+          std::vector<uint8_t> val(msg.begin() + i, msg.begin() + i + len);
           this->cur_status_.status = val[0];
         }
         i += len;
@@ -305,7 +308,7 @@ void Madoka::parse_cb_(message msg) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
         if (argument_id == 0x20) {
-          message val(msg.begin() + i, msg.begin() + i + len);
+          std::vector<uint8_t> val(msg.begin() + i, msg.begin() + i + len);
           this->cur_status_.mode = val[0];
         }
         i += len;
@@ -345,12 +348,12 @@ void Madoka::parse_cb_(message msg) {
         uint8_t len = msg[i++];
         switch (argument_id) {
           case 0x20: {
-            message val(msg.begin() + i, msg.begin() + i + len);
+            std::vector<uint8_t> val(msg.begin() + i, msg.begin() + i + len);
             this->target_temperature_high = (float) (val[0] << 8 | val[1]) / 128;
             break;
           }
           case 0x21: {
-            message val(msg.begin() + i, msg.begin() + i + len);
+            std::vector<uint8_t> val(msg.begin() + i, msg.begin() + i + len);
             this->target_temperature_low = (float) (val[0] << 8 | val[1]) / 128;
             break;
           }
@@ -394,7 +397,7 @@ void Madoka::parse_cb_(message msg) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
         if (argument_id == 0x40) {
-          message val(msg.begin() + i, msg.begin() + i + len);
+          std::vector<uint8_t> val(msg.begin() + i, msg.begin() + i + len);
           this->current_temperature = val[0];
         }
         i += len;
