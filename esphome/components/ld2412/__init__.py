@@ -6,7 +6,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PASSWORD, CONF_THROTTLE, CONF_TIMEOUT
 
 DEPENDENCIES = ["uart"]
-CODEOWNERS = ["@sebcaps", "@regevbr"]
+CODEOWNERS = ["@Rihan9"]
 MULTI_CONF = True
 
 LD2412_ns = cg.esphome_ns.namespace("ld2412")
