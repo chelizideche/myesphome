@@ -249,17 +249,19 @@ void Madoka::process_incoming_chunk_(std::vector<uint8_t> chk) {
 std::vector<std::vector<uint8_t>> Madoka::split_payload_(std::vector<uint8_t> msg) {
   std::vector<std::vector<uint8_t>> result;
   size_t len = msg.size();
-  result.push_back(std::vector<uint8_t>({0x00, (uint8_t) (len + 1)}));
-  result[0].insert(result[0].end(), msg.begin(), min(msg.begin() + (MAX_CHUNK_SIZE - 2), msg.end()));
-  int i = 0;
-  for (i = 1; i < len / (MAX_CHUNK_SIZE - 1); i++) {  // from second to second-last
-    result.emplace_back(msg.begin() + ((MAX_CHUNK_SIZE - 1) * i - 1),
-                        msg.begin() + ((MAX_CHUNK_SIZE - 1) * (i + 1) - 1));
+
+  // Add leading length byte
+  std::vector<uint8_t> buf{(uint8_t) (len + 1)};
+  buf.insert(buf.end(), msg.begin(), msg.end());
+
+  for (size_t i = 0; i <= len / (MAX_CHUNK_SIZE - 1); i++) {
+    std::vector<uint8_t> chunk{(uint8_t) i};
+    chunk.insert(chunk.end(), buf.begin() + (i * (MAX_CHUNK_SIZE - 1)),
+                 std::min(buf.end(), buf.begin() + ((i + 1) * (MAX_CHUNK_SIZE - 1))));
+
+    result.push_back(chunk);
   }
-  if (len > 18) {
-    i++;
-    result.emplace_back(msg.begin() + ((MAX_CHUNK_SIZE - 1) * i), msg.end());
-  }
+
   return result;
 }
 
