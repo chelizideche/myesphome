@@ -1,4 +1,4 @@
-#include "LD2412.h"
+#include "ld2412.h"
 
 #include <utility>
 #ifdef USE_NUMBER
@@ -72,18 +72,16 @@ void LD2412Component::dump_config() {
   //   LOG_NUMBER("  ", "Move Thresholds Number", n);
   // }
 #endif
-  this->read_all_info();
-  ESP_LOGCONFIG(TAG, "  Throttle_ : %ums", this->throttle_);
-  ESP_LOGCONFIG(TAG, "  MAC Address : %s", const_cast<char *>(this->mac_.c_str()));
-  ESP_LOGCONFIG(TAG, "  Firmware Version : %s", const_cast<char *>(this->version_.c_str()));
+  ESP_LOGCONFIG(TAG,
+                "  Throttle_ : %u ms\n"
+                "  MAC Address : %s\n"
+                "  Firmware Version : %s",
+                this->throttle_, const_cast<char *>(this->mac_.c_str()), const_cast<char *>(this->version_.c_str()));
 }
 
 void LD2412Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up LD2412...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->read_all_info();
-  ESP_LOGCONFIG(TAG, "Mac Address : %s", const_cast<char *>(this->mac_.c_str()));
-  ESP_LOGCONFIG(TAG, "Firmware Version : %s", const_cast<char *>(this->version_.c_str()));
-  ESP_LOGCONFIG(TAG, "LD2412 setup complete.");
 }
 
 void LD2412Component::read_all_info() {
@@ -360,12 +358,11 @@ std::function<void(void)> set_number_value(number::Number *n, float value) {
 bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
   ESP_LOGV(TAG, "Handling ACK DATA for COMMAND %02X", buffer[COMMAND]);
   if (len < 10) {
-    ESP_LOGE(TAG, "Error with last command : incorrect length");
+    ESP_LOGE(TAG, "Incorrect length");
     return true;
   }
   if (buffer[0] != 0xFD || buffer[1] != 0xFC || buffer[2] != 0xFB || buffer[3] != 0xFA) {  // check 4 frame start bytes
-    ESP_LOGE(TAG, "Error with last command : incorrect Header %02X, %02X, %02X, %02X", buffer[0], buffer[1], buffer[2],
-             buffer[3]);
+    ESP_LOGE(TAG, "Incorrect header: %02X, %02X, %02X, %02X", buffer[0], buffer[1], buffer[2], buffer[3]);
     // just a patch to handle a strange behavior. better this than have a costant wrong mode
     if (this->dynamic_bakground_correction_active_) {
       this->query_dymanic_background_correction_();
@@ -373,11 +370,11 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
     return true;
   }
   if (buffer[COMMAND_STATUS] != 0x01) {
-    ESP_LOGE(TAG, "Error with last command : status != 0x01");
+    ESP_LOGE(TAG, "Invalid status");
     return true;
   }
   if (this->two_byte_to_int_(buffer[8], buffer[9]) != 0x00) {
-    ESP_LOGE(TAG, "Error with last command , last buffer was: %u , %u", buffer[8], buffer[9]);
+    ESP_LOGE(TAG, "Invalid command: %u , %u", buffer[8], buffer[9]);
     return true;
   }
   bool dynamic_background_correction_active;
@@ -398,7 +395,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       break;
     case lowbyte(CMD_VERSION):
       this->version_ = format_version(buffer);
-      ESP_LOGV(TAG, "FW Version is: %s", const_cast<char *>(this->version_.c_str()));
+      ESP_LOGV(TAG, "FW version is: %s", const_cast<char *>(this->version_.c_str()));
 #ifdef USE_TEXT_SENSOR
       if (this->version_text_sensor_ != nullptr) {
         this->version_text_sensor_->publish_state(this->version_);
@@ -408,7 +405,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
     case lowbyte(CMD_QUERY_DISTANCE_RESOLUTION): {
       std::string distance_resolution =
           DISTANCE_RESOLUTION_INT_TO_ENUM.at(this->two_byte_to_int_(buffer[10], buffer[11]));
-      ESP_LOGV(TAG, "Distance resolution is: %s", const_cast<char *>(distance_resolution.c_str()));
+      ESP_LOGV(TAG, "Distance resolution: %s", const_cast<char *>(distance_resolution.c_str()));
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr &&
           this->distance_resolution_select_->state != distance_resolution) {
@@ -446,7 +443,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
         return false;
       }
       this->mac_ = format_mac(buffer);
-      ESP_LOGV(TAG, "MAC Address is: %s", const_cast<char *>(this->mac_.c_str()));
+      ESP_LOGV(TAG, "MAC address: %s", const_cast<char *>(this->mac_.c_str()));
 #ifdef USE_TEXT_SENSOR
       if (this->mac_text_sensor_ != nullptr) {
         this->mac_text_sensor_->publish_state(this->mac_);
@@ -679,7 +676,7 @@ void LD2412Component::query_dymanic_background_correction_() {
 
 void LD2412Component::set_engineering_mode(bool enable) {
   this->set_config_mode_(true);
-  last_engineering_mode_change_millis_ = millis();
+  this->last_engineering_mode_change_millis_ = millis();
   uint8_t cmd = enable ? CMD_ENABLE_ENG : CMD_DISABLE_ENG;
   this->send_command_(cmd, nullptr, 0);
   this->set_config_mode_(false);
