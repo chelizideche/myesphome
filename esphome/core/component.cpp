@@ -145,20 +145,20 @@ void Component::mark_failed() {
   this->component_state_ |= COMPONENT_STATE_FAILED;
   this->status_set_error();
   // Also remove from loop since failed components shouldn't loop
-  App.disable_component_loop(this);
+  App.disable_component_loop_(this);
 }
 void Component::disable_loop() {
   ESP_LOGD(TAG, "%s loop disabled", this->get_component_source());
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_LOOP_DONE;
-  App.disable_component_loop(this);
+  App.disable_component_loop_(this);
 }
 void Component::enable_loop() {
   if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE) {
     ESP_LOGD(TAG, "%s loop enabled", this->get_component_source());
     this->component_state_ &= ~COMPONENT_STATE_MASK;
     this->component_state_ |= COMPONENT_STATE_LOOP;
-    App.enable_component_loop(this);
+    App.enable_component_loop_(this);
   }
 }
 void Component::reset_to_construction_state() {
