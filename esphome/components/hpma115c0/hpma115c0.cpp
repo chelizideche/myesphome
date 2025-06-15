@@ -173,8 +173,8 @@ void Hpma115C0PollingComponent::reset_sensor_mode_() {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
+#define MAX_PRINT_BUFFER_LENGTH 1024
 void Hpma115C0PollingComponent::print_frame_(StandardFrameT frame) {
-  const size_t MAX_PRINT_BUFFER_LENGTH = 1024;
   char buffer[MAX_PRINT_BUFFER_LENGTH];
 
   // Sanity check on lentgh
@@ -209,24 +209,15 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
 
   // Set frame type for request
   request.type = FRAME_TYPE_CMD;
+  request.command = command;
 
   // Sanity check on command data length
   switch (command) {
-    case CMD_READ_PARTICLE_MEASURING_RESULTS:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 13;
-      break;
-
     case CMD_START_PARTICLE_MEASUREMENT:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 0;
-      break;
-
     case CMD_STOP_PARTICLE_MEASUREMENT:
+    case CMD_STOP_AUTO_SEND:
+    case CMD_ENABLE_AUTO_SEND:
       request.length = 1;
-      request.command = command;
       expected_reply_data_length = 0;
       break;
 
@@ -237,27 +228,18 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
         return false;
       }
       request.length = 2;
-      request.command = command;
       memcpy(request.data, data, request.length - 1);
       expected_reply_data_length = 0;
       break;
 
+    case CMD_READ_PARTICLE_MEASURING_RESULTS:
+      request.length = 1;
+      expected_reply_data_length = 13;
+      break;
+
     case CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT:
       request.length = 1;
-      request.command = command;
       expected_reply_data_length = 2;
-      break;
-
-    case CMD_STOP_AUTO_SEND:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 0;
-      break;
-
-    case CMD_ENABLE_AUTO_SEND:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 0;
       break;
 
     default:
