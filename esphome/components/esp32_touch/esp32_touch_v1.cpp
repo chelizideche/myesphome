@@ -147,29 +147,25 @@ void ESP32TouchComponent::loop() {
 
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
-    uint32_t last_time = this->last_touch_time_[pad];
 
-    // Design note: Sentinel value pattern explanation
-    // - 0: Never touched since boot (waiting for initial timeout)
-    // - 1: Initial OFF state has been published (prevents repeated publishes)
-    // - >1: Actual timestamp of last touch event
-    // This avoids needing a separate boolean flag for initial state tracking
-
-    // If we've never seen this pad touched (last_time == 0) and enough time has passed
-    // since startup, publish OFF state and mark as published with value 1
-    if (last_time == 0 && now > this->release_timeout_ms_) {
-      child->publish_initial_state(false);
-      this->last_touch_time_[pad] = 1;  // Mark as "initial state published"
-      ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
-    } else if (child->last_state_ && last_time > 1) {  // last_time > 1 means it's a real timestamp
-      uint32_t time_diff = now - last_time;
+    // Handle initial state publication after startup
+    if (!this->initial_state_published_[pad]) {
+      // Check if enough time has passed since startup
+      if (now > this->release_timeout_ms_) {
+        child->publish_initial_state(false);
+        this->initial_state_published_[pad] = true;
+        ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
+      }
+    } else if (child->last_state_) {
+      // Pad is currently in touched state - check for release timeout
+      // Using subtraction handles 32-bit rollover correctly
+      uint32_t time_diff = now - this->last_touch_time_[pad];
 
       // Check if we haven't seen this pad recently
       if (time_diff > this->release_timeout_ms_) {
         // Haven't seen this pad recently, assume it's released
         child->last_state_ = false;
         child->publish_state(false);
-        this->last_touch_time_[pad] = 1;  // Reset to "initial published" state
         ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (timeout)", child->get_name().c_str());
       }
     }
@@ -194,6 +190,13 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
 
   touch_pad_clear_status();
+
+  // INTERRUPT BEHAVIOR: On ESP32 v1 hardware, the interrupt fires when ANY configured
+  // touch pad detects a touch (value goes below threshold). The hardware does NOT
+  // generate interrupts on release - only on touch events.
+  // The interrupt will continue to fire periodically (based on sleep_cycle) as long
+  // as any pad remains touched. This allows us to detect both new touches and
+  // continued touches, but releases must be detected by timeout in the main loop.
 
   // Process all configured pads to check their current state
   // Note: ESP32 v1 doesn't tell us which specific pad triggered the interrupt,

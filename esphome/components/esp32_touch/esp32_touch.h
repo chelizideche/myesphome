@@ -19,6 +19,11 @@ namespace esp32_touch {
 // - ESP32 v1 (original): Touch detected when value < threshold (capacitance increase causes value decrease)
 // - ESP32-S2/S3 v2: Touch detected when value > threshold (capacitance increase causes value increase)
 // This inversion is due to different hardware implementations between chip generations.
+//
+// INTERRUPT BEHAVIOR:
+// - ESP32 v1: Interrupts fire when ANY pad is touched and continue while touched.
+//   Releases are detected by timeout since hardware doesn't generate release interrupts.
+// - ESP32-S2/S3 v2: Interrupts can be configured per-pad with both touch and release events.
 
 static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
 
@@ -105,11 +110,12 @@ class ESP32TouchComponent : public Component {
  protected:
   // Design note: last_touch_time_ does not require synchronization primitives because:
   // 1. ESP32 guarantees atomic 32-bit aligned reads/writes
-  // 2. ISR only writes timestamps, main loop only reads (except sentinel value 1)
+  // 2. ISR only writes timestamps, main loop only reads
   // 3. Timing tolerance allows for occasional stale reads (50ms check interval)
   // 4. Queue operations provide implicit memory barriers
   // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
+  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
   uint32_t release_timeout_ms_{1500};
   uint32_t release_check_interval_ms_{50};
   uint32_t iir_filter_{0};
