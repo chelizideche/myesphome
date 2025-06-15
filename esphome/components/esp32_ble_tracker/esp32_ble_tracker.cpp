@@ -51,15 +51,14 @@ void ESP32BLETracker::setup() {
     return;
   }
   RAMAllocator<BLEScanResult> allocator;
-  this->scan_result_buffer_ = allocator.allocate(SCAN_RESULT_BUFFER_SIZE);
+  this->scan_ring_buffer_ = allocator.allocate(SCAN_RESULT_BUFFER_SIZE);
 
-  if (this->scan_result_buffer_ == nullptr) {
-    ESP_LOGE(TAG, "Could not allocate buffer for BLE Tracker!");
+  if (this->scan_ring_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Could not allocate ring buffer for BLE Tracker!");
     this->mark_failed();
   }
 
   global_esp32_ble_tracker = this;
-  this->scan_result_lock_ = xSemaphoreCreateMutex();
 
 #ifdef USE_OTA
   ota::get_global_ota_callback()->add_on_state_callback(
@@ -119,27 +118,27 @@ void ESP32BLETracker::loop() {
   }
   bool promote_to_connecting = discovered && !searching && !connecting;
 
-  if (this->scanner_state_ == ScannerState::RUNNING &&
-      this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
-      xSemaphoreTake(this->scan_result_lock_, 0)) {
-    uint32_t index = this->scan_result_index_;
-    if (index >= SCAN_RESULT_BUFFER_SIZE) {
-      ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
-    }
+  // Process scan results from lock-free ring buffer
+  if (this->scanner_state_ == ScannerState::RUNNING) {
+    size_t read_idx = this->ring_read_index_.load(std::memory_order_relaxed);
+    size_t write_idx = this->ring_write_index_.load(std::memory_order_acquire);
 
-    if (this->raw_advertisements_) {
-      for (auto *listener : this->listeners_) {
-        listener->parse_devices(this->scan_result_buffer_, this->scan_result_index_);
-      }
-      for (auto *client : this->clients_) {
-        client->parse_devices(this->scan_result_buffer_, this->scan_result_index_);
-      }
-    }
+    while (read_idx != write_idx) {
+      // Process one result at a time directly from ring buffer
+      BLEScanResult &scan_result = this->scan_ring_buffer_[read_idx];
 
-    if (this->parse_advertisements_) {
-      for (size_t i = 0; i < index; i++) {
+      if (this->raw_advertisements_) {
+        for (auto *listener : this->listeners_) {
+          listener->parse_devices(&scan_result, 1);
+        }
+        for (auto *client : this->clients_) {
+          client->parse_devices(&scan_result, 1);
+        }
+      }
+
+      if (this->parse_advertisements_) {
         ESPBTDevice device;
-        device.parse_scan_rst(this->scan_result_buffer_[i]);
+        device.parse_scan_rst(scan_result);
 
         bool found = false;
         for (auto *listener : this->listeners_) {
@@ -160,9 +159,17 @@ void ESP32BLETracker::loop() {
           this->print_bt_device_info(device);
         }
       }
+
+      // Move to next entry in ring buffer
+      read_idx = (read_idx + 1) % SCAN_RESULT_BUFFER_SIZE;
+      this->ring_read_index_.store(read_idx, std::memory_order_release);
     }
-    this->scan_result_index_ = 0;
-    xSemaphoreGive(this->scan_result_lock_);
+
+    // Log dropped results periodically
+    size_t dropped = this->scan_results_dropped_.exchange(0, std::memory_order_relaxed);
+    if (dropped > 0) {
+      ESP_LOGW(TAG, "Dropped %zu BLE scan results due to buffer overflow", dropped);
+    }
   }
   if (this->scanner_state_ == ScannerState::STOPPED) {
     this->end_of_scan_();  // Change state to IDLE
@@ -391,12 +398,19 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
   ESP_LOGV(TAG, "gap_scan_result - event %d", scan_result.search_evt);
 
   if (scan_result.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
-    if (xSemaphoreTake(this->scan_result_lock_, 0)) {
-      if (this->scan_result_index_ < SCAN_RESULT_BUFFER_SIZE) {
-        // Store BLEScanResult directly in our buffer
-        this->scan_result_buffer_[this->scan_result_index_++] = scan_result;
-      }
-      xSemaphoreGive(this->scan_result_lock_);
+    // Lock-free ring buffer write
+    size_t write_idx = this->ring_write_index_.load(std::memory_order_relaxed);
+    size_t next_write_idx = (write_idx + 1) % SCAN_RESULT_BUFFER_SIZE;
+    size_t read_idx = this->ring_read_index_.load(std::memory_order_acquire);
+
+    // Check if buffer is full
+    if (next_write_idx != read_idx) {
+      // Write to ring buffer
+      this->scan_ring_buffer_[write_idx] = scan_result;
+      this->ring_write_index_.store(next_write_idx, std::memory_order_release);
+    } else {
+      // Buffer full, track dropped results
+      this->scan_results_dropped_.fetch_add(1, std::memory_order_relaxed);
     }
   } else if (scan_result.search_evt == ESP_GAP_SEARCH_INQ_CMPL_EVT) {
     // Scan finished on its own
