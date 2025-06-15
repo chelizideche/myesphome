@@ -173,7 +173,7 @@ void Hpma115C0PollingComponent::reset_sensor_mode_() {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
-#define MAX_PRINT_BUFFER_LENGTH 1024
+static const uint16_t MAX_PRINT_BUFFER_LENGTH = 1024;
 void Hpma115C0PollingComponent::print_frame_(StandardFrameT frame) {
   char buffer[MAX_PRINT_BUFFER_LENGTH];
 
