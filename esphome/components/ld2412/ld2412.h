@@ -243,7 +243,7 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void factory_reset();
 
  protected:
-  static int two_byte_to_int_(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
+  static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
   void send_command_(uint8_t command_str, const uint8_t *command_value, int command_value_len);
   void set_config_mode_(bool enable);
   void handle_periodic_data_(uint8_t *buffer, int len);
@@ -257,7 +257,7 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void restart_();
   void query_dymanic_background_correction_();
 
-  std::string format_buffer(uint8_t *buffer, size_t len) {
+  static std::string format_buffer(const uint8_t *buffer, size_t len) {
     std::string version;
     version.resize(len * 2 + 1);
     for (size_t i = 0; i < len; i++) {

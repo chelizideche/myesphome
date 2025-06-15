@@ -220,7 +220,8 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
 #ifdef USE_SENSOR
   if (this->moving_target_distance_sensor_ != nullptr) {
     int new_moving_target_distance =
-        target_state != 0x00 ? this->two_byte_to_int_(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]) : 0;
+        target_state != 0x00 ? LD2412Component::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH])
+                             : 0;
     if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
       this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
   }
@@ -231,7 +232,8 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
   }
   if (this->still_target_distance_sensor_ != nullptr) {
     int new_still_target_distance =
-        target_state != 0x00 ? this->two_byte_to_int_(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]) : 0;
+        target_state != 0x00 ? LD2412Component::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH])
+                             : 0;
     if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
       this->still_target_distance_sensor_->publish_state(new_still_target_distance);
   }
@@ -243,9 +245,9 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
   if (this->detection_distance_sensor_ != nullptr) {
     int new_detect_distance = 0;
     if (target_state != 0x00 && CHECK_BIT(target_state, 0)) {
-      new_detect_distance = this->two_byte_to_int_(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
+      new_detect_distance = LD2412Component::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
     } else if (target_state != 0x00) {
-      new_detect_distance = this->two_byte_to_int_(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
+      new_detect_distance = LD2412Component::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
     }
     if (this->detection_distance_sensor_->get_state() != new_detect_distance)
       this->detection_distance_sensor_->publish_state(new_detect_distance);
@@ -373,7 +375,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
     ESP_LOGE(TAG, "Invalid status");
     return true;
   }
-  if (this->two_byte_to_int_(buffer[8], buffer[9]) != 0x00) {
+  if (LD2412Component::two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
     ESP_LOGE(TAG, "Invalid command: %u , %u", buffer[8], buffer[9]);
     return true;
   }
@@ -404,7 +406,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       break;
     case lowbyte(CMD_QUERY_DISTANCE_RESOLUTION): {
       std::string distance_resolution =
-          DISTANCE_RESOLUTION_INT_TO_ENUM.at(this->two_byte_to_int_(buffer[10], buffer[11]));
+          DISTANCE_RESOLUTION_INT_TO_ENUM.at(LD2412Component::two_byte_to_int(buffer[10], buffer[11]));
       ESP_LOGV(TAG, "Distance resolution: %s", const_cast<char *>(distance_resolution.c_str()));
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr &&
@@ -525,8 +527,9 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       /*
         None Duration: 11~12th bytes
       */
-      updates.push_back(set_number_value(this->timeout_number_, this->two_byte_to_int_(buffer[12], buffer[13])));
-      ESP_LOGV(TAG, "timeout_number_: %u", this->two_byte_to_int_(buffer[12], buffer[13]));
+      updates.push_back(
+          set_number_value(this->timeout_number_, LD2412Component::two_byte_to_int(buffer[12], buffer[13])));
+      ESP_LOGV(TAG, "timeout_number_: %u", LD2412Component::two_byte_to_int(buffer[12], buffer[13]));
       /*
         Output pin configuration: 13th bytes
       */
@@ -750,6 +753,9 @@ void LD2412Component::set_basic_config() {
 }
 
 void LD2412Component::set_gate_threshold() {
+  if (this->gate_move_threshold_numbers_.empty()) {
+    return;  // No gate move threshold numbers exist, nothing we can do
+  }
   this->set_config_mode_(true);
   uint8_t value[14];  // = {0x00, 0x00, lowbyte(gate),   highbyte(gate),   0x00, 0x00,
                       //   0x01, 0x00, lowbyte(motion), highbyte(motion), 0x00, 0x00,
