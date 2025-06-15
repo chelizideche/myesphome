@@ -1,6 +1,6 @@
 #include "tx20.h"
-#include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #include <vector>
 
@@ -44,7 +44,7 @@ float Tx20Component::get_setup_priority() const { return setup_priority::DATA; }
 std::string Tx20Component::get_wind_cardinal_direction() const { return this->wind_cardinal_direction_; }
 
 void Tx20Component::decode_and_publish_() {
-  ESP_LOGVV(TAG, "Decode Tx20...");
+  ESP_LOGVV(TAG, "Decode Tx20");
 
   std::string string_buffer;
   std::string string_buffer_2;

@@ -139,7 +139,7 @@ void LEDCOutput::write_state(float state) {
 }
 
 void LEDCOutput::setup() {
-  ESP_LOGV(TAG, "Entering setup...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 #ifdef USE_ARDUINO
   this->update_frequency(this->frequency_);
   this->turn_off();
@@ -181,10 +181,12 @@ void LEDCOutput::setup() {
 void LEDCOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Output:");
   LOG_PIN("  Pin ", this->pin_);
-  ESP_LOGCONFIG(TAG, "  Channel: %u", this->channel_);
-  ESP_LOGCONFIG(TAG, "  PWM Frequency: %.1f Hz", this->frequency_);
-  ESP_LOGCONFIG(TAG, "  Phase angle: %.1f°", this->phase_angle_);
-  ESP_LOGCONFIG(TAG, "  Bit depth: %u", this->bit_depth_);
+  ESP_LOGCONFIG(TAG,
+                "  Channel: %u\n"
+                "  PWM Frequency: %.1f Hz\n"
+                "  Phase angle: %.1f°\n"
+                "  Bit depth: %u",
+                this->channel_, this->frequency_, this->phase_angle_, this->bit_depth_);
   ESP_LOGV(TAG, "  Max frequency for bit depth: %f", ledc_max_frequency_for_bit_depth(this->bit_depth_));
   ESP_LOGV(TAG, "  Min frequency for bit depth: %f",
            ledc_min_frequency_for_bit_depth(this->bit_depth_, (this->frequency_ < 100)));
@@ -207,14 +209,14 @@ void LEDCOutput::update_frequency(float frequency) {
   this->bit_depth_ = bit_depth_opt.value_or(8);
   this->frequency_ = frequency;
 #ifdef USE_ARDUINO
-  ESP_LOGV(TAG, "Using Arduino API - Trying to define channel, frequency and bit depth...");
+  ESP_LOGV(TAG, "Using Arduino API - Trying to define channel, frequency and bit depth");
   u_int32_t configured_frequency = 0;
 
   // Configure LEDC channel, frequency and bit depth with fallback
   int attempt_count_max = SETUP_ATTEMPT_COUNT_MAX;
   while (attempt_count_max > 0 && configured_frequency == 0) {
-    ESP_LOGV(TAG, "Initializing channel %u with frequency %.1f and bit depth of %u...", this->channel_,
-             this->frequency_, this->bit_depth_);
+    ESP_LOGV(TAG, "Initializing channel %u with frequency %.1f and bit depth of %u", this->channel_, this->frequency_,
+             this->bit_depth_);
     configured_frequency = ledcSetup(this->channel_, frequency, this->bit_depth_);
     if (configured_frequency != 0) {
       this->initialized_ = true;

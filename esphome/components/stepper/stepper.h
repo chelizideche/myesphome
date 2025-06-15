@@ -14,10 +14,11 @@ enum Rotations {
 };
 
 #define LOG_STEPPER(this) \
-  ESP_LOGCONFIG(TAG, "  Acceleration: %.0f steps/s^2", this->acceleration_); \
-  ESP_LOGCONFIG(TAG, "  Deceleration: %.0f steps/s^2", this->deceleration_); \
-  ESP_LOGCONFIG(TAG, "  Max Speed: %.0f steps/s", this->max_speed_); \
-  ESP_LOGCONFIG(TAG, "  Rotation: %d", this->rotation_);
+                "  Acceleration: %.0f steps/s^2\n" \
+                "  Deceleration: %.0f steps/s^2\n" \
+                "  Max Speed: %.0f steps/s\n" \
+                "  Rotation: %d",
+                this->acceleration_, this->deceleration_, this->max_speed_, this->rotation_);
 
 class Stepper {
  public:
