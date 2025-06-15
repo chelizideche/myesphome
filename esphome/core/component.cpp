@@ -140,26 +140,26 @@ bool Component::should_warn_of_blocking(uint32_t blocking_time) {
   return false;
 }
 void Component::mark_failed() {
-  ESP_LOGE(TAG, "Component %s was marked as failed.", this->get_component_source());
+  ESP_LOGE(TAG, "Component %s was marked as failed", this->get_component_source());
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_FAILED;
   this->status_set_error();
 }
 void Component::disable_loop() {
-  ESP_LOGD(TAG, "Component %s loop disabled.", this->get_component_source());
+  ESP_LOGD(TAG, "%s loop disabled", this->get_component_source());
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_LOOP_DONE;
 }
 void Component::enable_loop() {
   if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE) {
-    ESP_LOGD(TAG, "Component %s loop enabled.", this->get_component_source());
+    ESP_LOGD(TAG, "%s loop enabled", this->get_component_source());
     this->component_state_ &= ~COMPONENT_STATE_MASK;
     this->component_state_ |= COMPONENT_STATE_LOOP;
   }
 }
 void Component::reset_to_construction_state() {
   if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED) {
-    ESP_LOGI(TAG, "Component %s is being reset to construction state.", this->get_component_source());
+    ESP_LOGI(TAG, "Component %s is being reset to construction state", this->get_component_source());
     this->component_state_ &= ~COMPONENT_STATE_MASK;
     this->component_state_ |= COMPONENT_STATE_CONSTRUCTION;
     // Clear error status when resetting
@@ -299,8 +299,8 @@ uint32_t WarnIfComponentBlockingGuard::finish() {
   }
   if (should_warn) {
     const char *src = component_ == nullptr ? "<null>" : component_->get_component_source();
-    ESP_LOGW(TAG, "Component %s took a long time for an operation (%" PRIu32 " ms).", src, blocking_time);
-    ESP_LOGW(TAG, "Components should block for at most 30 ms.");
+    ESP_LOGW(TAG, "Component %s took a long time for an operation (%" PRIu32 " ms)", src, blocking_time);
+    ESP_LOGW(TAG, "Components should block for at most 30 ms");
   }
 
   return curr_time;
