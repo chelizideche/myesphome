@@ -85,8 +85,8 @@ void BedJetClimate::reset_state_() {
 
 void BedJetClimate::loop() {
   // This component is controlled via the parent BedJetHub
-  // Empty loop not needed, mark as done to save CPU cycles
-  this->mark_loop_done();
+  // Empty loop not needed, disable to save CPU cycles
+  this->disable_loop();
 }
 
 void BedJetClimate::control(const ClimateCall &call) {

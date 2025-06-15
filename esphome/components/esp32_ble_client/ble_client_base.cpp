@@ -23,6 +23,12 @@ void BLEClientBase::setup() {
 }
 
 void BLEClientBase::loop() {
+  // If address is 0, this connection is not in use
+  if (this->address_ == 0) {
+    this->disable_loop();
+    return;
+  }
+
   if (!esp32_ble::global_ble->is_active()) {
     this->set_state(espbt::ClientState::INIT);
     return;

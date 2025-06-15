@@ -23,6 +23,8 @@ class CaptivePortal : public AsyncWebHandler, public Component {
   void loop() override {
     if (this->dns_server_ != nullptr)
       this->dns_server_->processNextRequest();
+    else
+      this->disable_loop();
   }
 #endif
   float get_setup_priority() const override;

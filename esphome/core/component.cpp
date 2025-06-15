@@ -145,10 +145,17 @@ void Component::mark_failed() {
   this->component_state_ |= COMPONENT_STATE_FAILED;
   this->status_set_error();
 }
-void Component::mark_loop_done() {
-  ESP_LOGD(TAG, "Component %s loop marked as done.", this->get_component_source());
+void Component::disable_loop() {
+  ESP_LOGD(TAG, "Component %s loop disabled.", this->get_component_source());
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_LOOP_DONE;
+}
+void Component::enable_loop() {
+  if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE) {
+    ESP_LOGD(TAG, "Component %s loop enabled.", this->get_component_source());
+    this->component_state_ &= ~COMPONENT_STATE_MASK;
+    this->component_state_ |= COMPONENT_STATE_LOOP;
+  }
 }
 void Component::reset_to_construction_state() {
   if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED) {

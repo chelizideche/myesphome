@@ -16,8 +16,8 @@ static const std::string EMPTY = "";
 
 void BLETextSensor::loop() {
   // This component uses polling via update() and BLE callbacks
-  // Empty loop not needed, mark as done to save CPU cycles
-  this->mark_loop_done();
+  // Empty loop not needed, disable to save CPU cycles
+  this->disable_loop();
 }
 
 void BLETextSensor::dump_config() {

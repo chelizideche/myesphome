@@ -152,12 +152,19 @@ class Component {
     this->mark_failed();
   }
 
-  /** Mark this component's loop as done. The loop will no longer be called.
+  /** Disable this component's loop. The loop() method will no longer be called.
    *
    * This is useful for components that only need to run for a certain period of time
-   * and then no longer need their loop() method called, saving CPU cycles.
+   * or when inactive, saving CPU cycles.
    */
-  void mark_loop_done();
+  void disable_loop();
+
+  /** Enable this component's loop. The loop() method will be called normally.
+   *
+   * This is useful for components that transition between active and inactive states
+   * and need to re-enable their loop() method when becoming active again.
+   */
+  void enable_loop();
 
   bool is_failed() const;
 

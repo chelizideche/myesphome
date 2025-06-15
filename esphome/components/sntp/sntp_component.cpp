@@ -71,7 +71,7 @@ void SNTPComponent::loop() {
 #ifdef USE_ESP_IDF
   // On ESP-IDF, time sync is permanent and update() doesn't force resync
   // Time is now synchronized, no need to check anymore
-  this->mark_loop_done();
+  this->disable_loop();
 #endif
 }
 
