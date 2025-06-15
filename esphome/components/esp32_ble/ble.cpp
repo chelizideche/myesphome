@@ -23,9 +23,6 @@ namespace esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
-// Maximum size of the BLE event queue
-static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
-
 static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
     RAMAllocator<BLEEvent>::ALLOW_FAILURE | RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
 
@@ -370,7 +367,7 @@ void ESP32BLE::loop() {
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
   // Check if buffer is full before allocating
-  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
+  if (global_ble->ble_events_.size() >= (MAX_BLE_QUEUE_SIZE - 1)) {
     // Buffer is full, push will fail and increment dropped count internally
     return;
   }
