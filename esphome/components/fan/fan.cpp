@@ -80,7 +80,7 @@ void FanCall::validate_() {
   }
 
   if (this->direction_.has_value() && !traits.supports_direction()) {
-    ESP_LOGW(TAG, "'%s' - This fan does not support directions!", this->parent_.get_name().c_str());
+    ESP_LOGW(TAG, "%s: Direction control not supported", this->parent_.get_name().c_str());
     this->direction_.reset();
   }
 }
