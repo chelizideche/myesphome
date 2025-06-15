@@ -364,7 +364,7 @@ void ESP32BLE::loop() {
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGD(TAG, "BLE event queue full (%zu), dropping event", MAX_BLE_QUEUE_SIZE);
+    ESP_LOGD(TAG, "Event queue full (%zu), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
