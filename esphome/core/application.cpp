@@ -98,6 +98,11 @@ void Application::loop() {
   this->feed_wdt(last_op_end_time);
 
   for (Component *component : this->looping_components_) {
+    // Skip components that are done or failed
+    if (component->should_skip_loop()) {
+      continue;
+    }
+
     // Update the cached time before each component runs
     this->loop_component_start_time_ = last_op_end_time;
 
