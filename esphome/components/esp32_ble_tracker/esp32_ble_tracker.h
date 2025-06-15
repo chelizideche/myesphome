@@ -284,11 +284,14 @@ class ESP32BLETracker : public Component,
   bool raw_advertisements_{false};
   bool parse_advertisements_{false};
 
-  // Lock-free ring buffer for scan results
+  // Lock-free Single-Producer Single-Consumer (SPSC) ring buffer for scan results
+  // Producer: ESP-IDF Bluetooth stack callback (gap_scan_event_handler)
+  // Consumer: ESPHome main loop (loop() method)
+  // This design ensures zero blocking in the BT callback and prevents scan result loss
   BLEScanResult *scan_ring_buffer_;
-  std::atomic<size_t> ring_write_index_{0};
-  std::atomic<size_t> ring_read_index_{0};
-  std::atomic<size_t> scan_results_dropped_{0};
+  std::atomic<size_t> ring_write_index_{0};      // Written only by BT callback (producer)
+  std::atomic<size_t> ring_read_index_{0};       // Written only by main loop (consumer)
+  std::atomic<size_t> scan_results_dropped_{0};  // Tracks buffer overflow events
 
   esp_bt_status_t scan_start_failed_{ESP_BT_STATUS_SUCCESS};
   esp_bt_status_t scan_set_param_failed_{ESP_BT_STATUS_SUCCESS};

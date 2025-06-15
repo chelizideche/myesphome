@@ -118,7 +118,8 @@ void ESP32BLETracker::loop() {
   }
   bool promote_to_connecting = discovered && !searching && !connecting;
 
-  // Process scan results from lock-free ring buffer
+  // Process scan results from lock-free SPSC ring buffer
+  // Consumer side: This runs in the main loop thread
   if (this->scanner_state_ == ScannerState::RUNNING) {
     size_t read_idx = this->ring_read_index_.load(std::memory_order_relaxed);
     size_t write_idx = this->ring_write_index_.load(std::memory_order_acquire);
@@ -398,7 +399,9 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
   ESP_LOGV(TAG, "gap_scan_result - event %d", scan_result.search_evt);
 
   if (scan_result.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
-    // Lock-free ring buffer write
+    // Lock-free SPSC ring buffer write (Producer side)
+    // This runs in the ESP-IDF Bluetooth stack callback thread
+    // IMPORTANT: Only this thread writes to ring_write_index_
     size_t write_idx = this->ring_write_index_.load(std::memory_order_relaxed);
     size_t next_write_idx = (write_idx + 1) % SCAN_RESULT_BUFFER_SIZE;
     size_t read_idx = this->ring_read_index_.load(std::memory_order_acquire);
