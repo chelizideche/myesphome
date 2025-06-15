@@ -1,40 +1,38 @@
 from __future__ import annotations
+
 import abc
+from contextlib import contextmanager
+import contextvars
 import functools
 import heapq
 import logging
 import re
-
-from typing import Union, Any
-
-from contextlib import contextmanager
-import contextvars
+from typing import Any
 
 import voluptuous as vol
 
-from esphome import core, yaml_util, loader, pins
-import esphome.core.config as core_config
+from esphome import core, loader, pins, yaml_util
+from esphome.config_helpers import Extend, Remove
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ESPHOME,
-    CONF_ID,
-    CONF_PLATFORM,
-    CONF_PACKAGES,
-    CONF_SUBSTITUTIONS,
     CONF_EXTERNAL_COMPONENTS,
-    TARGET_PLATFORMS,
+    CONF_ID,
+    CONF_MIN_VERSION,
+    CONF_PACKAGES,
+    CONF_PLATFORM,
+    CONF_SUBSTITUTIONS,
 )
-from esphome.core import CORE, EsphomeError
-from esphome.helpers import indent
-from esphome.util import safe_print, OrderedDict
-
-from esphome.config_helpers import Extend, Remove
-from esphome.loader import get_component, get_platform, ComponentManifest
-from esphome.yaml_util import is_secret, ESPHomeDataBase, ESPForceValue
-from esphome.voluptuous_schema import ExtraKeysInvalid
-from esphome.log import color, Fore
+from esphome.core import CORE, DocumentRange, EsphomeError
+import esphome.core.config as core_config
 import esphome.final_validate as fv
-import esphome.config_validation as cv
-from esphome.types import ConfigType, ConfigFragmentType
+from esphome.helpers import indent
+from esphome.loader import ComponentManifest, get_component, get_platform
+from esphome.log import AnsiFore, color
+from esphome.types import ConfigFragmentType, ConfigType
+from esphome.util import OrderedDict, safe_print
+from esphome.voluptuous_schema import ExtraKeysInvalid
+from esphome.yaml_util import ESPForceValue, ESPHomeDataBase, is_secret
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,7 +63,7 @@ def iter_component_configs(config):
                 yield p_name, platform, p_config
 
 
-ConfigPath = list[Union[str, int]]
+ConfigPath = list[str | int]
 path_context = contextvars.ContextVar("Config path")
 
 
@@ -139,7 +137,7 @@ class Config(OrderedDict, fv.FinalValidateConfig):
         )
 
     def run_validation_steps(self):
-        while self._validation_tasks:
+        while self._validation_tasks and not self.errors:
             task = heapq.heappop(self._validation_tasks)
             task.step.run(self)
 
@@ -184,7 +182,7 @@ class Config(OrderedDict, fv.FinalValidateConfig):
 
     def get_deepest_document_range_for_path(
         self, path: ConfigPath, get_key: bool = False
-    ) -> ESPHomeDataBase | None:
+    ) -> DocumentRange | None:
         data = self
         doc_range = None
         for index, path_item in enumerate(path):
@@ -391,6 +389,7 @@ class LoadValidationStep(ConfigValidationStep):
                 result.add_str_error(f"Platform not found: '{p_domain}'", path)
                 continue
             CORE.loaded_integrations.add(p_name)
+            CORE.loaded_platforms.add(f"{self.domain}/{p_name}")
 
             # Process AUTO_LOAD
             for load in platform.auto_load:
@@ -784,7 +783,7 @@ def validate_config(
         from esphome.components import substitutions
 
         result[CONF_SUBSTITUTIONS] = {
-            **config.get(CONF_SUBSTITUTIONS, {}),
+            **(config.get(CONF_SUBSTITUTIONS) or {}),
             **command_line_substitutions,
         }
         result.add_output_path([CONF_SUBSTITUTIONS], CONF_SUBSTITUTIONS)
@@ -834,17 +833,21 @@ def validate_config(
     result[CONF_ESPHOME] = config[CONF_ESPHOME]
     result.add_output_path([CONF_ESPHOME], CONF_ESPHOME)
     try:
-        core_config.preload_core_config(config, result)
+        target_platform = core_config.preload_core_config(config, result)
     except vol.Invalid as err:
         result.add_error(err)
         return result
     # Remove temporary esphome config path again, it will be reloaded later
     result.remove_output_path([CONF_ESPHOME], CONF_ESPHOME)
 
+    # Check version number now to avoid loading components that are not supported
+    if min_version := config[CONF_ESPHOME].get(CONF_MIN_VERSION):
+        cv.All(cv.version_number, cv.validate_esphome_version)(min_version)
+
     # First run platform validation steps
-    for key in TARGET_PLATFORMS:
-        if key in config:
-            result.add_validation_step(LoadValidationStep(key, config[key]))
+    result.add_validation_step(
+        LoadValidationStep(target_platform, config[target_platform])
+    )
     result.run_validation_steps()
 
     if result.errors:
@@ -957,7 +960,7 @@ def line_info(config, path, highlight=True):
     if obj:
         mark = obj.start_mark
         source = f"[source {mark.document}:{mark.line + 1}]"
-        return color(Fore.CYAN, source)
+        return color(AnsiFore.CYAN, source)
     return "None"
 
 
@@ -981,7 +984,7 @@ def dump_dict(
     if at_root:
         error = config.get_error_for_path(path)
         if error is not None:
-            ret += f"\n{color(Fore.BOLD_RED, _format_vol_invalid(error, config))}\n"
+            ret += f"\n{color(AnsiFore.BOLD_RED, _format_vol_invalid(error, config))}\n"
 
     if isinstance(conf, (list, tuple)):
         multiline = True
@@ -993,11 +996,11 @@ def dump_dict(
             path_ = path + [i]
             error = config.get_error_for_path(path_)
             if error is not None:
-                ret += f"\n{color(Fore.BOLD_RED, _format_vol_invalid(error, config))}\n"
+                ret += f"\n{color(AnsiFore.BOLD_RED, _format_vol_invalid(error, config))}\n"
 
             sep = "- "
             if config.is_in_error_path(path_):
-                sep = color(Fore.RED, sep)
+                sep = color(AnsiFore.RED, sep)
             msg, _ = dump_dict(config, path_, at_root=False)
             msg = indent(msg)
             inf = line_info(config, path_, highlight=config.is_in_error_path(path_))
@@ -1016,11 +1019,11 @@ def dump_dict(
             path_ = path + [k]
             error = config.get_error_for_path(path_)
             if error is not None:
-                ret += f"\n{color(Fore.BOLD_RED, _format_vol_invalid(error, config))}\n"
+                ret += f"\n{color(AnsiFore.BOLD_RED, _format_vol_invalid(error, config))}\n"
 
             st = f"{k}: "
             if config.is_in_error_path(path_):
-                st = color(Fore.RED, st)
+                st = color(AnsiFore.RED, st)
             msg, m = dump_dict(config, path_, at_root=False)
 
             inf = line_info(config, path_, highlight=config.is_in_error_path(path_))
@@ -1042,7 +1045,7 @@ def dump_dict(
         if len(conf) > 80:
             conf = f"|-\n{indent(conf)}"
         error = config.get_error_for_path(path)
-        col = Fore.BOLD_RED if error else Fore.KEEP
+        col = AnsiFore.BOLD_RED if error else AnsiFore.KEEP
         ret += color(col, str(conf))
     elif isinstance(conf, core.Lambda):
         if is_secret(conf):
@@ -1050,13 +1053,13 @@ def dump_dict(
 
         conf = f"!lambda |-\n{indent(str(conf.value))}"
         error = config.get_error_for_path(path)
-        col = Fore.BOLD_RED if error else Fore.KEEP
+        col = AnsiFore.BOLD_RED if error else AnsiFore.KEEP
         ret += color(col, conf)
     elif conf is None:
         pass
     else:
         error = config.get_error_for_path(path)
-        col = Fore.BOLD_RED if error else Fore.KEEP
+        col = AnsiFore.BOLD_RED if error else AnsiFore.KEEP
         ret += color(col, str(conf))
         multiline = "\n" in ret
 
@@ -1098,13 +1101,13 @@ def read_config(command_line_substitutions):
         if not CORE.verbose:
             res = strip_default_ids(res)
 
-        safe_print(color(Fore.BOLD_RED, "Failed config"))
+        safe_print(color(AnsiFore.BOLD_RED, "Failed config"))
         safe_print("")
         for path, domain in res.output_paths:
             if not res.is_in_error_path(path):
                 continue
 
-            errstr = color(Fore.BOLD_RED, f"{domain}:")
+            errstr = color(AnsiFore.BOLD_RED, f"{domain}:")
             errline = line_info(res, path)
             if errline:
                 errstr += f" {errline}"
@@ -1119,8 +1122,8 @@ def read_config(command_line_substitutions):
             safe_print(indent("\n".join(split_dump[:i])))
 
         for err in res.errors:
-            safe_print(color(Fore.BOLD_RED, err.msg))
+            safe_print(color(AnsiFore.BOLD_RED, err.msg))
             safe_print("")
 
         return None
-    return OrderedDict(res)
+    return res

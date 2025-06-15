@@ -1,20 +1,21 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import automation
-from esphome.components import mqtt
+import esphome.codegen as cg
+from esphome.components import mqtt, web_server
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_DEVICE_CLASS,
     CONF_ENTITY_CATEGORY,
     CONF_FILTERS,
+    CONF_FROM,
     CONF_ICON,
     CONF_ID,
-    CONF_ON_VALUE,
-    CONF_ON_RAW_VALUE,
-    CONF_TRIGGER_ID,
     CONF_MQTT_ID,
+    CONF_ON_RAW_VALUE,
+    CONF_ON_VALUE,
     CONF_STATE,
-    CONF_FROM,
     CONF_TO,
+    CONF_TRIGGER_ID,
+    CONF_WEB_SERVER,
     DEVICE_CLASS_DATE,
     DEVICE_CLASS_EMPTY,
     DEVICE_CLASS_TIMESTAMP,
@@ -124,59 +125,60 @@ async def map_filter_to_code(config, filter_id):
 
 validate_device_class = cv.one_of(*DEVICE_CLASSES, lower=True, space="_")
 
-TEXT_SENSOR_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(cv.MQTT_COMPONENT_SCHEMA).extend(
-    {
-        cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(mqtt.MQTTTextSensor),
-        cv.GenerateID(): cv.declare_id(TextSensor),
-        cv.Optional(CONF_DEVICE_CLASS): validate_device_class,
-        cv.Optional(CONF_FILTERS): validate_filters,
-        cv.Optional(CONF_ON_VALUE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(TextSensorStateTrigger),
-            }
-        ),
-        cv.Optional(CONF_ON_RAW_VALUE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                    TextSensorStateRawTrigger
-                ),
-            }
-        ),
-    }
+_TEXT_SENSOR_SCHEMA = (
+    cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
+    .extend(cv.MQTT_COMPONENT_SCHEMA)
+    .extend(
+        {
+            cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(mqtt.MQTTTextSensor),
+            cv.GenerateID(): cv.declare_id(TextSensor),
+            cv.Optional(CONF_DEVICE_CLASS): validate_device_class,
+            cv.Optional(CONF_FILTERS): validate_filters,
+            cv.Optional(CONF_ON_VALUE): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        TextSensorStateTrigger
+                    ),
+                }
+            ),
+            cv.Optional(CONF_ON_RAW_VALUE): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        TextSensorStateRawTrigger
+                    ),
+                }
+            ),
+        }
+    )
 )
-
-_UNDEF = object()
 
 
 def text_sensor_schema(
-    class_: MockObjClass = _UNDEF,
+    class_: MockObjClass = cv.UNDEFINED,
     *,
-    icon: str = _UNDEF,
-    entity_category: str = _UNDEF,
-    device_class: str = _UNDEF,
+    device_class: str = cv.UNDEFINED,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
 ) -> cv.Schema:
-    schema = TEXT_SENSOR_SCHEMA
-    if class_ is not _UNDEF:
-        schema = schema.extend({cv.GenerateID(): cv.declare_id(class_)})
-    if icon is not _UNDEF:
-        schema = schema.extend({cv.Optional(CONF_ICON, default=icon): cv.icon})
-    if device_class is not _UNDEF:
-        schema = schema.extend(
-            {
-                cv.Optional(
-                    CONF_DEVICE_CLASS, default=device_class
-                ): validate_device_class
-            }
-        )
-    if entity_category is not _UNDEF:
-        schema = schema.extend(
-            {
-                cv.Optional(
-                    CONF_ENTITY_CATEGORY, default=entity_category
-                ): cv.entity_category
-            }
-        )
-    return schema
+    schema = {}
+
+    if class_ is not cv.UNDEFINED:
+        schema[cv.GenerateID()] = cv.declare_id(class_)
+
+    for key, default, validator in [
+        (CONF_ICON, icon, cv.icon),
+        (CONF_DEVICE_CLASS, device_class, validate_device_class),
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _TEXT_SENSOR_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+TEXT_SENSOR_SCHEMA = text_sensor_schema()
+TEXT_SENSOR_SCHEMA.add_extra(cv.deprecated_schema_constant("text_sensor"))
 
 
 async def build_filters(config):
@@ -205,11 +207,15 @@ async def setup_text_sensor_core_(var, config):
         mqtt_ = cg.new_Pvariable(mqtt_id, var)
         await mqtt.register_mqtt_component(mqtt_, config)
 
+    if web_server_config := config.get(CONF_WEB_SERVER):
+        await web_server.add_entity_config(var, web_server_config)
+
 
 async def register_text_sensor(var, config):
     if not CORE.has_id(config[CONF_ID]):
         var = cg.Pvariable(config[CONF_ID], var)
     cg.add(cg.App.register_text_sensor(var))
+    CORE.register_platform_component("text_sensor", var)
     await setup_text_sensor_core_(var, config)
 
 

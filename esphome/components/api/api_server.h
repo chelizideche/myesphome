@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/defines.h"
+#ifdef USE_API
 #include "api_noise_context.h"
 #include "api_pb2.h"
 #include "api_pb2_service.h"
@@ -7,7 +9,6 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/controller.h"
-#include "esphome/core/defines.h"
 #include "esphome/core/log.h"
 #include "list_entities.h"
 #include "subscribe_state.h"
@@ -18,6 +19,12 @@
 namespace esphome {
 namespace api {
 
+#ifdef USE_API_NOISE
+struct SavedNoisePsk {
+  psk_t psk;
+} PACKED;  // NOLINT
+#endif
+
 class APIServer : public Component, public Controller {
  public:
   APIServer();
@@ -27,20 +34,27 @@ class APIServer : public Component, public Controller {
   void loop() override;
   void dump_config() override;
   void on_shutdown() override;
+  bool teardown() override;
   bool check_password(const std::string &password) const;
   bool uses_password() const;
   void set_port(uint16_t port);
   void set_password(const std::string &password);
   void set_reboot_timeout(uint32_t reboot_timeout);
+  void set_batch_delay(uint32_t batch_delay);
+  uint32_t get_batch_delay() const { return batch_delay_; }
+
+  // Get reference to shared buffer for API connections
+  std::vector<uint8_t> &get_shared_buffer_ref() { return shared_write_buffer_; }
 
 #ifdef USE_API_NOISE
+  bool save_noise_psk(psk_t psk, bool make_active = true);
   void set_noise_psk(psk_t psk) { noise_ctx_->set_psk(psk); }
   std::shared_ptr<APINoiseContext> get_noise_ctx() { return noise_ctx_; }
 #endif  // USE_API_NOISE
 
   void handle_disconnect(APIConnection *conn);
 #ifdef USE_BINARY_SENSOR
-  void on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) override;
+  void on_binary_sensor_update(binary_sensor::BinarySensor *obj) override;
 #endif
 #ifdef USE_COVER
   void on_cover_update(cover::Cover *obj) override;
@@ -102,6 +116,9 @@ class APIServer : public Component, public Controller {
 #ifdef USE_EVENT
   void on_event(event::Event *obj, const std::string &event_type) override;
 #endif
+#ifdef USE_UPDATE
+  void on_update(update::UpdateEntity *obj) override;
+#endif
 
   bool is_connected() const;
 
@@ -109,10 +126,13 @@ class APIServer : public Component, public Controller {
     std::string entity_id;
     optional<std::string> attribute;
     std::function<void(std::string)> callback;
+    bool once;
   };
 
   void subscribe_home_assistant_state(std::string entity_id, optional<std::string> attribute,
                                       std::function<void(std::string)> f);
+  void get_home_assistant_state(std::string entity_id, optional<std::string> attribute,
+                                std::function<void(std::string)> f);
   const std::vector<HomeAssistantStateSubscription> &get_state_subs() const;
   const std::vector<UserServiceDescriptor *> &get_user_services() const { return this->user_services_; }
 
@@ -122,12 +142,15 @@ class APIServer : public Component, public Controller {
   }
 
  protected:
+  bool shutting_down_ = false;
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   uint16_t port_{6053};
   uint32_t reboot_timeout_{300000};
+  uint32_t batch_delay_{100};
   uint32_t last_connected_{0};
   std::vector<std::unique_ptr<APIConnection>> clients_;
   std::string password_;
+  std::vector<uint8_t> shared_write_buffer_;  // Shared proto write buffer for all connections
   std::vector<HomeAssistantStateSubscription> state_subs_;
   std::vector<UserServiceDescriptor *> user_services_;
   Trigger<std::string, std::string> *client_connected_trigger_ = new Trigger<std::string, std::string>();
@@ -135,6 +158,7 @@ class APIServer : public Component, public Controller {
 
 #ifdef USE_API_NOISE
   std::shared_ptr<APINoiseContext> noise_ctx_ = std::make_shared<APINoiseContext>();
+  ESPPreferenceObject noise_pref_;
 #endif  // USE_API_NOISE
 };
 
@@ -147,3 +171,4 @@ template<typename... Ts> class APIConnectedCondition : public Condition<Ts...> {
 
 }  // namespace api
 }  // namespace esphome
+#endif

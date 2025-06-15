@@ -1,11 +1,11 @@
 #include "esphome/core/component.h"
 
+#include <cinttypes>
+#include <utility>
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include <utility>
-#include <cinttypes>
 
 namespace esphome {
 
@@ -29,15 +29,20 @@ const float LATE = -100.0f;
 
 }  // namespace setup_priority
 
-const uint32_t COMPONENT_STATE_MASK = 0xFF;
-const uint32_t COMPONENT_STATE_CONSTRUCTION = 0x00;
-const uint32_t COMPONENT_STATE_SETUP = 0x01;
-const uint32_t COMPONENT_STATE_LOOP = 0x02;
-const uint32_t COMPONENT_STATE_FAILED = 0x03;
-const uint32_t STATUS_LED_MASK = 0xFF00;
-const uint32_t STATUS_LED_OK = 0x0000;
-const uint32_t STATUS_LED_WARNING = 0x0100;
-const uint32_t STATUS_LED_ERROR = 0x0200;
+// Component state uses bits 0-1 (4 states)
+const uint8_t COMPONENT_STATE_MASK = 0x03;
+const uint8_t COMPONENT_STATE_CONSTRUCTION = 0x00;
+const uint8_t COMPONENT_STATE_SETUP = 0x01;
+const uint8_t COMPONENT_STATE_LOOP = 0x02;
+const uint8_t COMPONENT_STATE_FAILED = 0x03;
+// Status LED uses bits 2-3
+const uint8_t STATUS_LED_MASK = 0x0C;
+const uint8_t STATUS_LED_OK = 0x00;
+const uint8_t STATUS_LED_WARNING = 0x04;  // Bit 2
+const uint8_t STATUS_LED_ERROR = 0x08;    // Bit 3
+
+const uint32_t WARN_IF_BLOCKING_OVER_MS = 50U;       ///< Initial blocking time allowed without warning
+const uint32_t WARN_IF_BLOCKING_INCREMENT_MS = 10U;  ///< How long the blocking time must be larger to warn again
 
 uint32_t global_state = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -67,7 +72,7 @@ bool Component::cancel_retry(const std::string &name) {  // NOLINT
 }
 
 void Component::set_timeout(const std::string &name, uint32_t timeout, std::function<void()> &&f) {  // NOLINT
-  return App.scheduler.set_timeout(this, name, timeout, std::move(f));
+  App.scheduler.set_timeout(this, name, timeout, std::move(f));
 }
 
 bool Component::cancel_timeout(const std::string &name) {  // NOLINT
@@ -79,13 +84,13 @@ void Component::call_setup() { this->setup(); }
 void Component::call_dump_config() {
   this->dump_config();
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "  Component %s is marked FAILED", this->get_component_source());
+    ESP_LOGE(TAG, "  Component %s is marked FAILED: %s", this->get_component_source(), this->error_message_.c_str());
   }
 }
 
-uint32_t Component::get_component_state() const { return this->component_state_; }
+uint8_t Component::get_component_state() const { return this->component_state_; }
 void Component::call() {
-  uint32_t state = this->component_state_ & COMPONENT_STATE_MASK;
+  uint8_t state = this->component_state_ & COMPONENT_STATE_MASK;
   switch (state) {
     case COMPONENT_STATE_CONSTRUCTION:
       // State Construction: Call setup and set state to setup
@@ -115,11 +120,30 @@ const char *Component::get_component_source() const {
     return "<unknown>";
   return this->component_source_;
 }
+bool Component::should_warn_of_blocking(uint32_t blocking_time) {
+  if (blocking_time > this->warn_if_blocking_over_) {
+    this->warn_if_blocking_over_ = blocking_time + WARN_IF_BLOCKING_INCREMENT_MS;
+    return true;
+  }
+  return false;
+}
 void Component::mark_failed() {
   ESP_LOGE(TAG, "Component %s was marked as failed.", this->get_component_source());
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_FAILED;
   this->status_set_error();
+}
+void Component::reset_to_construction_state() {
+  if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED) {
+    ESP_LOGI(TAG, "Component %s is being reset to construction state.", this->get_component_source());
+    this->component_state_ &= ~COMPONENT_STATE_MASK;
+    this->component_state_ |= COMPONENT_STATE_CONSTRUCTION;
+    // Clear error status when resetting
+    this->status_clear_error();
+  }
+}
+bool Component::is_in_loop_state() const {
+  return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP;
 }
 void Component::defer(std::function<void()> &&f) {  // NOLINT
   App.scheduler.set_timeout(this, "", 0, std::move(f));
@@ -140,8 +164,8 @@ void Component::set_retry(uint32_t initial_wait_time, uint8_t max_attempts, std:
                           float backoff_increase_factor) {  // NOLINT
   App.scheduler.set_retry(this, "", initial_wait_time, max_attempts, std::move(f), backoff_increase_factor);
 }
-bool Component::is_failed() { return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED; }
-bool Component::is_ready() {
+bool Component::is_failed() const { return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED; }
+bool Component::is_ready() const {
   return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP ||
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_SETUP;
 }
@@ -162,6 +186,8 @@ void Component::status_set_error(const char *message) {
   this->component_state_ |= STATUS_LED_ERROR;
   App.app_state_ |= STATUS_LED_ERROR;
   ESP_LOGE(TAG, "Component %s set Error flag: %s", this->get_component_source(), message);
+  if (strcmp(message, "unspecified") != 0)
+    this->error_message_ = message;
 }
 void Component::status_clear_warning() {
   if ((this->component_state_ & STATUS_LED_WARNING) == 0)
@@ -228,16 +254,27 @@ void PollingComponent::stop_poller() {
 uint32_t PollingComponent::get_update_interval() const { return this->update_interval_; }
 void PollingComponent::set_update_interval(uint32_t update_interval) { this->update_interval_ = update_interval; }
 
-WarnIfComponentBlockingGuard::WarnIfComponentBlockingGuard(Component *component)
-    : started_(millis()), component_(component) {}
-WarnIfComponentBlockingGuard::~WarnIfComponentBlockingGuard() {
-  uint32_t now = millis();
-  if (now - started_ > 50) {
-    const char *src = component_ == nullptr ? "<null>" : component_->get_component_source();
-    ESP_LOGW(TAG, "Component %s took a long time for an operation (%" PRIu32 " ms).", src, (now - started_));
-    ESP_LOGW(TAG, "Components should block for at most 30 ms.");
-    ;
+WarnIfComponentBlockingGuard::WarnIfComponentBlockingGuard(Component *component, uint32_t start_time)
+    : started_(start_time), component_(component) {}
+uint32_t WarnIfComponentBlockingGuard::finish() {
+  uint32_t curr_time = millis();
+
+  uint32_t blocking_time = curr_time - this->started_;
+  bool should_warn;
+  if (this->component_ != nullptr) {
+    should_warn = this->component_->should_warn_of_blocking(blocking_time);
+  } else {
+    should_warn = blocking_time > WARN_IF_BLOCKING_OVER_MS;
   }
+  if (should_warn) {
+    const char *src = component_ == nullptr ? "<null>" : component_->get_component_source();
+    ESP_LOGW(TAG, "Component %s took a long time for an operation (%" PRIu32 " ms).", src, blocking_time);
+    ESP_LOGW(TAG, "Components should block for at most 30 ms.");
+  }
+
+  return curr_time;
 }
+
+WarnIfComponentBlockingGuard::~WarnIfComponentBlockingGuard() {}
 
 }  // namespace esphome

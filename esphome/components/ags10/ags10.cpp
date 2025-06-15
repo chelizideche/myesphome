@@ -1,4 +1,7 @@
 #include "ags10.h"
+#include "esphome/core/helpers.h"
+
+#include <cinttypes>
 
 namespace esphome {
 namespace ags10 {
@@ -21,7 +24,7 @@ static const uint16_t ZP_CURRENT = 0x0000;
 static const uint16_t ZP_DEFAULT = 0xFFFF;
 
 void AGS10Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ags10...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   auto version = this->read_version_();
   if (version) {
@@ -35,7 +38,7 @@ void AGS10Component::setup() {
 
   auto resistance = this->read_resistance_();
   if (resistance) {
-    ESP_LOGD(TAG, "AGS10 Sensor Resistance: 0x%08X", *resistance);
+    ESP_LOGD(TAG, "AGS10 Sensor Resistance: 0x%08" PRIX32, *resistance);
     if (this->resistance_ != nullptr) {
       this->resistance_->publish_state(*resistance);
     }
@@ -63,7 +66,7 @@ void AGS10Component::dump_config() {
     case NONE:
       break;
     case COMMUNICATION_FAILED:
-      ESP_LOGE(TAG, "Communication with AGS10 failed!");
+      ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
       break;
     case CRC_CHECK_FAILED:
       ESP_LOGE(TAG, "The crc check failed");

@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vector>
 #include "esphome/core/component.h"
-#include "esphome/core/helpers.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
+#include <utility>
+#include <vector>
 
 namespace esphome {
 
@@ -27,7 +28,7 @@ template<typename T, typename... X> class TemplatableValue {
   TemplatableValue() : type_(NONE) {}
 
   template<typename F, enable_if_t<!is_invocable<F, X...>::value, int> = 0>
-  TemplatableValue(F value) : type_(VALUE), value_(value) {}
+  TemplatableValue(F value) : type_(VALUE), value_(std::move(value)) {}
 
   template<typename F, enable_if_t<is_invocable<F, X...>::value, int> = 0>
   TemplatableValue(F f) : type_(LAMBDA), f_(f) {}
@@ -82,7 +83,7 @@ template<typename... Ts> class Condition {
   }
 
  protected:
-  template<int... S> bool check_tuple_(const std::tuple<Ts...> &tuple, seq<S...>) {
+  template<int... S> bool check_tuple_(const std::tuple<Ts...> &tuple, seq<S...> /*unused*/) {
     return this->check(std::get<S>(tuple)...);
   }
 };
@@ -156,7 +157,7 @@ template<typename... Ts> class Action {
       }
     }
   }
-  template<int... S> void play_next_tuple_(const std::tuple<Ts...> &tuple, seq<S...>) {
+  template<int... S> void play_next_tuple_(const std::tuple<Ts...> &tuple, seq<S...> /*unused*/) {
     this->play_next_(std::get<S>(tuple)...);
   }
   void play_next_tuple_(const std::tuple<Ts...> &tuple) {
@@ -223,7 +224,9 @@ template<typename... Ts> class ActionList {
   }
 
  protected:
-  template<int... S> void play_tuple_(const std::tuple<Ts...> &tuple, seq<S...>) { this->play(std::get<S>(tuple)...); }
+  template<int... S> void play_tuple_(const std::tuple<Ts...> &tuple, seq<S...> /*unused*/) {
+    this->play(std::get<S>(tuple)...);
+  }
 
   Action<Ts...> *actions_begin_{nullptr};
   Action<Ts...> *actions_end_{nullptr};
@@ -233,7 +236,7 @@ template<typename... Ts> class Automation {
  public:
   explicit Automation(Trigger<Ts...> *trigger) : trigger_(trigger) { this->trigger_->set_automation_parent(this); }
 
-  Action<Ts...> *add_action(Action<Ts...> *action) { this->actions_.add_action(action); }
+  void add_action(Action<Ts...> *action) { this->actions_.add_action(action); }
   void add_actions(const std::vector<Action<Ts...> *> &actions) { this->actions_.add_actions(actions); }
 
   void stop() { this->actions_.stop(); }

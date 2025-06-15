@@ -1,24 +1,24 @@
 import esphome.codegen as cg
+from esphome.components import sensor, uart
 import esphome.config_validation as cv
-from esphome.components import uart, sensor
 from esphome.const import (
     CONF_ID,
     CONF_MODEL,
     CONF_MOISTURE,
     CONF_RESOLUTION,
     CONF_TEMPERATURE,
-    DEVICE_CLASS_PRECIPITATION_INTENSITY,
     DEVICE_CLASS_PRECIPITATION,
+    DEVICE_CLASS_PRECIPITATION_INTENSITY,
+    ICON_THERMOMETER,
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
     UNIT_CELSIUS,
-    ICON_THERMOMETER,
+    UNIT_MILLIMETER,
 )
 
-from . import RGModel, RG15Resolution, HydreonRGxxComponent
+from . import HydreonRGxxComponent, RG15Resolution, RGModel
 
 UNIT_INTENSITY = "intensity"
-UNIT_MILLIMETERS = "mm"
 UNIT_MILLIMETERS_PER_HOUR = "mm/h"
 
 CONF_ACC = "acc"
@@ -85,19 +85,19 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_RESOLUTION): cv.enum(RG15_RESOLUTION, upper=False),
             cv.Optional(CONF_ACC): sensor.sensor_schema(
-                unit_of_measurement=UNIT_MILLIMETERS,
+                unit_of_measurement=UNIT_MILLIMETER,
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_PRECIPITATION,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_EVENT_ACC): sensor.sensor_schema(
-                unit_of_measurement=UNIT_MILLIMETERS,
+                unit_of_measurement=UNIT_MILLIMETER,
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_PRECIPITATION,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_TOTAL_ACC): sensor.sensor_schema(
-                unit_of_measurement=UNIT_MILLIMETERS,
+                unit_of_measurement=UNIT_MILLIMETER,
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_PRECIPITATION,
                 state_class=STATE_CLASS_TOTAL_INCREASING,

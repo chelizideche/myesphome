@@ -45,8 +45,8 @@ void FanCall::validate_() {
     this->speed_ = clamp(*this->speed_, 1, traits.supported_speed_count());
 
   if (this->binary_state_.has_value() && *this->binary_state_) {
-    // when turning on, if current speed is zero, set speed to 100%
-    if (traits.supports_speed() && !this->parent_.state && this->parent_.speed == 0) {
+    // when turning on, if neither current nor new speed available, set speed to 100%
+    if (traits.supports_speed() && !this->parent_.state && this->parent_.speed == 0 && !this->speed_.has_value()) {
       this->speed_ = traits.supported_speed_count();
     }
   }
@@ -189,8 +189,10 @@ void Fan::dump_traits_(const char *tag, const char *prefix) {
   auto traits = this->get_traits();
 
   if (traits.supports_speed()) {
-    ESP_LOGCONFIG(tag, "%s  Speed: YES", prefix);
-    ESP_LOGCONFIG(tag, "%s  Speed count: %d", prefix, traits.supported_speed_count());
+    ESP_LOGCONFIG(tag,
+                  "%s  Speed: YES\n"
+                  "%s  Speed count: %d",
+                  prefix, prefix, traits.supported_speed_count());
   }
   if (traits.supports_oscillation()) {
     ESP_LOGCONFIG(tag, "%s  Oscillation: YES", prefix);

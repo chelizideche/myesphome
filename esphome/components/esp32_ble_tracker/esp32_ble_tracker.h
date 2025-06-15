@@ -11,9 +11,9 @@
 
 #ifdef USE_ESP32
 
+#include <esp_bt_defs.h>
 #include <esp_gap_ble_api.h>
 #include <esp_gattc_api.h>
-#include <esp_bt_defs.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -44,10 +44,10 @@ class ESPBLEiBeacon {
   ESPBLEiBeacon(const uint8_t *data);
   static optional<ESPBLEiBeacon> from_manufacturer_data(const ServiceData &data);
 
-  uint16_t get_major() { return ((this->beacon_data_.major & 0xFF) << 8) | (this->beacon_data_.major >> 8); }
-  uint16_t get_minor() { return ((this->beacon_data_.minor & 0xFF) << 8) | (this->beacon_data_.minor >> 8); }
+  uint16_t get_major() { return byteswap(this->beacon_data_.major); }
+  uint16_t get_minor() { return byteswap(this->beacon_data_.minor); }
   int8_t get_signal_power() { return this->beacon_data_.signal_power; }
-  ESPBTUUID get_uuid() { return ESPBTUUID::from_raw(this->beacon_data_.proximity_uuid); }
+  ESPBTUUID get_uuid() { return ESPBTUUID::from_raw_reversed(this->beacon_data_.proximity_uuid); }
 
  protected:
   struct {
@@ -62,7 +62,7 @@ class ESPBLEiBeacon {
 
 class ESPBTDevice {
  public:
-  void parse_scan_rst(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param);
+  void parse_scan_rst(const BLEScanResult &scan_result);
 
   std::string address_str() const;
 
@@ -84,8 +84,6 @@ class ESPBTDevice {
 
   const std::vector<ServiceData> &get_service_datas() const { return service_datas_; }
 
-  const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &get_scan_result() const { return scan_result_; }
-
   bool resolve_irk(const uint8_t *irk) const;
 
   optional<ESPBLEiBeacon> get_ibeacon() const {
@@ -98,7 +96,7 @@ class ESPBTDevice {
   }
 
  protected:
-  void parse_adv_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param);
+  void parse_adv_(const uint8_t *payload, uint8_t len);
 
   esp_bd_addr_t address_{
       0,
@@ -112,7 +110,6 @@ class ESPBTDevice {
   std::vector<ESPBTUUID> service_uuids_{};
   std::vector<ServiceData> manufacturer_datas_{};
   std::vector<ServiceData> service_datas_{};
-  esp_ble_gap_cb_param_t::ble_scan_result_evt_param scan_result_{};
 };
 
 class ESP32BLETracker;
@@ -121,9 +118,7 @@ class ESPBTDeviceListener {
  public:
   virtual void on_scan_end() {}
   virtual bool parse_device(const ESPBTDevice &device) = 0;
-  virtual bool parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
-    return false;
-  };
+  virtual bool parse_devices(const BLEScanResult *scan_results, size_t count) { return false; };
   virtual AdvertisementParserType get_advertisement_parser_type() {
     return AdvertisementParserType::PARSED_ADVERTISEMENTS;
   };
@@ -154,6 +149,21 @@ enum class ClientState {
   ESTABLISHED,
 };
 
+enum class ScannerState {
+  // Scanner is idle, init state, set from the main loop when processing STOPPED
+  IDLE,
+  // Scanner is starting, set from the main loop only
+  STARTING,
+  // Scanner is running, set from the ESP callback only
+  RUNNING,
+  // Scanner failed to start, set from the ESP callback only
+  FAILED,
+  // Scanner is stopping, set from the main loop only
+  STOPPING,
+  // Scanner is stopped, set from the ESP callback only
+  STOPPED,
+};
+
 enum class ConnectionType {
   // The default connection type, we hold all the services in ram
   // for the duration of the connection.
@@ -172,16 +182,30 @@ class ESPBTClient : public ESPBTDeviceListener {
                                    esp_ble_gattc_cb_param_t *param) = 0;
   virtual void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) = 0;
   virtual void connect() = 0;
-  virtual void set_state(ClientState st) { this->state_ = st; }
+  virtual void disconnect() = 0;
+  bool disconnect_pending() const { return this->want_disconnect_; }
+  void cancel_pending_disconnect() { this->want_disconnect_ = false; }
+  virtual void set_state(ClientState st) {
+    this->state_ = st;
+    if (st == ClientState::IDLE) {
+      this->want_disconnect_ = false;
+    }
+  }
   ClientState state() const { return state_; }
   int app_id;
 
  protected:
-  ClientState state_;
+  ClientState state_{ClientState::INIT};
+  // want_disconnect_ is set to true when a disconnect is requested
+  // while the client is connecting. This is used to disconnect the
+  // client as soon as we get the connection id (conn_id_) from the
+  // ESP_GATTC_OPEN_EVT event.
+  bool want_disconnect_{false};
 };
 
 class ESP32BLETracker : public Component,
                         public GAPEventHandler,
+                        public GAPScanEventHandler,
                         public GATTcEventHandler,
                         public BLEStatusEventHandler,
                         public Parented<ESP32BLE> {
@@ -190,6 +214,7 @@ class ESP32BLETracker : public Component,
   void set_scan_interval(uint32_t scan_interval) { scan_interval_ = scan_interval; }
   void set_scan_window(uint32_t scan_window) { scan_window_ = scan_window; }
   void set_scan_active(bool scan_active) { scan_active_ = scan_active; }
+  bool get_scan_active() const { return scan_active_; }
   void set_scan_continuous(bool scan_continuous) { scan_continuous_ = scan_continuous; }
   void set_allowlist_addresses(const std::vector<uint64_t> &addresses) { this->allowlist_address_vec_ = addresses; }
 
@@ -212,6 +237,7 @@ class ESP32BLETracker : public Component,
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
   void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) override;
+  void gap_scan_event_handler(const BLEScanResult &scan_result) override;
   void ble_before_disabled_event_handler() override;
 
   static void uint64_to_bd_addr(uint64_t address, esp_bd_addr_t bd_addr) {
@@ -222,6 +248,11 @@ class ESP32BLETracker : public Component,
     bd_addr[4] = (address >> 8) & 0xff;
     bd_addr[5] = (address >> 0) & 0xff;
   }
+
+  void add_scanner_state_callback(std::function<void(ScannerState)> &&callback) {
+    this->scanner_state_callbacks_.add(std::move(callback));
+  }
+  ScannerState get_scanner_state() const { return this->scanner_state_; }
 
  protected:
   void stop_scan_();
@@ -237,8 +268,10 @@ class ESP32BLETracker : public Component,
   void gap_scan_start_complete_(const esp_ble_gap_cb_param_t::ble_scan_start_cmpl_evt_param &param);
   /// Called when a `ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT` event is received.
   void gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param &param);
+  /// Called to set the scanner state. Will also call callbacks to let listeners know when state is changed.
+  void set_scanner_state_(ScannerState state);
 
-  int app_id_;
+  int app_id_{0};
 
   /// Vector of addresses that have already been printed in print_bt_device_info
   std::vector<uint64_t> already_discovered_;
@@ -251,26 +284,28 @@ class ESP32BLETracker : public Component,
   uint32_t scan_duration_;
   uint32_t scan_interval_;
   uint32_t scan_window_;
-  uint8_t scan_start_fail_count_;
+  uint8_t scan_start_fail_count_{0};
   bool scan_continuous_;
   bool scan_active_;
-  bool scanner_idle_;
+  ScannerState scanner_state_{ScannerState::IDLE};
+  CallbackManager<void(ScannerState)> scanner_state_callbacks_;
   bool ble_was_disabled_{true};
   bool raw_advertisements_{false};
   bool parse_advertisements_{false};
   bool allowlist_populated_{false};
   SemaphoreHandle_t scan_result_lock_;
-  SemaphoreHandle_t scan_end_lock_;
   size_t scan_result_index_{0};
-#ifdef USE_PSRAM
-  const static u_int8_t SCAN_RESULT_BUFFER_SIZE = 32;
-#else
-  const static u_int8_t SCAN_RESULT_BUFFER_SIZE = 16;
-#endif  // USE_PSRAM
-  esp_ble_gap_cb_param_t::ble_scan_result_evt_param *scan_result_buffer_;
+  BLEScanResult *scan_result_buffer_;
   esp_bt_status_t scan_start_failed_{ESP_BT_STATUS_SUCCESS};
   esp_bt_status_t scan_set_param_failed_{ESP_BT_STATUS_SUCCESS};
   std::vector<uint64_t> allowlist_address_vec_;
+  int connecting_{0};
+  int discovered_{0};
+  int searching_{0};
+  int disconnecting_{0};
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+  bool coex_prefer_ble_{false};
+#endif
 };
 
 // NOLINTNEXTLINE

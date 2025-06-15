@@ -1,5 +1,6 @@
 #include "wifi_component.h"
 
+#ifdef USE_WIFI
 #ifdef USE_LIBRETINY
 
 #include <utility>
@@ -8,10 +9,10 @@
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
+#include "esphome/core/application.h"
+#include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include "esphome/core/hal.h"
-#include "esphome/core/application.h"
 #include "esphome/core/util.h"
 
 namespace esphome {
@@ -49,7 +50,7 @@ bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
   bool ret = WiFi.mode(static_cast<wifi_mode_t>(mode));
 
   if (!ret) {
-    ESP_LOGW(TAG, "Setting WiFi mode failed!");
+    ESP_LOGW(TAG, "Setting mode failed");
   }
 
   return ret;
@@ -84,7 +85,16 @@ bool WiFiComponent::wifi_sta_ip_config_(optional<ManualIP> manual_ip) {
 network::IPAddresses WiFiComponent::wifi_sta_ip_addresses() {
   if (!this->has_sta())
     return {};
-  return {WiFi.localIP()};
+  network::IPAddresses addresses;
+  addresses[0] = WiFi.localIP();
+#if USE_NETWORK_IPV6
+  int i = 1;
+  auto v6_addresses = WiFi.allLocalIPv6();
+  for (auto address : v6_addresses) {
+    addresses[i++] = network::IPAddress(address.toString().c_str());
+  }
+#endif /* USE_NETWORK_IPV6 */
+  return addresses;
 }
 
 bool WiFiComponent::wifi_apply_hostname_() {
@@ -305,7 +315,7 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
       // Mitigate CVE-2020-12638
       // https://lbsfilm.at/blog/wpa2-authenticationmode-downgrade-in-espressif-microprocessors
       if (it.old_mode != WIFI_AUTH_OPEN && it.new_mode == WIFI_AUTH_OPEN) {
-        ESP_LOGW(TAG, "Potential Authmode downgrade detected, disconnecting...");
+        ESP_LOGW(TAG, "Potential Authmode downgrade detected, disconnecting");
         // we can't call retry_connect() from this context, so disconnect immediately
         // and notify main thread with error_from_callback_
         WiFi.disconnect();
@@ -318,6 +328,11 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
       ESP_LOGV(TAG, "Event: Got IP static_ip=%s gateway=%s", format_ip4_addr(WiFi.localIP()).c_str(),
                format_ip4_addr(WiFi.gatewayIP()).c_str());
       s_sta_connecting = false;
+      break;
+    }
+    case ESPHOME_EVENT_ID_WIFI_STA_GOT_IP6: {
+      // auto it = info.got_ip.ip_info;
+      ESP_LOGV(TAG, "Event: Got IPv6");
       break;
     }
     case ESPHOME_EVENT_ID_WIFI_STA_LOST_IP: {
@@ -458,7 +473,7 @@ bssid_t WiFiComponent::wifi_bssid() {
 }
 std::string WiFiComponent::wifi_ssid() { return WiFi.SSID().c_str(); }
 int8_t WiFiComponent::wifi_rssi() { return WiFi.RSSI(); }
-int32_t WiFiComponent::wifi_channel_() { return WiFi.channel(); }
+int32_t WiFiComponent::get_wifi_channel() { return WiFi.channel(); }
 network::IPAddress WiFiComponent::wifi_subnet_mask_() { return {WiFi.subnetMask()}; }
 network::IPAddress WiFiComponent::wifi_gateway_ip_() { return {WiFi.gatewayIP()}; }
 network::IPAddress WiFiComponent::wifi_dns_ip_(int num) { return {WiFi.dnsIP(num)}; }
@@ -468,3 +483,4 @@ void WiFiComponent::wifi_loop_() {}
 }  // namespace esphome
 
 #endif  // USE_LIBRETINY
+#endif

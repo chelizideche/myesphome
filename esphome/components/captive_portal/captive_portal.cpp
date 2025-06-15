@@ -1,4 +1,5 @@
 #include "captive_portal.h"
+#ifdef USE_CAPTIVE_PORTAL
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 #include "esphome/components/wifi/wifi_component.h"
@@ -28,7 +29,7 @@ void CaptivePortal::handle_config(AsyncWebServerRequest *request) {
 void CaptivePortal::handle_wifisave(AsyncWebServerRequest *request) {
   std::string ssid = request->arg("ssid").c_str();
   std::string psk = request->arg("psk").c_str();
-  ESP_LOGI(TAG, "Captive Portal Requested WiFi Settings Change:");
+  ESP_LOGI(TAG, "Requested WiFi Settings Change:");
   ESP_LOGI(TAG, "  SSID='%s'", ssid.c_str());
   ESP_LOGI(TAG, "  Password=" LOG_SECRET("'%s'"), psk.c_str());
   wifi::global_wifi_component->save_wifi_sta(ssid, psk);
@@ -91,3 +92,4 @@ CaptivePortal *global_captive_portal = nullptr;  // NOLINT(cppcoreguidelines-avo
 
 }  // namespace captive_portal
 }  // namespace esphome
+#endif

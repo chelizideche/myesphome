@@ -1,5 +1,5 @@
 #include "ota_esphome.h"
-
+#ifdef USE_OTA
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/network/util.h"
 #include "esphome/components/ota/ota_backend.h"
@@ -26,7 +26,7 @@ void ESPHomeOTAComponent::setup() {
   ota::register_ota_platform(this);
 #endif
 
-  server_ = socket::socket_ip(SOCK_STREAM, 0);
+  server_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
   if (server_ == nullptr) {
     ESP_LOGW(TAG, "Could not create socket");
     this->mark_failed();
@@ -70,31 +70,19 @@ void ESPHomeOTAComponent::setup() {
 }
 
 void ESPHomeOTAComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "Over-The-Air updates:");
-  ESP_LOGCONFIG(TAG, "  Address: %s:%u", network::get_use_address().c_str(), this->port_);
-  ESP_LOGCONFIG(TAG, "  Version: %d", USE_OTA_VERSION);
+  ESP_LOGCONFIG(TAG,
+                "Over-The-Air updates:\n"
+                "  Address: %s:%u\n"
+                "  Version: %d",
+                network::get_use_address().c_str(), this->port_, USE_OTA_VERSION);
 #ifdef USE_OTA_PASSWORD
   if (!this->password_.empty()) {
     ESP_LOGCONFIG(TAG, "  Password configured");
   }
 #endif
-  if (this->has_safe_mode_ && this->safe_mode_rtc_value_ > 1 &&
-      this->safe_mode_rtc_value_ != ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC) {
-    ESP_LOGW(TAG, "Last reset occurred too quickly; safe mode will be invoked in %" PRIu32 " restarts",
-             this->safe_mode_num_attempts_ - this->safe_mode_rtc_value_);
-  }
 }
 
-void ESPHomeOTAComponent::loop() {
-  this->handle_();
-
-  if (this->has_safe_mode_ && (millis() - this->safe_mode_start_time_) > this->safe_mode_enable_time_) {
-    this->has_safe_mode_ = false;
-    // successful boot, reset counter
-    ESP_LOGI(TAG, "Boot seems successful; resetting boot loop counter");
-    this->clean_rtc();
-  }
-}
+void ESPHomeOTAComponent::loop() { this->handle_(); }
 
 static const uint8_t FEATURE_SUPPORTS_COMPRESSION = 0x01;
 
@@ -114,9 +102,12 @@ void ESPHomeOTAComponent::handle_() {
 #endif
 
   if (client_ == nullptr) {
-    struct sockaddr_storage source_addr;
-    socklen_t addr_len = sizeof(source_addr);
-    client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
+    // Check if the server socket is ready before accepting
+    if (this->server_->ready()) {
+      struct sockaddr_storage source_addr;
+      socklen_t addr_len = sizeof(source_addr);
+      client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
+    }
   }
   if (client_ == nullptr)
     return;
@@ -125,10 +116,12 @@ void ESPHomeOTAComponent::handle_() {
   int err = client_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
   if (err != 0) {
     ESP_LOGW(TAG, "Socket could not enable TCP nodelay, errno %d", errno);
+    client_->close();
+    client_ = nullptr;
     return;
   }
 
-  ESP_LOGD(TAG, "Starting update from %s...", this->client_->getpeername().c_str());
+  ESP_LOGD(TAG, "Starting update from %s", this->client_->getpeername().c_str());
   this->status_set_warning();
 #ifdef USE_OTA_STATE_CALLBACK
   this->state_callback_.call(ota::OTA_STARTED, 0.0f, 0);
@@ -423,86 +416,5 @@ bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len) {
 float ESPHomeOTAComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
 uint16_t ESPHomeOTAComponent::get_port() const { return this->port_; }
 void ESPHomeOTAComponent::set_port(uint16_t port) { this->port_ = port; }
-
-void ESPHomeOTAComponent::set_safe_mode_pending(const bool &pending) {
-  if (!this->has_safe_mode_)
-    return;
-
-  uint32_t current_rtc = this->read_rtc_();
-
-  if (pending && current_rtc != ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC) {
-    ESP_LOGI(TAG, "Device will enter safe mode on next boot");
-    this->write_rtc_(ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC);
-  }
-
-  if (!pending && current_rtc == ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC) {
-    ESP_LOGI(TAG, "Safe mode pending has been cleared");
-    this->clean_rtc();
-  }
-}
-bool ESPHomeOTAComponent::get_safe_mode_pending() {
-  return this->has_safe_mode_ && this->read_rtc_() == ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC;
-}
-
-bool ESPHomeOTAComponent::should_enter_safe_mode(uint8_t num_attempts, uint32_t enable_time) {
-  this->has_safe_mode_ = true;
-  this->safe_mode_start_time_ = millis();
-  this->safe_mode_enable_time_ = enable_time;
-  this->safe_mode_num_attempts_ = num_attempts;
-  this->rtc_ = global_preferences->make_preference<uint32_t>(233825507UL, false);
-  this->safe_mode_rtc_value_ = this->read_rtc_();
-
-  bool is_manual_safe_mode = this->safe_mode_rtc_value_ == ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC;
-
-  if (is_manual_safe_mode) {
-    ESP_LOGI(TAG, "Safe mode has been entered manually");
-  } else {
-    ESP_LOGCONFIG(TAG, "There have been %" PRIu32 " suspected unsuccessful boot attempts", this->safe_mode_rtc_value_);
-  }
-
-  if (this->safe_mode_rtc_value_ >= num_attempts || is_manual_safe_mode) {
-    this->clean_rtc();
-
-    if (!is_manual_safe_mode) {
-      ESP_LOGE(TAG, "Boot loop detected. Proceeding to safe mode");
-    }
-
-    this->status_set_error();
-    this->set_timeout(enable_time, []() {
-      ESP_LOGE(TAG, "No OTA attempt made, restarting");
-      App.reboot();
-    });
-
-    // Delay here to allow power to stabilise before Wi-Fi/Ethernet is initialised.
-    delay(300);  // NOLINT
-    App.setup();
-
-    ESP_LOGI(TAG, "Waiting for OTA attempt");
-
-    return true;
-  } else {
-    // increment counter
-    this->write_rtc_(this->safe_mode_rtc_value_ + 1);
-    return false;
-  }
-}
-
-void ESPHomeOTAComponent::write_rtc_(uint32_t val) {
-  this->rtc_.save(&val);
-  global_preferences->sync();
-}
-
-uint32_t ESPHomeOTAComponent::read_rtc_() {
-  uint32_t val;
-  if (!this->rtc_.load(&val))
-    return 0;
-  return val;
-}
-
-void ESPHomeOTAComponent::clean_rtc() { this->write_rtc_(0); }
-
-void ESPHomeOTAComponent::on_safe_shutdown() {
-  if (this->has_safe_mode_ && this->read_rtc_() != ESPHomeOTAComponent::ENTER_SAFE_MODE_MAGIC)
-    this->clean_rtc();
-}
 }  // namespace esphome
+#endif
