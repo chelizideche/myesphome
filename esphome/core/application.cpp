@@ -252,6 +252,7 @@ void Application::calculate_looping_components_() {
 }
 
 void Application::disable_component_loop(Component *component) {
+  // This method must be reentrant - components can disable themselves during their own loop() call
   // Linear search to find component in active section
   // Most configs have 10-30 looping components (30 is on the high end)
   // O(n) is acceptable here as we optimize for memory, not complexity
@@ -275,6 +276,7 @@ void Application::disable_component_loop(Component *component) {
 }
 
 void Application::enable_component_loop(Component *component) {
+  // This method must be reentrant - components can re-enable themselves during their own loop() call
   // Single pass through all components to find and move if needed
   // With typical 10-30 components, O(n) is faster than maintaining a map
   const uint16_t size = this->looping_components_.size();
