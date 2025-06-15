@@ -370,7 +370,7 @@ void ESP32BLE::loop() {
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
   // Check if buffer is full before allocating
-  if (global_ble->ble_events_.size() >= (SCAN_RESULT_BUFFER_SIZE * 2 - 1)) {
+  if (global_ble->ble_events_.size() >= (MAX_BLE_QUEUE_SIZE - 1)) {
     // Buffer is full, push will fail and increment dropped count internally
     return;
   }

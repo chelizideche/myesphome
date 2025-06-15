@@ -50,7 +50,7 @@ void ESP32BLETracker::setup() {
     ESP_LOGE(TAG, "BLE Tracker was marked failed by ESP32BLE");
     return;
   }
-  ExternalRAMAllocator<BLEScanResult> allocator(ExternalRAMAllocator<BLEScanResult>::ALLOW_FAILURE);
+  RAMAllocator<BLEScanResult> allocator;
   this->scan_ring_buffer_ = allocator.allocate(SCAN_RESULT_BUFFER_SIZE);
 
   if (this->scan_ring_buffer_ == nullptr) {
