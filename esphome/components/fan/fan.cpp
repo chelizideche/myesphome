@@ -75,7 +75,7 @@ void FanCall::validate_() {
   }
 
   if (this->speed_.has_value() && !traits.supports_speed()) {
-    ESP_LOGW(TAG, "'%s' - This fan does not support speeds!", this->parent_.get_name().c_str());
+    ESP_LOGW(TAG, "%s: Speed control not supported", this->parent_.get_name().c_str());
     this->speed_.reset();
   }
 
