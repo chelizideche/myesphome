@@ -400,7 +400,7 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
         ESP_LOGI(TAG, "[%d] [%s] Connecting v1", connection->get_connection_index(), connection->address_str().c_str());
       }
       if (msg.has_address_type) {
-        uint64_to_bd_addr(msg.address, connection->remote_bda_);
+        esp32_ble_tracker::ESP32BLETracker::uint64_to_bd_addr(msg.address, connection->remote_bda_);
         connection->set_remote_addr_type(static_cast<esp_ble_addr_type_t>(msg.address_type));
         connection->set_state(espbt::ClientState::DISCOVERED);
       } else {
@@ -441,14 +441,14 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
     }
     case api::enums::BLUETOOTH_DEVICE_REQUEST_TYPE_UNPAIR: {
       esp_bd_addr_t address;
-      uint64_to_bd_addr(msg.address, address);
+      esp32_ble_tracker::ESP32BLETracker::uint64_to_bd_addr(msg.address, address);
       esp_err_t ret = esp_ble_remove_bond_device(address);
       this->send_device_pairing(msg.address, ret == ESP_OK, ret);
       break;
     }
     case api::enums::BLUETOOTH_DEVICE_REQUEST_TYPE_CLEAR_CACHE: {
       esp_bd_addr_t address;
-      uint64_to_bd_addr(msg.address, address);
+      esp32_ble_tracker::ESP32BLETracker::uint64_to_bd_addr(msg.address, address);
       esp_err_t ret = esp_ble_gattc_cache_clean(address);
       api::BluetoothDeviceClearCacheResponse call;
       call.address = msg.address;
