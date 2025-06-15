@@ -17,7 +17,11 @@ void Anova::setup() {
   this->current_request_ = 0;
 }
 
-void Anova::loop() {}
+void Anova::loop() {
+  // This component uses polling via update() and BLE callbacks
+  // Empty loop not needed, mark as done to save CPU cycles
+  this->mark_loop_done();
+}
 
 void Anova::control(const ClimateCall &call) {
   if (call.get_mode().has_value()) {

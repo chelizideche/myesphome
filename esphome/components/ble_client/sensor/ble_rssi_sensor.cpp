@@ -11,7 +11,11 @@ namespace ble_client {
 
 static const char *const TAG = "ble_rssi_sensor";
 
-void BLEClientRSSISensor::loop() {}
+void BLEClientRSSISensor::loop() {
+  // This component uses polling via update() and BLE GAP callbacks
+  // Empty loop not needed, mark as done to save CPU cycles
+  this->mark_loop_done();
+}
 
 void BLEClientRSSISensor::dump_config() {
   LOG_SENSOR("", "BLE Client RSSI Sensor", this);

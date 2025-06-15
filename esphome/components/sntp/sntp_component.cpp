@@ -67,6 +67,9 @@ void SNTPComponent::loop() {
            time.minute, time.second);
   this->time_sync_callback_.call();
   this->has_time_ = true;
+
+  // Time is now synchronized, no need to check anymore
+  this->mark_loop_done();
 }
 
 }  // namespace sntp

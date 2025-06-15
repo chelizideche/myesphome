@@ -11,7 +11,11 @@ namespace ble_client {
 
 static const char *const TAG = "ble_sensor";
 
-void BLESensor::loop() {}
+void BLESensor::loop() {
+  // This component uses polling via update() and BLE callbacks
+  // Empty loop not needed, mark as done to save CPU cycles
+  this->mark_loop_done();
+}
 
 void BLESensor::dump_config() {
   LOG_SENSOR("", "BLE Sensor", this);

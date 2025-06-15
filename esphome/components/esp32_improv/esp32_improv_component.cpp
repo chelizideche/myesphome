@@ -168,6 +168,8 @@ void ESP32ImprovComponent::loop() {
     case improv::STATE_PROVISIONED: {
       this->incoming_data_.clear();
       this->set_status_indicator_state_(false);
+      // Provisioning complete, no further loop execution needed
+      this->mark_loop_done();
       break;
     }
   }

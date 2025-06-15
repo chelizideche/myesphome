@@ -59,6 +59,7 @@ extern const uint8_t COMPONENT_STATE_CONSTRUCTION;
 extern const uint8_t COMPONENT_STATE_SETUP;
 extern const uint8_t COMPONENT_STATE_LOOP;
 extern const uint8_t COMPONENT_STATE_FAILED;
+extern const uint8_t COMPONENT_STATE_LOOP_DONE;
 extern const uint8_t STATUS_LED_MASK;
 extern const uint8_t STATUS_LED_OK;
 extern const uint8_t STATUS_LED_WARNING;
@@ -151,9 +152,22 @@ class Component {
     this->mark_failed();
   }
 
+  /** Mark this component's loop as done. The loop will no longer be called.
+   *
+   * This is useful for components that only need to run for a certain period of time
+   * and then no longer need their loop() method called, saving CPU cycles.
+   */
+  void mark_loop_done();
+
   bool is_failed() const;
 
   bool is_ready() const;
+
+  /** Check if this component should skip its loop execution.
+   *
+   * @return True if the component is in FAILED or LOOP_DONE state
+   */
+  bool should_skip_loop() const;
 
   virtual bool can_proceed();
 

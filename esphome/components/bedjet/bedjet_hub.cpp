@@ -480,7 +480,11 @@ void BedJetHub::set_clock(uint8_t hour, uint8_t minute) {
 
 /* Internal */
 
-void BedJetHub::loop() {}
+void BedJetHub::loop() {
+  // This component uses polling via update() and BLE callbacks
+  // Empty loop not needed, mark as done to save CPU cycles
+  this->mark_loop_done();
+}
 void BedJetHub::update() { this->dispatch_status_(); }
 
 void BedJetHub::dump_config() {

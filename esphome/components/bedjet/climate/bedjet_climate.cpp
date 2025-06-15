@@ -83,7 +83,11 @@ void BedJetClimate::reset_state_() {
   this->publish_state();
 }
 
-void BedJetClimate::loop() {}
+void BedJetClimate::loop() {
+  // This component is controlled via the parent BedJetHub
+  // Empty loop not needed, mark as done to save CPU cycles
+  this->mark_loop_done();
+}
 
 void BedJetClimate::control(const ClimateCall &call) {
   ESP_LOGD(TAG, "Received BedJetClimate::control");

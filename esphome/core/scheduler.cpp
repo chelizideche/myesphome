@@ -211,8 +211,8 @@ void HOT Scheduler::call() {
         // Not reached timeout yet, done for this call
         break;
       }
-      // Don't run on failed components
-      if (item->component != nullptr && item->component->is_failed()) {
+      // Don't run on failed or loop-done components
+      if (item->component != nullptr && item->component->should_skip_loop()) {
         LockGuard guard{this->lock_};
         this->pop_raw_();
         continue;

@@ -30,17 +30,18 @@ const float LATE = -100.0f;
 
 }  // namespace setup_priority
 
-// Component state uses bits 0-1 (4 states)
-const uint8_t COMPONENT_STATE_MASK = 0x03;
+// Component state uses bits 0-2 (8 states, 5 used)
+const uint8_t COMPONENT_STATE_MASK = 0x07;
 const uint8_t COMPONENT_STATE_CONSTRUCTION = 0x00;
 const uint8_t COMPONENT_STATE_SETUP = 0x01;
 const uint8_t COMPONENT_STATE_LOOP = 0x02;
 const uint8_t COMPONENT_STATE_FAILED = 0x03;
-// Status LED uses bits 2-3
-const uint8_t STATUS_LED_MASK = 0x0C;
+const uint8_t COMPONENT_STATE_LOOP_DONE = 0x04;
+// Status LED uses bits 3-4
+const uint8_t STATUS_LED_MASK = 0x18;
 const uint8_t STATUS_LED_OK = 0x00;
-const uint8_t STATUS_LED_WARNING = 0x04;  // Bit 2
-const uint8_t STATUS_LED_ERROR = 0x08;    // Bit 3
+const uint8_t STATUS_LED_WARNING = 0x08;  // Bit 3
+const uint8_t STATUS_LED_ERROR = 0x10;    // Bit 4
 
 const uint16_t WARN_IF_BLOCKING_OVER_MS = 50U;       ///< Initial blocking time allowed without warning
 const uint16_t WARN_IF_BLOCKING_INCREMENT_MS = 10U;  ///< How long the blocking time must be larger to warn again
@@ -113,6 +114,9 @@ void Component::call() {
     case COMPONENT_STATE_FAILED:  // NOLINT(bugprone-branch-clone)
       // State failed: Do nothing
       break;
+    case COMPONENT_STATE_LOOP_DONE:  // NOLINT(bugprone-branch-clone)
+      // State loop done: Do nothing, component has finished its work
+      break;
     default:
       break;
   }
@@ -140,6 +144,11 @@ void Component::mark_failed() {
   this->component_state_ &= ~COMPONENT_STATE_MASK;
   this->component_state_ |= COMPONENT_STATE_FAILED;
   this->status_set_error();
+}
+void Component::mark_loop_done() {
+  ESP_LOGD(TAG, "Component %s loop marked as done.", this->get_component_source());
+  this->component_state_ &= ~COMPONENT_STATE_MASK;
+  this->component_state_ |= COMPONENT_STATE_LOOP_DONE;
 }
 void Component::reset_to_construction_state() {
   if ((this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED) {
@@ -176,6 +185,10 @@ bool Component::is_failed() const { return (this->component_state_ & COMPONENT_S
 bool Component::is_ready() const {
   return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP ||
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_SETUP;
+}
+bool Component::should_skip_loop() const {
+  uint8_t state = this->component_state_ & COMPONENT_STATE_MASK;
+  return state == COMPONENT_STATE_FAILED || state == COMPONENT_STATE_LOOP_DONE;
 }
 bool Component::can_proceed() { return true; }
 bool Component::status_has_warning() const { return this->component_state_ & STATUS_LED_WARNING; }
