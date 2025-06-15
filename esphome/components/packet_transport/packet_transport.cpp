@@ -321,28 +321,28 @@ void PacketTransport::update() {
     this->last_key_time_ = now;
   }
   for (const auto &provider : this->providers_) {
-    if (provider.second.status_sensor != nullptr) {
-      uint32_t key_response_age = now - provider.second.last_key_response_time;
-      if (key_response_age > (this->ping_pong_recyle_time_ * 2u)) {
+    uint32_t key_response_age = now - provider.second.last_key_response_time;
+    if (key_response_age > (this->ping_pong_recyle_time_ * 2u)) {
 #ifdef USE_STATUS_SENSOR
-        if (provider.second.status_sensor->state) {
-          ESP_LOGW(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
-          provider.second.status_sensor->publish_state(false);
-        }
+      if (provider.second.status_sensor != nullptr && provider.second.status_sensor->state) {
+        ESP_LOGW(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
+        provider.second.status_sensor->publish_state(false);
+      }
 #endif
 #ifdef USE_SENSOR
-        for (auto &sensor : this->remote_sensors_[provider.first]) {
-          sensor.second->publish_state(NAN);
-        }
-#endif
-        // Not possible to set a binary sensor unavailable, hence no equivalent loop
-        // as for the sensors above.
-      } else {
-        if (!provider.second.status_sensor->state) {
-          ESP_LOGI(TAG, "Ping status for %s restored at %u with age %u", provider.first.c_str(), now, key_response_age);
-          provider.second.status_sensor->publish_state(true);
-        }
+      for (auto &sensor : this->remote_sensors_[provider.first]) {
+        sensor.second->publish_state(NAN);
       }
+#endif
+      // Not possible to set a binary sensor unavailable, hence no equivalent loop
+      // as for the sensors above.
+    } else {
+#ifdef USE_STATUS_SENSOR
+      if (provider.second.status_sensor != nullptr && !provider.second.status_sensor->state) {
+        ESP_LOGI(TAG, "Ping status for %s restored at %u with age %u", provider.first.c_str(), now, key_response_age);
+        provider.second.status_sensor->publish_state(true);
+      }
+#endif
     }
   }
 }
@@ -501,12 +501,10 @@ void PacketTransport::process_(const std::vector<uint8_t> &data) {
 }
 
 void PacketTransport::dump_config() {
-  ESP_LOGCONFIG(TAG,
-                "Packet Transport:\n"
-                "  Platform: %s\n"
-                "  Encrypted: %s\n"
-                "  Ping-pong: %s",
-                this->platform_name_, YESNO(this->is_encrypted_()), YESNO(this->ping_pong_enable_));
+  ESP_LOGCONFIG(TAG, "Packet Transport:");
+  ESP_LOGCONFIG(TAG, "  Platform: %s", this->platform_name_);
+  ESP_LOGCONFIG(TAG, "  Encrypted: %s", YESNO(this->is_encrypted_()));
+  ESP_LOGCONFIG(TAG, "  Ping-pong: %s", YESNO(this->ping_pong_enable_));
 #ifdef USE_SENSOR
   for (auto sensor : this->sensors_)
     ESP_LOGCONFIG(TAG, "  Sensor: %s", sensor.id);
