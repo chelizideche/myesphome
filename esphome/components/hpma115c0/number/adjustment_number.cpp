@@ -10,10 +10,11 @@ namespace hpma115c0 {
 void Hpma115C0AdjustmentNumber::control(float adjustment_coefficient) {
   AdjustmentCoefficient_t new_value = (AdjustmentCoefficient_t) adjustment_coefficient;
 
-  if (new_value < ADJUSTMENT_COEFFICIENT_MIN)
+  if (new_value < ADJUSTMENT_COEFFICIENT_MIN) {
     new_value = ADJUSTMENT_COEFFICIENT_MIN;
-  if (new_value > ADJUSTMENT_COEFFICIENT_MAX)
-    new_value = ADJUSTMENT_COEFFICIENT_MAX;
+  } else if (new_value > ADJUSTMENT_COEFFICIENT_MAX) {
+    new_value = ADJUSTMENT_COEFFICIENT_MIN;
+  }
 
   parent_->update_adjustment_coefficient(adjustment_coefficient);
 

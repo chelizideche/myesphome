@@ -11,7 +11,7 @@ class Hpma115C0AdjustmentNumber : public number::Number, public Parented<Hpma115
   Hpma115C0AdjustmentNumber() = default;
 
  protected:
-  void control(float adjustment_coefficient) override;
+  void control(float timeout) override;
 };
 
 }  // namespace hpma115c0
