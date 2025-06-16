@@ -15,7 +15,7 @@ import sys
 import tempfile
 from typing import TextIO
 
-from aioesphomeapi import APIClient, APIConnectionError, ReconnectLogic
+from aioesphomeapi import APIClient, APIConnectionError, LogParser, ReconnectLogic
 import pytest
 import pytest_asyncio
 
@@ -118,6 +118,21 @@ async def yaml_config(request: pytest.FixtureRequest, unused_tcp_port: int) -> s
     if "api:" in content:
         # Add port configuration after api:
         content = content.replace("api:", f"api:\n  port: {unused_tcp_port}")
+
+    # Add debug build flags for integration tests to enable assertions
+    if "esphome:" in content:
+        # Check if platformio_options already exists
+        if "platformio_options:" not in content:
+            # Add platformio_options with debug flags after esphome:
+            content = content.replace(
+                "esphome:",
+                "esphome:\n"
+                "  # Enable assertions for integration tests\n"
+                "  platformio_options:\n"
+                "    build_flags:\n"
+                '      - "-DDEBUG"  # Enable assert() statements\n'
+                '      - "-g"       # Add debug symbols',
+            )
 
     return content
 
@@ -350,11 +365,21 @@ async def _read_stream_lines(
     stream: asyncio.StreamReader, lines: list[str], output_stream: TextIO
 ) -> None:
     """Read lines from a stream, append to list, and echo to output stream."""
+    log_parser = LogParser()
     while line := await stream.readline():
-        decoded_line = line.decode("utf-8", errors="replace")
+        decoded_line = (
+            line.replace(b"\r", b"")
+            .replace(b"\n", b"")
+            .decode("utf8", "backslashreplace")
+        )
         lines.append(decoded_line.rstrip())
         # Echo to stdout/stderr in real-time
-        print(decoded_line.rstrip(), file=output_stream, flush=True)
+        # Print without newline to avoid double newlines
+        print(
+            log_parser.parse_line(decoded_line, timestamp=""),
+            file=output_stream,
+            flush=True,
+        )
 
 
 @asynccontextmanager
