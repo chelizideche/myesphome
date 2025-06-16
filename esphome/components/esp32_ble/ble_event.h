@@ -63,123 +63,66 @@ class BLEEvent {
   // Constructor for GAP events - no external allocations needed
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
-    this->event_.gap.gap_event = e;
-
-    if (p == nullptr) {
-      return;  // Invalid event, but we can't log in header file
-    }
-
-    // Only copy the data we actually use for each GAP event type
-    switch (e) {
-      case ESP_GAP_BLE_SCAN_RESULT_EVT:
-        // Copy only the fields we use from scan results
-        memcpy(this->event_.gap.scan_result.bda, p->scan_rst.bda, sizeof(esp_bd_addr_t));
-        this->event_.gap.scan_result.ble_addr_type = p->scan_rst.ble_addr_type;
-        this->event_.gap.scan_result.rssi = p->scan_rst.rssi;
-        this->event_.gap.scan_result.adv_data_len = p->scan_rst.adv_data_len;
-        this->event_.gap.scan_result.scan_rsp_len = p->scan_rst.scan_rsp_len;
-        this->event_.gap.scan_result.search_evt = p->scan_rst.search_evt;
-        memcpy(this->event_.gap.scan_result.ble_adv, p->scan_rst.ble_adv,
-               ESP_BLE_ADV_DATA_LEN_MAX + ESP_BLE_SCAN_RSP_DATA_LEN_MAX);
-        break;
-
-      case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
-        this->event_.gap.scan_complete.status = p->scan_param_cmpl.status;
-        break;
-
-      case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
-        this->event_.gap.scan_complete.status = p->scan_start_cmpl.status;
-        break;
-
-      case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
-        this->event_.gap.scan_complete.status = p->scan_stop_cmpl.status;
-        break;
-
-      default:
-        // We only handle 4 GAP event types, others are dropped
-        break;
-    }
+    this->init_gap_data(e, p);
   }
 
   // Constructor for GATTC events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
-    this->event_.gattc.gattc_event = e;
-    this->event_.gattc.gattc_if = i;
-
-    if (p == nullptr) {
-      this->event_.gattc.gattc_param = nullptr;
-      this->event_.gattc.data = nullptr;
-      return;  // Invalid event, but we can't log in header file
-    }
-
-    // Heap-allocate param and data
-    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
-    // while GAP events (99%) are stored inline to minimize memory usage
-    this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
-
-    // Copy data for events that need it
-    switch (e) {
-      case ESP_GATTC_NOTIFY_EVT:
-        this->event_.gattc.data = new std::vector<uint8_t>(p->notify.value, p->notify.value + p->notify.value_len);
-        this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data->data();
-        break;
-      case ESP_GATTC_READ_CHAR_EVT:
-      case ESP_GATTC_READ_DESCR_EVT:
-        this->event_.gattc.data = new std::vector<uint8_t>(p->read.value, p->read.value + p->read.value_len);
-        this->event_.gattc.gattc_param->read.value = this->event_.gattc.data->data();
-        break;
-      default:
-        this->event_.gattc.data = nullptr;
-        break;
-    }
+    this->init_gattc_data(e, i, p);
   }
 
   // Constructor for GATTS events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
-    this->event_.gatts.gatts_event = e;
-    this->event_.gatts.gatts_if = i;
-
-    if (p == nullptr) {
-      this->event_.gatts.gatts_param = nullptr;
-      this->event_.gatts.data = nullptr;
-      return;  // Invalid event, but we can't log in header file
-    }
-
-    // Heap-allocate param and data
-    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
-    // while GAP events (99%) are stored inline to minimize memory usage
-    this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
-
-    // Copy data for events that need it
-    switch (e) {
-      case ESP_GATTS_WRITE_EVT:
-        this->event_.gatts.data = new std::vector<uint8_t>(p->write.value, p->write.value + p->write.len);
-        this->event_.gatts.gatts_param->write.value = this->event_.gatts.data->data();
-        break;
-      default:
-        this->event_.gatts.data = nullptr;
-        break;
-    }
+    this->init_gatts_data(e, i, p);
   }
 
   // Destructor to clean up heap allocations
-  ~BLEEvent() {
-    switch (this->type_) {
-      case GATTC:
-        delete this->event_.gattc.gattc_param;
-        delete this->event_.gattc.data;
-        break;
-      case GATTS:
-        delete this->event_.gatts.gatts_param;
-        delete this->event_.gatts.data;
-        break;
-      default:
-        break;
+  ~BLEEvent() { this->cleanup_heap_data(); }
+
+  // Default constructor for pre-allocation in pool
+  BLEEvent() : type_(GAP) {}
+
+  // Clean up any heap-allocated data
+  void cleanup_heap_data() {
+    if (this->type_ == GAP) {
+      return;
     }
+    if (this->type_ == GATTC) {
+      delete this->event_.gattc.gattc_param;
+      delete this->event_.gattc.data;
+      this->event_.gattc.gattc_param = nullptr;
+      this->event_.gattc.data = nullptr;
+      return;
+    }
+    if (this->type_ == GATTS) {
+      delete this->event_.gatts.gatts_param;
+      delete this->event_.gatts.data;
+      this->event_.gatts.gatts_param = nullptr;
+      this->event_.gatts.data = nullptr;
+    }
+  }
+
+  // Load new event data for reuse (replaces previous event data)
+  void load_gap_event(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
+    this->cleanup_heap_data();
+    this->type_ = GAP;
+    this->init_gap_data(e, p);
+  }
+
+  void load_gattc_event(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
+    this->cleanup_heap_data();
+    this->type_ = GATTC;
+    this->init_gattc_data(e, i, p);
+  }
+
+  void load_gatts_event(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
+    this->cleanup_heap_data();
+    this->type_ = GATTS;
+    this->init_gatts_data(e, i, p);
   }
 
   // Disable copy to prevent double-delete
@@ -224,6 +167,102 @@ class BLEEvent {
   esp_gap_ble_cb_event_t gap_event_type() const { return event_.gap.gap_event; }
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
+
+ private:
+  // Initialize GAP event data
+  void init_gap_data(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
+    this->event_.gap.gap_event = e;
+
+    if (p == nullptr) {
+      return;
+    }
+
+    // Copy data based on event type
+    switch (e) {
+      case ESP_GAP_BLE_SCAN_RESULT_EVT:
+        memcpy(this->event_.gap.scan_result.bda, p->scan_rst.bda, sizeof(esp_bd_addr_t));
+        this->event_.gap.scan_result.ble_addr_type = p->scan_rst.ble_addr_type;
+        this->event_.gap.scan_result.rssi = p->scan_rst.rssi;
+        this->event_.gap.scan_result.adv_data_len = p->scan_rst.adv_data_len;
+        this->event_.gap.scan_result.scan_rsp_len = p->scan_rst.scan_rsp_len;
+        this->event_.gap.scan_result.search_evt = p->scan_rst.search_evt;
+        memcpy(this->event_.gap.scan_result.ble_adv, p->scan_rst.ble_adv,
+               ESP_BLE_ADV_DATA_LEN_MAX + ESP_BLE_SCAN_RSP_DATA_LEN_MAX);
+        break;
+
+      case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
+        this->event_.gap.scan_complete.status = p->scan_param_cmpl.status;
+        break;
+
+      case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
+        this->event_.gap.scan_complete.status = p->scan_start_cmpl.status;
+        break;
+
+      case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
+        this->event_.gap.scan_complete.status = p->scan_stop_cmpl.status;
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // Initialize GATTC event data
+  void init_gattc_data(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
+    this->event_.gattc.gattc_event = e;
+    this->event_.gattc.gattc_if = i;
+
+    if (p == nullptr) {
+      this->event_.gattc.gattc_param = nullptr;
+      this->event_.gattc.data = nullptr;
+      return;
+    }
+
+    // Heap-allocate param
+    this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
+
+    // Copy data for events that need it
+    switch (e) {
+      case ESP_GATTC_NOTIFY_EVT:
+        this->event_.gattc.data = new std::vector<uint8_t>(p->notify.value, p->notify.value + p->notify.value_len);
+        this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data->data();
+        break;
+      case ESP_GATTC_READ_CHAR_EVT:
+      case ESP_GATTC_READ_DESCR_EVT:
+        this->event_.gattc.data = new std::vector<uint8_t>(p->read.value, p->read.value + p->read.value_len);
+        this->event_.gattc.gattc_param->read.value = this->event_.gattc.data->data();
+        break;
+      default:
+        this->event_.gattc.data = nullptr;
+        break;
+    }
+  }
+
+  // Initialize GATTS event data
+  void init_gatts_data(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
+    this->event_.gatts.gatts_event = e;
+    this->event_.gatts.gatts_if = i;
+
+    if (p == nullptr) {
+      this->event_.gatts.gatts_param = nullptr;
+      this->event_.gatts.data = nullptr;
+      return;
+    }
+
+    // Heap-allocate param
+    this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
+
+    // Copy data for events that need it
+    switch (e) {
+      case ESP_GATTS_WRITE_EVT:
+        this->event_.gatts.data = new std::vector<uint8_t>(p->write.value, p->write.value + p->write.len);
+        this->event_.gatts.gatts_param->write.value = this->event_.gatts.data->data();
+        break;
+      default:
+        this->event_.gatts.data = nullptr;
+        break;
+    }
+  }
 };
 
 // BLEEvent total size: 84 bytes (80 byte union + 1 byte type + 3 bytes padding)

@@ -1,6 +1,8 @@
 #ifdef USE_ESP32
 
 #include "ble.h"
+#include "ble_event_pool.h"
+#include "queue_index.h"
 
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
@@ -23,8 +25,7 @@ namespace esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
-static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-    RAMAllocator<BLEEvent>::ALLOW_FAILURE | RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
+// No longer need static allocator - using pre-allocated pool instead
 
 void ESP32BLE::setup() {
   global_ble = this;
@@ -301,8 +302,16 @@ void ESP32BLE::loop() {
       break;
   }
 
-  BLEEvent *ble_event = this->ble_events_.pop();
-  while (ble_event != nullptr) {
+  size_t event_idx = this->ble_events_.pop();
+  while (event_idx != LockFreeIndexQueue<MAX_BLE_QUEUE_SIZE>::INVALID_INDEX) {
+    BLEEvent *ble_event = this->ble_event_pool_.get(event_idx);
+    if (ble_event == nullptr) {
+      // This should not happen - log error and continue
+      ESP_LOGE(TAG, "Invalid event index: %zu", event_idx);
+      event_idx = this->ble_events_.pop();
+      continue;
+    }
+
     switch (ble_event->type_) {
       case BLEEvent::GATTS: {
         esp_gatts_cb_event_t event = ble_event->event_.gatts.gatts_event;
@@ -349,10 +358,9 @@ void ESP32BLE::loop() {
       default:
         break;
     }
-    // Destructor will clean up external allocations for GATTC/GATTS
-    ble_event->~BLEEvent();
-    EVENT_ALLOCATOR.deallocate(ble_event, 1);
-    ble_event = this->ble_events_.pop();
+    // Return the event to the pool
+    this->ble_event_pool_.deallocate(event_idx);
+    event_idx = this->ble_events_.pop();
   }
   if (this->advertising_ != nullptr) {
     this->advertising_->loop();
@@ -363,6 +371,31 @@ void ESP32BLE::loop() {
   if (dropped > 0) {
     ESP_LOGW(TAG, "Dropped %zu BLE events due to buffer overflow", dropped);
   }
+
+  // Log pool usage periodically (every ~10 seconds)
+  static uint32_t last_pool_log = 0;
+  uint32_t now = millis();
+  if (now - last_pool_log > 10000) {
+    size_t created = this->ble_event_pool_.get_total_created();
+    if (created > 0) {
+      ESP_LOGD(TAG, "BLE event pool: %zu events created (peak usage), %zu currently allocated", created,
+               this->ble_event_pool_.get_allocated_count());
+    }
+    last_pool_log = now;
+  }
+}
+
+// Helper function to load new event data based on type
+void load_ble_event(BLEEvent *event, esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
+  event->load_gap_event(e, p);
+}
+
+void load_ble_event(BLEEvent *event, esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
+  event->load_gattc_event(e, i, p);
+}
+
+void load_ble_event(BLEEvent *event, esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
+  event->load_gatts_event(e, i, p);
 }
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
@@ -373,23 +406,35 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
     return;
   }
 
-  BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
-  if (new_event == nullptr) {
-    // Memory too fragmented to allocate new event. Can only drop it until memory comes back
+  // Allocate an event from the pool
+  size_t event_idx = global_ble->ble_event_pool_.allocate();
+  if (event_idx == BLEEventPool<MAX_BLE_QUEUE_SIZE>::INVALID_INDEX) {
+    // Pool is full, drop the event
     global_ble->ble_events_.increment_dropped_count();
     return;
   }
-  new (new_event) BLEEvent(args...);
 
-  // Push the event - since we're the only producer and we checked full() above,
-  // this should always succeed unless we have a bug
-  if (!global_ble->ble_events_.push(new_event)) {
+  // Get the event object
+  BLEEvent *event = global_ble->ble_event_pool_.get(event_idx);
+  if (event == nullptr) {
+    // This should not happen
+    ESP_LOGE(TAG, "Failed to get event from pool at index %zu", event_idx);
+    global_ble->ble_event_pool_.deallocate(event_idx);
+    global_ble->ble_events_.increment_dropped_count();
+    return;
+  }
+
+  // Load new event data (replaces previous event)
+  load_ble_event(event, args...);
+
+  // Push the event index to the queue
+  if (!global_ble->ble_events_.push(event_idx)) {
     // This should not happen in SPSC queue with single producer
     ESP_LOGE(TAG, "BLE queue push failed unexpectedly");
-    new_event->~BLEEvent();
-    EVENT_ALLOCATOR.deallocate(new_event, 1);
+    // Return to pool
+    global_ble->ble_event_pool_.deallocate(event_idx);
   }
-}  // NOLINT(clang-analyzer-unix.Malloc)
+}
 
 // Explicit template instantiations for the friend function
 template void enqueue_ble_event(esp_gap_ble_cb_event_t, esp_ble_gap_cb_param_t *);
