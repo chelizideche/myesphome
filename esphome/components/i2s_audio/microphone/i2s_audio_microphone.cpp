@@ -136,6 +136,7 @@ bool I2SAudioMicrophone::start_driver_() {
   if (!this->parent_->try_lock()) {
     return false;  // Waiting for another i2s to return lock
   }
+  this->locked_driver_ = true;
   esp_err_t err;
 
 #ifdef USE_I2S_LEGACY
@@ -340,7 +341,10 @@ void I2SAudioMicrophone::stop_driver_() {
     this->rx_handle_ = nullptr;
   }
 #endif
-  this->parent_->unlock();
+  if (this->locked_driver_) {
+    this->parent_->unlock();
+    this->locked_driver_ = false;
+  }
 }
 
 void I2SAudioMicrophone::mic_task(void *params) {
