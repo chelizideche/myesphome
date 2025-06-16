@@ -17,25 +17,6 @@ class APIServerConnectionBase : public ProtoService {
  public:
 #endif
 
- protected:
-  bool check_connection_setup_() {
-    if (!this->is_connection_setup()) {
-      this->on_no_setup_connection();
-      return false;
-    }
-    return true;
-  }
-  bool check_authenticated_() {
-    if (!this->check_connection_setup_()) {
-      return false;
-    }
-    if (!this->is_authenticated()) {
-      this->on_unauthenticated_access();
-      return false;
-    }
-    return true;
-  }
-
  public:
   template<typename T> bool send_message(const T &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP

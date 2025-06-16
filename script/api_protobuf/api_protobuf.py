@@ -1353,26 +1353,7 @@ def main() -> None:
     hpp += " public:\n"
     hpp += "#endif\n\n"
 
-    # Add authentication check helper methods
-    hpp += " protected:\n"
-    hpp += "  bool check_connection_setup_() {\n"
-    hpp += "    if (!this->is_connection_setup()) {\n"
-    hpp += "      this->on_no_setup_connection();\n"
-    hpp += "      return false;\n"
-    hpp += "    }\n"
-    hpp += "    return true;\n"
-    hpp += "  }\n"
-    hpp += "  bool check_authenticated_() {\n"
-    hpp += "    if (!this->check_connection_setup_()) {\n"
-    hpp += "      return false;\n"
-    hpp += "    }\n"
-    hpp += "    if (!this->is_authenticated()) {\n"
-    hpp += "      this->on_unauthenticated_access();\n"
-    hpp += "      return false;\n"
-    hpp += "    }\n"
-    hpp += "    return true;\n"
-    hpp += "  }\n"
-    hpp += " public:\n\n"
+    hpp += " public:\n"
 
     # Add generic send_message method
     hpp += "  template<typename T>\n"
