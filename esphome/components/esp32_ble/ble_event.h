@@ -219,7 +219,7 @@ class BLEEvent {
       return;  // Invalid event, but we can't log in header file
     }
 
-    // Heap-allocate param
+    // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
@@ -252,7 +252,7 @@ class BLEEvent {
       return;  // Invalid event, but we can't log in header file
     }
 
-    // Heap-allocate param
+    // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);

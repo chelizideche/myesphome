@@ -71,8 +71,11 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
 
  protected:
   T *buffer_[SIZE];
+  // Atomic: written by consumer (pop), read by producer (push) to check if full
   std::atomic<uint8_t> head_;
+  // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
+  // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
   std::atomic<uint32_t> dropped_count_;  // Keep this larger for accumulated counts
 };
 
