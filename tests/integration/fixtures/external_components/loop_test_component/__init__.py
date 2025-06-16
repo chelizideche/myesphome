@@ -1,7 +1,7 @@
 from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.const import CONF_COMPONENTS, CONF_ID, CONF_NAME
 
 CODEOWNERS = ["@esphome/tests"]
 
@@ -10,7 +10,6 @@ LoopTestComponent = loop_test_component_ns.class_("LoopTestComponent", cg.Compon
 
 CONF_DISABLE_AFTER = "disable_after"
 CONF_TEST_REDUNDANT_OPERATIONS = "test_redundant_operations"
-CONF_COMPONENTS = "components"
 
 COMPONENT_CONFIG_SCHEMA = cv.Schema(
     {
