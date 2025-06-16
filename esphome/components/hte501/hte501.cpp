@@ -1,4 +1,5 @@
 #include "hte501.h"
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -25,7 +26,7 @@ void HTE501Component::dump_config() {
   LOG_I2C_DEVICE(this);
   switch (this->error_code_) {
     case COMMUNICATION_FAILED:
-      ESP_LOGE(TAG, "Communication with HTE501 failed!");
+      ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
       break;
     case CRC_CHECK_FAILED:
       ESP_LOGE(TAG, "The crc check failed");

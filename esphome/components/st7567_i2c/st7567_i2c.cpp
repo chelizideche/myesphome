@@ -24,13 +24,15 @@ void I2CST7567::dump_config() {
   LOG_I2C_DEVICE(this);
   ESP_LOGCONFIG(TAG, "  Model: %s", this->model_str_());
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
-  ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->mirror_x_));
-  ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->mirror_y_));
-  ESP_LOGCONFIG(TAG, "  Invert Colors: %s", YESNO(this->invert_colors_));
+  ESP_LOGCONFIG(TAG,
+                "  Mirror X: %s\n"
+                "  Mirror Y: %s\n"
+                "  Invert Colors: %s",
+                YESNO(this->mirror_x_), YESNO(this->mirror_y_), YESNO(this->invert_colors_));
   LOG_UPDATE_INTERVAL(this);
 
   if (this->error_code_ == COMMUNICATION_FAILED) {
-    ESP_LOGE(TAG, "Communication with I2C ST7567 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 }
 

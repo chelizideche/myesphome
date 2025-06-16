@@ -126,9 +126,7 @@ ignore = [
   "PLR0915", # Too many statements ({statements} > {max_statements})
   "PLR2004", # Magic value used in comparison, consider replacing {value} with a constant variable
   "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
-
-  # Ignored due to performance: https://github.com/astral-sh/ruff/issues/2923
-  "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+  "UP038", # https://github.com/astral-sh/ruff/issues/7871 https://github.com/astral-sh/ruff/pull/16681
 ]
 
 [tool.ruff.lint.isort]

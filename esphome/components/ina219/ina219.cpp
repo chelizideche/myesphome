@@ -129,12 +129,19 @@ void INA219Component::setup() {
   }
 }
 
+void INA219Component::on_powerdown() {
+  // Mode = 0 -> power down
+  if (!this->write_byte_16(INA219_REGISTER_CONFIG, 0)) {
+    ESP_LOGE(TAG, "powerdown error");
+  }
+}
+
 void INA219Component::dump_config() {
   ESP_LOGCONFIG(TAG, "INA219:");
   LOG_I2C_DEVICE(this);
 
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with INA219 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
     return;
   }
   LOG_UPDATE_INTERVAL(this);

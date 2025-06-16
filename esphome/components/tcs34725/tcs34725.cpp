@@ -1,8 +1,8 @@
 #include "tcs34725.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
-#include <algorithm>
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
+#include <algorithm>
 
 namespace esphome {
 namespace tcs34725 {
@@ -46,7 +46,7 @@ void TCS34725Component::dump_config() {
   ESP_LOGCONFIG(TAG, "TCS34725:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with TCS34725 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   LOG_UPDATE_INTERVAL(this);
 

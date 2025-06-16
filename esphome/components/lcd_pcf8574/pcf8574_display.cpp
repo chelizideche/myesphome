@@ -21,12 +21,14 @@ void PCF8574LCDDisplay::setup() {
   LCDDisplay::setup();
 }
 void PCF8574LCDDisplay::dump_config() {
-  ESP_LOGCONFIG(TAG, "PCF8574 LCD Display:");
-  ESP_LOGCONFIG(TAG, "  Columns: %u, Rows: %u", this->columns_, this->rows_);
+  ESP_LOGCONFIG(TAG,
+                "PCF8574 LCD Display:\n"
+                "  Columns: %u, Rows: %u",
+                this->columns_, this->rows_);
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with LCD Display failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 }
 void PCF8574LCDDisplay::write_n_bits(uint8_t value, uint8_t n) {
