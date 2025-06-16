@@ -325,7 +325,7 @@ def validate_value_type(value_config):
         value_config[CONF_DATA] = VALUE_TYPES[type_].validate(
             value, value_config[CONF_STRING_ENCODING]
         )
-    elif isinstance(value, float | int):
+    elif isinstance(value, (float, int)):
         raise cv.Invalid(
             f'The "{CONF_TYPE}" property is required for the value "{value}"'
         )

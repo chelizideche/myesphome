@@ -964,7 +964,7 @@ def line_info(config, path, highlight=True):
 
 
 def _print_on_next_line(obj):
-    if isinstance(obj, list | tuple | dict):
+    if isinstance(obj, (list, tuple, dict)):
         return True
     if isinstance(obj, str):
         return len(obj) > 80
@@ -985,7 +985,7 @@ def dump_dict(
         if error is not None:
             ret += f"\n{color(AnsiFore.BOLD_RED, _format_vol_invalid(error, config))}\n"
 
-    if isinstance(conf, list | tuple):
+    if isinstance(conf, (list, tuple)):
         multiline = True
         if not conf:
             ret += "[]"

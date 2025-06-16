@@ -105,7 +105,7 @@ def _substitute_item(substitutions, item, path, ignore_missing):
         sub = _expand_substitutions(substitutions, item, path, ignore_missing)
         if sub != item:
             return sub
-    elif isinstance(item, core.Lambda | Extend | Remove):
+    elif isinstance(item, (core.Lambda, Extend, Remove)):
         sub = _expand_substitutions(substitutions, item.value, path, ignore_missing)
         if sub != item:
             item.value = sub

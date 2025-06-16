@@ -311,7 +311,7 @@ def string(value):
     "60.0" (string). For values where this could be a problem `string_strict` has to be used.
     """
     check_not_templatable(value)
-    if isinstance(value, dict | list):
+    if isinstance(value, (dict, list)):
         raise Invalid("string value cannot be dictionary or list.")
     if isinstance(value, bool):
         raise Invalid(
@@ -462,9 +462,9 @@ def hex_int_range(min=None, max=None, min_included=True, max_included=True):
 def float_range(min=None, max=None, min_included=True, max_included=True):
     """Validate that the config option is a floating point number in the given range."""
     if min is not None:
-        assert isinstance(min, int | float)
+        assert isinstance(min, (int, float))
     if max is not None:
-        assert isinstance(max, int | float)
+        assert isinstance(max, (int, float))
     return All(
         float_,
         Range(min=min, max=max, min_included=min_included, max_included=max_included),
@@ -1348,7 +1348,7 @@ def valid(value):
 @contextmanager
 def prepend_path(path):
     """A contextmanager helper to prepend a path to all voluptuous errors."""
-    if not isinstance(path, list | tuple):
+    if not isinstance(path, (list, tuple)):
         path = [path]
     try:
         yield
@@ -1360,7 +1360,7 @@ def prepend_path(path):
 @contextmanager
 def remove_prepend_path(path):
     """A contextmanager helper to remove a path from a voluptuous error."""
-    if not isinstance(path, list | tuple):
+    if not isinstance(path, (list, tuple)):
         path = [path]
     try:
         yield

@@ -131,7 +131,7 @@ def position_range():
 
     def validator(value):
         is_negative_str = isinstance(value, str) and value.startswith("-")
-        is_negative_num = isinstance(value, float | int) and value < 0
+        is_negative_num = isinstance(value, (float, int)) and value < 0
         if is_negative_str or is_negative_num:
             return negative_validator(value)
         return positive_validator(value)

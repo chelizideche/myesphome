@@ -173,7 +173,7 @@ def check_error(data, expect):
         )
     if dat == RESPONSE_ERROR_UNKNOWN:
         raise OTAError("Unknown error from ESP")
-    if not isinstance(expect, list | tuple):
+    if not isinstance(expect, (list, tuple)):
         expect = [expect]
     if dat not in expect:
         raise OTAError(f"Unexpected response from ESP: 0x{data[0]:02X}")
@@ -181,7 +181,7 @@ def check_error(data, expect):
 
 def send_check(sock, data, msg):
     try:
-        if isinstance(data, list | tuple):
+        if isinstance(data, (list, tuple)):
             data = bytes(data)
         elif isinstance(data, int):
             data = bytes([data])
