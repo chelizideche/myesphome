@@ -7,9 +7,9 @@
 #include "esphome/components/espnow/espnow.h"
 
 namespace esphome {
-namespace espnow {
+namespace espnow_find {
 
-static const uint32_t ESPNOW_FIND_APP_ID = 0x4664;  // = Fd
+static const uint32_t ESPNOW_FIND_IDENTIFIER = 0x4664;  // = Fd
 
 enum ESPNowFindPeerState : uint8_t {
   FIND_PEER_NONE = 0,
@@ -23,10 +23,10 @@ class ESPNowFindPeer : public ESPNowApp {
  public:
   ESPNowFindPeer(/* args */);
   ~ESPNowFindPeer();
-  void init_app() override;
+  void initialize() override;
 
   ESPNowFindPeerState find_peer(uint64_t peer);
-  uint16_t application() override { return ESPNOW_FIND_APP_ID; }
+  uint16_t application() override { return ESPNOW_FIND_IDENTIFIER; }
 
  private:
   /* data */
@@ -43,12 +43,12 @@ class FindPeerAction : public Action<Ts...>, public Parented<ESPNowFindPeer>, pu
  public:
   TEMPLATABLE_VALUE(uint64_t, mac_address);
 
-  void add_success(const std::vector<Action<Ts...> *> &actions) {
+  void add_on_succeed(const std::vector<Action<Ts...> *> &actions) {
     this->success_.add_actions(actions);
     this->success_.add_action(new LambdaAction<Ts...>([this](Ts... x) { this->play_next_(x...); }));
   }
 
-  void add_failed(const std::vector<Action<Ts...> *> &actions) {
+  void add_on_failed(const std::vector<Action<Ts...> *> &actions) {
     this->failed_.add_actions(actions);
     this->failed_.add_action(new LambdaAction<Ts...>([this](Ts... x) { this->play_next_(x...); }));
   }
@@ -75,7 +75,11 @@ class FindPeerAction : public Action<Ts...>, public Parented<ESPNowFindPeer>, pu
   }
 
   void play_complex(Ts... x) override {
-    this->peer_ = this->mac_address_.value(x...);
+    if (this->mac_address_.has_value()) {
+      this->peer_ = this->mac_address_.value(x...);
+    } else {
+      this->peer_ = this->parent_->get_default_mac_address();
+    }
     ESPNowFindPeerState state_ = this->parent_->find_peer(this->peer_);
     if (state_ == FIND_PEER_SCANNING) {
       this->num_running_++;
@@ -87,8 +91,7 @@ class FindPeerAction : public Action<Ts...>, public Parented<ESPNowFindPeer>, pu
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-  void play(Ts... x) override { /* ignore - see play_complex */
-  }
+  void play(Ts... x) override {}  // ignore - see play_complex
 
   void stop() override {
     this->peer_ = 0ul;
@@ -104,7 +107,7 @@ class FindPeerAction : public Action<Ts...>, public Parented<ESPNowFindPeer>, pu
   uint64_t peer_{0};
 };
 
-}  // namespace espnow
+}  // namespace espnow_find
 }  // namespace esphome
 
 #endif

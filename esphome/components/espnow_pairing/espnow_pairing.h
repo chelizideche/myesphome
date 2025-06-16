@@ -17,7 +17,7 @@
 #include <map>
 
 namespace esphome {
-namespace espnow {
+namespace espnow_pairing {
 
 class ESPNowPairing : public pollingcomponent, public ESPNowProtocol {
  public:
@@ -59,5 +59,5 @@ class ESPNowPairing : public pollingcomponent, public ESPNowProtocol {
   ESPPreferenceObject pref_;
 }
 
-}  // namespace espnow
+}  // namespace espnow_pairing
 }  // namespace esphome

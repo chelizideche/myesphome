@@ -11,7 +11,7 @@
 #include <map>
 
 namespace esphome {
-namespace espnow {
+namespace espnow_pairing {
 
 static const uint8_t SPNOW_RANDOM_CODE_LENGTH = 5;
 
