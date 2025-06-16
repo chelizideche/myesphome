@@ -360,18 +360,6 @@ void ESP32BLE::loop() {
   if (dropped > 0) {
     ESP_LOGW(TAG, "Dropped %u BLE events due to buffer overflow", dropped);
   }
-
-  // Log pool usage periodically (every ~10 seconds)
-  static uint32_t last_pool_log = 0;
-  uint32_t now = millis();
-  if (now - last_pool_log > 10000) {
-    uint8_t created = this->ble_event_pool_.get_total_created();
-    if (created > 0) {
-      ESP_LOGD(TAG, "BLE event pool: %u events created (peak usage), %zu free", created,
-               this->ble_event_pool_.get_free_count());
-    }
-    last_pool_log = now;
-  }
 }
 
 // Helper function to load new event data based on type
