@@ -61,12 +61,6 @@ template<uint8_t SIZE> class BLEEventPool {
     }
   }
 
-  // Get total number of events created (high water mark)
-  uint8_t get_total_created() const { return this->total_created_.load(std::memory_order_relaxed); }
-
-  // Get number of events in the free list
-  size_t get_free_count() const { return this->free_list_.size(); }
-
  private:
   LockFreeQueue<BLEEvent, SIZE> free_list_;  // Free events ready for reuse
   std::atomic<uint8_t> total_created_;       // Total events created (high water mark)
