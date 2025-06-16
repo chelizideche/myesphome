@@ -1,6 +1,6 @@
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components.espnow_talk import (
+from esphome.components.espnow import (
     CONF_DEFAULT,
     CONF_ON_FAILED,
     CONF_ON_SUCCEED,
