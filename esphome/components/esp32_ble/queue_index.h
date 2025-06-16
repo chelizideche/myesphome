@@ -10,7 +10,7 @@ namespace esp32_ble {
 
 // Lock-free SPSC queue that stores indices instead of pointers
 // This allows us to use a pre-allocated pool of objects
-template<size_t SIZE> class LockFreeIndexQueue {
+template<uint8_t SIZE> class LockFreeIndexQueue {
  public:
   static constexpr uint8_t INVALID_INDEX = 0xFF;  // 255, which is > MAX_BLE_QUEUE_SIZE (64)
 

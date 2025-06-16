@@ -12,11 +12,11 @@ namespace esp32_ble {
 
 // BLE Event Pool - On-demand pool of BLEEvent objects to avoid heap fragmentation
 // Events are allocated on first use and reused thereafter, growing to peak usage
-template<size_t SIZE> class BLEEventPool {
+template<uint8_t SIZE> class BLEEventPool {
  public:
   BLEEventPool() {
     // Initialize all slots as unallocated
-    for (size_t i = 0; i < SIZE; i++) {
+    for (uint8_t i = 0; i < SIZE; i++) {
       this->events_[i] = nullptr;
     }
 
@@ -33,7 +33,7 @@ template<size_t SIZE> class BLEEventPool {
 
   ~BLEEventPool() {
     // Delete any events that were created
-    for (size_t i = 0; i < SIZE; i++) {
+    for (uint8_t i = 0; i < SIZE; i++) {
       if (this->events_[i] != nullptr) {
         delete this->events_[i];
       }
