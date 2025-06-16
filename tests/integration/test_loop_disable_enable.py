@@ -145,6 +145,6 @@ async def test_loop_disable_enable(
 
         # Component was re-enabled - verify it ran more times
         later_self_disable_counts = [c for c in self_disable_10_counts if c > 10]
-        assert len(later_self_disable_counts) > 0, (
+        assert later_self_disable_counts, (
             "self_disable_10 was re-enabled but did not run additional times"
         )
