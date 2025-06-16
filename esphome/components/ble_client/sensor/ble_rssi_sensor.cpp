@@ -12,8 +12,8 @@ namespace ble_client {
 static const char *const TAG = "ble_rssi_sensor";
 
 void BLEClientRSSISensor::loop() {
-  // This component uses polling via update() and BLE GAP callbacks
-  // Empty loop not needed, disable to save CPU cycles
+  // Parent BLEClientNode has a loop() method, but this component uses
+  // polling via update() and BLE GAP callbacks so loop isn't needed
   this->disable_loop();
 }
 

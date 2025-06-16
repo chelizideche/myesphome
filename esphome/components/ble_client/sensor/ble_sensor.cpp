@@ -12,8 +12,8 @@ namespace ble_client {
 static const char *const TAG = "ble_sensor";
 
 void BLESensor::loop() {
-  // This component uses polling via update() and BLE callbacks
-  // Empty loop not needed, disable to save CPU cycles
+  // Parent BLEClientNode has a loop() method, but this component uses
+  // polling via update() and BLE callbacks so loop isn't needed
   this->disable_loop();
 }
 

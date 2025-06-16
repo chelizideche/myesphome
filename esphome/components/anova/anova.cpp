@@ -18,8 +18,8 @@ void Anova::setup() {
 }
 
 void Anova::loop() {
-  // This component uses polling via update() and BLE callbacks
-  // Empty loop not needed, disable to save CPU cycles
+  // Parent BLEClientNode has a loop() method, but this component uses
+  // polling via update() and BLE callbacks so loop isn't needed
   this->disable_loop();
 }
 
