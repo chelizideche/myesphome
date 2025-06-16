@@ -42,14 +42,17 @@ template<uint8_t SIZE> class BLEEventPool {
       RAMAllocator<BLEEvent> allocator(RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
       event = allocator.allocate(1);
 
-      if (event != nullptr) {
-        // Placement new to construct the object
-        new (event) BLEEvent();
-        this->total_created_++;
+      if (event == nullptr) {
+        // Memory allocation failed
+        return nullptr;
       }
+
+      // Placement new to construct the object
+      new (event) BLEEvent();
+      this->total_created_++;
     }
 
-    return event;  // Will be nullptr if allocation failed
+    return event;
   }
 
   // Return an event to the pool

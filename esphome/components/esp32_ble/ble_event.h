@@ -203,6 +203,7 @@ class BLEEvent {
         break;
 
       default:
+        // We only handle 4 GAP event types, others are dropped
         break;
     }
   }
