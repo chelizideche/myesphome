@@ -12,11 +12,11 @@ namespace esp32_ble {
 // This allows us to use a pre-allocated pool of objects
 template<size_t SIZE> class LockFreeIndexQueue {
  public:
-  static constexpr size_t INVALID_INDEX = SIZE_MAX;
+  static constexpr uint8_t INVALID_INDEX = 0xFF;  // 255, which is > MAX_BLE_QUEUE_SIZE (64)
 
   LockFreeIndexQueue() : head_(0), tail_(0), dropped_count_(0) {
     // Initialize all slots to invalid
-    for (size_t i = 0; i < SIZE; i++) {
+    for (uint8_t i = 0; i < SIZE; i++) {
       buffer_[i] = INVALID_INDEX;
     }
   }
@@ -69,10 +69,10 @@ template<size_t SIZE> class LockFreeIndexQueue {
   }
 
  protected:
-  size_t buffer_[SIZE];
-  std::atomic<size_t> head_;
-  std::atomic<size_t> tail_;
-  std::atomic<size_t> dropped_count_;
+  uint8_t buffer_[SIZE];
+  std::atomic<uint8_t> head_;
+  std::atomic<uint8_t> tail_;
+  std::atomic<uint32_t> dropped_count_;  // Keep this as uint32_t for larger counts
 };
 
 }  // namespace esp32_ble

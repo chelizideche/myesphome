@@ -25,7 +25,7 @@ namespace esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
-// No longer need static allocator - using pre-allocated pool instead
+// No longer need static allocator - using on-demand pool instead
 
 void ESP32BLE::setup() {
   global_ble = this;
