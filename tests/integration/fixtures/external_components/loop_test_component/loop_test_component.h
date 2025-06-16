@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include "esphome/core/automation.h"
 
 namespace esphome {
 namespace loop_test_component {
@@ -11,78 +12,76 @@ static const char *const TAG = "loop_test_component";
 
 class LoopTestComponent : public Component {
  public:
-  void setup() override {
-    ESP_LOGI(TAG, "LoopTestComponent setup()");
-    this->loop_count_ = 0;
-    this->setup_disable_count_ = 0;
-    this->setup_enable_count_ = 0;
+  void set_name(const std::string &name) { this->name_ = name; }
+  void set_disable_after(int count) { this->disable_after_ = count; }
+  void set_test_redundant_operations(bool test) { this->test_redundant_operations_ = test; }
 
-    // Test 1: Try to disable/enable in setup (before calculate_looping_components_)
-    ESP_LOGI(TAG, "Test 1: Disable in setup");
-    this->disable_loop();
-    this->setup_disable_count_++;
-
-    ESP_LOGI(TAG, "Test 1: Enable in setup");
-    this->enable_loop();
-    this->setup_enable_count_++;
-  }
+  void setup() override { ESP_LOGI(TAG, "[%s] Setup called", this->name_.c_str()); }
 
   void loop() override {
     this->loop_count_++;
+    ESP_LOGI(TAG, "[%s] Loop count: %d", this->name_.c_str(), this->loop_count_);
 
-    if (this->loop_count_ <= 10 || this->loop_count_ % 10 == 0) {
-      ESP_LOGI(TAG, "Loop count: %d", this->loop_count_);
-    }
-
-    // Test 2: Disable after 50 loops
-    if (this->loop_count_ == 50) {
-      ESP_LOGI(TAG, "Test 2: Disabling loop after 50 iterations");
+    // Test self-disable after specified count
+    if (this->disable_after_ > 0 && this->loop_count_ == this->disable_after_) {
+      ESP_LOGI(TAG, "[%s] Disabling self after %d loops", this->name_.c_str(), this->disable_after_);
       this->disable_loop();
-      this->loop_disable_count_++;
     }
 
-    // This should not happen
-    if (this->loop_count_ > 50 && this->loop_count_ < 100) {
-      ESP_LOGE(TAG, "ERROR: Loop called after disable! Count: %d", this->loop_count_);
-    }
-
-    // Test 3: Re-enable after being disabled (shouldn't get here)
-    if (this->loop_count_ == 75) {
-      ESP_LOGE(TAG, "ERROR: This code should never execute!");
-      this->enable_loop();
+    // Test redundant operations
+    if (this->test_redundant_operations_ && this->loop_count_ == 5) {
+      if (this->name_ == "redundant_enable") {
+        ESP_LOGI(TAG, "[%s] Testing enable when already enabled", this->name_.c_str());
+        this->enable_loop();
+      } else if (this->name_ == "redundant_disable") {
+        ESP_LOGI(TAG, "[%s] Testing disable when will be disabled", this->name_.c_str());
+        // We'll disable at count 10, but try to disable again at 5
+        this->disable_loop();
+        ESP_LOGI(TAG, "[%s] First disable complete", this->name_.c_str());
+      }
     }
   }
 
-  // For testing from outside
-  void test_enable_from_outside() {
-    ESP_LOGI(TAG, "Test 3: Enabling from outside call");
+  // Service methods for external control
+  void service_enable() {
+    ESP_LOGI(TAG, "[%s] Service enable called", this->name_.c_str());
     this->enable_loop();
-    this->external_enable_count_++;
   }
 
-  void test_disable_from_outside() {
-    ESP_LOGI(TAG, "Test 4: Disabling from outside call");
+  void service_disable() {
+    ESP_LOGI(TAG, "[%s] Service disable called", this->name_.c_str());
     this->disable_loop();
-    this->external_disable_count_++;
   }
 
-  // Getters for test validation
   int get_loop_count() const { return this->loop_count_; }
-  int get_setup_disable_count() const { return this->setup_disable_count_; }
-  int get_setup_enable_count() const { return this->setup_enable_count_; }
-  int get_loop_disable_count() const { return this->loop_disable_count_; }
-  int get_external_enable_count() const { return this->external_enable_count_; }
-  int get_external_disable_count() const { return this->external_disable_count_; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
+  std::string name_;
   int loop_count_{0};
-  int setup_disable_count_{0};
-  int setup_enable_count_{0};
-  int loop_disable_count_{0};
-  int external_enable_count_{0};
-  int external_disable_count_{0};
+  int disable_after_{0};
+  bool test_redundant_operations_{false};
+};
+
+template<typename... Ts> class EnableAction : public Action<Ts...> {
+ public:
+  EnableAction(LoopTestComponent *parent) : parent_(parent) {}
+
+  void play(Ts... x) override { this->parent_->service_enable(); }
+
+ protected:
+  LoopTestComponent *parent_;
+};
+
+template<typename... Ts> class DisableAction : public Action<Ts...> {
+ public:
+  DisableAction(LoopTestComponent *parent) : parent_(parent) {}
+
+  void play(Ts... x) override { this->parent_->service_disable(); }
+
+ protected:
+  LoopTestComponent *parent_;
 };
 
 }  // namespace loop_test_component
