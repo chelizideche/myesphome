@@ -9,7 +9,6 @@ import logging
 import os
 from pathlib import Path
 import platform
-import pty
 import signal
 import socket
 import sys
@@ -46,6 +45,9 @@ if platform.system() == "Windows":
     pytest.skip(
         "Integration tests are not supported on Windows", allow_module_level=True
     )
+
+
+import pty  # not available on Windows
 
 
 @pytest.fixture(scope="module", autouse=True)
