@@ -58,7 +58,7 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return (tail - head + SIZE) % SIZE;
   }
 
-  uint32_t get_and_reset_dropped_count() { return dropped_count_.exchange(0, std::memory_order_relaxed); }
+  uint16_t get_and_reset_dropped_count() { return dropped_count_.exchange(0, std::memory_order_relaxed); }
 
   void increment_dropped_count() { dropped_count_.fetch_add(1, std::memory_order_relaxed); }
 
@@ -72,7 +72,7 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
  protected:
   T *buffer_[SIZE];
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
-  std::atomic<uint32_t> dropped_count_;  // Keep this larger for accumulated counts
+  std::atomic<uint16_t> dropped_count_;  // 65535 max - more than enough for drop tracking
   // Atomic: written by consumer (pop), read by producer (push) to check if full
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty

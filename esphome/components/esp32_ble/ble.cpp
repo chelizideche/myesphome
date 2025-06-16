@@ -356,7 +356,7 @@ void ESP32BLE::loop() {
   }
 
   // Log dropped events periodically
-  uint32_t dropped = this->ble_events_.get_and_reset_dropped_count();
+  uint16_t dropped = this->ble_events_.get_and_reset_dropped_count();
   if (dropped > 0) {
     ESP_LOGW(TAG, "Dropped %u BLE events due to buffer overflow", dropped);
   }
