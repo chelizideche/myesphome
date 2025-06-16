@@ -22,11 +22,11 @@ template<size_t SIZE> class LockFreeIndexQueue {
   }
 
   bool push(size_t index) {
-    if (index == INVALID_INDEX)
+    if (index == INVALID_INDEX || index >= SIZE)
       return false;
 
-    size_t current_tail = tail_.load(std::memory_order_relaxed);
-    size_t next_tail = (current_tail + 1) % SIZE;
+    uint8_t current_tail = tail_.load(std::memory_order_relaxed);
+    uint8_t next_tail = (current_tail + 1) % SIZE;
 
     if (next_tail == head_.load(std::memory_order_acquire)) {
       // Buffer full
@@ -34,37 +34,37 @@ template<size_t SIZE> class LockFreeIndexQueue {
       return false;
     }
 
-    buffer_[current_tail] = index;
+    buffer_[current_tail] = static_cast<uint8_t>(index);
     tail_.store(next_tail, std::memory_order_release);
     return true;
   }
 
   size_t pop() {
-    size_t current_head = head_.load(std::memory_order_relaxed);
+    uint8_t current_head = head_.load(std::memory_order_relaxed);
 
     if (current_head == tail_.load(std::memory_order_acquire)) {
       return INVALID_INDEX;  // Empty
     }
 
-    size_t index = buffer_[current_head];
+    uint8_t index = buffer_[current_head];
     head_.store((current_head + 1) % SIZE, std::memory_order_release);
     return index;
   }
 
   size_t size() const {
-    size_t tail = tail_.load(std::memory_order_acquire);
-    size_t head = head_.load(std::memory_order_acquire);
+    uint8_t tail = tail_.load(std::memory_order_acquire);
+    uint8_t head = head_.load(std::memory_order_acquire);
     return (tail - head + SIZE) % SIZE;
   }
 
-  size_t get_and_reset_dropped_count() { return dropped_count_.exchange(0, std::memory_order_relaxed); }
+  uint32_t get_and_reset_dropped_count() { return dropped_count_.exchange(0, std::memory_order_relaxed); }
 
   void increment_dropped_count() { dropped_count_.fetch_add(1, std::memory_order_relaxed); }
 
   bool empty() const { return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire); }
 
   bool full() const {
-    size_t next_tail = (tail_.load(std::memory_order_relaxed) + 1) % SIZE;
+    uint8_t next_tail = (tail_.load(std::memory_order_relaxed) + 1) % SIZE;
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
