@@ -37,7 +37,7 @@ loop_test_component:
 
 # Interval to re-enable the self_disable_10 component after some time
 interval:
-  - interval: 2s
+  - interval: 1s
     then:
       - if:
           condition:
