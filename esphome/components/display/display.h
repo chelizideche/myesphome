@@ -267,10 +267,10 @@ class Display : public PollingComponent {
 
   /// Draw a straight line at the given angle based on the origin [x, y] from a specified start and stop radius with the
   /// given color.
+  virtual void line_at_angle(int x, int y, int angle, int start_radius, int stop_radius, Color color);
   void line_at_angle(int x, int y, int angle, int start_radius, int stop_radius) {
     this->line_at_angle(x, y, angle, start_radius, stop_radius, COLOR_ON);
   }
-  virtual void line_at_angle(int x, int y, int angle, int start_radius, int stop_radius, Color color = COLOR_ON);
 
   /// Draw a horizontal line from the point [x,y] to [x+width,y] with the given color.
   virtual void horizontal_line(int x, int y, int width, Color color);
@@ -280,6 +280,9 @@ class Display : public PollingComponent {
   virtual void vertical_line(int x, int y, int height, Color color);
   void vertical_line(int x, int y, int height) { this->vertical_line(x, y, height, COLOR_ON); }
 
+  // Methods below are not virtual, since they are implemented using the above methods and are thus not
+  // prime candidates for overriding in derived classes.
+
   /// Draw the outline of a rectangle with the top left point at [x1,y1] and the bottom right point at
   /// [x1+width,y1+height].
   void rectangle(int x1, int y1, int width, int height, Color color = COLOR_ON);
@@ -287,17 +290,16 @@ class Display : public PollingComponent {
   /// Fill a rectangle with the top left point at [x1,y1] and the bottom right point at [x1+width,y1+height].
   void filled_rectangle(int x1, int y1, int width, int height, Color color = COLOR_ON);
 
-  /// Draw the outline of a circle centered around [center_x,center_y] with the radius radius with the given color.
+  /// Draw the outline of a circle centered around [center_x,center_y] with the specified radius and color.
   void circle(int center_x, int center_xy, int radius, Color color = COLOR_ON);
 
-  /// Fill a circle centered around [center_x,center_y] with the radius radius with the given color.
+  /// Fill a circle centered around [center_x,center_y] with the specified radius and color.
   void filled_circle(int center_x, int center_y, int radius, Color color = COLOR_ON);
 
-  /// Fill a ring centered around [center_x,center_y] between two circles with the radius1 and radius2 with the given
-  /// color.
+  /// Fill a ring centered around [center_x,center_y] between two circles given two radii and a color
   void filled_ring(int center_x, int center_y, int radius1, int radius2, Color color = COLOR_ON);
-  /// Fill a half-ring "gauge" centered around [center_x,center_y] between two circles with the radius1 and radius2
-  /// with the given color and filled up to 'progress' percent
+  /// Fill a half-ring "gauge" centered around [center_x,center_y] between two circles given two radii and a color,
+  /// filled to 'progress' percent
   void filled_gauge(int center_x, int center_y, int radius1, int radius2, int progress, Color color = COLOR_ON);
 
   /// Draw the outline of a triangle contained between the points [x1,y1], [x2,y2] and [x3,y3] with the given color.
