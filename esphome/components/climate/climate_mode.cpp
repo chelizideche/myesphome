@@ -69,6 +69,31 @@ const LogString *climate_fan_mode_to_string(ClimateFanMode fan_mode) {
   }
 }
 
+const LogString *climate_eco_mode_to_string(ClimateEcoMode eco_mode) {
+  switch (eco_mode) {
+    case climate::CLIMATE_PELLET_ECO_ON:
+      return LOG_STR("ON");
+    case climate::CLIMATE_PELLET_ECO_OFF:
+      return LOG_STR("OFF");
+    default:
+      return LOG_STR("UNKNOWN");
+  }
+}
+
+const LogString *climate_pellet_rate_to_string(ClimatePelletRate pellet_rate) {
+  switch (pellet_rate) {
+    case climate::CLIMATE_PELLET_RATE_LOW:
+      return LOG_STR("LOW");
+    case climate::CLIMATE_PELLET_RATE_MED:
+      return LOG_STR("MED");
+    case climate::CLIMATE_PELLET_RATE_HIGH:
+      return LOG_STR("HIGH");
+    case climate::CLIMATE_PELLET_RATE_MAX:
+      return LOG_STR("MAX");
+    default:
+      return LOG_STR("UNKNOWN");
+  }
+}
 const LogString *climate_swing_mode_to_string(ClimateSwingMode swing_mode) {
   switch (swing_mode) {
     case climate::CLIMATE_SWING_OFF:
