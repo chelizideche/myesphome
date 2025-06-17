@@ -1,0 +1,17 @@
+one_wire:
+  - platform: gpio
+    pin: 4
+
+ds2406:
+  - address: 0x99000000c695bd12
+    update_interval: 1s
+
+switch:
+  - platform: ds2406
+    channel: 1
+    name: "Channel 1"
+
+binary_sensor:
+  - platform: ds2406
+    channel: 2
+    name: "Channel 2"
