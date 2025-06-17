@@ -244,11 +244,25 @@ void Application::teardown_components(uint32_t timeout_ms) {
 
 void Application::calculate_looping_components_() {
   for (auto *obj : this->components_) {
-    if (obj->has_overridden_loop())
+    if (obj->has_overridden_loop()) {
       this->looping_components_.push_back(obj);
+    }
   }
-  // Initially all components are active
-  this->looping_components_active_end_ = this->looping_components_.size();
+
+  // Partition components based on their current state
+  // Components that have already called disable_loop() during setup (state == LOOP_DONE)
+  // should start in the inactive section of the partition
+  this->looping_components_active_end_ = 0;
+  for (uint16_t i = 0; i < this->looping_components_.size(); i++) {
+    Component *comp = this->looping_components_[i];
+    if ((comp->get_component_state() & COMPONENT_STATE_MASK) != COMPONENT_STATE_LOOP_DONE) {
+      // Component is active - swap it to the active section if needed
+      if (i != this->looping_components_active_end_) {
+        std::swap(this->looping_components_[i], this->looping_components_[this->looping_components_active_end_]);
+      }
+      this->looping_components_active_end_++;
+    }
+  }
 }
 
 void Application::disable_component_loop_(Component *component) {
