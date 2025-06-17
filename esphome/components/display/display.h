@@ -354,8 +354,11 @@ class Display : public PollingComponent {
    * @param text The text to draw.
    * @param background When using multi-bit (anti-aliased) fonts, blend this background color into pixels
    */
-  void print(int x, int y, BaseFont *font, Color color, TextAlign align, const char *text,
-             Color background = COLOR_OFF);
+  virtual void print(int x, int y, BaseFont *font, Color color, TextAlign align, const char *text, Color background);
+  // default color overload
+  void print(int x, int y, BaseFont *font, Color color, TextAlign align, const char *text) {
+    this->print(x, y, font, color, align, text, COLOR_OFF);
+  }
 
   /** Print `text` with the top left at [x,y] with `font`.
    *
@@ -527,7 +530,10 @@ class Display : public PollingComponent {
    * @param color_on The color to replace in binary images for the on bits.
    * @param color_off The color to replace in binary images for the off bits.
    */
-  void image(int x, int y, BaseImage *image, ImageAlign align, Color color_on = COLOR_ON, Color color_off = COLOR_OFF);
+  virtual void image(int x, int y, BaseImage *image, ImageAlign align, Color color_on, Color color_off);
+  void image(int x, int y, BaseImage *image, ImageAlign align, Color color_on = COLOR_ON) {
+    this->image(x, y, image, align, color_on, COLOR_OFF);
+  }
 
 #ifdef USE_GRAPH
   /** Draw the `graph` with the top-left corner at [x,y] to the screen.
