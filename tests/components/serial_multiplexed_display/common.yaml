@@ -1,0 +1,6 @@
+display:
+  - platform: serial_multiplexed_display
+    model: sn74hc595
+    latch_pin: ${latch_pin}
+    clk_pin: ${clk_pin}
+    data_pin: ${data_pin}

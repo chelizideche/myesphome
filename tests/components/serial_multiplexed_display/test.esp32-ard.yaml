@@ -1,0 +1,6 @@
+substitutions:
+  clk_pin: GPIO19
+  data_pin: GPIO21
+  latch_pin: GPIO22
+
+<<: !include common.yaml
