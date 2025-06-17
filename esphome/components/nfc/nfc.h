@@ -49,9 +49,11 @@ static const char *const MIFARE_CLASSIC = "Mifare Classic";
 static const char *const NFC_FORUM_TYPE_2 = "NFC Forum Type 2";
 static const char *const ERROR = "Error";
 
-static const uint8_t DEFAULT_KEY[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-static const uint8_t NDEF_KEY[6] = {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7};
-static const uint8_t MAD_KEY[6] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5};
+constexpr uint8_t KEY_SIZE = 6;
+
+static const uint8_t DEFAULT_KEY[KEY_SIZE] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static const uint8_t NDEF_KEY[KEY_SIZE] = {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7};
+static const uint8_t MAD_KEY[KEY_SIZE] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5};
 
 std::string format_uid(std::vector<uint8_t> &uid);
 std::string format_bytes(std::vector<uint8_t> &bytes);
