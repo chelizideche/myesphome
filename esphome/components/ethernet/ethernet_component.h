@@ -88,7 +88,9 @@ class EthernetComponent : public Component {
   void get_eth_mac_address_raw(uint8_t *mac);
   std::string get_eth_mac_address_pretty();
   eth_duplex_t get_duplex_mode();
+  void set_duplex_mode(eth_duplex_t duplex_mode);
   eth_speed_t get_link_speed();
+  void set_link_speed(eth_speed_t speed);
   bool powerdown();
 
  protected:
@@ -129,6 +131,8 @@ class EthernetComponent : public Component {
 #endif
   EthernetType type_{ETHERNET_TYPE_UNKNOWN};
   optional<ManualIP> manual_ip_{};
+  optional<eth_duplex_t> duplex_mode_{};
+  optional<eth_speed_t> link_speed_{};
 
   bool started_{false};
   bool connected_{false};
