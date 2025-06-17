@@ -1,0 +1,16 @@
+i2c:
+  - id: i2c_ht16k33_char
+    scl: ${scl_pin}
+    sda: ${sda_pin}
+
+display:
+  - platform: ht16k33_char
+    device: ADAFRUIT_14_SEG
+    address: 0x71
+    buffer_size: 12
+    scroll: true
+    continuous: false
+    secondary_displays:
+      - address: 0x70
+    lambda: |-
+      it.print(0, true, "ESP Home");
