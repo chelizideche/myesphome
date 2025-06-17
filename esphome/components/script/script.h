@@ -225,7 +225,7 @@ template<class C, typename... Ts> class ScriptWaitAction : public Action<Ts...>,
       this->play_next_(x...);
       return;
     }
-    this->var_ = std::make_tuple(x...);
+    this->play_queue_.push([this, x...]() { this->play_next_(x...); });
     this->loop();
   }
 
@@ -236,7 +236,11 @@ template<class C, typename... Ts> class ScriptWaitAction : public Action<Ts...>,
     if (this->script_->is_running())
       return;
 
-    this->play_next_tuple_(this->var_);
+    while (!this->play_queue_.empty()) {
+      auto play_next = this->play_queue_.front();
+      play_next();
+      this->play_queue_.pop();
+    }
   }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
@@ -246,7 +250,7 @@ template<class C, typename... Ts> class ScriptWaitAction : public Action<Ts...>,
 
  protected:
   C *script_;
-  std::tuple<Ts...> var_{};
+  std::queue<std::function<void()>> play_queue_;
 };
 
 }  // namespace script

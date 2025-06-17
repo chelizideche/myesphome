@@ -7,6 +7,7 @@
 #include "esphome/core/preferences.h"
 
 #include <vector>
+#include <list>
 
 namespace esphome {
 
@@ -231,32 +232,30 @@ template<typename... Ts> class WhileAction : public Action<Ts...> {
   void add_then(const std::vector<Action<Ts...> *> &actions) {
     this->then_.add_actions(actions);
     this->then_.add_action(new LambdaAction<Ts...>([this](Ts... x) {
-      if (this->num_running_ > 0 && this->condition_->check_tuple(this->var_)) {
+      if (this->num_running_ > 0 && this->condition_->check(x...)) {
         // play again
         if (this->num_running_ > 0) {
-          this->then_.play_tuple(this->var_);
+          this->then_.play(x...);
         }
       } else {
         // condition false, play next
-        this->play_next_tuple_(this->var_);
+        this->play_next_(x...);
       }
     }));
   }
 
   void play_complex(Ts... x) override {
     this->num_running_++;
-    // Store loop parameters
-    this->var_ = std::make_tuple(x...);
     // Initial condition check
-    if (!this->condition_->check_tuple(this->var_)) {
+    if (!this->condition_->check(x...)) {
       // If new condition check failed, stop loop if running
       this->then_.stop();
-      this->play_next_tuple_(this->var_);
+      this->play_next_(x...);
       return;
     }
 
     if (this->num_running_ > 0) {
-      this->then_.play_tuple(this->var_);
+      this->then_.play(x...);
     }
   }
 
@@ -268,7 +267,6 @@ template<typename... Ts> class WhileAction : public Action<Ts...> {
  protected:
   Condition<Ts...> *condition_;
   ActionList<Ts...> then_;
-  std::tuple<Ts...> var_{};
 };
 
 template<typename... Ts> class RepeatAction : public Action<Ts...> {
@@ -280,7 +278,7 @@ template<typename... Ts> class RepeatAction : public Action<Ts...> {
     this->then_.add_action(new LambdaAction<uint32_t, Ts...>([this](uint32_t iteration, Ts... x) {
       iteration++;
       if (iteration >= this->count_.value(x...)) {
-        this->play_next_tuple_(this->var_);
+        this->play_next_(x...);
       } else {
         this->then_.play(iteration, x...);
       }
@@ -289,11 +287,10 @@ template<typename... Ts> class RepeatAction : public Action<Ts...> {
 
   void play_complex(Ts... x) override {
     this->num_running_++;
-    this->var_ = std::make_tuple(x...);
     if (this->count_.value(x...) > 0) {
       this->then_.play(0, x...);
     } else {
-      this->play_next_tuple_(this->var_);
+      this->play_next_(x...);
     }
   }
 
@@ -304,7 +301,6 @@ template<typename... Ts> class RepeatAction : public Action<Ts...> {
 
  protected:
   ActionList<uint32_t, Ts...> then_;
-  std::tuple<Ts...> var_;
 };
 
 template<typename... Ts> class WaitUntilAction : public Action<Ts...>, public Component {
@@ -322,12 +318,11 @@ template<typename... Ts> class WaitUntilAction : public Action<Ts...>, public Co
       }
       return;
     }
-    this->var_ = std::make_tuple(x...);
 
-    if (this->timeout_value_.has_value()) {
-      auto f = std::bind(&WaitUntilAction<Ts...>::play_next_, this, x...);
-      this->set_timeout("timeout", this->timeout_value_.value(x...), f);
-    }
+    auto now = millis();
+    auto timeout = this->timeout_value_.optional_value(x...);
+
+    this->var_queue_.emplace_front(now, timeout, std::make_tuple(x...));
 
     this->loop();
   }
@@ -336,13 +331,22 @@ template<typename... Ts> class WaitUntilAction : public Action<Ts...>, public Co
     if (this->num_running_ == 0)
       return;
 
-    if (!this->condition_->check_tuple(this->var_)) {
-      return;
-    }
+    auto now = millis();
 
-    this->cancel_timeout("timeout");
+    this->var_queue_.remove_if([&](decltype(*this->var_queue_.cbegin()) &queued) {
+      auto start = std::get<uint32_t>(queued);
+      auto timeout = std::get<optional<uint32_t>>(queued);
+      auto var = std::get<std::tuple<Ts...>>(queued);
 
-    this->play_next_tuple_(this->var_);
+      auto expired = timeout && (now - start) >= timeout;
+
+      if (!expired && !this->condition_->check_tuple(var)) {
+        return false;
+      }
+
+      this->play_next_tuple_(var);
+      return true;
+    });
   }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
@@ -350,11 +354,11 @@ template<typename... Ts> class WaitUntilAction : public Action<Ts...>, public Co
   void play(Ts... x) override { /* ignore - see play_complex */
   }
 
-  void stop() override { this->cancel_timeout("timeout"); }
+  void stop() override { this->var_queue_.clear(); }
 
  protected:
   Condition<Ts...> *condition_;
-  std::tuple<Ts...> var_{};
+  std::list<std::tuple<uint32_t, optional<uint32_t>, std::tuple<Ts...>>> var_queue_{};
 };
 
 template<typename... Ts> class UpdateComponentAction : public Action<Ts...> {
