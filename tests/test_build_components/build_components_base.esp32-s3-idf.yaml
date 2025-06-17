@@ -1,3 +1,8 @@
+external_components:
+  - source: github://pr#7049
+    components: [nrf52, zephyr, logger]
+    refresh: always
+
 esphome:
   name: componenttestesp32s3idf
   friendly_name: $component_name

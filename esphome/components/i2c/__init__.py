@@ -1,5 +1,8 @@
 from esphome import pins
 import esphome.codegen as cg
+from esphome.components import zephyr
+from esphome.components.zephyr import zephyr_add_overlay, zephyr_add_prj_conf
+from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
@@ -24,6 +27,7 @@ i2c_ns = cg.esphome_ns.namespace("i2c")
 I2CBus = i2c_ns.class_("I2CBus")
 ArduinoI2CBus = i2c_ns.class_("ArduinoI2CBus", I2CBus, cg.Component)
 IDFI2CBus = i2c_ns.class_("IDFI2CBus", I2CBus, cg.Component)
+ZephyrI2CBus = i2c_ns.class_("ZephyrI2CBus", I2CBus, cg.Component)
 I2CDevice = i2c_ns.class_("I2CDevice")
 
 
@@ -37,6 +41,8 @@ def _bus_declare_type(value):
         return cv.declare_id(ArduinoI2CBus)(value)
     if CORE.using_esp_idf:
         return cv.declare_id(IDFI2CBus)(value)
+    if CORE.target_framework == KEY_ZEPHYR:
+        return cv.declare_id(ZephyrI2CBus)(value)
     raise NotImplementedError
 
 
@@ -44,17 +50,18 @@ pin_with_input_and_output_support = pins.internal_gpio_pin_number(
     {CONF_OUTPUT: True, CONF_INPUT: True}
 )
 
+PLATFORM_NRF52 = "nrf52"
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): _bus_declare_type,
             cv.Optional(CONF_SDA, default="SDA"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_SCL, default="SCL"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_FREQUENCY, default="50kHz"): cv.All(
@@ -64,7 +71,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SCAN, default=True): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
-    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_RP2040]),
+    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_RP2040, PLATFORM_NRF52]),
 )
 
 
@@ -74,17 +81,40 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(var.set_sda_pin(config[CONF_SDA]))
-    if CONF_SDA_PULLUP_ENABLED in config:
-        cg.add(var.set_sda_pullup_enabled(config[CONF_SDA_PULLUP_ENABLED]))
-    cg.add(var.set_scl_pin(config[CONF_SCL]))
-    if CONF_SCL_PULLUP_ENABLED in config:
-        cg.add(var.set_scl_pullup_enabled(config[CONF_SCL_PULLUP_ENABLED]))
+    if CORE.target_framework == KEY_ZEPHYR:
+        zephyr_add_prj_conf("I2C", True)
+        zephyr_add_overlay(
+            f"""
+&pinctrl {{
+    i2c0_default: i2c0_default {{
+        group1 {{
+            psels = <NRF_PSEL(TWIM_SDA, {config[CONF_SDA] // 32}, {config[CONF_SDA] % 32})>,
+                <NRF_PSEL(TWIM_SCL, {config[CONF_SCL] // 32}, {config[CONF_SCL] % 32})>;
+        }};
+    }};
+    i2c0_sleep: i2c0_sleep {{
+        group1 {{
+            psels = <NRF_PSEL(TWIM_SDA, {config[CONF_SDA] // 32}, {config[CONF_SDA] % 32})>,
+                <NRF_PSEL(TWIM_SCL, {config[CONF_SCL] // 32}, {config[CONF_SCL] % 32})>;
+            low-power-enable;
+        }};
+    }};
+}};
+"""
+        )
 
-    cg.add(var.set_frequency(int(config[CONF_FREQUENCY])))
+    else:
+        cg.add(var.set_sda_pin(config[CONF_SDA]))
+        if CONF_SDA_PULLUP_ENABLED in config:
+            cg.add(var.set_sda_pullup_enabled(config[CONF_SDA_PULLUP_ENABLED]))
+        cg.add(var.set_scl_pin(config[CONF_SCL]))
+        if CONF_SCL_PULLUP_ENABLED in config:
+            cg.add(var.set_scl_pullup_enabled(config[CONF_SCL_PULLUP_ENABLED]))
+
+        cg.add(var.set_frequency(int(config[CONF_FREQUENCY])))
+        if CONF_TIMEOUT in config:
+            cg.add(var.set_timeout(int(config[CONF_TIMEOUT].total_microseconds)))
     cg.add(var.set_scan(config[CONF_SCAN]))
-    if CONF_TIMEOUT in config:
-        cg.add(var.set_timeout(int(config[CONF_TIMEOUT].total_microseconds)))
     if CORE.using_arduino:
         cg.add_library("Wire", None)
 
