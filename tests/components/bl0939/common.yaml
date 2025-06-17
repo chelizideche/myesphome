@@ -6,6 +6,7 @@ uart:
 
 sensor:
   - platform: bl0939
+    mode: 'current_transformer_mode'
     voltage:
       name: BL0939 Voltage
     current_1:
