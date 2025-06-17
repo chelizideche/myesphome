@@ -21,10 +21,13 @@ class GPIOBinarySensorStore {
   }
 
   bool has_changed() {
-    InterruptLock lock;
-    bool changed = this->changed_;
+    // No lock needed: single writer (ISR) / single reader (main loop) pattern
+    // Volatile bool operations are atomic on all ESPHome-supported platforms
+    if (!this->changed_) {
+      return false;
+    }
     this->changed_ = false;
-    return changed;
+    return true;
   }
 
  protected:
