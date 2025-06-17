@@ -29,7 +29,7 @@ void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type
 
 void GPIOBinarySensor::setup() {
   if (this->use_interrupt_ && !this->pin_->is_internal()) {
-    ESP_LOGW(TAG, "Interrupts not supported for this pin type, falling back to polling");
+    ESP_LOGD(TAG, "GPIO is not internal, falling back to polling mode");
     this->use_interrupt_ = false;
   }
 
