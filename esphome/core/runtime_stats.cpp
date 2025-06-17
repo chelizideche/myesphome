@@ -9,8 +9,8 @@ void RuntimeStatsCollector::record_component_time(Component *component, uint32_t
   if (!this->enabled_ || component == nullptr)
     return;
 
-  const char *component_source = component->get_component_source();
-  this->component_stats_[component_source].record_time(duration_ms);
+  // Use component pointer directly as key - no string operations
+  this->component_stats_[component].record_time(duration_ms);
 
   // If next_log_time_ is 0, initialize it
   if (this->next_log_time_ == 0) {

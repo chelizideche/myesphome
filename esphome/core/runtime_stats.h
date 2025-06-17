@@ -74,7 +74,7 @@ class ComponentRuntimeStats {
 
 // For sorting components by run time
 struct ComponentStatPair {
-  std::string name;
+  Component *component;
   const ComponentRuntimeStats *stats;
 
   bool operator>(const ComponentStatPair &other) const {
@@ -116,12 +116,13 @@ class RuntimeStatsCollector {
 
     // Log top components by period runtime
     for (const auto &it : stats_to_display) {
-      const std::string &source = it.name;
+      // Only get component name when actually logging
+      const char *source = it.component->get_component_source();
       const ComponentRuntimeStats *stats = it.stats;
 
-      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms",
-               source.c_str(), stats->get_period_count(), stats->get_period_avg_time_ms(),
-               stats->get_period_max_time_ms(), stats->get_period_time_ms());
+      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
+               stats->get_period_count(), stats->get_period_avg_time_ms(), stats->get_period_max_time_ms(),
+               stats->get_period_time_ms());
     }
 
     // Log total stats since boot
@@ -134,11 +135,12 @@ class RuntimeStatsCollector {
               });
 
     for (const auto &it : stats_to_display) {
-      const std::string &source = it.name;
+      // Only get component name when actually logging
+      const char *source = it.component->get_component_source();
       const ComponentRuntimeStats *stats = it.stats;
 
-      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms",
-               source.c_str(), stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
+      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
+               stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
                stats->get_total_time_ms());
     }
   }
@@ -149,7 +151,7 @@ class RuntimeStatsCollector {
     }
   }
 
-  std::map<std::string, ComponentRuntimeStats> component_stats_;
+  std::map<Component *, ComponentRuntimeStats> component_stats_;
   uint32_t log_interval_;
   uint32_t next_log_time_;
   bool enabled_;
