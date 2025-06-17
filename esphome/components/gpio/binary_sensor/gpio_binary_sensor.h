@@ -36,6 +36,9 @@ class GPIOBinarySensorStore {
 
 class GPIOBinarySensor : public binary_sensor::BinarySensor, public Component {
  public:
+  // No destructor needed: ESPHome components are created at boot and live forever.
+  // Interrupts are only detached on reboot when memory is cleared anyway.
+
   void set_pin(GPIOPin *pin) { pin_ = pin; }
   void set_use_interrupt(bool use_interrupt) { use_interrupt_ = use_interrupt; }
   void set_interrupt_type(gpio::InterruptType type) { interrupt_type_ = type; }
