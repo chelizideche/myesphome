@@ -1,9 +1,8 @@
 #pragma once
-
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
-#include <vector> // For std::vector
+#include <vector>
 
 namespace esphome {
 namespace sm300d2 {
@@ -44,5 +43,5 @@ protected:
   sensor::Sensor *humidity_sensor_{nullptr};
 };
 
-} // namespace sm300d2
-} // namespace esphome
+}
+}
