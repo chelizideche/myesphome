@@ -258,20 +258,27 @@ class Display : public PollingComponent {
   }
 
   /// Draw a straight line from the point [x1,y1] to [x2,y2] with the given color.
-  virtual void line(int x1, int y1, int x2, int y2, Color color = COLOR_ON);
+  virtual void line(int x1, int y1, int x2, int y2, Color color);
+  void line(int x1, int y1, int x2, int y2) { this->line(x1, y1, x2, y2, COLOR_ON); }
 
   /// Draw a straight line at the given angle based on the origin [x, y] for a specified length with the given color.
-  virtual void line_at_angle(int x, int y, int angle, int length, Color color = COLOR_ON);
+  virtual void line_at_angle(int x, int y, int angle, int length, Color color);
+  void line_at_angle(int x, int y, int angle, int length) { this->line_at_angle(x, y, angle, length, COLOR_ON); }
 
   /// Draw a straight line at the given angle based on the origin [x, y] from a specified start and stop radius with the
   /// given color.
+  void line_at_angle(int x, int y, int angle, int start_radius, int stop_radius) {
+    this->line_at_angle(x, y, angle, start_radius, stop_radius, COLOR_ON);
+  }
   virtual void line_at_angle(int x, int y, int angle, int start_radius, int stop_radius, Color color = COLOR_ON);
 
   /// Draw a horizontal line from the point [x,y] to [x+width,y] with the given color.
-  virtual void horizontal_line(int x, int y, int width, Color color = COLOR_ON);
+  virtual void horizontal_line(int x, int y, int width, Color color);
+  void horizontal_line(int x, int y, int width) { this->horizontal_line(x, y, width, COLOR_ON); }
 
   /// Draw a vertical line from the point [x,y] to [x,y+width] with the given color.
-  virtual void vertical_line(int x, int y, int height, Color color = COLOR_ON);
+  virtual void vertical_line(int x, int y, int height, Color color);
+  void vertical_line(int x, int y, int height) { this->vertical_line(x, y, height, COLOR_ON); }
 
   /// Draw the outline of a rectangle with the top left point at [x1,y1] and the bottom right point at
   /// [x1+width,y1+height].
@@ -290,7 +297,7 @@ class Display : public PollingComponent {
   /// color.
   void filled_ring(int center_x, int center_y, int radius1, int radius2, Color color = COLOR_ON);
   /// Fill a half-ring "gauge" centered around [center_x,center_y] between two circles with the radius1 and radius2
-  /// with he given color and filled up to 'progress' percent
+  /// with the given color and filled up to 'progress' percent
   void filled_gauge(int center_x, int center_y, int radius1, int radius2, int progress, Color color = COLOR_ON);
 
   /// Draw the outline of a triangle contained between the points [x1,y1], [x2,y2] and [x3,y3] with the given color.
