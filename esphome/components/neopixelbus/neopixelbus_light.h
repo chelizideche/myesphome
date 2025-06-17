@@ -9,6 +9,10 @@
 #include "esphome/components/light/light_output.h"
 #include "esphome/components/light/addressable_light.h"
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(LCD_LL_CLK_FRAC_DIV_N_MAX)
+#define LCD_LL_CLK_FRAC_DIV_N_MAX LCD_LL_CLOCK_PRESCALE_MAX
+#endif
+
 #include "NeoPixelBus.h"
 
 namespace esphome {
