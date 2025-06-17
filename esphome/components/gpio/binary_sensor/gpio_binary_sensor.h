@@ -16,7 +16,8 @@ class GPIOBinarySensorStore {
   static void gpio_intr(GPIOBinarySensorStore *arg);
 
   bool get_state() const {
-    InterruptLock lock;
+    // No lock needed: state_ is atomically updated by ISR
+    // Volatile ensures we read the latest value
     return this->state_;
   }
 
