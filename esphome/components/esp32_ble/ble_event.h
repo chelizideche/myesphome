@@ -102,6 +102,13 @@ class BLEEvent {
     GATTS,
   };
 
+  // Type definitions for cleaner method signatures
+  struct RSSICompleteData {
+    esp_bt_status_t status;
+    int8_t rssi;
+    esp_bd_addr_t remote_addr;
+  };
+
   // Constructor for GAP events - no external allocations needed
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
@@ -196,11 +203,7 @@ class BLEEvent {
         } adv_complete;  // 1 byte - for ADV_DATA_SET, SCAN_RSP_DATA_SET, ADV_DATA_RAW_SET, ADV_START, ADV_STOP
         // RSSI complete event
         // Used by: ble_client (ble_rssi_sensor component)
-        struct {
-          esp_bt_status_t status;
-          int8_t rssi;
-          esp_bd_addr_t remote_addr;
-        } read_rssi_complete;  // 8 bytes
+        RSSICompleteData read_rssi_complete;  // 8 bytes
         // Security events - we store the full security union
         // Used by: ble_client (automation), bluetooth_proxy, esp32_ble_client
         esp_ble_sec_t security;  // Variable size, but fits within scan_result size
@@ -232,9 +235,7 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
   esp_bt_status_t adv_complete_status() const { return event_.gap.adv_complete.status; }
-  auto read_rssi_complete() const -> const decltype(event_.gap.read_rssi_complete) & {
-    return event_.gap.read_rssi_complete;
-  }
+  const RSSICompleteData &read_rssi_complete() const { return event_.gap.read_rssi_complete; }
   const esp_ble_sec_t &security() const { return event_.gap.security; }
 
  private:
