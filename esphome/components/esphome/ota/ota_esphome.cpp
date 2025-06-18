@@ -85,7 +85,7 @@ void ESPHomeOTAComponent::dump_config() {
 void ESPHomeOTAComponent::loop() {
   // Skip handle_() call if no client connected and no incoming connections
   // This optimization reduces idle loop overhead when OTA is not active
-  if (client_ != nullptr || (server_ && server_->ready())) {
+  if (client_ != nullptr || server_->ready()) {
     this->handle_();
   }
 }
