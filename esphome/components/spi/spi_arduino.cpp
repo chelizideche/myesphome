@@ -89,7 +89,8 @@ class SPIBusHw : public SPIBus {
 #endif
   }
 
-  SPIDelegate *get_delegate(uint32_t data_rate, SPIBitOrder bit_order, SPIMode mode, GPIOPin *cs_pin) override {
+  SPIDelegate *get_delegate(uint32_t data_rate, SPIBitOrder bit_order, SPIMode mode, GPIOPin *cs_pin,
+                            bool release_device) override {
     return new SPIDelegateHw(this->channel_, data_rate, bit_order, mode, cs_pin);
   }
 
