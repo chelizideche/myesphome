@@ -19,6 +19,7 @@ CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
 CONF_HTTP_ID = "http_id"
+CONF_MQTT_ID = "mqtt_id"
 
 # MQTT forwarding config
 CONF_MQTT_FORWARD = "mqtt_forward"
@@ -29,23 +30,6 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
         cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
         cv.Required(CONF_TAG_NAME): cv.string,
     }
-)
-
-# Base schema without EmonCMS
-CONFIG_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(EmonTx),
-            # MQTT forwarding config (simpler than EmonCMS!)
-            cv.Optional(CONF_MQTT_FORWARD): cv.Schema(
-                {cv.Required(CONF_TOPIC_PREFIX): cv.string}
-            ),
-            # Keep existing EmonCMS config
-            cv.Optional(CONF_EMONCMS): cv.Any(dict),
-        }
-    )
-    .extend(cv.polling_component_schema("10s"))
-    .extend(uart.UART_DEVICE_SCHEMA)
 )
 
 
@@ -77,13 +61,31 @@ def validate_server_url(value):
         raise cv.Invalid("Please enter a valid server URL") from exc
 
 
+# Base schema without EmonCMS or MQTT
+CONFIG_SCHEMA = (
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(EmonTx),
+            # Make MQTT forwarding optional
+            cv.Optional(CONF_MQTT_FORWARD): cv.Any(dict),
+            # Make EmonCMS optional
+            cv.Optional(CONF_EMONCMS): cv.Any(dict),
+        }
+    )
+    .extend(cv.polling_component_schema("10s"))
+    .extend(uart.UART_DEVICE_SCHEMA)
+)
+
+
 # Conditionally add EmonCMS schema
 def validate_emoncms(config):
+    # Skip if no EmonCMS configuration
     if CONF_EMONCMS in config:
         from esphome.components import http_request
 
         cg.add_define("USE_HTTP_REQUEST")
 
+        # Validate EmonCMS configuration
         emoncms_schema = cv.Schema(
             {
                 cv.Required(CONF_SERVER): validate_server_url,
@@ -96,15 +98,28 @@ def validate_emoncms(config):
     return config
 
 
+# Validate MQTT forward config
+def validate_mqtt_forward(config):
+    # Skip if no MQTT forwarding configuration
+    if CONF_MQTT_FORWARD in config:
+        # Import mqtt only when validating MQTT forward config
+        from esphome.components import mqtt
+
+        cg.add_define("USE_MQTT_FORWARD")
+
+        # Validate MQTT forwarding configuration
+        mqtt_schema = cv.Schema(
+            {
+                cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
+                cv.Required(CONF_MQTT_ID): cv.use_id(mqtt.MQTTClientComponent),
+            }
+        )
+        config[CONF_MQTT_FORWARD] = mqtt_schema(config[CONF_MQTT_FORWARD])
+    return config
+
+
 # Apply conditional schema
-CONFIG_SCHEMA = cv.All(
-    CONFIG_SCHEMA.extend(
-        {
-            cv.Optional(CONF_EMONCMS): cv.Any(dict),
-        }
-    ),
-    validate_emoncms,
-)
+CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, validate_emoncms, validate_mqtt_forward)
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "emontx",
@@ -124,9 +139,6 @@ async def to_code(config):
 
     # Set MQTT forwarding if configured
     if CONF_MQTT_FORWARD in config:
-        cg.add_define("USE_MQTT_FORWARD")
-        # Make sure MQTT component is loaded
-        await cg.ensure_linked_dependency("mqtt")
         mqtt_config = config[CONF_MQTT_FORWARD]
         cg.add(var.set_mqtt_forward(mqtt_config[CONF_TOPIC_PREFIX]))
 
