@@ -22,6 +22,7 @@ from esphome.const import (
     PLATFORM_HOST,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
+    PLATFORM_LN882X,
 )
 from esphome.core import CORE, HexInt, Lambda
 
@@ -215,6 +216,7 @@ def hex_int__valid(value):
         ("arduino", PLATFORM_BK72XX, None, "21", "21", "21", "21"),
         ("arduino", PLATFORM_RTL87XX, None, "22", "22", "22", "22"),
         ("host", PLATFORM_HOST, None, "23", "23", "23", "23"),
+        ("arduino", PLATFORM_LN882X, None, "24", "24", "24", "24"),
     ],
 )
 def test_split_default(framework, platform, variant, full, idf, arduino, simple):
@@ -245,6 +247,7 @@ def test_split_default(framework, platform, variant, full, idf, arduino, simple)
         "bk72xx": "21",
         "rtl87xx": "22",
         "host": "23",
+        "ln882x": "24",
     }
 
     idf_mappings = {

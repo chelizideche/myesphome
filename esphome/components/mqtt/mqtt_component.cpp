@@ -180,6 +180,8 @@ bool MQTTComponent::send_discovery_() {
         device_info[MQTT_DEVICE_MANUFACTURER] = "Beken";
 #elif defined(USE_RTL87XX)
         device_info[MQTT_DEVICE_MANUFACTURER] = "Realtek";
+#elif defined(USE_LN882XX)
+        device_info[MQTT_DEVICE_MANUFACTURER] = "Lightning";
 #elif defined(USE_HOST)
         device_info[MQTT_DEVICE_MANUFACTURER] = "Host";
 #endif

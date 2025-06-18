@@ -183,6 +183,7 @@ def wizard_write(path, **kwargs):
     from esphome.components.esp8266 import boards as esp8266_boards
     from esphome.components.rp2040 import boards as rp2040_boards
     from esphome.components.rtl87xx import boards as rtl87xx_boards
+    from esphome.components.ln882x import boards as ln882x_boards
 
     name = kwargs["name"]
     board = kwargs["board"]
@@ -202,6 +203,8 @@ def wizard_write(path, **kwargs):
             platform = "BK72XX"
         elif board in rtl87xx_boards.BOARDS:
             platform = "RTL87XX"
+        elif board in ln882x_boards.BOARDS:
+            platform = "LN882X"
         else:
             safe_print(color(AnsiFore.RED, f'The board "{board}" is unknown.'))
             return False
@@ -255,6 +258,7 @@ def wizard(path):
     from esphome.components.esp8266 import boards as esp8266_boards
     from esphome.components.rp2040 import boards as rp2040_boards
     from esphome.components.rtl87xx import boards as rtl87xx_boards
+    from esphome.components.ln882x import boards as ln882x_boards
 
     if not path.endswith(".yaml") and not path.endswith(".yml"):
         safe_print(
@@ -390,6 +394,9 @@ def wizard(path):
     elif platform == "RP2040":
         safe_print(f'For example "{color(AnsiFore.BOLD_WHITE, "rpipicow")}".')
         boards_list = rp2040_boards.BOARDS.items()
+    elif platform == "LN882X":
+        safe_print(f'For example "{color(AnsiFore.BOLD_WHITE, "wl2s")}".')
+        boards_list = ln882x_boards.BOARDS.items()
 
     else:
         raise NotImplementedError("Unknown platform!")

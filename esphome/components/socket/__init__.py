@@ -17,6 +17,7 @@ CONFIG_SCHEMA = cv.Schema(
             rp2040=IMPLEMENTATION_LWIP_TCP,
             bk72xx=IMPLEMENTATION_LWIP_SOCKETS,
             rtl87xx=IMPLEMENTATION_LWIP_SOCKETS,
+            ln882x=IMPLEMENTATION_LWIP_SOCKETS,
             host=IMPLEMENTATION_BSD_SOCKETS,
         ): cv.one_of(
             IMPLEMENTATION_LWIP_TCP,

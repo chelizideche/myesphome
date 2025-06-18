@@ -14,6 +14,7 @@ PLATFORM_HOST = "host"
 PLATFORM_LIBRETINY_OLDSTYLE = "libretiny"
 PLATFORM_RP2040 = "rp2040"
 PLATFORM_RTL87XX = "rtl87xx"
+PLATFORM_LN882X = "ln882x"
 
 
 SOURCE_FILE_EXTENSIONS = {".cpp", ".hpp", ".h", ".c", ".tcc", ".ino"}
