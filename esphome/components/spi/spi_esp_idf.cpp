@@ -10,6 +10,16 @@ static const size_t MAX_TRANSFER_SIZE = 4092;  // dictated by ESP-IDF API.
 
 class SPIDelegateHw : public SPIDelegate {
  public:
+  SPIDelegateHw(SPIInterface channel, uint32_t data_rate, SPIBitOrder bit_order, SPIMode mode, GPIOPin *cs_pin,
+                bool release_device, bool write_only)
+      : SPIDelegate(data_rate, bit_order, mode, cs_pin),
+        channel_(channel),
+        release_device_(release_device),
+        write_only_(write_only) {
+    if (!this->release_device_)
+      add_device_();
+  }
+
   bool add_device_() {
     spi_device_interface_config_t config = {};
     config.mode = static_cast<uint8_t>(this->mode_);
@@ -29,15 +39,6 @@ class SPIDelegateHw : public SPIDelegate {
       return false;
     }
     return true;
-  }
-  SPIDelegateHw(SPIInterface channel, uint32_t data_rate, SPIBitOrder bit_order, SPIMode mode, GPIOPin *cs_pin,
-                bool write_only, bool release_device)
-      : SPIDelegate(data_rate, bit_order, mode, cs_pin),
-        channel_(channel),
-        write_only_(write_only),
-        release_device_(release_device) {
-    if (!this->release_device_)
-      add_device_();
   }
 
   bool is_ready() override { return this->handle_ != nullptr; }
@@ -250,8 +251,8 @@ class SPIBusHw : public SPIBus {
 
   SPIDelegate *get_delegate(uint32_t data_rate, SPIBitOrder bit_order, SPIMode mode, GPIOPin *cs_pin,
                             bool release_device, bool write_only) override {
-    return new SPIDelegateHw(this->channel_, data_rate, bit_order, mode, cs_pin,
-                             write_only || Utility::get_pin_no(this->sdi_pin_) == -1, release_device);
+    return new SPIDelegateHw(this->channel_, data_rate, bit_order, mode, cs_pin, release_device,
+                             write_only || Utility::get_pin_no(this->sdi_pin_) == -1);
   }
 
  protected:
