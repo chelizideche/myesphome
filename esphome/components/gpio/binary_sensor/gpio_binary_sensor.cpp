@@ -12,12 +12,17 @@ void IRAM_ATTR GPIOBinarySensorStore::gpio_intr(GPIOBinarySensorStore *arg) {
     arg->state_ = new_state;
     arg->last_state_ = new_state;
     arg->changed_ = true;
+    // Wake up the component from its disabled loop state
+    if (arg->component_ != nullptr) {
+      arg->component_->enable_loop_soon_from_isr();
+    }
   }
 }
 
-void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type) {
+void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type, Component *component) {
   pin->setup();
   this->isr_pin_ = pin->to_isr();
+  this->component_ = component;
 
   // Read initial state
   this->last_state_ = pin->digital_read();
@@ -35,7 +40,7 @@ void GPIOBinarySensor::setup() {
 
   if (this->use_interrupt_) {
     auto *internal_pin = static_cast<InternalGPIOPin *>(this->pin_);
-    this->store_.setup(internal_pin, this->interrupt_type_);
+    this->store_.setup(internal_pin, this->interrupt_type_, this);
     this->publish_initial_state(this->store_.get_state());
   } else {
     this->pin_->setup();
@@ -78,6 +83,9 @@ void GPIOBinarySensor::loop() {
       // we'll process the new change on the next loop iteration
       bool state = this->store_.get_state();
       this->publish_state(state);
+    } else {
+      // No changes, disable the loop until the next interrupt
+      this->disable_loop();
     }
   } else {
     this->publish_state(this->pin_->digital_read());

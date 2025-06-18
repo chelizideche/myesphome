@@ -11,7 +11,7 @@ namespace gpio {
 // Store class for ISR data (no vtables, ISR-safe)
 class GPIOBinarySensorStore {
  public:
-  void setup(InternalGPIOPin *pin, gpio::InterruptType type);
+  void setup(InternalGPIOPin *pin, gpio::InterruptType type, Component *component);
 
   static void gpio_intr(GPIOBinarySensorStore *arg);
 
@@ -36,6 +36,7 @@ class GPIOBinarySensorStore {
   volatile bool state_{false};
   volatile bool last_state_{false};
   volatile bool changed_{false};
+  Component *component_{nullptr};  // Pointer to the component for enable_loop_soon_from_isr()
 };
 
 class GPIOBinarySensor : public binary_sensor::BinarySensor, public Component {
