@@ -103,12 +103,13 @@ class JinjaStr(str):
     later in the main substitutions pass.
     """
 
-    __slots__ = ("upvalues",)
-
     def __new__(cls, value: str, upvalues=None):
         obj = super().__new__(cls, value)
         obj.upvalues = upvalues or {}
         return obj
+
+    def __init__(self, value: str, upvalues=None):
+        self.upvalues = upvalues or {}
 
 
 class PythonLiteralEncoder(json.JSONEncoder):
