@@ -317,11 +317,9 @@ def _format_framework_espidf_version(
 
 # The default/recommended arduino framework version
 #  - https://github.com/espressif/arduino-esp32/releases
-#  - https://api.registry.platformio.org/v3/packages/platformio/tool/framework-arduinoespressif32
 RECOMMENDED_ARDUINO_FRAMEWORK_VERSION = cv.Version(3, 1, 3)
-# The platformio/espressif32 version to use for arduino frameworks
-#  - https://github.com/platformio/platform-espressif32/releases
-#  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
+# The platform-espressif32 version to use for arduino frameworks
+#  - https://github.com/pioarduino/platform-espressif32/releases
 ARDUINO_PLATFORM_VERSION = cv.Version(53, 3, 13)
 
 # The default/recommended esp-idf framework version
