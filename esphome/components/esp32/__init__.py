@@ -99,7 +99,6 @@ ARDUINO_ALLOWED_VARIANTS = [
     VARIANT_ESP32C3,
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
-    VARIANT_ESP32C6,
 ]
 
 
@@ -631,6 +630,22 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
     _esp_idf_check_versions,
 )
 
+
+def _set_default_framework(config):
+    if CONF_FRAMEWORK not in config:
+        config = config.copy()
+
+        variant = config[CONF_VARIANT]
+        if variant in ARDUINO_ALLOWED_VARIANTS:
+            config[CONF_FRAMEWORK] = ARDUINO_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ARDUINO
+        else:
+            config[CONF_FRAMEWORK] = ESP_IDF_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ESP_IDF
+
+    return config
+
+
 FRAMEWORK_ESP_IDF = "esp-idf"
 FRAMEWORK_ARDUINO = "arduino"
 FRAMEWORK_SCHEMA = cv.typed_schema(
@@ -641,35 +656,6 @@ FRAMEWORK_SCHEMA = cv.typed_schema(
     lower=True,
     space="-",
 )
-
-DEFAULT_FRAMEWORK = {
-    VARIANT_ESP32: FRAMEWORK_ARDUINO,
-    VARIANT_ESP32S2: FRAMEWORK_ARDUINO,
-    VARIANT_ESP32S3: FRAMEWORK_ARDUINO,
-    VARIANT_ESP32C2: FRAMEWORK_ESP_IDF,
-    VARIANT_ESP32C3: FRAMEWORK_ARDUINO,
-    VARIANT_ESP32C5: FRAMEWORK_ESP_IDF,
-    VARIANT_ESP32C6: FRAMEWORK_ESP_IDF,
-    VARIANT_ESP32H2: FRAMEWORK_ESP_IDF,
-    VARIANT_ESP32P4: FRAMEWORK_ESP_IDF,
-}
-
-# Make sure not missed here if a new variant added.
-assert all(v in DEFAULT_FRAMEWORK for v in VARIANTS)
-
-
-def _set_default_framework(config):
-    if CONF_FRAMEWORK not in config:
-        config = config.copy()
-        variant = config[CONF_VARIANT]
-        if DEFAULT_FRAMEWORK[variant] == FRAMEWORK_ARDUINO:
-            config[CONF_FRAMEWORK] = ARDUINO_FRAMEWORK_SCHEMA({})
-            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ARDUINO
-        else:
-            config[CONF_FRAMEWORK] = ESP_IDF_FRAMEWORK_SCHEMA({})
-            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ESP_IDF
-
-    return config
 
 
 FLASH_SIZES = [
