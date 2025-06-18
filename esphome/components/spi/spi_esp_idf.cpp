@@ -20,27 +20,6 @@ class SPIDelegateHw : public SPIDelegate {
       add_device_();
   }
 
-  bool add_device_() {
-    spi_device_interface_config_t config = {};
-    config.mode = static_cast<uint8_t>(this->mode_);
-    config.clock_speed_hz = static_cast<int>(this->data_rate_);
-    config.spics_io_num = -1;
-    config.flags = 0;
-    config.queue_size = 1;
-    config.pre_cb = nullptr;
-    config.post_cb = nullptr;
-    if (this->bit_order_ == BIT_ORDER_LSB_FIRST)
-      config.flags |= SPI_DEVICE_BIT_LSBFIRST;
-    if (this->write_only_)
-      config.flags |= SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_NO_DUMMY;
-    esp_err_t const err = spi_bus_add_device(this->channel_, &config, &this->handle_);
-    if (err != ESP_OK) {
-      ESP_LOGE(TAG, "Add device failed - err %X", err);
-      return false;
-    }
-    return true;
-  }
-
   bool is_ready() override { return this->handle_ != nullptr; }
 
   void begin_transaction() override {
@@ -206,10 +185,31 @@ class SPIDelegateHw : public SPIDelegate {
   void read_array(uint8_t *ptr, size_t length) override { this->transfer(nullptr, ptr, length); }
 
  protected:
+  bool add_device_() {
+    spi_device_interface_config_t config = {};
+    config.mode = static_cast<uint8_t>(this->mode_);
+    config.clock_speed_hz = static_cast<int>(this->data_rate_);
+    config.spics_io_num = -1;
+    config.flags = 0;
+    config.queue_size = 1;
+    config.pre_cb = nullptr;
+    config.post_cb = nullptr;
+    if (this->bit_order_ == BIT_ORDER_LSB_FIRST)
+      config.flags |= SPI_DEVICE_BIT_LSBFIRST;
+    if (this->write_only_)
+      config.flags |= SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_NO_DUMMY;
+    esp_err_t const err = spi_bus_add_device(this->channel_, &config, &this->handle_);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Add device failed - err %X", err);
+      return false;
+    }
+    return true;
+  }
+
   SPIInterface channel_{};
   spi_device_handle_t handle_{};
-  bool write_only_{false};
   bool release_device_{false};
+  bool write_only_{false};
 };
 
 class SPIBusHw : public SPIBus {
