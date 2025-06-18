@@ -232,13 +232,7 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
   esp_bt_status_t adv_complete_status() const { return event_.gap.adv_complete.status; }
-  const struct {
-    esp_bt_status_t status;
-    int8_t rssi;
-    esp_bd_addr_t remote_addr;
-  } & read_rssi_complete() const {
-    return event_.gap.read_rssi_complete;
-  }
+  auto &read_rssi_complete() const -> decltype(event_.gap.read_rssi_complete) { return event_.gap.read_rssi_complete; }
   const esp_ble_sec_t &security() const { return event_.gap.security; }
 
  private:
@@ -395,10 +389,8 @@ class BLEEvent {
 };
 
 // Verify the gap_event struct hasn't grown beyond expected size
-// Note: gap_event is a nested struct type, not directly accessible as BLEEvent::gap_event
-// We check the size through the union member instead
-static_assert(offsetof(BLEEvent, event_.gap) + sizeof(((BLEEvent *) 0)->event_.gap) <= 80,
-              "gap_event struct has grown beyond 80 bytes");
+// The gap member in the union should be 80 bytes (including the gap_event enum)
+static_assert(sizeof(decltype(((BLEEvent *) nullptr)->event_.gap)) <= 80, "gap_event struct has grown beyond 80 bytes");
 
 // Verify esp_ble_sec_t fits within our union
 static_assert(sizeof(esp_ble_sec_t) <= 73, "esp_ble_sec_t is larger than BLEScanResult");
