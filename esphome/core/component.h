@@ -172,15 +172,15 @@ class Component {
    */
   void enable_loop();
 
-  /** ISR-safe version of enable_loop() that can be called from interrupt context.
+  /** Thread and ISR-safe version of enable_loop() that can be called from any context.
    *
    * This method defers the actual enable via enable_pending_loops_ to the main loop,
-   * making it safe to call from ISR handlers, timer callbacks, or other
-   * interrupt contexts.
+   * making it safe to call from ISR handlers, timer callbacks, other threads,
+   * or any interrupt context.
    *
    * @note The actual loop enabling will happen on the next main loop iteration.
    * @note Only one pending enable request is tracked per component.
-   * @note There is no disable_loop_soon_from_isr() on purpose - it would race
+   * @note There is no disable_loop_soon_any_context() on purpose - it would race
    *       against enable calls and synchronization would get too complex
    *       to provide a safe version that would work for each component.
    *
@@ -191,7 +191,7 @@ class Component {
    *       disable_loop() in its next ::loop() iteration. Implementations
    *       will need to carefully consider all possible race conditions.
    */
-  void enable_loop_soon_from_isr();
+  void enable_loop_soon_any_context();
 
   bool is_failed() const;
 
@@ -364,7 +364,7 @@ class Component {
   /// Bit 3: STATUS_LED_ERROR
   /// Bits 4-7: Unused - reserved for future expansion (50% of the bits are free)
   uint8_t component_state_{0x00};
-  volatile bool pending_enable_loop_{false};  ///< ISR-safe flag for enable_loop_soon_from_isr
+  volatile bool pending_enable_loop_{false};  ///< ISR-safe flag for enable_loop_soon_any_context
 };
 
 /** This class simplifies creating components that periodically check a state.

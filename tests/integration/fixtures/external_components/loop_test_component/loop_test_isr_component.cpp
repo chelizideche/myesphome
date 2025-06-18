@@ -67,10 +67,10 @@ void IRAM_ATTR LoopTestISRComponent::simulate_isr_enable() {
 
   this->isr_call_count_++;
 
-  // Call enable_loop_soon_from_isr multiple times to test that it's safe
-  this->enable_loop_soon_from_isr();
-  this->enable_loop_soon_from_isr();  // Test multiple calls
-  this->enable_loop_soon_from_isr();  // Should be idempotent
+  // Call enable_loop_soon_any_context multiple times to test that it's safe
+  this->enable_loop_soon_any_context();
+  this->enable_loop_soon_any_context();  // Test multiple calls
+  this->enable_loop_soon_any_context();  // Should be idempotent
 
   // Note: In a real ISR, we cannot use ESP_LOG* macros as they're not ISR-safe
   // For testing, we'll track the call count and log it from the main loop

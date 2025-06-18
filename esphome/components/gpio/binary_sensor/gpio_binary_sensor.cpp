@@ -14,7 +14,7 @@ void IRAM_ATTR GPIOBinarySensorStore::gpio_intr(GPIOBinarySensorStore *arg) {
     arg->changed_ = true;
     // Wake up the component from its disabled loop state
     if (arg->component_ != nullptr) {
-      arg->component_->enable_loop_soon_from_isr();
+      arg->component_->enable_loop_soon_any_context();
     }
   }
 }

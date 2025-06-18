@@ -35,7 +35,7 @@ loop_test_component:
       test_redundant_operations: true
       disable_after: 10
 
-  # ISR test component that uses enable_loop_soon_from_isr
+  # ISR test component that uses enable_loop_soon_any_context
   isr_components:
     - id: isr_test
       name: "isr_test"

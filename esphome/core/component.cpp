@@ -163,15 +163,15 @@ void Component::enable_loop() {
     App.enable_component_loop_(this);
   }
 }
-void IRAM_ATTR HOT Component::enable_loop_soon_from_isr() {
-  // This method is ISR-safe because:
+void IRAM_ATTR HOT Component::enable_loop_soon_any_context() {
+  // This method is thread and ISR-safe because:
   // 1. Only performs simple assignments to volatile variables (atomic on all platforms)
   // 2. No read-modify-write operations that could be interrupted
   // 3. No memory allocation, object construction, or function calls
   // 4. IRAM_ATTR ensures code is in IRAM, not flash (required for ISR execution)
   // 5. Components are never destroyed, so no use-after-free concerns
   // 6. App is guaranteed to be initialized before any ISR could fire
-  // 7. Multiple ISR calls are safe - just sets the same flags to true
+  // 7. Multiple ISR/thread calls are safe - just sets the same flags to true
   // 8. Race condition with main loop is handled by clearing flag before processing
   this->pending_enable_loop_ = true;
   App.has_pending_enable_loop_requests_ = true;

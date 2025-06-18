@@ -14,7 +14,7 @@ class LoopTestISRComponent : public Component {
   void setup() override;
   void loop() override;
 
-  // Simulates an ISR calling enable_loop_soon_from_isr
+  // Simulates an ISR calling enable_loop_soon_any_context
   void simulate_isr_enable();
 
   float get_setup_priority() const override { return setup_priority::DATA; }
