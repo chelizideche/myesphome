@@ -93,6 +93,8 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
 
   bool check_addr(esp_bd_addr_t &addr) { return memcmp(addr, this->remote_bda_, sizeof(esp_bd_addr_t)) == 0; }
 
+  void set_state(espbt::ClientState st) override;
+
  protected:
   // Memory optimized layout for 32-bit systems
   // Group 1: 8-byte types
