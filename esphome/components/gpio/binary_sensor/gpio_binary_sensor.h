@@ -36,7 +36,7 @@ class GPIOBinarySensorStore {
   volatile bool state_{false};
   volatile bool last_state_{false};
   volatile bool changed_{false};
-  Component *component_{nullptr};  // Pointer to the component for enable_loop_soon_from_isr()
+  Component *component_{nullptr};  // Pointer to the component for enable_loop_soon_any_context()
 };
 
 class GPIOBinarySensor : public binary_sensor::BinarySensor, public Component {
