@@ -232,6 +232,7 @@ esphome/components/internal_temperature/* @Mat931
 esphome/components/interval/* @esphome/core
 esphome/components/jsn_sr04t/* @Mafus1
 esphome/components/json/* @OttoWinter
+esphome/components/k30/* @GonzaCerv
 esphome/components/kamstrup_kmp/* @cfeenstra1024
 esphome/components/key_collector/* @ssieb
 esphome/components/key_provider/* @ssieb
