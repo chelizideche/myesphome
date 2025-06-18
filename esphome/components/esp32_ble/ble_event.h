@@ -200,8 +200,8 @@ class BLEEvent {
         StatusOnlyData scan_complete;  // 1 byte
         // Advertising complete events all have same structure
         // Used by: esp32_ble_beacon, esp32_ble server components
-        StatusOnlyData
-            adv_complete;  // 1 byte - for ADV_DATA_SET, SCAN_RSP_DATA_SET, ADV_DATA_RAW_SET, ADV_START, ADV_STOP
+        // ADV_DATA_SET, SCAN_RSP_DATA_SET, ADV_DATA_RAW_SET, ADV_START, ADV_STOP
+        StatusOnlyData adv_complete;  // 1 byte
         // RSSI complete event
         // Used by: ble_client (ble_rssi_sensor component)
         RSSICompleteData read_rssi_complete;  // 8 bytes
