@@ -103,6 +103,10 @@ class BLEEvent {
   };
 
   // Type definitions for cleaner method signatures
+  struct StatusOnlyData {
+    esp_bt_status_t status;
+  };
+
   struct RSSICompleteData {
     esp_bt_status_t status;
     int8_t rssi;
@@ -193,14 +197,11 @@ class BLEEvent {
         // This matches ESP-IDF's scan complete event structures
         // All three (scan_param_cmpl, scan_start_cmpl, scan_stop_cmpl) have identical layout
         // Used by: esp32_ble_tracker
-        struct {
-          esp_bt_status_t status;
-        } scan_complete;  // 1 byte
+        StatusOnlyData scan_complete;  // 1 byte
         // Advertising complete events all have same structure
         // Used by: esp32_ble_beacon, esp32_ble server components
-        struct {
-          esp_bt_status_t status;
-        } adv_complete;  // 1 byte - for ADV_DATA_SET, SCAN_RSP_DATA_SET, ADV_DATA_RAW_SET, ADV_START, ADV_STOP
+        StatusOnlyData
+            adv_complete;  // 1 byte - for ADV_DATA_SET, SCAN_RSP_DATA_SET, ADV_DATA_RAW_SET, ADV_START, ADV_STOP
         // RSSI complete event
         // Used by: ble_client (ble_rssi_sensor component)
         RSSICompleteData read_rssi_complete;  // 8 bytes
