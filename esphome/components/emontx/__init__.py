@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_TOPIC_PREFIX
+from esphome.const import CONF_ID, CONF_MQTT_ID, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
@@ -19,7 +19,6 @@ CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
 CONF_HTTP_ID = "http_id"
-CONF_MQTT_ID = "mqtt_id"
 
 # MQTT forwarding config
 CONF_MQTT_FORWARD = "mqtt_forward"
