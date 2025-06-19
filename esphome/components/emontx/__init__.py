@@ -138,8 +138,6 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    cg.add_global(emontx_ns.using)
-
     # Set MQTT forwarding if configured
     if CONF_MQTT in config:
         mqtt_config = config[CONF_MQTT]
