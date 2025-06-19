@@ -111,7 +111,17 @@ bool Mk2PVRouter::read_chars_until_(bool drop, uint8_t c) {
 /**
  * @brief Initializes the Mk2PVRouter by setting the initial state to OFF.
  */
-void Mk2PVRouter::setup() { state_ = State::OFF; }
+void Mk2PVRouter::setup() {
+  state_ = State::OFF;
+
+#ifdef USE_MQTT_FORWARD
+  // Log MQTT forwarding configuration
+  if (has_mqtt_config_) {
+    ESP_LOGCONFIG(TAG, "MQTT forwarding enabled:");
+    ESP_LOGCONFIG(TAG, "  Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+  }
+#endif
+}
 
 /**
  * @brief Updates the Mk2PVRouter state. Resets the buffer index and transitions the state from OFF to ON.
@@ -199,6 +209,13 @@ void Mk2PVRouter::loop() {
         buf_finger += field_len + 1 + 1 + 1;
 
         publish_value_(tag_, val_);
+
+#ifdef USE_MQTT_FORWARD
+        // Forward to MQTT if configured
+        if (has_mqtt_config_ && mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected()) {
+          send_to_mqtt_(tag_, val_);
+        }
+#endif
       }
       state_ = State::OFF;
       break;
@@ -219,6 +236,30 @@ void Mk2PVRouter::publish_value_(const std::string &tag, const std::string &val)
   }
 }
 
+#ifdef USE_MQTT_FORWARD
+/**
+ * @brief Sends data to MQTT broker with the configured topic prefix.
+ *
+ * @param tag The tag to be included in the topic.
+ * @param value The value to publish.
+ */
+void Mk2PVRouter::send_to_mqtt_(const std::string &tag, const std::string &value) {
+  if (!mqtt::global_mqtt_client->is_connected()) {
+    return;
+  }
+
+  std::string topic = mqtt_topic_prefix_;
+  if (!topic.empty() && topic.back() != '/') {
+    topic += '/';
+  }
+  topic += tag;
+
+  // Simple direct value publishing without retain flag
+  mqtt::global_mqtt_client->publish(topic, value, 0, false);
+  ESP_LOGD(TAG, "Published to MQTT: topic=%s, value=%s", topic.c_str(), value.c_str());
+}
+#endif
+
 /**
  * @brief Dumps the Mk2PVRouter configuration to the log.
  *
@@ -227,6 +268,18 @@ void Mk2PVRouter::publish_value_(const std::string &tag, const std::string &val)
 void Mk2PVRouter::dump_config() {
   ESP_LOGCONFIG(TAG, "Mk2PVRouter:");
   this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_EVEN, 7);
+
+#ifdef USE_MQTT_FORWARD
+  // Show MQTT forwarding configuration
+  if (has_mqtt_config_) {
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
+    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+  } else {
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
+  }
+#else
+  ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
+#endif
 }
 
 /**

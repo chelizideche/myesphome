@@ -3,6 +3,10 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 
+#ifdef USE_MQTT_FORWARD
+#include "esphome/components/mqtt/mqtt_client.h"
+#endif
+
 #include <vector>
 #include <array>
 
@@ -46,6 +50,14 @@ class Mk2PVRouter : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
   std::vector<Mk2PVRouterListener *> mk2pvrouter_listeners_{};
 
+#ifdef USE_MQTT_FORWARD
+  // MQTT forwarding configuration
+  void set_mqtt_forward(const std::string &topic_prefix) {
+    mqtt_topic_prefix_ = topic_prefix;
+    has_mqtt_config_ = true;
+  }
+#endif
+
  protected:
   uint32_t baud_rate_;
   size_t checksum_area_end_;
@@ -67,6 +79,13 @@ class Mk2PVRouter : public PollingComponent, public uart::UARTDevice {
   uint8_t calculate_crc_(const char *grp, size_t grp_len);
   bool check_crc_(const char *grp, const char *grp_end);
   void publish_value_(const std::string &tag, const std::string &val);
+
+#ifdef USE_MQTT_FORWARD
+  // MQTT forwarding config
+  bool has_mqtt_config_{false};
+  std::string mqtt_topic_prefix_;
+  void send_to_mqtt_(const std::string &tag, const std::string &value);
+#endif
 };
 }  // namespace mk2pvrouter
 }  // namespace esphome
