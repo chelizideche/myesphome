@@ -12,7 +12,7 @@ from esphome.const import (
     CONF_MIN_IPV6_ADDR_COUNT,
     CONF_NAME,
 )
-from esphome.core import CORE
+from esphome.core import CORE, coroutine_with_priority
 
 CODEOWNERS = ["@esphome/core"]
 AUTO_LOAD = ["mdns"]
@@ -72,8 +72,11 @@ def parse_hosts_file(hosts_contents: str) -> list[tuple[str, IPAddress]]:
     return hosts
 
 
+@coroutine_with_priority(201.0)
 async def to_code(config):
     cg.add_define("USE_NETWORK")
+    if CORE.using_arduino and CORE.is_esp32:
+        cg.add_library("Networking", None)
     if (enable_ipv6 := config.get(CONF_ENABLE_IPV6, None)) is not None:
         cg.add_define("USE_NETWORK_IPV6", enable_ipv6)
         if enable_ipv6:

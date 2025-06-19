@@ -66,7 +66,7 @@ void Application::setup() {
                      [](Component *a, Component *b) { return a->get_loop_priority() > b->get_loop_priority(); });
 
     do {
-      uint32_t new_app_state = STATUS_LED_WARNING;
+      uint8_t new_app_state = STATUS_LED_WARNING;
       this->scheduler.call();
       this->feed_wdt();
       for (uint32_t j = 0; j <= i; j++) {
@@ -87,7 +87,7 @@ void Application::setup() {
   this->calculate_looping_components_();
 }
 void Application::loop() {
-  uint32_t new_app_state = 0;
+  uint8_t new_app_state = 0;
 
   this->scheduler.call();
 
@@ -97,7 +97,13 @@ void Application::loop() {
   // Feed WDT with time
   this->feed_wdt(last_op_end_time);
 
-  for (Component *component : this->looping_components_) {
+  // Mark that we're in the loop for safe reentrant modifications
+  this->in_loop_ = true;
+
+  for (this->current_loop_index_ = 0; this->current_loop_index_ < this->looping_components_active_end_;
+       this->current_loop_index_++) {
+    Component *component = this->looping_components_[this->current_loop_index_];
+
     // Update the cached time before each component runs
     this->loop_component_start_time_ = last_op_end_time;
 
@@ -112,12 +118,16 @@ void Application::loop() {
     this->app_state_ |= new_app_state;
     this->feed_wdt(last_op_end_time);
   }
+
+  this->in_loop_ = false;
   this->app_state_ = new_app_state;
 
   // Use the last component's end time instead of calling millis() again
   auto elapsed = last_op_end_time - this->last_loop_;
   if (elapsed >= this->loop_interval_ || HighFrequencyLoopRequester::is_high_frequency()) {
-    yield();
+    // Even if we overran the loop interval, we still need to select()
+    // to know if any sockets have data ready
+    this->yield_with_select_(0);
   } else {
     uint32_t delay_time = this->loop_interval_ - elapsed;
     uint32_t next_schedule = this->scheduler.next_schedule_in().value_or(delay_time);
@@ -126,63 +136,7 @@ void Application::loop() {
     next_schedule = std::max(next_schedule, delay_time / 2);
     delay_time = std::min(next_schedule, delay_time);
 
-#ifdef USE_SOCKET_SELECT_SUPPORT
-    if (!this->socket_fds_.empty()) {
-      // Use select() with timeout when we have sockets to monitor
-
-      // Update fd_set if socket list has changed
-      if (this->socket_fds_changed_) {
-        FD_ZERO(&this->base_read_fds_);
-        for (int fd : this->socket_fds_) {
-          if (fd >= 0 && fd < FD_SETSIZE) {
-            FD_SET(fd, &this->base_read_fds_);
-          }
-        }
-        this->socket_fds_changed_ = false;
-      }
-
-      // Copy base fd_set before each select
-      this->read_fds_ = this->base_read_fds_;
-
-      // Convert delay_time (milliseconds) to timeval
-      struct timeval tv;
-      tv.tv_sec = delay_time / 1000;
-      tv.tv_usec = (delay_time - tv.tv_sec * 1000) * 1000;
-
-      // Call select with timeout
-#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || (defined(USE_ESP32) && defined(USE_SOCKET_IMPL_BSD_SOCKETS))
-      // Use lwip_select() on platforms with lwIP - it's faster
-      // Note: On ESP32 with BSD sockets, select() is already mapped to lwip_select() via macros,
-      // but we explicitly call lwip_select() for clarity and to ensure we get the optimized version
-      int ret = lwip_select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
-#else
-      // Use standard select() on other platforms (e.g., host/native builds)
-      int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
-#endif
-
-      // Process select() result:
-      // ret < 0: error (except EINTR which is normal)
-      // ret > 0: socket(s) have data ready - normal and expected
-      // ret == 0: timeout occurred - normal and expected
-      if (ret < 0) {
-        if (errno == EINTR) {
-          // Interrupted by signal - this is normal, just continue
-          // No need to delay as some time has already passed
-          ESP_LOGVV(TAG, "select() interrupted by signal");
-        } else {
-          // Actual error - log and fall back to delay
-          ESP_LOGW(TAG, "select() failed with errno %d", errno);
-          delay(delay_time);
-        }
-      }
-    } else {
-      // No sockets registered, use regular delay
-      delay(delay_time);
-    }
-#else
-    // No select support, use regular delay
-    delay(delay_time);
-#endif
+    this->yield_with_select_(delay_time);
   }
   this->last_loop_ = last_op_end_time;
 
@@ -224,6 +178,8 @@ void Application::reboot() {
 void Application::safe_reboot() {
   ESP_LOGI(TAG, "Rebooting safely");
   run_safe_shutdown_hooks();
+  teardown_components(TEARDOWN_TIMEOUT_REBOOT_MS);
+  run_powerdown_hooks();
   arch_restart();
 }
 
@@ -236,10 +192,117 @@ void Application::run_safe_shutdown_hooks() {
   }
 }
 
+void Application::run_powerdown_hooks() {
+  for (auto it = this->components_.rbegin(); it != this->components_.rend(); ++it) {
+    (*it)->on_powerdown();
+  }
+}
+
+void Application::teardown_components(uint32_t timeout_ms) {
+  uint32_t start_time = millis();
+
+  // Copy all components in reverse order using reverse iterators
+  // Reverse order matches the behavior of run_safe_shutdown_hooks() above and ensures
+  // components are torn down in the opposite order of their setup_priority (which is
+  // used to sort components during Application::setup())
+  std::vector<Component *> pending_components(this->components_.rbegin(), this->components_.rend());
+
+  uint32_t now = start_time;
+  while (!pending_components.empty() && (now - start_time) < timeout_ms) {
+    // Feed watchdog during teardown to prevent triggering
+    this->feed_wdt(now);
+
+    // Use iterator to safely erase elements
+    for (auto it = pending_components.begin(); it != pending_components.end();) {
+      if ((*it)->teardown()) {
+        // Component finished teardown, erase it
+        it = pending_components.erase(it);
+      } else {
+        // Component still needs time
+        ++it;
+      }
+    }
+
+    // Give some time for I/O operations if components are still pending
+    if (!pending_components.empty()) {
+      this->yield_with_select_(1);
+    }
+
+    // Update time for next iteration
+    now = millis();
+  }
+
+  if (!pending_components.empty()) {
+    // Note: At this point, connections are either disconnected or in a bad state,
+    // so this warning will only appear via serial rather than being transmitted to clients
+    for (auto *component : pending_components) {
+      ESP_LOGW(TAG, "%s did not complete teardown within %" PRIu32 " ms", component->get_component_source(),
+               timeout_ms);
+    }
+  }
+}
+
 void Application::calculate_looping_components_() {
+  // First add all active components
   for (auto *obj : this->components_) {
-    if (obj->has_overridden_loop())
+    if (obj->has_overridden_loop() &&
+        (obj->get_component_state() & COMPONENT_STATE_MASK) != COMPONENT_STATE_LOOP_DONE) {
       this->looping_components_.push_back(obj);
+    }
+  }
+
+  this->looping_components_active_end_ = this->looping_components_.size();
+
+  // Then add all inactive (LOOP_DONE) components
+  // This handles components that called disable_loop() during setup, before this method runs
+  for (auto *obj : this->components_) {
+    if (obj->has_overridden_loop() &&
+        (obj->get_component_state() & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE) {
+      this->looping_components_.push_back(obj);
+    }
+  }
+}
+
+void Application::disable_component_loop_(Component *component) {
+  // This method must be reentrant - components can disable themselves during their own loop() call
+  // Linear search to find component in active section
+  // Most configs have 10-30 looping components (30 is on the high end)
+  // O(n) is acceptable here as we optimize for memory, not complexity
+  for (uint16_t i = 0; i < this->looping_components_active_end_; i++) {
+    if (this->looping_components_[i] == component) {
+      // Move last active component to this position
+      this->looping_components_active_end_--;
+      if (i != this->looping_components_active_end_) {
+        std::swap(this->looping_components_[i], this->looping_components_[this->looping_components_active_end_]);
+
+        // If we're currently iterating and just swapped the current position
+        if (this->in_loop_ && i == this->current_loop_index_) {
+          // Decrement so we'll process the swapped component next
+          this->current_loop_index_--;
+        }
+      }
+      return;
+    }
+  }
+}
+
+void Application::enable_component_loop_(Component *component) {
+  // This method must be reentrant - components can re-enable themselves during their own loop() call
+  // Single pass through all components to find and move if needed
+  // With typical 10-30 components, O(n) is faster than maintaining a map
+  const uint16_t size = this->looping_components_.size();
+  for (uint16_t i = 0; i < size; i++) {
+    if (this->looping_components_[i] == component) {
+      if (i < this->looping_components_active_end_) {
+        return;  // Already active
+      }
+      // Found in inactive section - move to active
+      if (i != this->looping_components_active_end_) {
+        std::swap(this->looping_components_[i], this->looping_components_[this->looping_components_active_end_]);
+      }
+      this->looping_components_active_end_++;
+      return;
+    }
   }
 }
 
@@ -303,6 +366,60 @@ bool Application::is_socket_ready(int fd) const {
   return FD_ISSET(fd, &this->read_fds_);
 }
 #endif
+
+void Application::yield_with_select_(uint32_t delay_ms) {
+  // Delay while monitoring sockets. When delay_ms is 0, always yield() to ensure other tasks run
+  // since select() with 0 timeout only polls without yielding.
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  if (!this->socket_fds_.empty()) {
+    // Update fd_set if socket list has changed
+    if (this->socket_fds_changed_) {
+      FD_ZERO(&this->base_read_fds_);
+      for (int fd : this->socket_fds_) {
+        if (fd >= 0 && fd < FD_SETSIZE) {
+          FD_SET(fd, &this->base_read_fds_);
+        }
+      }
+      this->socket_fds_changed_ = false;
+    }
+
+    // Copy base fd_set before each select
+    this->read_fds_ = this->base_read_fds_;
+
+    // Convert delay_ms to timeval
+    struct timeval tv;
+    tv.tv_sec = delay_ms / 1000;
+    tv.tv_usec = (delay_ms - tv.tv_sec * 1000) * 1000;
+
+    // Call select with timeout
+#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || (defined(USE_ESP32) && defined(USE_SOCKET_IMPL_BSD_SOCKETS))
+    int ret = lwip_select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+#else
+    int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
+#endif
+
+    // Process select() result:
+    // ret < 0: error (except EINTR which is normal)
+    // ret > 0: socket(s) have data ready - normal and expected
+    // ret == 0: timeout occurred - normal and expected
+    if (ret < 0 && errno != EINTR) {
+      // Actual error - log and fall back to delay
+      ESP_LOGW(TAG, "select() failed with errno %d", errno);
+      delay(delay_ms);
+    }
+    // When delay_ms is 0, we need to yield since select(0) doesn't yield
+    if (delay_ms == 0) {
+      yield();
+    }
+  } else {
+    // No sockets registered, use regular delay
+    delay(delay_ms);
+  }
+#else
+  // No select support, use regular delay
+  delay(delay_ms);
+#endif
+}
 
 Application App;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
