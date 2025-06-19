@@ -24,14 +24,11 @@ static_assert(sizeof(esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param) == si
               "ESP-IDF scan_stop_cmpl structure has unexpected size");
 
 // Verify the status field is at offset 0 (first member)
-static_assert(offsetof(esp_ble_gap_cb_param_t, scan_param_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, scan_param_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_param_cmpl.status) == 0,
               "status must be first member of scan_param_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, scan_start_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, scan_start_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_start_cmpl.status) == 0,
               "status must be first member of scan_start_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl.status) == 0,
               "status must be first member of scan_stop_cmpl");
 
 // Compile-time verification for advertising complete events
@@ -47,18 +44,15 @@ static_assert(sizeof(esp_ble_gap_cb_param_t::ble_adv_stop_cmpl_evt_param) == siz
               "ESP-IDF adv_stop_cmpl structure has unexpected size");
 
 // Verify the status field is at offset 0 for advertising events
-static_assert(offsetof(esp_ble_gap_cb_param_t, adv_data_cmpl.status) == offsetof(esp_ble_gap_cb_param_t, adv_data_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, adv_data_cmpl.status) == 0,
               "status must be first member of adv_data_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, scan_rsp_data_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, scan_rsp_data_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_rsp_data_cmpl.status) == 0,
               "status must be first member of scan_rsp_data_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, adv_data_raw_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, adv_data_raw_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, adv_data_raw_cmpl.status) == 0,
               "status must be first member of adv_data_raw_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, adv_start_cmpl.status) ==
-                  offsetof(esp_ble_gap_cb_param_t, adv_start_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, adv_start_cmpl.status) == 0,
               "status must be first member of adv_start_cmpl");
-static_assert(offsetof(esp_ble_gap_cb_param_t, adv_stop_cmpl.status) == offsetof(esp_ble_gap_cb_param_t, adv_stop_cmpl),
+static_assert(offsetof(esp_ble_gap_cb_param_t, adv_stop_cmpl.status) == 0,
               "status must be first member of adv_stop_cmpl");
 
 // Compile-time verification for RSSI complete event structure
