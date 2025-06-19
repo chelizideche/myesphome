@@ -59,6 +59,8 @@ void MDNSComponent::compile_records_() {
     service.txt_records.push_back({"network", "wifi"});
 #elif defined(USE_ETHERNET)
     service.txt_records.push_back({"network", "ethernet"});
+#elif defined(USE_OPENTHREAD)
+    service.txt_records.push_back({"network", "thread"});
 #endif
 
 #ifdef USE_API_NOISE
@@ -117,16 +119,22 @@ void MDNSComponent::compile_records_() {
 }
 
 void MDNSComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "mDNS:");
-  ESP_LOGCONFIG(TAG, "  Hostname: %s", this->hostname_.c_str());
+  ESP_LOGCONFIG(TAG,
+                "mDNS:\n"
+                "  Hostname: %s",
+                this->hostname_.c_str());
   ESP_LOGV(TAG, "  Services:");
   for (const auto &service : this->services_) {
-    ESP_LOGV(TAG, "  - %s, %s, %d", service.service_type.c_str(), service.proto.c_str(), service.port);
+    ESP_LOGV(TAG, "  - %s, %s, %d", service.service_type.c_str(), service.proto.c_str(),
+             const_cast<TemplatableValue<uint16_t> &>(service.port).value());
     for (const auto &record : service.txt_records) {
-      ESP_LOGV(TAG, "    TXT: %s = %s", record.key.c_str(), record.value.c_str());
+      ESP_LOGV(TAG, "    TXT: %s = %s", record.key.c_str(),
+               const_cast<TemplatableValue<std::string> &>(record.value).value().c_str());
     }
   }
 }
+
+std::vector<MDNSService> MDNSComponent::get_services() { return this->services_; }
 
 }  // namespace mdns
 }  // namespace esphome
