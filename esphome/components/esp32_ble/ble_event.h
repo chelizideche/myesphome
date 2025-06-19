@@ -141,13 +141,13 @@ class BLEEvent {
   // Disable copy to prevent double-delete
   BLEEvent(const BLEEvent &) = delete;
   BLEEvent &operator=(const BLEEvent &) = delete;
-
   union {
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gap_event {
       esp_gap_ble_cb_event_t gap_event;
       union {
-        BLEScanResult scan_result;  // 73 bytes
+        BLEScanResult scan_result;   // 73 bytes
+        esp_ble_sec_t ble_security;  // 48 bytes
         // This matches ESP-IDF's scan complete event structures
         // All three (scan_param_cmpl, scan_start_cmpl, scan_stop_cmpl) have identical layout
         struct {
@@ -213,6 +213,12 @@ class BLEEvent {
 
       case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
         this->event_.gap.scan_complete.status = p->scan_stop_cmpl.status;
+        break;
+
+      case ESP_GAP_BLE_SEC_REQ_EVT:
+      case ESP_GAP_BLE_NC_REQ_EVT:
+      case ESP_GAP_BLE_AUTH_CMPL_EVT:
+        memcpy(&this->event_.gap.ble_security, &p->ble_security, sizeof(esp_ble_sec_t));
         break;
 
       default:

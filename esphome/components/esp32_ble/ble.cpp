@@ -341,6 +341,12 @@ void ESP32BLE::loop() {
             gap_handler->gap_event_handler(
                 gap_event, reinterpret_cast<esp_ble_gap_cb_param_t *>(&ble_event->event_.gap.scan_complete));
           }
+        } else if (gap_event == ESP_GAP_BLE_SEC_REQ_EVT || ESP_GAP_BLE_NC_REQ_EVT || ESP_GAP_BLE_AUTH_CMPL_EVT) {
+          ESP_LOGV(TAG, "gap_event_handler - %d", gap_event);
+          for (auto *gap_handler : this->gap_event_handlers_) {
+            gap_handler->gap_event_handler(
+                gap_event, reinterpret_cast<esp_ble_gap_cb_param_t *>(&ble_event->event_.gap.ble_security));
+          }
         }
         break;
       }
@@ -404,6 +410,9 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
     case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
     case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
+    case ESP_GAP_BLE_SEC_REQ_EVT:
+    case ESP_GAP_BLE_NC_REQ_EVT:
+    case ESP_GAP_BLE_AUTH_CMPL_EVT:
       enqueue_ble_event(event, param);
       return;
 
