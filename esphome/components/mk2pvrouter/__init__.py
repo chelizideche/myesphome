@@ -56,10 +56,6 @@ def validate_mqtt_forward(config):
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
-        # This ensures the MQTT component is properly imported
-        # during validation, not just at compile time
-        cg.add_global(mk2pvrouter_ns.using)
-
         # Add MQTT component as a dependency
         # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
