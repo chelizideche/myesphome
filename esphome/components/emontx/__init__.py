@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_TOPIC_PREFIX
+from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
@@ -18,9 +18,6 @@ CONF_EMONCMS = "emoncms"
 CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
-
-# MQTT forwarding config
-CONF_MQTT_FORWARD = "mqtt_forward"
 
 # Base schema without EmonCMS or MQTT
 EMONTX_LISTENER_SCHEMA = cv.Schema(
@@ -65,7 +62,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
             # Make MQTT forwarding optional
-            cv.Optional(CONF_MQTT_FORWARD): cv.Any(dict),
+            cv.Optional(CONF_MQTT): cv.Any(dict),
             # Make EmonCMS optional
             cv.Optional(CONF_EMONCMS): cv.Any(dict),
         }
@@ -102,7 +99,7 @@ def validate_emoncms(config):
 # Validate MQTT forward config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
-    if CONF_MQTT_FORWARD in config:
+    if CONF_MQTT in config:
         cg.add_define("USE_MQTT_FORWARD")
 
         # Validate MQTT forwarding configuration
@@ -111,7 +108,7 @@ def validate_mqtt_forward(config):
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
             }
         )
-        config[CONF_MQTT_FORWARD] = mqtt_schema(config[CONF_MQTT_FORWARD])
+        config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
     return config
 
 
@@ -135,8 +132,8 @@ async def to_code(config):
     await uart.register_uart_device(var, config)
 
     # Set MQTT forwarding if configured
-    if CONF_MQTT_FORWARD in config:
-        mqtt_config = config[CONF_MQTT_FORWARD]
+    if CONF_MQTT in config:
+        mqtt_config = config[CONF_MQTT]
         cg.add(var.set_mqtt_forward(mqtt_config[CONF_TOPIC_PREFIX]))
 
     # Set EmonCMS configuration if provided
