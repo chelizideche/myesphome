@@ -80,6 +80,9 @@ def validate_emoncms(config):
 
         cg.add_define("USE_HTTP_REQUEST")
 
+        # Make sure http_request component is defined in YAML
+        config = cv.requires_component("http_request")(config)
+
         # Validate EmonCMS configuration
         emoncms_schema = cv.Schema(
             {
@@ -109,10 +112,6 @@ def validate_mqtt_forward(config):
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
-        # This ensures the MQTT component is properly imported
-        # during validation, not just at compile time
-        cg.add_global(emontx_ns.using)
-
         # Add MQTT component as a dependency
         # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
@@ -138,6 +137,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
+    cg.add_global(emontx_ns.using)
 
     # Set MQTT forwarding if configured
     if CONF_MQTT in config:
