@@ -3,12 +3,12 @@
 #ifdef USE_NEXTION_TFT_UPLOAD
 #ifdef USE_ARDUINO
 
+#include <cinttypes>
+#include "esphome/components/network/util.h"
 #include "esphome/core/application.h"
 #include "esphome/core/defines.h"
-#include "esphome/core/util.h"
 #include "esphome/core/log.h"
-#include "esphome/components/network/util.h"
-#include <cinttypes>
+#include "esphome/core/util.h"
 
 #ifdef USE_ESP32
 #include <esp_heap_caps.h>
@@ -52,7 +52,7 @@ int Nextion::upload_by_chunks_(HTTPClient &http_client, uint32_t &range_start) {
   }
 
   // Allocate the buffer dynamically
-  ExternalRAMAllocator<uint8_t> allocator(ExternalRAMAllocator<uint8_t>::ALLOW_FAILURE);
+  RAMAllocator<uint8_t> allocator;
   uint8_t *buffer = allocator.allocate(4096);
   if (!buffer) {
     ESP_LOGE(TAG, "Buffer alloc failed");
@@ -67,8 +67,8 @@ int Nextion::upload_by_chunks_(HTTPClient &http_client, uint32_t &range_start) {
     ESP_LOGV(TAG, "Fetch %" PRIu16 " bytes", buffer_size);
     uint16_t read_len = 0;
     int partial_read_len = 0;
-    const uint32_t start_time = millis();
-    while (read_len < buffer_size && millis() - start_time < 5000) {
+    const uint32_t start_time = App.get_loop_component_start_time();
+    while (read_len < buffer_size && App.get_loop_component_start_time() - start_time < 5000) {
       if (http_client.getStreamPtr()->available() > 0) {
         partial_read_len =
             http_client.getStreamPtr()->readBytes(reinterpret_cast<char *>(buffer) + read_len, buffer_size - read_len);
