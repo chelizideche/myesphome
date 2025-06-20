@@ -32,11 +32,11 @@ from esphome.const import (
 )
 from esphome.core import TimePeriod
 
+from ...cpp_generator import TemplateArguments
 from ..const import CONF_DRAW_ROUNDING
 from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
-    CONF_DRAW_FROM_ORIGIN,
     CONF_NATIVE_HEIGHT,
     CONF_NATIVE_WIDTH,
     CONF_PIXEL_MODE,
@@ -72,9 +72,20 @@ mipi_spi_ns = cg.esphome_ns.namespace("mipi_spi")
 MipiSpi = mipi_spi_ns.class_(
     "MipiSpi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
 )
+MipiSpiBuffer = mipi_spi_ns.class_(
+    "MipiSpiBuffer",
+    MipiSpi,
+    display.Display,
+    display.DisplayBuffer,
+    cg.Component,
+    spi.SPIDevice,
+)
 ColorOrder = display.display_ns.enum("ColorMode")
 ColorBitness = display.display_ns.enum("ColorBitness")
 Model = mipi_spi_ns.enum("Model")
+
+PixelMode = mipi_spi_ns.enum("PixelMode")
+BusType = mipi_spi_ns.enum("BusType")
 
 COLOR_ORDERS = {
     MODE_RGB: ColorOrder.COLOR_ORDER_RGB,
@@ -82,11 +93,18 @@ COLOR_ORDERS = {
 }
 
 COLOR_DEPTHS = {
-    8: ColorBitness.COLOR_BITNESS_332,
-    16: ColorBitness.COLOR_BITNESS_565,
+    8: PixelMode.PIXEL_MODE_8,
+    16: PixelMode.PIXEL_MODE_16,
+    18: PixelMode.PIXEL_MODE_18,
 }
+
 DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
+BusTypes = {
+    TYPE_SINGLE: BusType.BUS_TYPE_SINGLE,
+    TYPE_QUAD: BusType.BUS_TYPE_QUAD,
+    TYPE_OCTAL: BusType.BUS_TYPE_OCTAL,
+}
 
 DriverChip("CUSTOM", initsequence={})
 
@@ -95,14 +113,13 @@ MODELS = DriverChip.models
 for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare):
     pass
 
-PixelMode = mipi_spi_ns.enum("PixelMode")
 
-PIXEL_MODE_18BIT = "18bit"
-PIXEL_MODE_16BIT = "16bit"
+DISPLAY_18BIT = "18bit"
+DISPLAY_16BIT = "16bit"
 
-PIXEL_MODES = {
-    PIXEL_MODE_16BIT: 0x55,
-    PIXEL_MODE_18BIT: 0x66,
+DISPLAY_PIXEL_MODES = {
+    DISPLAY_16BIT: (0x55, PixelMode.PIXEL_MODE_16),
+    DISPLAY_18BIT: (0x66, PixelMode.PIXEL_MODE_18),
 }
 
 
@@ -189,10 +206,16 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
     cv_dimensions = (
         cv.Optional if model.get_default(CONF_WIDTH) and not swapsies else cv.Required
     )
-    pixel_modes = PIXEL_MODES if bus_mode == TYPE_SINGLE else (PIXEL_MODE_16BIT,)
+    pixel_modes = DISPLAY_PIXEL_MODES if bus_mode == TYPE_SINGLE else (DISPLAY_16BIT,)
     color_depth = (
         ("16", "8", "16bit", "8bit") if bus_mode == TYPE_SINGLE else ("16", "16bit")
     )
+    other_options = [
+        CONF_INVERT_COLORS,
+        CONF_USE_AXIS_FLIPS,
+    ]
+    if bus_mode == TYPE_SINGLE:
+        other_options.append(CONF_SPI_16)
     schema = (
         display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
@@ -210,7 +233,7 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
         )
         .extend(
             {
-                cv.GenerateID(): cv.declare_id(MipiSpi),
+                cv.GenerateID(): cv.declare_id(MipiSpiBuffer),
                 cv_dimensions(CONF_DIMENSIONS): dimension_schema(
                     model.get_default(CONF_DRAW_ROUNDING, 1)
                 ),
@@ -222,9 +245,8 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 ),
                 model.option(CONF_COLOR_DEPTH, 16): cv.one_of(*color_depth, lower=True),
                 model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
-                model.option(CONF_PIXEL_MODE, PIXEL_MODE_16BIT): cv.Any(
-                    cv.one_of(*pixel_modes, lower=True),
-                    cv.int_range(0, 255, min_included=True, max_included=True),
+                model.option(CONF_PIXEL_MODE, DISPLAY_16BIT): cv.one_of(
+                    *pixel_modes, lower=True
                 ),
                 cv.Optional(CONF_TRANSFORM): transform,
                 cv.Optional(CONF_BUS_MODE, default=bus_mode): cv.one_of(
@@ -234,17 +256,7 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 iseqconf: cv.ensure_list(map_sequence),
             }
         )
-        .extend(
-            {
-                model.option(x): cv.boolean
-                for x in [
-                    CONF_DRAW_FROM_ORIGIN,
-                    CONF_SPI_16,
-                    CONF_INVERT_COLORS,
-                    CONF_USE_AXIS_FLIPS,
-                ]
-            }
-        )
+        .extend({model.option(x): cv.boolean for x in other_options})
     )
     if brightness := model.get_default(CONF_BRIGHTNESS):
         schema = schema.extend(
@@ -292,14 +304,19 @@ def config_schema(config):
     config = model_schema(bus_mode, model, swapsies)(config)
     # Check for invalid combinations of MADCTL config
     if init_sequence := config.get(CONF_INIT_SEQUENCE):
-        if MADCTL in [x[0] for x in init_sequence] and CONF_TRANSFORM in config:
+        commands = [x[0] for x in init_sequence]
+        if MADCTL in commands and CONF_TRANSFORM in config:
             raise cv.Invalid(
                 f"transform is not supported when MADCTL ({MADCTL:#X}) is in the init sequence"
+            )
+        if PIXFMT in commands:
+            raise cv.Invalid(
+                f"PIXFMT ({PIXFMT:#X}) should not be in the init sequence, it will be set automatically"
             )
 
     if bus_mode == TYPE_QUAD and CONF_DC_PIN in config:
         raise cv.Invalid("DC pin is not supported in quad mode")
-    if config[CONF_PIXEL_MODE] == PIXEL_MODE_18BIT and bus_mode != TYPE_SINGLE:
+    if config[CONF_PIXEL_MODE] == DISPLAY_18BIT and bus_mode != TYPE_SINGLE:
         raise cv.Invalid("18-bit pixel mode is not supported on a quad or octal bus")
     if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
         raise cv.Invalid(f"DC pin is required in {bus_mode} mode")
@@ -350,11 +367,8 @@ def get_sequence(model, config):
     sequence = [x if isinstance(x, tuple) else (x,) for x in sequence]
     commands = [x[0] for x in sequence]
     # Set pixel format if not already in the custom sequence
-    if PIXFMT not in commands:
-        pixel_mode = config[CONF_PIXEL_MODE]
-        if not isinstance(pixel_mode, int):
-            pixel_mode = PIXEL_MODES[pixel_mode]
-        sequence.append((PIXFMT, pixel_mode))
+    pixel_mode = DISPLAY_PIXEL_MODES[config[CONF_PIXEL_MODE]]
+    sequence.append((PIXFMT, pixel_mode[0]))
     # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
     use_flip = config[CONF_USE_AXIS_FLIPS]
     if MADCTL not in commands:
@@ -440,8 +454,16 @@ async def to_code(config):
         color_depth = color_depth[:-3]
     color_depth = COLOR_DEPTHS[int(color_depth)]
 
+    display_pixel_mode = DISPLAY_PIXEL_MODES[config[CONF_PIXEL_MODE]][1]
+    bus_type = config[CONF_BUS_MODE]
+    if bus_type == TYPE_SINGLE and config.get(CONF_SPI_16, False):
+        # If the bus mode is single and spi_16 is set, use single 16-bit mode
+        bus_type = BusType.BUS_TYPE_SINGLE_16
+    else:
+        bus_type = BusTypes[bus_type]
+    templateargs = TemplateArguments(color_depth, display_pixel_mode, bus_type)
     var = cg.new_Pvariable(
-        config[CONF_ID], width, height, offset_width, offset_height, color_depth
+        config[CONF_ID], templateargs, width, height, offset_width, offset_height
     )
     cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
@@ -450,9 +472,7 @@ async def to_code(config):
         else:
             config[CONF_ROTATION] = 0
     cg.add(var.set_model(config[CONF_MODEL]))
-    cg.add(var.set_draw_from_origin(config[CONF_DRAW_FROM_ORIGIN]))
     cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
-    cg.add(var.set_spi_16(config[CONF_SPI_16]))
     if enable_pin := config.get(CONF_ENABLE_PIN):
         enable = [await cg.gpio_pin_expression(pin) for pin in enable_pin]
         cg.add(var.set_enable_pins(enable))
