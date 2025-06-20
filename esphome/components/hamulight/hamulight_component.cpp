@@ -51,6 +51,16 @@ void Hamulight::dump_config() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
 
+
+void Hamulight::setup() {
+  // Setup-Code
+}
+
+
+void Hamulight::loop() {
+  // Loop-Code
+}
+
 /**
  * @brief Returns the supported features of the light to Home Assistant.
  *
@@ -60,10 +70,8 @@ void Hamulight::dump_config() {
  */
 light::LightTraits Hamulight::get_traits() {
   auto traits = light::LightTraits();
-  // Supports on/off and brightness control.
-  traits.set_supported_color_modes({light::ColorMode::ON_OFF, light::ColorMode::BRIGHTNESS});
-  traits.set_min_mireds(0);
-  traits.set_max_mireds(0);
+  // Supports brightness control (NO on/off)!
+  traits.set_supports_brightness(true);
   return traits;
 }
 
@@ -95,10 +103,9 @@ void Hamulight::write_state(light::LightState *state) {
   float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
   ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
   
-  if (brightness >= 0.999f) {
+  if (brightness >= 0.999f) {                                                 // if brightness close to 100%
     ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
     this->transmit_rf_command(RF_BRIGHT100_COMMAND);                          // Transmit the 100% / max brightness command - also needed for pairing!
-    state->publish_state();                                                   // Update the internal state of the light object to "on"
   } else {
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
     // This provides 128 discrete steps (0 to 127).
@@ -122,11 +129,9 @@ void Hamulight::write_state(light::LightState *state) {
         brightness_to_transmit = RF_SLIDE_RANGE_MAX;
     }
 
-    this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
-    //state->set_level(brightness);                             // Update the light's current values to reflect the new brightness and publish.
-    state->publish_state();                                   // Update the brightness of the light object internally
     ESP_LOGD(TAG, "Sending dimming value: %.4f → %d → 0x%02X (with offset)",
              brightness, dim_value_0_127, brightness_to_transmit);
+    this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
   }
 }
 
