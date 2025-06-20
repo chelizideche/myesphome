@@ -45,15 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::make_unique() from C++14
-#if __cpp_lib_make_unique >= 201304
-using std::make_unique;
-#else
-template<typename T, typename... Args> std::unique_ptr<T> make_unique(Args &&...args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#endif
-
 // std::enable_if_t from C++14
 #if __cplusplus >= 201402L
 using std::enable_if_t;

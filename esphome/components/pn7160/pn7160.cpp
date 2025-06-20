@@ -53,12 +53,12 @@ void PN7160::set_tag_emulation_message(const optional<std::string> &message,
     return;
   }
 
-  auto ndef_message = make_unique<nfc::NdefMessage>();
+  auto ndef_message = std::make_unique<nfc::NdefMessage>();
 
   ndef_message->add_uri_record(message.value());
 
   if (!include_android_app_record.has_value() || include_android_app_record.value()) {
-    auto ext_record = make_unique<nfc::NdefRecord>();
+    auto ext_record = std::make_unique<nfc::NdefRecord>();
     ext_record->set_tnf(nfc::TNF_EXTERNAL_TYPE);
     ext_record->set_type(nfc::HA_TAG_ID_EXT_RECORD_TYPE);
     ext_record->set_payload(nfc::HA_TAG_ID_EXT_RECORD_PAYLOAD);
@@ -144,12 +144,12 @@ void PN7160::set_tag_write_message(optional<std::string> message, optional<bool>
     return;
   }
 
-  auto ndef_message = make_unique<nfc::NdefMessage>();
+  auto ndef_message = std::make_unique<nfc::NdefMessage>();
 
   ndef_message->add_uri_record(message.value());
 
   if (!include_android_app_record.has_value() || include_android_app_record.value()) {
-    auto ext_record = make_unique<nfc::NdefRecord>();
+    auto ext_record = std::make_unique<nfc::NdefRecord>();
     ext_record->set_tnf(nfc::TNF_EXTERNAL_TYPE);
     ext_record->set_type(nfc::HA_TAG_ID_EXT_RECORD_TYPE);
     ext_record->set_payload(nfc::HA_TAG_ID_EXT_RECORD_PAYLOAD);
@@ -553,7 +553,7 @@ std::unique_ptr<nfc::NfcTag> PN7160::build_tag_(const uint8_t mode_tech, const s
       std::vector<uint8_t> uid(data.begin() + 3, data.begin() + 3 + uid_length);
       const auto *tag_type_str =
           nfc::guess_tag_type(uid_length) == nfc::TAG_TYPE_MIFARE_CLASSIC ? nfc::MIFARE_CLASSIC : nfc::NFC_FORUM_TYPE_2;
-      return make_unique<nfc::NfcTag>(uid, tag_type_str);
+      return std::make_unique<nfc::NfcTag>(uid, tag_type_str);
     }
   }
   return nullptr;

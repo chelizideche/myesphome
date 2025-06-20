@@ -10,7 +10,7 @@ namespace audio {
 AudioTransferBuffer::~AudioTransferBuffer() { this->deallocate_buffer_(); };
 
 std::unique_ptr<AudioSinkTransferBuffer> AudioSinkTransferBuffer::create(size_t buffer_size) {
-  std::unique_ptr<AudioSinkTransferBuffer> sink_buffer = make_unique<AudioSinkTransferBuffer>();
+  std::unique_ptr<AudioSinkTransferBuffer> sink_buffer = std::make_unique<AudioSinkTransferBuffer>();
 
   if (!sink_buffer->allocate_buffer_(buffer_size)) {
     return nullptr;
@@ -20,7 +20,7 @@ std::unique_ptr<AudioSinkTransferBuffer> AudioSinkTransferBuffer::create(size_t 
 }
 
 std::unique_ptr<AudioSourceTransferBuffer> AudioSourceTransferBuffer::create(size_t buffer_size) {
-  std::unique_ptr<AudioSourceTransferBuffer> source_buffer = make_unique<AudioSourceTransferBuffer>();
+  std::unique_ptr<AudioSourceTransferBuffer> source_buffer = std::make_unique<AudioSourceTransferBuffer>();
 
   if (!source_buffer->allocate_buffer_(buffer_size)) {
     return nullptr;

@@ -22,7 +22,7 @@ void TM1651Display::setup() {
   uint8_t clk = clk_pin_->get_pin();
   uint8_t dio = dio_pin_->get_pin();
 
-  battery_display_ = make_unique<TM1651>(clk, dio);
+  battery_display_ = std::make_unique<TM1651>(clk, dio);
   battery_display_->init();
   battery_display_->clearDisplay();
 }

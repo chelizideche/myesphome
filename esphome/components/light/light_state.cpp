@@ -252,7 +252,7 @@ void LightState::start_flash_(const LightColorValues &target, uint32_t length, b
   if (this->transformer_ != nullptr)
     end_colors = this->transformer_->get_start_values();
 
-  this->transformer_ = make_unique<LightFlashTransformer>(*this);
+  this->transformer_ = std::make_unique<LightFlashTransformer>(*this);
   this->transformer_->setup(end_colors, target, length);
 
   if (set_remote_values) {

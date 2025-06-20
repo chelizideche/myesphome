@@ -64,7 +64,7 @@ esp_err_t AudioDecoder::start(AudioFileType audio_file_type) {
   switch (this->audio_file_type_) {
 #ifdef USE_AUDIO_FLAC_SUPPORT
     case AudioFileType::FLAC:
-      this->flac_decoder_ = make_unique<esp_audio_libs::flac::FLACDecoder>();
+      this->flac_decoder_ = std::make_unique<esp_audio_libs::flac::FLACDecoder>();
       this->free_buffer_required_ =
           this->output_transfer_buffer_->capacity();  // Adjusted and reallocated after reading the header
       break;
@@ -81,7 +81,7 @@ esp_err_t AudioDecoder::start(AudioFileType audio_file_type) {
       break;
 #endif
     case AudioFileType::WAV:
-      this->wav_decoder_ = make_unique<esp_audio_libs::wav_decoder::WAVDecoder>();
+      this->wav_decoder_ = std::make_unique<esp_audio_libs::wav_decoder::WAVDecoder>();
       this->wav_decoder_->reset();
 
       // Processing WAVs doesn't actually require a specific amount of buffer size, as it is already in PCM format.

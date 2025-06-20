@@ -360,7 +360,7 @@ void AudioPipeline::read_task(void *params) {
       esp_err_t err = ESP_OK;
 
       std::unique_ptr<audio::AudioReader> reader =
-          make_unique<audio::AudioReader>(this_pipeline->transfer_buffer_size_);
+          std::make_unique<audio::AudioReader>(this_pipeline->transfer_buffer_size_);
 
       if (event_bits & EventGroupBits::READER_COMMAND_INIT_FILE) {
         err = reader->start(this_pipeline->current_audio_file_, this_pipeline->current_audio_file_type_);
@@ -448,8 +448,8 @@ void AudioPipeline::decode_task(void *params) {
       InfoErrorEvent event;
       event.source = InfoErrorSource::DECODER;
 
-      std::unique_ptr<audio::AudioDecoder> decoder =
-          make_unique<audio::AudioDecoder>(this_pipeline->transfer_buffer_size_, this_pipeline->transfer_buffer_size_);
+      std::unique_ptr<audio::AudioDecoder> decoder = std::make_unique<audio::AudioDecoder>(
+          this_pipeline->transfer_buffer_size_, this_pipeline->transfer_buffer_size_);
 
       esp_err_t err = decoder->start(this_pipeline->current_audio_file_type_);
       decoder->add_source(this_pipeline->raw_file_ring_buffer_);

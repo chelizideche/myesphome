@@ -177,21 +177,21 @@ void OnlineImage::update() {
 #ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
   if (this->format_ == ImageFormat::BMP) {
     ESP_LOGD(TAG, "Allocating BMP decoder");
-    this->decoder_ = make_unique<BmpDecoder>(this);
+    this->decoder_ = std::make_unique<BmpDecoder>(this);
     this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
 #ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
   if (this->format_ == ImageFormat::JPEG) {
     ESP_LOGD(TAG, "Allocating JPEG decoder");
-    this->decoder_ = esphome::make_unique<JpegDecoder>(this);
+    this->decoder_ = std::make_unique<JpegDecoder>(this);
     this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
   if (this->format_ == ImageFormat::PNG) {
     ESP_LOGD(TAG, "Allocating PNG decoder");
-    this->decoder_ = make_unique<PngDecoder>(this);
+    this->decoder_ = std::make_unique<PngDecoder>(this);
     this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_PNG_SUPPORT

@@ -88,8 +88,8 @@ void SpeakerMediaPlayer::setup() {
 #endif
 
   this->announcement_pipeline_ =
-      make_unique<AudioPipeline>(this->announcement_speaker_, this->buffer_size_, this->task_stack_in_psram_, "ann",
-                                 ANNOUNCEMENT_PIPELINE_TASK_PRIORITY);
+      std::make_unique<AudioPipeline>(this->announcement_speaker_, this->buffer_size_, this->task_stack_in_psram_,
+                                      "ann", ANNOUNCEMENT_PIPELINE_TASK_PRIORITY);
 
   if (this->announcement_pipeline_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create announcement pipeline");
@@ -97,8 +97,8 @@ void SpeakerMediaPlayer::setup() {
   }
 
   if (!this->single_pipeline_()) {
-    this->media_pipeline_ = make_unique<AudioPipeline>(this->media_speaker_, this->buffer_size_,
-                                                       this->task_stack_in_psram_, "med", MEDIA_PIPELINE_TASK_PRIORITY);
+    this->media_pipeline_ = std::make_unique<AudioPipeline>(
+        this->media_speaker_, this->buffer_size_, this->task_stack_in_psram_, "med", MEDIA_PIPELINE_TASK_PRIORITY);
 
     if (this->media_pipeline_ == nullptr) {
       ESP_LOGE(TAG, "Failed to create media pipeline");

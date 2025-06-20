@@ -11,18 +11,18 @@ class SigmaDeltaOutput : public PollingComponent, public output::FloatOutput {
  public:
   Trigger<> *get_turn_on_trigger() {
     if (!this->turn_on_trigger_)
-      this->turn_on_trigger_ = make_unique<Trigger<>>();
+      this->turn_on_trigger_ = std::make_unique<Trigger<>>();
     return this->turn_on_trigger_.get();
   }
   Trigger<> *get_turn_off_trigger() {
     if (!this->turn_off_trigger_)
-      this->turn_off_trigger_ = make_unique<Trigger<>>();
+      this->turn_off_trigger_ = std::make_unique<Trigger<>>();
     return this->turn_off_trigger_.get();
   }
 
   Trigger<bool> *get_state_change_trigger() {
     if (!this->state_change_trigger_)
-      this->state_change_trigger_ = make_unique<Trigger<bool>>();
+      this->state_change_trigger_ = std::make_unique<Trigger<bool>>();
     return this->state_change_trigger_.get();
   }
 

@@ -222,7 +222,8 @@ void MicroWakeWord::add_wake_word_model(WakeWordModel *model) { this->wake_word_
 #ifdef USE_MICRO_WAKE_WORD_VAD
 void MicroWakeWord::add_vad_model(const uint8_t *model_start, uint8_t probability_cutoff, size_t sliding_window_size,
                                   size_t tensor_arena_size) {
-  this->vad_model_ = make_unique<VADModel>(model_start, probability_cutoff, sliding_window_size, tensor_arena_size);
+  this->vad_model_ =
+      std::make_unique<VADModel>(model_start, probability_cutoff, sliding_window_size, tensor_arena_size);
 }
 #endif
 

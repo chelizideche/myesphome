@@ -28,7 +28,7 @@ class NdefRecord {
   NdefRecord(const NdefRecord &) = default;
   virtual ~NdefRecord() {}
   virtual std::unique_ptr<NdefRecord> clone() const {  // To allow copying polymorphic classes
-    return make_unique<NdefRecord>(*this);
+    return std::make_unique<NdefRecord>(*this);
   };
 
   uint32_t get_encoded_size();

@@ -66,7 +66,7 @@ class LwIPSocketImpl : public Socket {
     int fd = lwip_accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
-    return make_unique<LwIPSocketImpl>(fd, loop_monitored);
+    return std::make_unique<LwIPSocketImpl>(fd, loop_monitored);
   }
 
  public:

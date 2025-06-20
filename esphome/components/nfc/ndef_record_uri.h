@@ -63,7 +63,7 @@ class NdefRecordUri : public NdefRecord {
     this->id_ = id;
   };
   NdefRecordUri(const NdefRecordUri &) = default;
-  std::unique_ptr<NdefRecord> clone() const override { return make_unique<NdefRecordUri>(*this); };
+  std::unique_ptr<NdefRecord> clone() const override { return std::make_unique<NdefRecordUri>(*this); };
 
   void set_uri(const std::string &uri) { this->uri_ = uri; };
 

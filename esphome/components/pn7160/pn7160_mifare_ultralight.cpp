@@ -45,7 +45,7 @@ uint8_t PN7160::read_mifare_ultralight_tag_(nfc::NfcTag &tag) {
   // we need to trim off page 3 as well as any bytes ahead of message_start_index
   data.erase(data.begin(), data.begin() + message_start_index + nfc::MIFARE_ULTRALIGHT_PAGE_SIZE);
 
-  tag.set_ndef_message(make_unique<nfc::NdefMessage>(data));
+  tag.set_ndef_message(std::make_unique<nfc::NdefMessage>(data));
 
   return nfc::STATUS_OK;
 }

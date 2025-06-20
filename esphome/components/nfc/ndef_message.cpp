@@ -57,12 +57,12 @@ NdefMessage::NdefMessage(std::vector<uint8_t> &data) {
     // Based on tnf and type, create a more specific NdefRecord object
     // constructed from the payload data
     if (tnf == TNF_WELL_KNOWN && type_str == "U") {
-      record = make_unique<NdefRecordUri>(payload_data);
+      record = std::make_unique<NdefRecordUri>(payload_data);
     } else if (tnf == TNF_WELL_KNOWN && type_str == "T") {
-      record = make_unique<NdefRecordText>(payload_data);
+      record = std::make_unique<NdefRecordText>(payload_data);
     } else {
       // Could not recognize the record, so store as generic one.
-      record = make_unique<NdefRecord>(payload_data);
+      record = std::make_unique<NdefRecord>(payload_data);
       record->set_tnf(tnf);
       record->set_type(type_str);
     }
@@ -91,10 +91,12 @@ bool NdefMessage::add_record(std::unique_ptr<NdefRecord> record) {
 bool NdefMessage::add_text_record(const std::string &text) { return this->add_text_record(text, "en"); };
 
 bool NdefMessage::add_text_record(const std::string &text, const std::string &encoding) {
-  return this->add_record(make_unique<NdefRecordText>(encoding, text));
+  return this->add_record(std::make_unique<NdefRecordText>(encoding, text));
 }
 
-bool NdefMessage::add_uri_record(const std::string &uri) { return this->add_record(make_unique<NdefRecordUri>(uri)); }
+bool NdefMessage::add_uri_record(const std::string &uri) {
+  return this->add_record(std::make_unique<NdefRecordUri>(uri));
+}
 
 std::vector<uint8_t> NdefMessage::encode() {
   std::vector<uint8_t> data;

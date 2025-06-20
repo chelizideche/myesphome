@@ -145,7 +145,7 @@ void PN532::loop() {
   if (!success) {
     // Something failed
     if (!this->current_uid_.empty()) {
-      auto tag = make_unique<nfc::NfcTag>(this->current_uid_);
+      auto tag = std::make_unique<nfc::NfcTag>(this->current_uid_);
       for (auto *trigger : this->triggers_ontagremoved_)
         trigger->process(tag);
     }
@@ -158,7 +158,7 @@ void PN532::loop() {
   if (num_targets != 1) {
     // no tags found or too many
     if (!this->current_uid_.empty()) {
-      auto tag = make_unique<nfc::NfcTag>(this->current_uid_);
+      auto tag = std::make_unique<nfc::NfcTag>(this->current_uid_);
       for (auto *trigger : this->triggers_ontagremoved_)
         trigger->process(tag);
     }
@@ -368,9 +368,9 @@ std::unique_ptr<nfc::NfcTag> PN532::read_tag_(std::vector<uint8_t> &uid) {
     return this->read_mifare_ultralight_tag_(uid);
   } else if (type == nfc::TAG_TYPE_UNKNOWN) {
     ESP_LOGV(TAG, "Cannot determine tag type");
-    return make_unique<nfc::NfcTag>(uid);
+    return std::make_unique<nfc::NfcTag>(uid);
   } else {
-    return make_unique<nfc::NfcTag>(uid);
+    return std::make_unique<nfc::NfcTag>(uid);
   }
 }
 

@@ -32,7 +32,7 @@ void HOT Scheduler::set_timeout(Component *component, const std::string &name, u
   if (timeout == SCHEDULER_DONT_RUN)
     return;
 
-  auto item = make_unique<SchedulerItem>();
+  auto item = std::make_unique<SchedulerItem>();
   item->component = component;
   item->name = name;
   item->type = SchedulerItem::TIMEOUT;
@@ -62,7 +62,7 @@ void HOT Scheduler::set_interval(Component *component, const std::string &name, 
   if (interval != 0)
     offset = (random_uint32() % interval) / 2;
 
-  auto item = make_unique<SchedulerItem>();
+  auto item = std::make_unique<SchedulerItem>();
   item->component = component;
   item->name = name;
   item->type = SchedulerItem::INTERVAL;

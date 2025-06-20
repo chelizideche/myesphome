@@ -20,8 +20,8 @@ void Am43Component::dump_config() {
 
 void Am43Component::setup() {
   this->position = COVER_OPEN;
-  this->encoder_ = make_unique<Am43Encoder>();
-  this->decoder_ = make_unique<Am43Decoder>();
+  this->encoder_ = std::make_unique<Am43Encoder>();
+  this->decoder_ = std::make_unique<Am43Decoder>();
   this->logged_in_ = false;
 }
 

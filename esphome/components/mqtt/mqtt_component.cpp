@@ -230,7 +230,7 @@ void MQTTComponent::set_command_retain(bool command_retain) { this->command_reta
 
 void MQTTComponent::set_availability(std::string topic, std::string payload_available,
                                      std::string payload_not_available) {
-  this->availability_ = make_unique<Availability>();
+  this->availability_ = std::make_unique<Availability>();
   this->availability_->topic = std::move(topic);
   this->availability_->payload_available = std::move(payload_available);
   this->availability_->payload_not_available = std::move(payload_not_available);

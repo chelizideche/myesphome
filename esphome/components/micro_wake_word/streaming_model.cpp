@@ -55,8 +55,8 @@ bool StreamingModel::load_model_() {
 
   if (this->interpreter_ == nullptr) {
     this->interpreter_ =
-        make_unique<tflite::MicroInterpreter>(tflite::GetModel(this->model_start_), this->streaming_op_resolver_,
-                                              this->tensor_arena_, this->tensor_arena_size_, this->mrv_);
+        std::make_unique<tflite::MicroInterpreter>(tflite::GetModel(this->model_start_), this->streaming_op_resolver_,
+                                                   this->tensor_arena_, this->tensor_arena_size_, this->mrv_);
     if (this->interpreter_->AllocateTensors() != kTfLiteOk) {
       ESP_LOGE(TAG, "Failed to allocate tensors for the streaming model");
       return false;

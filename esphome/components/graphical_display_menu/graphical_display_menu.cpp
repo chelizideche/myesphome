@@ -13,7 +13,7 @@ static const char *const TAG = "graphical_display_menu";
 void GraphicalDisplayMenu::setup() {
   if (this->display_ != nullptr) {
     display::display_writer_t writer = [this](display::Display &it) { this->draw_menu(); };
-    this->display_page_ = make_unique<display::DisplayPage>(writer);
+    this->display_page_ = std::make_unique<display::DisplayPage>(writer);
   }
 
   if (!this->menu_item_value_.has_value()) {

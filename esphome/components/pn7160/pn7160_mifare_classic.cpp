@@ -61,7 +61,7 @@ uint8_t PN7160::read_mifare_classic_tag_(nfc::NfcTag &tag) {
     return nfc::STATUS_FAILED;
   }
 
-  tag.set_ndef_message(make_unique<nfc::NdefMessage>(buffer));
+  tag.set_ndef_message(std::make_unique<nfc::NdefMessage>(buffer));
 
   return nfc::STATUS_OK;
 }

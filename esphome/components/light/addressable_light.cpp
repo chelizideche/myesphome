@@ -24,7 +24,7 @@ void AddressableLight::call_setup() {
 }
 
 std::unique_ptr<LightTransformer> AddressableLight::create_default_transition() {
-  return make_unique<AddressableLightTransformer>(*this);
+  return std::make_unique<AddressableLightTransformer>(*this);
 }
 
 Color color_from_light_color_values(LightColorValues val) {

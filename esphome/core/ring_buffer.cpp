@@ -20,7 +20,7 @@ RingBuffer::~RingBuffer() {
 }
 
 std::unique_ptr<RingBuffer> RingBuffer::create(size_t len) {
-  std::unique_ptr<RingBuffer> rb = make_unique<RingBuffer>();
+  std::unique_ptr<RingBuffer> rb = std::make_unique<RingBuffer>();
 
   rb->size_ = len;
 

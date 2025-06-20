@@ -73,7 +73,7 @@ class BSDSocketImpl : public Socket {
     int fd = ::accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
-    return make_unique<BSDSocketImpl>(fd, loop_monitored);
+    return std::make_unique<BSDSocketImpl>(fd, loop_monitored);
   }
 
  public:

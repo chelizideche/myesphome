@@ -26,7 +26,7 @@ void DfrobotSen0395Component::dump_config() {
 void DfrobotSen0395Component::loop() {
   if (cmd_queue_.is_empty()) {
     // Command queue empty. Read sensor state.
-    cmd_queue_.enqueue(make_unique<ReadStateCommand>());
+    cmd_queue_.enqueue(std::make_unique<ReadStateCommand>());
   }
 
   // Commands are non-blocking and need to be called repeatedly.

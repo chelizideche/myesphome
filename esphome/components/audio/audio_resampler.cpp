@@ -59,7 +59,7 @@ esp_err_t AudioResampler::start(AudioStreamInfo &input_stream_info, AudioStreamI
 
   if ((input_stream_info.get_sample_rate() != output_stream_info.get_sample_rate()) ||
       (input_stream_info.get_bits_per_sample() != output_stream_info.get_bits_per_sample())) {
-    this->resampler_ = make_unique<esp_audio_libs::resampler::Resampler>(
+    this->resampler_ = std::make_unique<esp_audio_libs::resampler::Resampler>(
         input_stream_info.bytes_to_samples(this->input_buffer_size_),
         output_stream_info.bytes_to_samples(this->output_buffer_size_));
 

@@ -191,7 +191,7 @@ void ModbusController::queue_command(const ModbusCommandItem &command) {
       }
     }
   }
-  this->command_queue_.push_back(make_unique<ModbusCommandItem>(command));
+  this->command_queue_.push_back(std::make_unique<ModbusCommandItem>(command));
 }
 
 void ModbusController::update_range_(RegisterRange &r) {
