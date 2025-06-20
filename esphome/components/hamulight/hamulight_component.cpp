@@ -68,7 +68,25 @@ light::LightTraits Hamulight::get_traits() {
 }
 
 /**
- * @brief Called by Home Assistant to change the state of the light.
+ * @brief Called by Home Assistant to change the state of the light (ON/OFF).
+ *
+ * This method is responsible for implementing on/off control via the Home Assistant light power button.
+ * @param state The desired LightState object from Home Assistant.
+ */
+void Hamulight::turn_on() {
+  ESP_LOGD(TAG, "HA power toggle ON: sending RF_POWER_COMMAND");
+  this->transmit_rf_command(RF_POWER_COMMAND);
+  this->publish_state(true);
+}
+
+void Hamulight::turn_off() {
+  ESP_LOGD(TAG, "HA power toggle OFF: sending RF_POWER_COMMAND");
+  this->transmit_rf_command(RF_POWER_COMMAND);
+  this->publish_state(false);
+}
+
+/**
+ * @brief Called by Home Assistant to change the state of the light (brightness).
  *
  * This method is responsible for implementing brightness control via the Home Assistant slider.
  * @param state The desired LightState object from Home Assistant.
@@ -77,15 +95,10 @@ void Hamulight::write_state(light::LightState *state) {
   float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
   ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
   
-  if (brightness > 1.0f) {
-    ESP_LOGW(TAG, "Brightness value seems out of expected range (0.0–1.0): %.4f", brightness);
-  }
-  
-  // If the brightness value is very low (near 0.0), the power toggle command is sent.
-  if (brightness < 0.05f) {                                     // A small threshold to detect turning off
-    this->transmit_rf_command(RF_POWER_COMMAND);
-    // state->set_current_values_as_brightness(0.0F);            // Update the light's current values to reflect the "off" state and publish.
-    state->publish_state();                                   // Update the internal state of the light object to "off"
+  if (brightness >= 0.999f) {
+    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
+    this->transmit_rf_command(RF_BRIGHT100_COMMAND);                          // Transmit the 100% / max brightness command - also needed for pairing!
+    state->publish_state();                                                   // Update the internal state of the light object to "on"
   } else {
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
     // This provides 128 discrete steps (0 to 127).
@@ -112,7 +125,7 @@ void Hamulight::write_state(light::LightState *state) {
     this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
     //state->set_level(brightness);                             // Update the light's current values to reflect the new brightness and publish.
     state->publish_state();                                   // Update the brightness of the light object internally
-    ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
+    ESP_LOGD(TAG, "Sending dimming value: %.4f → %d → 0x%02X (with offset)",
              brightness, dim_value_0_127, brightness_to_transmit);
   }
 }
