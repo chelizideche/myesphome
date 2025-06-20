@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID       # Konstanten für Konfigurationsschlüssel
-from esphome.pins import pins
+from esphome import pins
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
 HamulightComponent = HAMULIGHT_NAMESPACE.class_('Hamulight', cg.Component)
