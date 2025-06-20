@@ -267,6 +267,17 @@ class ServerRegister {
   std::function<float()> read_lambda;
 };
 
+class ServerCoilRegister {
+ public:
+  ServerCoilRegister(uint16_t address, std::function<void(bool)> write_lambda) {
+    this->address = address;
+    this->write_lambda = std::move(write_lambda);
+  }
+  uint16_t address{0};
+  uint16_t state{0};
+  std::function<void(bool)> write_lambda;
+};
+
 // ModbusController::create_register_ranges_ tries to optimize register range
 // for this the sensors must be ordered by register_type, start_address and bitmask
 class SensorItemsComparator {
@@ -440,12 +451,18 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   void add_sensor_item(SensorItem *item) { sensorset_.insert(item); }
   /// Registers a server register with the controller. Called by esphomes code generator
   void add_server_register(ServerRegister *server_register) { server_registers_.push_back(server_register); }
+  /// Registers a server coil register with the controller. Called by esphomes code generator
+  void add_server_coil_register(ServerCoilRegister *server_coil_register) {
+    server_coil_registers_.push_back(server_coil_register);
+  }
   /// called when a modbus response was parsed without errors
   void on_modbus_data(const std::vector<uint8_t> &data) override;
   /// called when a modbus error response was received
   void on_modbus_error(uint8_t function_code, uint8_t exception_code) override;
   /// called when a modbus request (function code 3 or 4) was parsed without errors
   void on_modbus_read_registers(uint8_t function_code, uint16_t start_address, uint16_t number_of_registers) final;
+  /// called when a modbus request (function code 5) was parsed without errors
+  void on_modbus_write_coil_register(uint8_t function_code, uint16_t address, uint16_t state) final;
   /// default delegate called by process_modbus_data when a response has retrieved from the incoming queue
   void on_register_data(ModbusRegisterType register_type, uint16_t start_address, const std::vector<uint8_t> &data);
   /// default delegate called by process_modbus_data when a response for a write response has retrieved from the
@@ -494,6 +511,8 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   SensorSet sensorset_;
   /// Collection of all server registers for this component
   std::vector<ServerRegister *> server_registers_{};
+  /// Collection of all server coil registers for this component
+  std::vector<ServerCoilRegister *> server_coil_registers_{};
   /// Continuous range of modbus registers
   std::vector<RegisterRange> register_ranges_{};
   /// Hold the pending requests to be sent

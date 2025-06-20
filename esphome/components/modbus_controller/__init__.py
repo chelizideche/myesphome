@@ -32,14 +32,16 @@ from .const import (
     CONF_RESPONSE_SIZE,
     CONF_SKIP_UPDATES,
     CONF_VALUE_TYPE,
+    CONF_WRITE_LAMBDA,
 )
 
-CODEOWNERS = ["@martgras"]
+CODEOWNERS = ["@martgras", "@gotnone"]
 
 AUTO_LOAD = ["modbus"]
 
 CONF_READ_LAMBDA = "read_lambda"
 CONF_SERVER_REGISTERS = "server_registers"
+CONF_SERVER_COIL_REGISTERS = "server_coil_registers"
 MULTI_CONF = True
 
 modbus_controller_ns = cg.esphome_ns.namespace("modbus_controller")
@@ -49,6 +51,7 @@ ModbusController = modbus_controller_ns.class_(
 
 SensorItem = modbus_controller_ns.struct("SensorItem")
 ServerRegister = modbus_controller_ns.struct("ServerRegister")
+ServerCoilRegister = modbus_controller_ns.struct("ServerCoilRegister")
 
 ModbusFunctionCode_ns = modbus_controller_ns.namespace("ModbusFunctionCode")
 ModbusFunctionCode = ModbusFunctionCode_ns.enum("ModbusFunctionCode")
@@ -135,6 +138,13 @@ ModbusServerRegisterSchema = cv.Schema(
     }
 )
 
+ModbusServerCoilRegisterSchema = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(ServerCoilRegister),
+        cv.Required(CONF_ADDRESS): cv.positive_int,
+        cv.Required(CONF_WRITE_LAMBDA): cv.lambda_,
+    }
+)
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -149,6 +159,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_SERVER_REGISTERS,
             ): cv.ensure_list(ModbusServerRegisterSchema),
+            cv.Optional(
+                CONF_SERVER_COIL_REGISTERS,
+            ): cv.ensure_list(ModbusServerCoilRegisterSchema),
             cv.Optional(CONF_ON_COMMAND_SENT): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -296,6 +309,21 @@ async def to_code(config):
                             server_register[CONF_READ_LAMBDA],
                             [],
                             return_type=cg.float_,
+                        ),
+                    )
+                )
+            )
+    if CONF_SERVER_COIL_REGISTERS in config:
+        for server_coil_register in config[CONF_SERVER_COIL_REGISTERS]:
+            cg.add(
+                var.add_server_coil_register(
+                    cg.new_Pvariable(
+                        server_coil_register[CONF_ID],
+                        server_coil_register[CONF_ADDRESS],
+                        await cg.process_lambda(
+                            server_coil_register[CONF_WRITE_LAMBDA],
+                            [(bool, "state")],
+                            return_type=cg.void,
                         ),
                     )
                 )
