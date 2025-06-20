@@ -98,6 +98,12 @@ class Hamulight : public light::LightOutput, public Component {
   void turn_on() override;
   void turn_off() override;
 
+ protected:
+  GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission
+  GPIOPin *led_pin_{nullptr};    // Optional GPIO Pin for a feedback LED (initialized as nullptr)
+  uint16_t rf_address_;          // The 2-byte RF address
+
+  // --- Internal helper methods ---
   /**
    * @brief Sends a specific RF command (e.g., on/off, predefined brightness).
    * @param command The RF command as an 8-bit value.
@@ -110,12 +116,7 @@ class Hamulight : public light::LightOutput, public Component {
    */
   void transmit_rf_brightness(uint8_t brightness_value);
 
- protected:
-  GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission
-  GPIOPin *led_pin_{nullptr};    // Optional GPIO Pin for a feedback LED (initialized as nullptr)
-  uint16_t rf_address_;          // The 2-byte RF address
 
-  // --- Internal helper methods ---
   /**
    * @brief Generates the bit sequence for RF transmission based on a command.
    * @param command The 8-bit command to be integrated into the signal.
