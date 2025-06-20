@@ -91,10 +91,16 @@ void Hamulight::write_state(light::LightState *state) {
   float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
   ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
   
-  if (brightness >= 0.999f) {                                                 // if brightness close to 100%
-    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
-    this->transmit_rf_command(RF_BRIGHT100_COMMAND);                          // Transmit the 100% / max brightness command - also needed for pairing!
-  } else {
+  if (brightness < 0.01f) {
+    ESP_LOGD(TAG, "Sending RF_POWER_COMMAND (OFF)");
+    this->transmit_rf_command(RF_POWER_COMMAND);
+    return;
+  }
+  if (std::abs(brightness - 1.0f) < 0.01f) {
+    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (Slider auf max oder Power-AN bei 100%)");
+    this->transmit_rf_command(RF_BRIGHT100_COMMAND);
+    return;
+  }
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
     // This provides 128 discrete steps (0 to 127).
     uint8_t dim_value_0_127 = (uint8_t) round(brightness * (RF_SLIDE_STEPS - 1));
