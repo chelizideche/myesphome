@@ -45,16 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::is_trivially_copyable from C++11, implemented in libstdc++/g++ 5.1 (but minor releases can't be detected)
-#if _GLIBCXX_RELEASE >= 6
-using std::is_trivially_copyable;
-#else
-// Implementing this is impossible without compiler intrinsics, so don't bother. Invalid usage will be detected on
-// other variants that use a newer compiler anyway.
-// NOLINTNEXTLINE(readability-identifier-naming)
-template<typename T> struct is_trivially_copyable : public std::integral_constant<bool, true> {};
-#endif
-
 // std::make_unique() from C++14
 #if __cpp_lib_make_unique >= 201304
 using std::make_unique;
