@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import light
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.const import CONF_ID, CONF_NAME, CONF_LIGHT_ID
 
 # Import the HamulightComponent from __init__.py
 from . import HAMULIGHT_NAMESPACE, HamulightComponent
@@ -12,8 +12,8 @@ CONF_HAMULIGHT_ID = "hamulight_id"
 # Define configuration schema for the light-platform
 # Which options are available in YAML under 'light: - platform: hamulight'
 CONFIG_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend({
-    cv.GenerateID(light.CONF_LIGHT_ID): cv.declare_id(light.LightOutput), # Generates an ID for the LightOutput instance
-    cv.Required(CONF_HAMULIGHT_ID): cv.use_id(HamulightComponent), # Links this light to an existing HamulightComponent instance
+    cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(HamulightComponent), # Generates an ID for the Hamulight C++ instance
+    cv.Required(CONF_HAMULIGHT_ID): cv.use_id(HamulightComponent),   # Links this light to an existing HamulightComponent instance
 }).extend(cv.COMPONENT_SCHEMA) # Extends with standard ESPHome component options
 
 # Code generation function for the light platform
