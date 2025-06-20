@@ -157,10 +157,10 @@ void DebugComponent::get_device_info_(std::string &device_info) {
       flash_mode = "UNKNOWN";
   }
   ESP_LOGD(TAG, "Flash Chip: Size=%ukB Speed=%uMHz Mode=%s",
-           ESP.getFlashChipSize() / 1024,                                                   // NOLINT
-           ESP.getFlashChipSpeed() / 1000000, flash_mode);                                  // NOLINT
-  device_info += "|Flash: " + to_string(ESP.getFlashChipSize() / 1024) +                    // NOLINT
-                 "kB Speed:" + to_string(ESP.getFlashChipSpeed() / 1000000) + "MHz Mode:";  // NOLINT
+           ESP.getFlashChipSize() / 1024,                                                        // NOLINT
+           ESP.getFlashChipSpeed() / 1000000, flash_mode);                                       // NOLINT
+  device_info += "|Flash: " + std::to_string(ESP.getFlashChipSize() / 1024) +                    // NOLINT
+                 "kB Speed:" + std::to_string(ESP.getFlashChipSpeed() / 1000000) + "MHz Mode:";  // NOLINT
   device_info += flash_mode;
 #endif
 
@@ -183,8 +183,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += model;
   device_info += " Features:";
   device_info += features;
-  device_info += " Cores:" + to_string(info.cores);
-  device_info += " Revision:" + to_string(info.revision);
+  device_info += " Cores:" + std::to_string(info.cores);
+  device_info += " Revision:" + std::to_string(info.revision);
   device_info += str_sprintf("|CPU Frequency: %" PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
   ESP_LOGD(TAG, "CPU Frequency: %" PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
 

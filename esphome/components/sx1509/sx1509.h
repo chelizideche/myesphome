@@ -50,7 +50,7 @@ class SX1509Component : public Component, public i2c::I2CDevice, public key_prov
     this->cols_ = cols;
     this->has_keypad_ = true;
   };
-  void set_keys(std::string keys) { this->keys_ = std::move(keys); };
+  void set_keys(const std::string &keys) { this->keys_ = std::move(keys); };
   void set_sleep_time(uint16_t sleep_time) { this->sleep_time_ = sleep_time; };
   void set_scan_time(uint8_t scan_time) { this->scan_time_ = scan_time; };
   void set_debounce_time(uint8_t debounce_time = 1) { this->debounce_time_ = debounce_time; };

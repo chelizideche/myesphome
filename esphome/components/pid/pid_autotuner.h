@@ -31,7 +31,7 @@ class PIDAutotuner {
 
   void dump_config();
 
-  void set_autotuner_id(std::string id) { this->id_ = std::move(id); }
+  void set_autotuner_id(const std::string &id) { this->id_ = std::move(id); }
 
   void set_noiseband(float noiseband) {
     relay_function_.noiseband = noiseband;
