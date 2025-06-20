@@ -94,7 +94,6 @@ uint8_t DS2484OneWireBus::read8() {
   uint8_t read8_cmd = 0x96;
   uint8_t set_read_reg_cmd[2] = {0xe1, 0xe1};
   uint8_t response = 0;
-  uint8_t status;
   if (this->write(&read8_cmd, 1) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "can't write read8 cmd");
     return 0;
