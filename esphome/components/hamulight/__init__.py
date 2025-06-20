@@ -8,8 +8,8 @@ HamulightComponent = HAMULIGHT_NAMESPACE.class_('Hamulight', cg.Component)
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(HamulightComponent),                                      # unique instance ID
-    cv.Required("rf_transmit_pin"): cv.All(cv.pin_output, output.build_output_pin_schema()), # required PIN for RF transmission
-    cv.Optional("led_pin"): cv.All(cv.pin_output, output.build_output_pin_schema()),         # optional PIN for feedback LED
+    cv.Required("rf_transmit_pin"): output.gpio_output_pin_schema(),                         # required PIN for RF transmission
+    cv.Optional("led_pin"): output.gpio_output_pin_schema(),                                 # optional PIN for feedback LED
     cv.Required(CONF_ADDRESS): cv.hex_uint16,                                                # required 2-Byte RF address (HEX)
 }).extend(cv.COMPONENT_SCHEMA)
 
