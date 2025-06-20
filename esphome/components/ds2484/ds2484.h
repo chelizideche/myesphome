@@ -11,27 +11,27 @@ namespace ds2484 {
 
 class DS2484OneWireBus : public one_wire::OneWireBus, public i2c::I2CDevice, public Component {
  public:
-  virtual void setup() override;
-  virtual void dump_config() override;
+  void setup() override;
+  void dump_config() override;
   float get_setup_priority() const override { return setup_priority::BUS - 1.0; }
 
   bool reset_device();
-  virtual int reset_int() override;
-  virtual void write8(uint8_t) override;
-  virtual void write64(uint64_t) override;
-  virtual uint8_t read8() override;
-  virtual uint64_t read64() override;
+  int reset_int() override;
+  void write8(uint8_t) override;
+  void write64(uint64_t) override;
+  uint8_t read8() override;
+  uint64_t read64() override;
 
   void set_active_pullup(bool value) { active_pullup_ = value; }
   void set_strong_pullup(bool value) { strong_pullup_ = value; }
 
  protected:
-  virtual void reset_search() override;
-  virtual uint64_t search_int() override;
-  bool read_status(uint8_t *);
-  bool wait_for_completion();
+  void reset_search() override;
+  uint64_t search_int() override;
+  bool read_status_(uint8_t *);
+  bool wait_for_completion_();
   void write8_(uint8_t);
-  bool one_wire_triple(bool *branch, bool *id_bit, bool *cmp_id_bit);
+  bool one_wire_triple_(bool *branch, bool *id_bit, bool *cmp_id_bit);
 
   uint8_t last_discrepancy_{0};
   bool last_device_flag_{false};
