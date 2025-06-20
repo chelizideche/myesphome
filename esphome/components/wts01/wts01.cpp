@@ -13,7 +13,7 @@ static const uint8_t HEADER_3 = 0x01;
 static const uint8_t HEADER_4 = 0x04;
 
 void WTS01Sensor::loop() {
-  // Process characters received from the sensor
+  // Process one character at a time received from the sensor
   if (available()) {
     uint8_t c;
     if (read_byte(&c)) {
@@ -65,29 +65,35 @@ void WTS01Sensor::process_packet_() {
   // Based on Tasmota implementation
   // Format: 55 01 01 04 01 11 16 12 95
   // header            T  Td Ck  - T = Temperature, Td = Temperature decimal, Ck = Checksum
-
-  // Check if packet is valid (we could add checksum verification here if needed)
-  if (this->buffer_[0] == HEADER_1 && this->buffer_[1] == HEADER_2 && this->buffer_[2] == HEADER_3 &&
-      this->buffer_[3] == HEADER_4) {
-    // Extract temperature value
-    uint8_t temp = this->buffer_[6];
-    int32_t sign = 1;
-
-    // Handle negative temperatures
-    if (temp > 127) {
-      temp -= 128;
-      sign = -1;
-    }
-
-    // Calculate temperature (temp + decimal/100)
-    float temperature = sign * (static_cast<float>(temp) + (static_cast<float>(this->buffer_[7]) / 100.0f));
-
-    // Store temperature
-    this->current_temperature_ = temperature;
-    ESP_LOGV(TAG, "Temperature: %.2f°C", temperature);
-
-    this->publish_state(temperature);
+  uint8_t calculated_checksum = 0;
+  for (uint8_t i = 0; i < PACKET_SIZE - 1; i++) {
+    calculated_checksum += this->buffer_[i];
   }
+
+  uint8_t received_checksum = this->buffer_[PACKET_SIZE - 1];
+  if (calculated_checksum != received_checksum) {
+    ESP_LOGW(TAG, "WTS01 Checksum doesn't match: 0x%02X != 0x%02X", received_checksum, calculated_checksum);
+    return;
+  }
+
+  // Extract temperature value
+  uint8_t temp = this->buffer_[6];
+  int32_t sign = 1;
+
+  // Handle negative temperatures
+  if (temp > 127) {
+    temp -= 128;
+    sign = -1;
+  }
+
+  // Calculate temperature (temp + decimal/100)
+  float temperature = sign * (static_cast<float>(temp) + (static_cast<float>(this->buffer_[7]) / 100.0f));
+
+  // Store temperature
+  this->current_temperature_ = temperature;
+  ESP_LOGV(TAG, "Received new temperature: %.2f°C", temperature);
+
+  this->publish_state(temperature);
 }
 
 }  // namespace wts01
