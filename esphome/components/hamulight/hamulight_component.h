@@ -16,7 +16,7 @@ namespace hamulight {
 
 class Hamulight : public light::LightOutput, public Component {
  public:
-  /**
+   /**
    * @brief Sets the GPIO pin connected to the data input of the RF module.
    * @param pin A pointer to the GPIOPin object.
    */
@@ -69,6 +69,11 @@ class Hamulight : public light::LightOutput, public Component {
   void setup() override;
 
   /**
+   * @brief ESP loop() - better not fiddle around...
+   */
+  void loop() override;
+
+  /**
    * @brief Displays the component's configuration in the log.
    */
   void dump_config() override;
@@ -86,11 +91,18 @@ class Hamulight : public light::LightOutput, public Component {
   void write_state(light::LightState *state) override;
 
   // --- Custom methods for Home Assistant Buttons and Logic ---
+
+  /**
+   * @brief Needed for proper power on/off button handling
+   */
+  void turn_on() override;
+  void turn_off() override;
+
   /**
    * @brief Sends a specific RF command (e.g., on/off, predefined brightness).
    * @param command The RF command as an 8-bit value.
    */
-  void transmit_rf_command(uint8_t command);
+ void transmit_rf_command(uint8_t command);
 
   /**
    * @brief Sends a specific RF brightness value (for the slider).
