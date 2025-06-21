@@ -13,7 +13,7 @@ uint32_t DebugComponent::get_free_heap_() { return rp2040.getFreeHeap(); }
 
 void DebugComponent::get_device_info_(std::string &device_info) {
   ESP_LOGD(TAG, "CPU Frequency: %u", rp2040.f_cpu());
-  device_info += "CPU Frequency: " + to_string(rp2040.f_cpu());
+  device_info += "CPU Frequency: " + std::to_string(rp2040.f_cpu());
 }
 
 void DebugComponent::update_platform_() {}

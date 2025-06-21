@@ -27,8 +27,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += "|Chip Name: ";
   device_info += lt_cpu_get_model_name();
   device_info += "|Chip ID: 0x" + format_hex(lt_cpu_get_mac_id());
-  device_info += "|Flash: " + to_string(lt_flash_get_size() / 1024) + " KiB";
-  device_info += "|RAM: " + to_string(lt_ram_get_size() / 1024) + " KiB";
+  device_info += "|Flash: " + std::to_string(lt_flash_get_size() / 1024) + " KiB";
+  device_info += "|RAM: " + std::to_string(lt_ram_get_size() / 1024) + " KiB";
 }
 
 void DebugComponent::update_platform_() {
