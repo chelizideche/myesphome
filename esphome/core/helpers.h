@@ -425,6 +425,8 @@ template<typename... Ts> class CallbackManager<void(Ts...)> {
   /// Add a callback to the list.
   void add(std::function<void(Ts...)> &&callback) { this->callbacks_.push_back(std::move(callback)); }
 
+  void add(const std::function<void(Ts...)> &callback) { this->callbacks_.push_back(callback); }
+
   /// Call all callbacks in this manager.
   void call(Ts... args) {
     for (auto &cb : this->callbacks_)
