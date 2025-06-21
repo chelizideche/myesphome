@@ -26,7 +26,7 @@
 #include "esphome/core/hal.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 #include "driver/rmt_tx.h"
 #endif
 
@@ -136,7 +136,7 @@ class Hamulight : public light::LightOutput, public Component {
   GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
   uint16_t rf_address_;       ///< RF Address for protocol
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
   rmt_channel_handle_t tx_channel_{nullptr};   ///< RMT TX channel handle for hardware-timed transmission
   rmt_encoder_handle_t encoder_{nullptr};      ///< RMT encoder handle for raw buffer
