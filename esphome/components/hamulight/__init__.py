@@ -18,7 +18,11 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])                                                  # Creates a new C++ instance or Hamulight class
     await cg.register_component(var, config)                                                 # Register component with ESPHome
 
-    # Create the C++ Code for the PIN and set it for the component
+    # Pass pin number for RMT
+    rf_pin_num = config["rf_transmit_pin"]["number"]
+    cg.add(var.set_rf_pin_num(rf_pin_num))
+
+    # Pass GPIOPin object for optional digitalWrite use   - MAY BE DISMISSED???
     rf_transmit_pin_code = await cg.gpio_pin_expression(config["rf_transmit_pin"])
     cg.add(var.set_rf_transmit_pin(rf_transmit_pin_code))
 
