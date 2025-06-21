@@ -963,11 +963,10 @@ uint16_t Nextion::recv_ret_string_(std::string &response, uint32_t timeout, bool
   uint16_t ret = 0;
   uint8_t c = 0;
   uint8_t nr_of_ff_bytes = 0;
-  uint64_t start;
   bool exit_flag = false;
   bool ff_flag = false;
 
-  start = millis();
+  const uint32_t start = millis();
 
   while ((timeout == 0 && this->available()) || millis() - start <= timeout) {
     if (!this->available()) {
