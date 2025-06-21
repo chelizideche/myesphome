@@ -485,11 +485,11 @@ async def to_code(config):
         # Define USE_AREAS to enable area processing
         cg.add_define("USE_AREAS")
 
-    # Process sub-devices and areas
-    if sub_devices := config.get(CONF_DEVICES):
+    # Process devices and areas
+    if devices := config.get(CONF_DEVICES):
         # Process areas first
-        if sub_areas := config.get(CONF_AREAS):
-            for area_conf in sub_areas:
+        if areas := config.get(CONF_AREAS):
+            for area_conf in areas:
                 area = cg.new_Pvariable(area_conf[CONF_ID])
                 area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))
                 cg.add(area.set_area_id(area_id))
@@ -498,8 +498,8 @@ async def to_code(config):
             # Define USE_AREAS since we have areas
             cg.add_define("USE_AREAS")
 
-        # Process sub-devices
-        for dev_conf in sub_devices:
+        # Process devices
+        for dev_conf in devices:
             dev = cg.new_Pvariable(dev_conf[CONF_ID])
             cg.add(dev.set_device_id(fnv1a_32bit_hash(str(dev_conf[CONF_ID]))))
             cg.add(dev.set_name(dev_conf[CONF_NAME]))
