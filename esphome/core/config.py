@@ -8,10 +8,12 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_AREA,
     CONF_AREA_ID,
+    CONF_AREAS,
     CONF_BUILD_PATH,
     CONF_COMMENT,
     CONF_COMPILE_PROCESS_LIMIT,
     CONF_DEBUG_SCHEDULER,
+    CONF_DEVICES,
     CONF_ESPHOME,
     CONF_FRIENDLY_NAME,
     CONF_ID,
@@ -28,8 +30,6 @@ from esphome.const import (
     CONF_PLATFORMIO_OPTIONS,
     CONF_PRIORITY,
     CONF_PROJECT,
-    CONF_SUB_AREAS,
-    CONF_SUB_DEVICES,
     CONF_TRIGGER_ID,
     CONF_VERSION,
     KEY_CORE,
@@ -186,7 +186,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
             ): cv.int_range(min=1, max=get_usable_cpu_count()),
-            cv.Optional(CONF_SUB_AREAS, default=[]): cv.ensure_list(
+            cv.Optional(CONF_AREAS, default=[]): cv.ensure_list(
                 cv.Schema(
                     {
                         cv.GenerateID(CONF_ID): cv.declare_id(Area),
@@ -194,7 +194,7 @@ CONFIG_SCHEMA = cv.All(
                     }
                 ),
             ),
-            cv.Optional(CONF_SUB_DEVICES, default=[]): cv.ensure_list(
+            cv.Optional(CONF_DEVICES, default=[]): cv.ensure_list(
                 cv.Schema(
                     {
                         cv.GenerateID(CONF_ID): cv.declare_id(Device),
@@ -486,9 +486,9 @@ async def to_code(config):
         cg.add_define("USE_AREAS")
 
     # Process sub-devices and areas
-    if sub_devices := config.get(CONF_SUB_DEVICES):
+    if sub_devices := config.get(CONF_DEVICES):
         # Process areas first
-        if sub_areas := config.get(CONF_SUB_AREAS):
+        if sub_areas := config.get(CONF_AREAS):
             for area_conf in sub_areas:
                 area = cg.new_Pvariable(area_conf[CONF_ID])
                 area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))

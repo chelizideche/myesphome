@@ -19,16 +19,16 @@ esphome:
     version: "1.1"
     on_update:
       logger.log: on_update
-  sub_areas:
+  areas:
     - id: another_area
       name: Another area
-  sub_devices:
+  devices:
     - id: other_device
       name: Another device
       area_id: another_area
     - id: test_device
       name: Test device in main area
-      area_id: testing_area  # Reference the main area (not in sub_areas)
+      area_id: testing_area  # Reference the main area (not in areas)
     - id: no_area_device
       name: Device without area  # This device has no area_id
 
