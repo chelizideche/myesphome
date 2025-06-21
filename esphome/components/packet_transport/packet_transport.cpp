@@ -325,7 +325,7 @@ void PacketTransport::update() {
     if (key_response_age > (this->ping_pong_recyle_time_ * 2u)) {
 #ifdef USE_STATUS_SENSOR
       if (provider.second.status_sensor != nullptr && provider.second.status_sensor->state) {
-        ESP_LOGW(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
+        ESP_LOGI(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
         provider.second.status_sensor->publish_state(false);
       }
 #endif

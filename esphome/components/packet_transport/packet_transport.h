@@ -80,6 +80,7 @@ class PacketTransport : public PollingComponent {
   void add_provider(const char *hostname) {
     if (this->providers_.count(hostname) == 0) {
       Provider provider{};
+      provider.name = hostname;
       this->providers_[hostname] = provider;
 #ifdef USE_SENSOR
       this->remote_sensors_[hostname] = std::map<std::string, sensor::Sensor *>();
