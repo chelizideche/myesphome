@@ -25,7 +25,8 @@
 #include "esphome/components/light/light_output.h"
 #include "esphome/core/hal.h"
 
-#ifdef USE_ESP32
+// IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
 #include "driver/rmt_tx.h"
 #endif
 
@@ -63,7 +64,6 @@ constexpr uint16_t BASE_PULSE           = 120;    // 120us per time unit (T)
 constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;
 
 // --- End Hamulight RF Protocol Constants ---
-
 
 /**
  * @class Hamulight
@@ -136,7 +136,7 @@ class Hamulight : public light::LightOutput, public Component {
   GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
   uint16_t rf_address_;       ///< RF Address for protocol
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
   rmt_channel_handle_t tx_channel_{nullptr};   ///< RMT TX channel handle for hardware-timed transmission
   rmt_encoder_handle_t encoder_{nullptr};      ///< RMT encoder handle for raw buffer
