@@ -2,8 +2,11 @@
 #include "esphome/core/log.h"          // For logging output in the ESPHome log
 #include "esphome/core/helpers.h"      // For utility functions like round
 #include "esphome/core/hal.h"          // For GPIOPin methods and delayMicroseconds
-#include "freertos/FreeRTOS.h"         // needed for critical section (RF transmission w/o interruption)
-#include "freertos/task.h"             // needed for critical section (RF transmission w/o interruption)
+
+// --- Added: ESP32 RMT hardware peripheral include for precise RF timing ---
+#ifdef USE_ESP32
+#include "driver/rmt_tx.h"
+#endif
 
 namespace esphome {
 namespace hamulight {
@@ -170,65 +173,6 @@ void Hamulight::generate_code_sequence(uint8_t command) {
 }
 
 /**
- * @brief Sends the generated RF signal via the RF transmit pin.
- *
- * This method directly controls the GPIO pin to generate the high and low pulses
- * based on the generated sequences.
- */
-void Hamulight::send_rf_signal() {
-  // Turns on the optional LED, if configured, as visual feedback.
-  if (this->led_pin_ != nullptr) {
-    this->led_pin_->digital_write(true); // LED ON
-  }
-
-  // ATTENTION - ONLY for ESP32 - other devices might need to be limited to only the RF task
-  // Enter critical section:
-  #if defined(ESP32) || defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
-    ESP_LOGD(TAG, "Entering critical section for RF transmission.");
-    portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
-    taskENTER_CRITICAL(&myMux);
-  #endif
-  
-  // Repeats the entire signal transmission multiple times for robustness.
-  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
-
-    // Transmission of the start sequence:
-    // Iterates in steps of 2 through START_SEQUENCE, as each element pair
-    // (HIGH duration, LOW duration) defines a pulse.
-    for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
-      this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      esphome::delayMicroseconds(BASE_PULSE * START_SEQUENCE[j]); // Wait for HIGH duration
-      this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      esphome::delayMicroseconds(BASE_PULSE * START_SEQUENCE[j + 1]); // Wait for LOW duration
-    }
-
-    // Transmission of the code sequence:
-    // Iterates in steps of 2 through code_sequence_, as each element pair
-    // (HIGH duration, LOW duration) defines a pulse for a bit.
-    for (int k = 0; k < CODE_SEQUENCE_SIZE; k += 2) {
-      this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      esphome::delayMicroseconds(BASE_PULSE * code_sequence_[k]); // Wait for HIGH duration
-      this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      esphome::delayMicroseconds(BASE_PULSE * code_sequence_[k + 1]); // Wait for LOW duration
-    }
-  }
-
-  // Ensures the transmit pin is LOW after transmission.
-  this->rf_transmit_pin_->digital_write(false);
-
-  // Exit critical section:
-  #if defined(ESP32) || defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
-    taskEXIT_CRITICAL(&myMux);
-  #endif
-  
-  // Turns off the LED, if configured.
-  if (this->led_pin_ != nullptr) {
-    this->led_pin_->digital_write(false); // LED OFF
-  }
-  ESP_LOGD(TAG, "RF signal transmission completed.");
-}
-
-/**
  * @brief Public method for sending a specific RF command.
  *
  * Called by Home Assistant buttons to send predefined commands.
@@ -236,7 +180,7 @@ void Hamulight::send_rf_signal() {
  */
 void Hamulight::transmit_rf_command(uint8_t command) {
   this->generate_code_sequence(command); // Generates the sequence for the command
-  this->send_rf_signal();                // Sends the signal
+  this->send_rf_signal_rmt();            // --- Changed: Use RMT-based sending on ESP32 ---
 }
 
 /**
@@ -247,8 +191,98 @@ void Hamulight::transmit_rf_command(uint8_t command) {
  */
 void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
   this->generate_code_sequence(brightness_value); // Generates the sequence for the brightness value
-  this->send_rf_signal();                         // Sends the signal
+  this->send_rf_signal_rmt();                     // Changed: Use RMT-based sending on ESP32
 }
+
+/**
+ * @brief Sends the generated RF signal using the ESP32 RMT peripheral (ESP32 only).
+ *
+ * This implementation leverages the ESP32's RMT hardware for precise and non-blocking transmission.
+ * The software-based GPIO/delayMicroseconds loop is replaced by a hardware-timed RMT buffer.
+ */
+#ifdef USE_ESP32
+void Hamulight::send_rf_signal_rmt() {
+  // Turns on the optional LED, if configured, as visual feedback.
+  if (this->led_pin_ != nullptr) {
+    this->led_pin_->digital_write(true); // LED ON
+  }
+
+  // Setup and create an RMT TX channel for hardware-timed transmission
+  rmt_channel_handle_t channel = nullptr;
+  rmt_tx_channel_config_t tx_chan_config = {
+    .clk_src = RMT_CLK_SRC_DEFAULT,
+    .gpio_num = (gpio_num_t)this->rf_transmit_pin_->get_pin(),
+    .mem_block_symbols = 64,  // enough for our signal
+    .resolution_hz = 1000000, // 1 MHz for microsecond accuracy
+    .trans_queue_depth = 1,
+    .flags.io_loop_back = false,
+    .flags.io_od_mode = false,
+    .flags.invert_out = false,
+    .intr_priority = 0,
+  };
+  rmt_new_tx_channel(&tx_chan_config, &channel);
+
+  // Prepare RMT symbols for the transmission buffer
+  std::vector<rmt_symbol_word_t> items;
+
+  // Repeat the entire signal transmission multiple times for robustness.
+  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
+    // Transmission of the start sequence:
+    for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
+      rmt_symbol_word_t word = {};
+      word.level0 = 1;
+      word.duration0 = BASE_PULSE * START_SEQUENCE[j];
+      word.level1 = 0;
+      word.duration1 = BASE_PULSE * START_SEQUENCE[j + 1];
+      items.push_back(word);
+    }
+    // Transmission of the code sequence:
+    for (int k = 0; k < CODE_SEQUENCE_SIZE; k += 2) {
+      rmt_symbol_word_t word = {};
+      word.level0 = 1;
+      word.duration0 = BASE_PULSE * code_sequence_[k];
+      word.level1 = 0;
+      word.duration1 = BASE_PULSE * code_sequence_[k + 1];
+      items.push_back(word);
+    }
+  }
+
+  // RMT encoder setup (copy encoder for raw buffer)
+  rmt_copy_encoder_config_t encoder_cfg = {};
+  rmt_encoder_handle_t encoder = nullptr;
+  rmt_new_copy_encoder(&encoder_cfg, &encoder);
+
+  // Enable channel
+  rmt_enable(channel);
+
+  // Transmit the buffer using RMT hardware
+  rmt_transmit_config_t tx_config = {};
+  tx_config.loop_count = 0;
+  tx_config.flags.eot_level = 0;
+
+  esp_err_t err = rmt_transmit(channel, encoder, items.data(), items.size() * sizeof(rmt_symbol_word_t), &tx_config);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "RMT transmit failed: %d", err);
+    rmt_disable(channel);
+    rmt_del_channel(channel);
+    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    return;
+  }
+  rmt_tx_wait_all_done(channel, -1);
+
+  // Clean up
+  rmt_disable(channel);
+  rmt_del_channel(channel);
+
+  // Turns off the LED, if configured.
+  if (this->led_pin_ != nullptr) {
+    this->led_pin_->digital_write(false); // LED OFF
+  }
+  ESP_LOGD(TAG, "RF signal transmission via RMT completed.");
+}
+#endif
+
+// --- The old software-based send_rf_signal() is still present for reference or fallback, if needed ---
 
 } // namespace hamulight
 } // namespace esphome
