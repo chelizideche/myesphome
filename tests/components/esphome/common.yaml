@@ -29,6 +29,8 @@ esphome:
     - id: test_device
       name: Test device in main area
       area_id: testing_area  # Reference the main area (not in sub_areas)
+    - id: no_area_device
+      name: Device without area  # This device has no area_id
 
 binary_sensor:
   - platform: template
