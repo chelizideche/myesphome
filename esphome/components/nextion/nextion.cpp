@@ -418,12 +418,12 @@ void Nextion::process_nextion_commands_() {
       ESP_LOGN(TAG, "Add 0xFF");
     }
 
-    const uint8_t nextion_event_ = this->command_data_[0];
+    const uint8_t nextion_event = this->command_data_[0];
 
     to_process_length -= 1;
     to_process = this->command_data_.substr(1, to_process_length);
 
-    switch (nextion_event_) {
+    switch (nextion_event) {
       case 0x00:  // instruction sent by user has failed
         ESP_LOGW(TAG, "Invalid instruction");
         this->remove_from_q_();
@@ -820,7 +820,7 @@ void Nextion::process_nextion_commands_() {
         break;
       }
       default:
-        ESP_LOGW(TAG, "Unknown event: 0x%02X", nextion_event_);
+        ESP_LOGW(TAG, "Unknown event: 0x%02X", nextion_event);
         break;
     }
 
