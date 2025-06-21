@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
@@ -43,6 +45,7 @@ from esphome.helpers import (
     slugify,
     walk_files,
 )
+from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -372,7 +375,7 @@ async def _add_platform_reserves() -> None:
 
 
 @coroutine_with_priority(100.0)
-async def to_code(config):
+async def to_code(config: ConfigType) -> None:
     cg.add_global(cg.global_ns.namespace("esphome").using)
     # These can be used by user lambdas, put them to default scope
     cg.add_global(cg.RawExpression("using std::isnan"))
@@ -464,6 +467,7 @@ async def to_code(config):
         cg.add_define("USE_AREAS")
 
     # Handle area configuration
+    area_conf: dict[str, str] | str | None
     if area_conf := config.get(CONF_AREA):
         if isinstance(area_conf, dict):
             # New way: structured area configuration
