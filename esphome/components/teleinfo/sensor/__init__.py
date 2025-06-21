@@ -97,3 +97,4 @@ async def to_code(config):
     await sensor.register_sensor(var, config)
     teleinfo = await cg.get_variable(config[CONF_TELEINFO_ID])
     cg.add(teleinfo.register_teleinfo_listener(var))
+    cg.add(teleinfo.register_sensor(config[CONF_TAG_NAME], var))
