@@ -1620,13 +1620,13 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #ifdef USE_API_NOISE
   resp.api_encryption_supported = true;
 #endif
-#ifdef USE_SUB_DEVICE
-  for (auto const &sub_device : App.get_sub_devices()) {
-    SubDeviceInfo sub_device_info;
-    sub_device_info.device_id = sub_device->get_device_id();
-    sub_device_info.name = sub_device->get_name();
-    sub_device_info.area_id = sub_device->get_area_id();
-    resp.sub_devices.push_back(sub_device_info);
+#ifdef USE_DEVICES
+  for (auto const &device : App.get_devices()) {
+    DeviceInfo device_info;
+    device_info.device_id = device->get_device_id();
+    device_info.name = device->get_name();
+    device_info.area_id = device->get_area_id();
+    resp.devices.push_back(device_info);
   }
 #endif
 #ifdef USE_AREAS

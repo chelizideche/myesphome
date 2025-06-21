@@ -9,8 +9,8 @@
 #include "esphome/core/preferences.h"
 #include "esphome/core/scheduler.h"
 
-#ifdef USE_SUB_DEVICE
-#include "esphome/core/sub_device.h"
+#ifdef USE_DEVICES
+#include "esphome/core/device.h"
 #endif
 #ifdef USE_AREAS
 #include "esphome/core/area.h"
@@ -114,8 +114,8 @@ class Application {
     this->compilation_time_ = compilation_time;
   }
 
-#ifdef USE_SUB_DEVICE
-  void register_sub_device(SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
+#ifdef USE_DEVICES
+  void register_device(Device *device) { this->devices_.push_back(device); }
 #endif
 #ifdef USE_AREAS
   void register_area(Area *area) { this->areas_.push_back(area); }
@@ -299,7 +299,7 @@ class Application {
   const std::string &get_friendly_name() const { return this->friendly_name_; }
 
   /// Get the area of this Application set by pre_setup().
-  std::string get_area() const {
+  const char *get_area() const {
 #ifdef USE_AREAS
     // If we have areas registered, return the name of the first one (which is the top-level area)
     if (!this->areas_.empty() && this->areas_[0] != nullptr) {
@@ -356,8 +356,8 @@ class Application {
 
   uint8_t get_app_state() const { return this->app_state_; }
 
-#ifdef USE_SUB_DEVICE
-  const std::vector<SubDevice *> &get_sub_devices() { return this->sub_devices_; }
+#ifdef USE_DEVICES
+  const std::vector<Device *> &get_devices() { return this->devices_; }
 #endif
 #ifdef USE_AREAS
   const std::vector<Area *> &get_areas() { return this->areas_; }
@@ -638,8 +638,8 @@ class Application {
   uint16_t current_loop_index_{0};
   bool in_loop_{false};
 
-#ifdef USE_SUB_DEVICE
-  std::vector<SubDevice *> sub_devices_{};
+#ifdef USE_DEVICES
+  std::vector<Device *> devices_{};
 #endif
 #ifdef USE_AREAS
   std::vector<Area *> areas_{};

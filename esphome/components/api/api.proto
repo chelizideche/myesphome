@@ -193,7 +193,7 @@ message AreaInfo {
   string name = 2;
 }
 
-message SubDeviceInfo {
+message DeviceInfo {
   uint32 device_id = 1;
   string name = 2;
   uint32 area_id = 3;
@@ -248,7 +248,7 @@ message DeviceInfoResponse {
   // Supports receiving and saving api encryption key
   bool api_encryption_supported = 19;
 
-  repeated SubDeviceInfo sub_devices = 20;
+  repeated DeviceInfo devices = 20;
   repeated AreaInfo areas = 21;
 
   // Top-level area info to phase out suggested_area

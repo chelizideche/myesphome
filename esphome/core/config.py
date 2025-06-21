@@ -58,7 +58,7 @@ LoopTrigger = cg.esphome_ns.class_(
 ProjectUpdateTrigger = cg.esphome_ns.class_(
     "ProjectUpdateTrigger", cg.Component, automation.Trigger.template(cg.std_string)
 )
-SubDevice = cg.esphome_ns.class_("SubDevice")
+Device = cg.esphome_ns.class_("Device")
 Area = cg.esphome_ns.class_("Area")
 
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
@@ -197,7 +197,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SUB_DEVICES, default=[]): cv.ensure_list(
                 cv.Schema(
                     {
-                        cv.GenerateID(CONF_ID): cv.declare_id(SubDevice),
+                        cv.GenerateID(CONF_ID): cv.declare_id(Device),
                         cv.Required(CONF_NAME): cv.string,
                         cv.Optional(CONF_AREA_ID): cv.use_id(Area),
                     }
@@ -507,5 +507,5 @@ async def to_code(config):
                 # Get the area variable and use its area_id
                 area = await cg.get_variable(dev_conf[CONF_AREA_ID])
                 cg.add(dev.set_area_id(area.get_area_id()))
-            cg.add(cg.App.register_sub_device(dev))
-        cg.add_define("USE_SUB_DEVICE")
+            cg.add(cg.App.register_device(dev))
+        cg.add_define("USE_DEVICES")
