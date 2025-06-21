@@ -17,7 +17,8 @@ CONFIG_SCHEMA = cv.Schema({
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])                                                  # Creates a new C++ instance or Hamulight class
     await cg.register_component(var, config)                                                 # Register component with ESPHome
-
+    await cg.register_light(var, config)  
+    
     # Pass pin number for RMT
     rf_pin_num = config["rf_transmit_pin"]["number"]
     cg.add(var.set_rf_pin_num(rf_pin_num))
@@ -31,5 +32,5 @@ async def to_code(config):
         led_pin_code = await cg.gpio_pin_expression(config["led_pin"])
         cg.add(var.set_led_pin(led_pin_code))
 
-    # set the RF address
+    # Set the RF address
     cg.add(var.set_rf_address(config["rf_address"]))
