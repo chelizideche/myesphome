@@ -30,7 +30,6 @@
 #elif defined(USE_ESP_IDF)
 #include <freertos/FreeRTOS.h>
 #include <freertos/portmacro.h>
-#include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_system.h"
 #elif defined(USE_RP2040)
@@ -45,9 +44,7 @@
 #endif
 #ifdef USE_ESP32
 #include "rom/crc.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
 #include "esp_mac.h"
-#endif
 #include "esp_efuse.h"
 #include "esp_efuse_table.h"
 #endif

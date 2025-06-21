@@ -48,8 +48,6 @@ static const uint32_t MEDIA_CONTROLS_QUEUE_LENGTH = 20;
 static const UBaseType_t MEDIA_PIPELINE_TASK_PRIORITY = 1;
 static const UBaseType_t ANNOUNCEMENT_PIPELINE_TASK_PRIORITY = 1;
 
-static const float FIRST_BOOT_DEFAULT_VOLUME = 0.5f;
-
 static const char *const TAG = "speaker_media_player";
 
 void SpeakerMediaPlayer::setup() {
@@ -64,7 +62,7 @@ void SpeakerMediaPlayer::setup() {
     this->set_volume_(volume_restore_state.volume);
     this->set_mute_state_(volume_restore_state.is_muted);
   } else {
-    this->set_volume_(FIRST_BOOT_DEFAULT_VOLUME);
+    this->set_volume_(this->volume_initial_);
     this->set_mute_state_(false);
   }
 
@@ -100,22 +98,12 @@ void SpeakerMediaPlayer::setup() {
 
   if (!this->single_pipeline_()) {
     this->media_pipeline_ = make_unique<AudioPipeline>(this->media_speaker_, this->buffer_size_,
-                                                       this->task_stack_in_psram_, "ann", MEDIA_PIPELINE_TASK_PRIORITY);
+                                                       this->task_stack_in_psram_, "med", MEDIA_PIPELINE_TASK_PRIORITY);
 
     if (this->media_pipeline_ == nullptr) {
       ESP_LOGE(TAG, "Failed to create media pipeline");
       this->mark_failed();
     }
-
-    // Setup callback to track the duration of audio played by the media pipeline
-    this->media_speaker_->add_audio_output_callback(
-        [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
-          this->playback_ms_ += new_playback_ms;
-          this->remainder_us_ = remainder_us;
-          this->pending_ms_ = pending_ms;
-          this->last_audio_write_timestamp_ = write_timestamp;
-          this->playback_us_ = this->playback_ms_ * 1000 + this->remainder_us_;
-        });
   }
 
   ESP_LOGI(TAG, "Set up speaker media player");
@@ -170,12 +158,28 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           // Ensure the loaded next item doesn't start playing, clear the queue, start the file, and unpause
           this->cancel_timeout("next_media");
           this->media_playlist_.clear();
-          if (media_command.file.has_value()) {
-            this->media_pipeline_->start_file(playlist_item.file.value());
-          } else if (media_command.url.has_value()) {
-            this->media_pipeline_->start_url(playlist_item.url.value());
+          if (this->is_paused_) {
+            // If paused, stop the media pipeline and unpause it after confirming its stopped. This avoids playing a
+            // short segment of the paused file before starting the new one.
+            this->media_pipeline_->stop();
+            this->set_retry("unpause_med", 50, 3, [this](const uint8_t remaining_attempts) {
+              if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
+                this->media_pipeline_->set_pause_state(false);
+                this->is_paused_ = false;
+                return RetryResult::DONE;
+              }
+              return RetryResult::RETRY;
+            });
+          } else {
+            // Not paused, just directly start the file
+            if (media_command.file.has_value()) {
+              this->media_pipeline_->start_file(playlist_item.file.value());
+            } else if (media_command.url.has_value()) {
+              this->media_pipeline_->start_url(playlist_item.url.value());
+            }
+            this->media_pipeline_->set_pause_state(false);
+            this->is_paused_ = false;
           }
-          this->media_pipeline_->set_pause_state(false);
         }
         this->media_playlist_.push_back(playlist_item);
       }
@@ -305,7 +309,6 @@ void SpeakerMediaPlayer::loop() {
   AudioPipelineState old_media_pipeline_state = this->media_pipeline_state_;
   if (this->media_pipeline_ != nullptr) {
     this->media_pipeline_state_ = this->media_pipeline_->process_state();
-    this->decoded_playback_ms_ = this->media_pipeline_->get_playback_ms();
   }
 
   if (this->media_pipeline_state_ == AudioPipelineState::ERROR_READING) {
@@ -350,11 +353,11 @@ void SpeakerMediaPlayer::loop() {
         }
 
         if (timeout_ms > 0) {
-          // Pause pipeline internally to facilitiate delay between items
+          // Pause pipeline internally to facilitate the delay between items
           this->announcement_pipeline_->set_pause_state(true);
-          // Internally unpause the pipeline after the delay between playlist items
-          this->set_timeout("next_ann", timeout_ms,
-                            [this]() { this->announcement_pipeline_->set_pause_state(this->is_paused_); });
+          // Internally unpause the pipeline after the delay between playlist items. Announcements do not follow the
+          // media player's pause state.
+          this->set_timeout("next_ann", timeout_ms, [this]() { this->announcement_pipeline_->set_pause_state(false); });
         }
       }
     } else {
@@ -363,13 +366,6 @@ void SpeakerMediaPlayer::loop() {
       } else if (this->media_pipeline_state_ == AudioPipelineState::PLAYING) {
         this->state = media_player::MEDIA_PLAYER_STATE_PLAYING;
       } else if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
-        // Reset playback durations
-        this->decoded_playback_ms_ = 0;
-        this->playback_us_ = 0;
-        this->playback_ms_ = 0;
-        this->remainder_us_ = 0;
-        this->pending_ms_ = 0;
-
         if (!media_playlist_.empty()) {
           uint32_t timeout_ms = 0;
           if (old_media_pipeline_state == AudioPipelineState::PLAYING) {
@@ -390,9 +386,10 @@ void SpeakerMediaPlayer::loop() {
             }
 
             if (timeout_ms > 0) {
-              // Pause pipeline internally to facilitiate delay between items
+              // Pause pipeline internally to facilitate the delay between items
               this->media_pipeline_->set_pause_state(true);
-              // Internally unpause the pipeline after the delay between playlist items
+              // Internally unpause the pipeline after the delay between playlist items, if the media player state is
+              // not paused.
               this->set_timeout("next_media", timeout_ms,
                                 [this]() { this->media_pipeline_->set_pause_state(this->is_paused_); });
             }
