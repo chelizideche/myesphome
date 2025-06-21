@@ -4,7 +4,6 @@
 #include "esphome/core/hal.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
-// TEMPORARY: REMOVED MACROS
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 #include <driver/gpio.h>
 #include "driver/rmt_tx.h"
@@ -22,7 +21,7 @@ static const char *const TAG = "hamulight";
  * Initializes the GPIO pins and outputs basic configuration information.
  * Allocates the RMT channel and encoder ONCE for the lifetime of this component.
  */
-void Hamulight::setup() {
+void HamulightComponent::setup() {
   // Sets the RF transmit pin as an output and ensures it's initially LOW.
   this->rf_transmit_pin_->setup();
   this->rf_transmit_pin_->digital_write(false);
@@ -33,7 +32,7 @@ void Hamulight::setup() {
     this->led_pin_->digital_write(false);
   }
 
-  ESP_LOGCONFIG(TAG, "  setup(): Hamulight is being set up...");
+  ESP_LOGCONFIG(TAG, "  setup(): HamulightComponent is being set up...");
   ESP_LOGCONFIG(TAG, "  setup(): RF Transmit Pin: configured");
   ESP_LOGCONFIG(TAG, "  setup(): RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
@@ -107,8 +106,8 @@ void Hamulight::setup() {
  * This method is useful for debugging to check if the YAML configuration
  * has been correctly applied by the component.
  */
-void Hamulight::dump_config() {
-  ESP_LOGCONFIG(TAG, "  Hamulight (RF Light)");
+void HamulightComponent::dump_config() {
+  ESP_LOGCONFIG(TAG, "  HamulightComponent (RF Light)");
   ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
   if (this->led_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  LED Pin: configured");
@@ -123,7 +122,7 @@ void Hamulight::dump_config() {
  * Color functions are not relevant in this case.
  * @return light::LightTraits object.
  */
-light::LightTraits Hamulight::get_traits() {
+light::LightTraits HamulightComponent::get_traits() {
   auto traits = light::LightTraits();
   // Only supports dimming (brightness)
   traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS});
@@ -140,7 +139,7 @@ light::LightTraits Hamulight::get_traits() {
  * Power button ON + brightness < 100%: sends dim value
  * Power button ON + brightness == 100%: RF_BRIGHT100_COMMAND (pairing)
  */
-void Hamulight::write_state(light::LightState *state) {
+void HamulightComponent::write_state(light::LightState *state) {
   bool is_on = state->remote_values.is_on();
   float brightness = state->remote_values.get_brightness();
 
@@ -193,7 +192,7 @@ void Hamulight::write_state(light::LightState *state) {
  * including checksum calculation and bit conversion into pulse durations.
  * @param command The 8-bit command (e.g., 0x5F for Power, or a brightness value).
  */
-void Hamulight::generate_code_sequence(uint8_t command) {
+void HamulightComponent::generate_code_sequence(uint8_t command) {
   uint32_t combined = 0;
   // Checksum offset as specified in the original code.
   int8_t cks_offset = 83;
@@ -240,7 +239,7 @@ void Hamulight::generate_code_sequence(uint8_t command) {
  * Called by Home Assistant buttons to send predefined commands.
  * @param command The 8-bit command (e.g., RF_POWER_COMMAND, RF_BRIGHT100_COMMAND).
  */
-void Hamulight::transmit_rf_command(uint8_t command) {
+void HamulightComponent::transmit_rf_command(uint8_t command) {
   ESP_LOGD(TAG, "transmit_rf_command: 0x%02X", command);
   this->generate_code_sequence(command); // Generates the sequence for the command
   this->send_rf_signal_rmt();            // Use RMT-based sending on ESP32
@@ -252,7 +251,7 @@ void Hamulight::transmit_rf_command(uint8_t command) {
  * Called by the write_state method (for the Home Assistant brightness slider).
  * @param brightness_value The 8-bit brightness value (in the range of RF_SLIDE_RANGE_MIN to RF_SLIDE_RANGE_MAX).
  */
-void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
+void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   ESP_LOGD(TAG, "transmit_rf_brightness: 0x%02X", brightness_value);
   this->generate_code_sequence(brightness_value); // Generates the sequence for the brightness value
   this->send_rf_signal_rmt();                     // Use RMT-based sending on ESP32
@@ -265,7 +264,7 @@ void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
  * The RMT TX channel and encoder are allocated ONCE in setup() and reused for every transmission.
  */
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
-void Hamulight::send_rf_signal_rmt() {
+void HamulightComponent::send_rf_signal_rmt() {
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(true); // LED ON
   }
