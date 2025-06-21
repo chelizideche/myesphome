@@ -350,9 +350,9 @@ def icon(value):
 
 def sub_device_id(value):
     # Lazy import to avoid circular imports
-    from esphome.core.config import SubDevice
+    from esphome.core.config import Device
 
-    validator = use_id(SubDevice)
+    validator = use_id(Device)
     return validator(value)
 
 
