@@ -4,10 +4,10 @@ from esphome.const import CONF_ID
 from esphome import pins
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
-Hamulight = HAMULIGHT_NAMESPACE.class_('Hamulight', cg.Component, cg.light.LightOutput)
+Hamulight = HAMULIGHT_NAMESPACE.class_('Hamulight', cg.Component)
 
 CONFIG_SCHEMA = cv.Schema({
-    cv.GenerateID(): cv.declare_id(Hamulight),                                      # unique instance ID
+    cv.GenerateID(): cv.declare_id(Hamulight),                                               # unique instance ID
     cv.Required("rf_transmit_pin"): pins.gpio_output_pin_schema,                             # required PIN for RF transmission
     cv.Optional("led_pin"): pins.gpio_output_pin_schema,                                     # optional PIN for feedback LED
     cv.Required("rf_address"): cv.hex_uint16_t,                                              # required 2-Byte RF address (HEX)
