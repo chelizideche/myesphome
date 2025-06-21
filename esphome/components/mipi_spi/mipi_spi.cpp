@@ -85,6 +85,7 @@ void MipiSpi::setup() {
 }
 
 void MipiSpi::update() {
+  ESP_LOGV(TAG, "Update called");
   if (!this->setup_complete_ || this->is_failed()) {
     return;
   }
@@ -143,12 +144,11 @@ void MipiSpi::write_init_sequence_() {
       index += num_args;
     }
   }
-  this->setup_complete_ = true;
   ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
 
 void MipiSpi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-  ESP_LOGVV(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
+  ESP_LOGV(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
   uint8_t buf[4];
   x1 += this->offset_width_;
   x2 += this->offset_width_;

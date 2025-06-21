@@ -202,6 +202,15 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
       *ptr++ = new_color >> 8;
       *ptr = new_color & 0xFF;
     }
+    if (x < this->x_low_) {
+      this->x_low_ = x;
+    }
+    if (x > this->x_high_) {
+      this->x_high_ = x;
+    }
+    if (y < this->y_low_) {
+      this->y_low_ = y;
+    }
   }
 };
 
