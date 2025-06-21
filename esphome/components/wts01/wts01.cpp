@@ -29,13 +29,12 @@ void WTS01Sensor::dump_config() {
 }
 
 void WTS01Sensor::handle_char_(uint8_t c) {
-  // Reset buffer if we're at the start of a new packet
-  if (c == HEADER_1 && this->buffer_pos_ == 0) {
-    this->buffer_[this->buffer_pos_++] = c;
+  // State machine for processing the header. Reset if something doesn't match.
+  if (this->buffer_pos_ == 0 && c != HEADER_1) {
+    this->buffer_pos_ = 0;
     return;
   }
 
-  // Check header sequence
   if (this->buffer_pos_ == 1 && c != HEADER_2) {
     this->buffer_pos_ = 0;
     return;
@@ -55,7 +54,7 @@ void WTS01Sensor::handle_char_(uint8_t c) {
   this->buffer_[this->buffer_pos_++] = c;
 
   // Process complete packet
-  if (this->buffer_pos_ == PACKET_SIZE) {
+  if (this->buffer_pos_ >= PACKET_SIZE) {
     this->process_packet_();
     this->buffer_pos_ = 0;
   }
