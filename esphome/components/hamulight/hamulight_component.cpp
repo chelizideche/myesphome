@@ -5,6 +5,7 @@
 
 // --- Added: ESP32 RMT hardware peripheral include for precise RF timing ---
 #ifdef USE_ESP32
+#include "driver/gpio.h"
 #include "driver/rmt_tx.h"
 #endif
 
@@ -191,14 +192,14 @@ void Hamulight::transmit_rf_command(uint8_t command) {
  */
 void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
   this->generate_code_sequence(brightness_value); // Generates the sequence for the brightness value
-  this->send_rf_signal_rmt();                     // Changed: Use RMT-based sending on ESP32
+  this->send_rf_signal_rmt();                     // --- Changed: Use RMT-based sending on ESP32 ---
 }
 
 /**
  * @brief Sends the generated RF signal using the ESP32 RMT peripheral (ESP32 only).
  *
  * This implementation leverages the ESP32's RMT hardware for precise and non-blocking transmission.
- * The software-based GPIO/delayMicroseconds loop is replaced by a hardware-timed RMT buffer.
+ * The RMT TX channel config is now modeled after @madmat17/esphome/files/esphome/components/remote_transmitter/remote_transmitter_esp32.cpp.
  */
 #ifdef USE_ESP32
 void Hamulight::send_rf_signal_rmt() {
@@ -207,20 +208,38 @@ void Hamulight::send_rf_signal_rmt() {
     this->led_pin_->digital_write(true); // LED ON
   }
 
-  // Setup and create an RMT TX channel for hardware-timed transmission
-  rmt_channel_handle_t channel = nullptr;
-  rmt_tx_channel_config_t tx_chan_config = {
-    .clk_src = RMT_CLK_SRC_DEFAULT,
-    .gpio_num = (gpio_num_t)this->rf_pin_num_,
-    .mem_block_symbols = 64,  // enough for our signal
-    .resolution_hz = 1000000, // 1 MHz for microsecond accuracy
-    .trans_queue_depth = 1,
-    .flags = { .io_loop_back = false, .io_od_mode = false, .invert_out = false },
-    .intr_priority = 0,
-  };
-  rmt_new_tx_channel(&tx_chan_config, &channel);
+  // --- Setup and create an RMT TX channel for hardware-timed transmission ---
+  bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
 
-  // Prepare RMT symbols for the transmission buffer
+  rmt_tx_channel_config_t channel;
+  memset(&channel, 0, sizeof(channel));
+  channel.clk_src = RMT_CLK_SRC_DEFAULT;
+  channel.resolution_hz = 1000000; // 1 MHz for microsecond accuracy
+  channel.gpio_num = gpio_num_t(this->rf_pin_num_);
+  channel.mem_block_symbols = 64;
+  channel.trans_queue_depth = 1;
+  channel.flags.io_loop_back = open_drain;
+  channel.flags.io_od_mode = open_drain;
+  channel.flags.invert_out = 0;
+  channel.flags.with_dma = false;
+  channel.intr_priority = 0;
+
+  rmt_channel_handle_t tx_channel = nullptr;
+  esp_err_t error = rmt_new_tx_channel(&channel, &tx_channel);
+  if (error != ESP_OK) {
+    ESP_LOGE(TAG, "rmt_new_tx_channel failed: %s", esp_err_to_name(error));
+    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    return;
+  }
+
+  // Setup pullup if needed (optional, but matches remote_transmitter reference)
+  if (this->rf_transmit_pin_->get_flags() & gpio::FLAG_PULLUP) {
+    gpio_pullup_en(gpio_num_t(this->rf_pin_num_));
+  } else {
+    gpio_pullup_dis(gpio_num_t(this->rf_pin_num_));
+  }
+
+  // --- Prepare RMT symbols for the transmission buffer ---
   std::vector<rmt_symbol_word_t> items;
 
   // Repeat the entire signal transmission multiple times for robustness.
@@ -245,32 +264,44 @@ void Hamulight::send_rf_signal_rmt() {
     }
   }
 
-  // RMT encoder setup (copy encoder for raw buffer)
+  // --- RMT encoder setup (copy encoder for raw buffer) ---
   rmt_copy_encoder_config_t encoder_cfg = {};
   rmt_encoder_handle_t encoder = nullptr;
-  rmt_new_copy_encoder(&encoder_cfg, &encoder);
-
-  // Enable channel
-  rmt_enable(channel);
-
-  // Transmit the buffer using RMT hardware
-  rmt_transmit_config_t tx_config = {};
-  tx_config.loop_count = 0;
-  tx_config.flags.eot_level = 0;
-
-  esp_err_t err = rmt_transmit(channel, encoder, items.data(), items.size() * sizeof(rmt_symbol_word_t), &tx_config);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "RMT transmit failed: %d", err);
-    rmt_disable(channel);
-    rmt_del_channel(channel);
+  error = rmt_new_copy_encoder(&encoder_cfg, &encoder);
+  if (error != ESP_OK) {
+    ESP_LOGE(TAG, "rmt_new_copy_encoder failed: %s", esp_err_to_name(error));
+    rmt_del_channel(tx_channel);
     if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
     return;
   }
-  rmt_tx_wait_all_done(channel, -1);
+
+  error = rmt_enable(tx_channel);
+  if (error != ESP_OK) {
+    ESP_LOGE(TAG, "rmt_enable failed: %s", esp_err_to_name(error));
+    rmt_del_channel(tx_channel);
+    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    return;
+  }
+
+  // --- Transmit the buffer using RMT hardware ---
+  rmt_transmit_config_t tx_config;
+  memset(&tx_config, 0, sizeof(tx_config));
+  tx_config.loop_count = 0;
+  tx_config.flags.eot_level = 0;
+
+  error = rmt_transmit(tx_channel, encoder, items.data(), items.size() * sizeof(rmt_symbol_word_t), &tx_config);
+  if (error != ESP_OK) {
+    ESP_LOGE(TAG, "RMT transmit failed: %s", esp_err_to_name(error));
+    rmt_disable(tx_channel);
+    rmt_del_channel(tx_channel);
+    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    return;
+  }
+  rmt_tx_wait_all_done(tx_channel, -1);
 
   // Clean up
-  rmt_disable(channel);
-  rmt_del_channel(channel);
+  rmt_disable(tx_channel);
+  rmt_del_channel(tx_channel);
 
   // Turns off the LED, if configured.
   if (this->led_pin_ != nullptr) {
