@@ -35,7 +35,7 @@ namespace hamulight {
 
 // RF command bytes (adjust as per your protocol/spec)
 constexpr uint8_t RF_POWER_COMMAND       = 0x5F;   // Command to turn off
-constexpr uint8_t RF_BRIGHT100_COMMAND   = 0xFF;   // Command for 100% brightness/pairing
+constexpr uint8_t RF_BRIGHT100_COMMAND   = 0x59;   // Command for 100% brightness/pairing
 // constexpr uint8_t RF_BRIGHT75_COMMAND = 0x50;   // Command for  75% brightness - Kept for reference / future extensions
 // constexpr uint8_t RF_BRIGHT50_COMMAND = 0x56;   // Command for  50% brightness - Kept for reference / future extensions
 // constexpr uint8_t RF_BRIGHT25_COMMAND = 0x55;   // Command for  25% brightness - Kept for reference / future extensions
@@ -43,25 +43,18 @@ constexpr uint8_t RF_BRIGHT100_COMMAND   = 0xFF;   // Command for 100% brightnes
 // Brightness/dimming protocol
 constexpr uint8_t RF_SLIDE_STEPS        = 128;    // Number of dimming steps (0..127)
 constexpr uint8_t RF_SLIDE_OFFSET       = 0xA8;   // Offset for dimming value (protocol-specific)
-constexpr uint8_t RF_SLIDE_RANGE_MIN    = 0xA8;   // Minimum RF value for dimming (protocol-specific)
+constexpr uint8_t RF_SLIDE_RANGE_MIN    = 0x80;   // Minimum RF value for dimming (protocol-specific)
 constexpr uint8_t RF_SLIDE_RANGE_MAX    = 0xFF;   // Maximum RF value for dimming (protocol-specific)
 
+// PHYSICAL SIGNAL
 // Bit encoding for RF protocol (Manchester or similar)
-constexpr uint16_t BIT1_PULSE[2] = { 1, 3 }; // RF '1': 1T high, 3T low
-constexpr uint16_t BIT0_PULSE[2] = { 3, 1 }; // RF '0': 3T high, 1T low
-
-// RF transmission sequence
-constexpr uint8_t SIGNAL_REPETITIONS    = 5;      // Number of times to repeat the signal
-
-// Start sequence for protocol (adjust as needed)
-constexpr uint8_t START_SEQUENCE_SIZE   = 6;
-constexpr uint16_t START_SEQUENCE[START_SEQUENCE_SIZE] = { 1, 31, 1, 15, 1, 7 };
-
-// Pulse timing (base time unit in microseconds)
-constexpr uint16_t BASE_PULSE           = 120;    // 120us per time unit (T)
-
-// Code sequence size (32 bits * 2 pulses per bit)
-constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;
+constexpr uint16_t BASE_PULSE           = 200;                                              // Base pulse length in micro seconds
+constexpr uint8_t START_SEQUENCE_SIZE   = 10;                                               // number of pulses during start sequence
+constexpr uint16_t START_SEQUENCE[]     = { 1, 1, 1, 1, 1, 1, 1, 1, 6, 6 };                 // pulse sequence for sync + RF start bit (
+constexpr uint16_t BIT1_PULSE[]         = { 1, 3 };                                         // RF '1': 1T high, 3T low
+constexpr uint16_t BIT0_PULSE[]         = { 3, 1 };                                         // RF '0': 3T high, 1T low
+constexpr uint8_t SIGNAL_REPETITIONS    = 6;                                                // Number of times to repeat the signal
+constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;                                               // Code sequence size (4 bytes * 8 bits => 32 bits * 2 pulses per bit)
 
 // --- End Hamulight RF Protocol Constants ---
 
