@@ -3,25 +3,23 @@ import esphome.config_validation as cv
 from esphome.components import light
 from esphome.const import CONF_ID, CONF_NAME, CONF_LIGHT_ID
 
-# Import the HamulightComponent from __init__.py
-from . import HAMULIGHT_NAMESPACE, HamulightComponent
+# Import the Hamulight from __init__.py
+from . import HAMULIGHT_NAMESPACE, Hamulight
 
-# Define a constant for the ID linking to the HamulightComponent instance
+# Define a constant for the ID linking to the Hamulight instance
 CONF_HAMULIGHT_ID = "hamulight_id"
 
-# Define configuration schema for the light-platform
-# Which options are available in YAML under 'light: - platform: hamulight'
+# Configuration schema for the light platform
+# Defines the options available in YAML under 'light: - platform: hamulight'
 CONFIG_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend({
     cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(light.LightOutput), # Generates an ID for the Hamulight C++ instance
-    cv.Required(CONF_HAMULIGHT_ID): cv.use_id(HamulightComponent),   # Links this light to an existing HamulightComponent instance
+    cv.Required(CONF_HAMULIGHT_ID): cv.use_id(Hamulight),   # Links this light to an existing HamulightComponent instance
 }).extend(cv.COMPONENT_SCHEMA) # Extends with standard ESPHome component options
 
 # Code generation function for the light platform
 async def to_code(config):
-    # Get the C++ instance of the Hamulight component that this light platform refers to
-    # This 'paren' variable now holds the HamulightComponent object defined in __init__.py
+    #  Gets the referenced Hamulight instance from __init__.py (via hamulight_id)
     paren = await cg.get_variable(config[CONF_HAMULIGHT_ID])
 
-    # Register the HamulightComponent instance as a LightOutput
-    # No need to create a new Pvariable here, as the 'Hamulight' class already inherits LightOutput.
+    # Registers the Hamulight instance as LightOutput (no new variable needed)
     await light.register_light(paren, config)
