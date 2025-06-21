@@ -20,7 +20,9 @@ button:
       - delay: 20s
       - component.resume:
           id: test_mk2pvrouter
-          update_interval: !lambda return 2500;
+          update_interval:
+            lambda |-
+              return 2500;
 
 mk2pvrouter:
   id: test_mk2pvrouter
