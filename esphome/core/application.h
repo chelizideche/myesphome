@@ -114,8 +114,6 @@ class Application {
 
 #ifdef USE_SUB_DEVICE
   void register_sub_device(SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
-#endif
-#ifdef USE_SUB_DEVICE
   void register_area(SubArea *area) { this->areas_.push_back(area); }
 #endif
 
