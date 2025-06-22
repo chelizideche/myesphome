@@ -6,7 +6,7 @@ from pathlib import Path
 
 import voluptuous as vol
 
-from esphome import automation
+from esphome import automation, core
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
@@ -483,17 +483,19 @@ async def to_code(config: ConfigType) -> None:
     area_hashes: dict[int, str] = {}
     area_ids: set[str] = set()
     device_hashes: dict[int, str] = {}
-    area_conf: dict[str, str] | str | None
+    area_conf: dict[str, str | core.ID] | str | None
     if area_conf := config.get(CONF_AREA):
         if isinstance(area_conf, dict):
             # New way: structured area configuration
-            area_id_str = area_conf[CONF_ID]
-            area_var = cg.new_Pvariable(area_id_str)
-            area_id = fnv1a_32bit_hash(area_id_str)
+            area_id: core.ID = area_conf[CONF_ID]
+            area_id_str: str = area_id.id
+            area_var = cg.new_Pvariable(area_id)
+            area_id_hash = fnv1a_32bit_hash(area_id_str)
             area_name = area_conf[CONF_NAME]
         else:
             # Old way: string-based area (deprecated)
             area_slug = slugify(area_conf)
+            area_id: core.ID = cv.declare_id(Area)
             area_id_str = area_slug
             _LOGGER.warning(
                 "Using 'area' as a string is deprecated. Please use the new format:\n"
@@ -504,19 +506,19 @@ async def to_code(config: ConfigType) -> None:
                 area_conf,
             )
             # Create a synthetic area for backwards compatibility
-            area_var = cg.Pvariable(area_slug, Area)
-            area_id = fnv1a_32bit_hash(area_conf)
+            area_var = cg.Pvariable(area_id)
+            area_id_hash = fnv1a_32bit_hash(area_conf)
             area_name = area_conf
 
         # Common setup for both ways
-        area_hashes[area_id] = area_name
+        area_hashes[area_id_hash] = area_name
         area_ids.add(area_id_str)
-        cg.add(area_var.set_area_id(area_id))
+        cg.add(area_var.set_area_id(area_id_hash))
         cg.add(area_var.set_name(area_name))
         cg.add(cg.App.register_area(area_var))
 
     # Process devices and areas
-    devices: list[dict[str, str]]
+    devices: list[dict[str, str | core.ID]]
     if not (devices := config[CONF_DEVICES]):
         return
 
@@ -528,11 +530,11 @@ async def to_code(config: ConfigType) -> None:
     areas: list[dict[str, str]]
     if areas := config[CONF_AREAS]:
         for area_conf in areas:
-            area_id = area_conf[CONF_ID]
-            area_ids.add(area_id)
+            area_id: core.ID = area_conf[CONF_ID]
+            area_ids.add(area_id.id)
             area = cg.new_Pvariable(area_id)
-            area_id_hash = fnv1a_32bit_hash(area_id)
-            area_name = area_conf[CONF_NAME]
+            area_id_hash = fnv1a_32bit_hash(area_id.id)
+            area_name: str = area_conf[CONF_NAME]
             _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
             area_hashes[area_id_hash] = area_name
             cg.add(area.set_area_id(area_id_hash))
@@ -542,7 +544,7 @@ async def to_code(config: ConfigType) -> None:
     # Process devices
     for dev_conf in devices:
         device_id = dev_conf[CONF_ID]
-        device_id_hash = fnv1a_32bit_hash(device_id)
+        device_id_hash = fnv1a_32bit_hash(device_id.id)
         device_name = dev_conf[CONF_NAME]
         _verify_no_collisions(device_hashes, device_id, device_id_hash, CONF_DEVICES)
         device_hashes[device_id_hash] = device_name
@@ -552,10 +554,10 @@ async def to_code(config: ConfigType) -> None:
         if CONF_AREA_ID in dev_conf:
             # Get the area variable and use its area_id
             area_id = dev_conf[CONF_AREA_ID]
-            area_id_hash = fnv1a_32bit_hash(area_id)
-            if area_id not in area_ids:
+            area_id_hash = fnv1a_32bit_hash(area_id.id)
+            if area_id.id not in area_ids:
                 raise vol.Invalid(
-                    f"Device '{device_name}' has an area_id '{area_id}' that does not exist.",
+                    f"Device '{device_name}' has an area_id '{area_id.id}' that does not exist.",
                     path=[CONF_DEVICES, dev_conf[CONF_ID], CONF_AREA_ID],
                 )
             cg.add(dev.set_area_id(area_id_hash))
