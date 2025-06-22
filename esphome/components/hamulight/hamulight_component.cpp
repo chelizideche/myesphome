@@ -18,14 +18,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/application.h"
-
-// IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
-// RMT only available for ESP32 - this line should avoid that the code compiles for other boards
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
-#include <driver/gpio.h>
-#include "driver/rmt_tx.h"
-#endif
+#include "esphome/core/application.h"  // <-- Required for 'App'
 
 namespace esphome {
 namespace hamulight {
@@ -63,27 +56,21 @@ void HamulightComponent::setup() {
   toggle_button_ = new HamulightButton();
   toggle_button_->set_name("Hamulight Toggle");
   toggle_button_->set_callback([this]() { this->toggle(); });
-  App.register_component(toggle_button_);
   App.register_button(toggle_button_);
 
   pair_button_ = new HamulightButton();
   pair_button_->set_name("Pair with driver");
   pair_button_->set_callback([this]() { this->pair_with_driver(); });
-  App.register_component(pair_button_);
   App.register_button(pair_button_);
 
-  // brightness_number_ = new HamulightBrightnessNumber();
-  brightness_number_ = new esphome::number::Number();
+  // Use custom HamulightBrightnessNumber with forwarded setters
+  brightness_number_ = new HamulightBrightnessNumber();
   brightness_number_->set_name("Hamulight Brightness");
   brightness_number_->set_min_value(0);
   brightness_number_->set_max_value(100);
   brightness_number_->set_step(1);
-  // brightness_number_->set_mode(number::Number::MODE_SLIDER);
   brightness_number_->set_mode(esphome::number::NumberMode::NUMBER_MODE_SLIDER);
-  // Attach callback for brightness control.
-  // We use a lambda to call HamulightComponent::set_brightness
-  brightness_number_->add_on_state_callback([this](float value) { this->set_brightness(value); });
-  App.register_component(brightness_number_);
+  brightness_number_->set_callback([this](float value) { this->set_brightness(value); });
   App.register_number(brightness_number_);
 
   ESP_LOGCONFIG(TAG, "setup(): HamulightComponent is being set up...");
