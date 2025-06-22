@@ -147,10 +147,15 @@ void HttpRequestUpdate::update_task(void *params) {
     this_update->update_info_.current_version = current_version;
   }
 
+  bool trigger_available = false;
+
   if (this_update->update_info_.latest_version.empty() ||
       this_update->update_info_.latest_version == this_update->update_info_.current_version) {
     this_update->state_ = update::UPDATE_STATE_NO_UPDATE;
   } else {
+    if (this_update->state_ != update::UPDATE_STATE_AVAILABLE) {
+      trigger_available = true;
+    }
     this_update->state_ = update::UPDATE_STATE_AVAILABLE;
   }
 
@@ -159,6 +164,10 @@ void HttpRequestUpdate::update_task(void *params) {
 
   this_update->status_clear_error();
   this_update->publish_state();
+
+  if (trigger_available) {
+    this_update->get_update_available_trigger()->trigger(this_update->update_info_);
+  }
 
   UPDATE_RETURN;
 }
