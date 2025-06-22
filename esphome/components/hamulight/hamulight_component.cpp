@@ -55,28 +55,28 @@ void HamulightComponent::setup() {
 
   // ----------- Register custom buttons and number -----------
   toggle_button_ = new HamulightButton();
-  toggle_button_->set_name("Hamulight Toggle");
+  toggle_button_->set_name("On/off");
   toggle_button_->set_callback([this]() { this->toggle(); });
   App.register_button(toggle_button_);
 
   pair_button_ = new HamulightButton();
-  pair_button_->set_name("Pair with driver");
+  pair_button_->set_name("Pair/max. brightness");
   pair_button_->set_callback([this]() { this->pair_with_driver(); });
   App.register_button(pair_button_);
 
   cmdscan_start_button_ = new HamulightButton();
-  cmdscan_start_button_->set_name("Hamulight Command Scan Start");
+  cmdscan_start_button_->set_name("Start Command Scanner");
   cmdscan_start_button_->set_callback([this]() { this->start_command_scan(); });
   App.register_button(cmdscan_start_button_);
 
   cmdscan_stop_button_ = new HamulightButton();
-  cmdscan_stop_button_->set_name("Hamulight Command Scan Stop");
+  cmdscan_stop_button_->set_name("Stop Command Scanner");
   cmdscan_stop_button_->set_callback([this]() { this->stop_command_scan(); });
   App.register_button(cmdscan_stop_button_);
   
   // Use custom HamulightBrightnessNumber with forwarded setters
   brightness_number_ = new HamulightBrightnessNumber();
-  brightness_number_->set_name("Hamulight Brightness");
+  brightness_number_->set_name("Brightness");
   brightness_number_->setup_hamulight_traits();
   brightness_number_->set_callback([this](float value) { this->set_brightness(value); });
   App.register_number(brightness_number_);
