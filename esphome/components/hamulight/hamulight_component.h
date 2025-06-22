@@ -34,6 +34,8 @@
 #include "esphome/core/hal.h"
 #include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
+#include "hamulight_button.h"
+#include "hamulight_number.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
@@ -128,6 +130,13 @@ class HamulightComponent : public Component {
   void set_last_scanned_sensor(esphome::sensor::Sensor *s) { last_scanned_sensor_ = s; }
 
   /**
+   * @brief Expose pointers for custom HA YAML automations if needed.
+   */
+  HamulightButton *get_toggle_button() { return toggle_button_; }
+  HamulightButton *get_pair_button() { return pair_button_; }
+  HamulightBrightnessNumber *get_brightness_number() { return brightness_number_; }
+
+  /**
    * @brief ESPHome setup lifecycle method. Initializes pins and allocates RMT resources.
    */
   void setup() override;
@@ -183,6 +192,11 @@ class HamulightComponent : public Component {
 
   // --- Sensor for last command scanned ---
   esphome::sensor::Sensor *last_scanned_sensor_{nullptr};
+
+  // --- Custom button and number entities ---
+  HamulightButton *toggle_button_{nullptr};
+  HamulightButton *pair_button_{nullptr};
+  HamulightBrightnessNumber *brightness_number_{nullptr};
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
