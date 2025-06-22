@@ -3,9 +3,9 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID
 from esphome import pins
 
-from esphome.components.button.template import register_template_button
-from esphome.components.number.template import register_template_number
-from esphome.components.sensor.template import register_template_sensor
+from esphome.components.button import register_template_button
+from esphome.components.number import register_template_number
+from esphome.components.sensor import register_template_sensor
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
 HamulightComponent = HAMULIGHT_NAMESPACE.class_('HamulightComponent', cg.Component)
