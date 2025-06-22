@@ -141,8 +141,8 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
 
 void DigitalDisplay::set_writer(writer_t &&writer) { this->writer_ = writer; }
 void DigitalDisplay::set_led_map(const std::string &led_map) { this->led_map_ = led_map; }
-void DigitalDisplay::set_max_characters(const uint8_t max_characters) { this->max_characters_ = max_characters; }
-void DigitalDisplay::set_reverse(const bool reverse) { this->reverse_ = reverse; }
+void DigitalDisplay::set_max_characters(uint8_t max_characters) { this->max_characters_ = max_characters; }
+void DigitalDisplay::set_reverse(bool reverse) { this->reverse_ = reverse; }
 
 void DigitalDisplay::set_internal_light(light::LightState *state) {
   this->internal_light_state_ = state;
