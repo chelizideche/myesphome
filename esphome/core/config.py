@@ -495,7 +495,9 @@ async def to_code(config: ConfigType) -> None:
         else:
             # Old way: string-based area (deprecated)
             area_slug = slugify(area_conf)
-            area_id: core.ID = cv.declare_id(Area)
+            area_id = core.ID(
+                cv.validate_id_name(area_slug), is_declaration=True, type=Area
+            )
             area_id_str = area_slug
             _LOGGER.warning(
                 "Using 'area' as a string is deprecated. Please use the new format:\n"
@@ -506,7 +508,7 @@ async def to_code(config: ConfigType) -> None:
                 area_conf,
             )
             # Create a synthetic area for backwards compatibility
-            area_var = cg.Pvariable(area_id)
+            area_var = cg.new_Pvariable(area_id)
             area_id_hash = fnv1a_32bit_hash(area_conf)
             area_name = area_conf
 
