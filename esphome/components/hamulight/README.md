@@ -109,10 +109,7 @@ Each RF message (per transmission) consists of:
 
 1. **Add this repository as an external component** in your ESPHome YAML configuration:
    ```yaml
-   external_components:
-     - source: github://madmat17/esphome@stateless_new
-       components: [ hamulight ]
-       refresh: 0s
+hamulight:
    ```
 2. **Configure the `hamulight` component** (see examples below)
 3. **Wire your 433MHz transmitter** to the selected GPIO on your ESP32
