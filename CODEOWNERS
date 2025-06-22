@@ -18,6 +18,7 @@ esphome/components/ac_dimmer/* @glmnet
 esphome/components/adc/* @esphome/core
 esphome/components/adc128s102/* @DeerMaximum
 esphome/components/addressable_light/* @justfalter
+esphome/components/addressable_light_digital_display/* @daweizhangau
 esphome/components/ade7880/* @kpfleming
 esphome/components/ade7953/* @angelnu
 esphome/components/ade7953_i2c/* @angelnu
