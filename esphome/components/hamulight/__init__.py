@@ -34,55 +34,27 @@ async def to_code(config):
 
     cg.add(var.set_rf_address(config[CONF_RF_ADDRESS]))
 
-    # Button: Toggle
-    b_toggle = await cg.get_variable("hamulight_toggle_btn")
-    cg.add(b_toggle.set_on_press(cg.Lambda("id({}).toggle();".format(config[CONF_ID]))))
 
-    # Button: Pair with LED driver (maximum Brightness)
-    b_pair = await cg.get_variable("hamulight_pair_btn")
-    cg.add(b_pair.set_on_press(cg.Lambda("id({}).pair_with_driver();".format(config[CONF_ID]))))
+# --- AFTER_DECLARE pattern for linking template entities to component actions ---
+def after_declare():
+    # Buttons
+    cg.add_global(cg.Statement('esphome::App.register_post_setup([] {'))
+    cg.add_global(cg.Statement('  auto *comp = id(hamulight_component);'))
+    cg.add_global(cg.Statement('  if (App.get_button_by_id("hamulight_toggle_btn")) App.get_button_by_id("hamulight_toggle_btn")->set_on_press([comp] { comp->toggle(); });'))
+    cg.add_global(cg.Statement('  if (App.get_button_by_id("hamulight_pair_btn")) App.get_button_by_id("hamulight_pair_btn")->set_on_press([comp] { comp->pair_with_driver(); });'))
+    cg.add_global(cg.Statement('  if (App.get_button_by_id("hamulight_cmdscan_btn")) App.get_button_by_id("hamulight_cmdscan_btn")->set_on_press([comp] { comp->start_command_scan(); });'))
+    cg.add_global(cg.Statement('  if (App.get_button_by_id("hamulight_cmdscan_stop_btn")) App.get_button_by_id("hamulight_cmdscan_stop_btn")->set_on_press([comp] { comp->stop_command_scan(); });'))
+    # Numbers
+    cg.add_global(cg.Statement('  if (App.get_number_by_id("hamulight_brightness")) {'))
+    cg.add_global(cg.Statement('    auto *n = App.get_number_by_id("hamulight_brightness");'))
+    cg.add_global(cg.Statement('    n->set_min_value(0); n->set_max_value(100); n->set_step(1);'))
+    cg.add_global(cg.Statement('    n->set_set_action([comp](float x) { comp->set_brightness(x); });'))
+    cg.add_global(cg.Statement('  }'))
+    cg.add_global(cg.Statement('  if (App.get_number_by_id("hamulight_cmdscan_start")) comp->set_cmdscan_start_number(App.get_number_by_id("hamulight_cmdscan_start"));'))
+    cg.add_global(cg.Statement('  if (App.get_number_by_id("hamulight_cmdscan_end")) comp->set_cmdscan_end_number(App.get_number_by_id("hamulight_cmdscan_end"));'))
+    cg.add_global(cg.Statement('  if (App.get_number_by_id("hamulight_cmdscan_pause")) comp->set_cmdscan_pause_number(App.get_number_by_id("hamulight_cmdscan_pause"));'))
+    cg.add_global(cg.Statement('  if (App.get_sensor_by_id("hamulight_last_scanned_command")) comp->set_last_scanned_sensor(App.get_sensor_by_id("hamulight_last_scanned_command"));'))
+    cg.add_global(cg.Statement('});')
+    )
 
-    # Button: Start Command Scan
-    b_cmdscan = await cg.get_variable("hamulight_cmdscan_btn")
-    cg.add(b_cmdscan.set_on_press(cg.Lambda("id({}).start_command_scan();".format(config[CONF_ID]))))
-
-    # Number: Brightness
-    n_brightness = await cg.get_variable("hamulight_brightness")
-    cg.add(n_brightness.set_min_value(0))
-    cg.add(n_brightness.set_max_value(100))
-    cg.add(n_brightness.set_step(1))
-    cg.add(n_brightness.set_set_action(cg.Lambda("id({}).set_brightness(x);".format(config[CONF_ID]))))
-
-
-    
-    # --- THE FOLLOWING CODE IS FOR THE OPTIONAL COMMAND SCANNER ---
-    
-    # Button: Stop Command Scan
-    b_cmdscan_stop = await cg.get_variable("hamulight_cmdscan_stop_btn")
-    cg.add(b_cmdscan_stop.set_on_press(cg.Lambda("id({}).stop_command_scan();".format(config[CONF_ID]))))
-
-
-    # Command Scan Numbers - start of the range
-    n_cmdscan_start = await cg.get_variable("hamulight_cmdscan_start")
-    cg.add(n_cmdscan_start.set_min_value(0))
-    cg.add(n_cmdscan_start.set_max_value(255))
-    cg.add(n_cmdscan_start.set_step(1))
-    cg.add(var.set_cmdscan_start_number(n_cmdscan_start))
-
-    # Command Scan Numbers - end of the range
-    n_cmdscan_end = await cg.get_variable("hamulight_cmdscan_end")
-    cg.add(n_cmdscan_end.set_min_value(0))
-    cg.add(n_cmdscan_end.set_max_value(255))
-    cg.add(n_cmdscan_end.set_step(1))
-    cg.add(var.set_cmdscan_end_number(n_cmdscan_end))
-
-    # Command Scan Numbers - pause (in ms) between each scan command sent
-    n_cmdscan_pause = await cg.get_variable("hamulight_cmdscan_pause")
-    cg.add(n_cmdscan_pause.set_min_value(0))
-    cg.add(n_cmdscan_pause.set_max_value(5000))
-    cg.add(n_cmdscan_pause.set_step(10))
-    cg.add(var.set_cmdscan_pause_number(n_cmdscan_pause))
-
-    # Sensor: Last Scanned Command
-    s_last_scanned = await cg.get_variable("hamulight_last_scanned_command")
-    cg.add(var.set_last_scanned_sensor(s_last_scanned))
+after_declare()
