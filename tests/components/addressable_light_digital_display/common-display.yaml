@@ -1,0 +1,23 @@
+display:
+  - platform: addressable_light_digital_display
+    id: digital_clock
+    name: Digital Clock
+    light_id: digital_display_light
+    icon: "mdi:clock-digital"
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+    addressable_light_id: internal_light_state
+    #      A
+    #     ---
+    #  F |   | B
+    #     -G-
+    #  E |   | C
+    #     ---
+    #      D
+    led_map: ". CCCDDDEEEFFFAAABBBGGG . CCCDDDEEEFFFAAABBBGGG :: . CCCDDDEEEFFFAAABBBGGG . CCCDDDEEEFFFAAABBBGGG"
+    update_interval: 500ms
+    lambda: |-
+      if (millis() % 1000 < 500)
+        it.strftime("%H:%M", sntp_time->now());
+      else
+        it.strftime("%H %M", sntp_time->now());

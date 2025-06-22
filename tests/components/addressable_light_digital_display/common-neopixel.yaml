@@ -1,0 +1,9 @@
+light:
+  - platform: neopixelbus
+    id: internal_light_state
+    internal: True
+    variant: SK6812
+    type: GRBW
+    pin: 33
+    num_leds: 87
+    color_correct: [70%, 70%, 70%, 70%] 

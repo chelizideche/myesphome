@@ -1,0 +1,9 @@
+light:
+  - platform: fastled_clockless
+    id: internal_light_state
+    internal: true
+    chipset: WS2812B
+    rgb_order: GRB
+    pin: ${pin}
+    num_leds: 90
+    color_correct: [50%, 50%, 50%]
