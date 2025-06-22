@@ -109,13 +109,10 @@ def validate_hostname(config):
 
 
 def validate_id_hash_collisions(config: dict) -> dict:
-    """Validate that there are no hash collisions between IDs of the same type."""
-    from esphome.helpers import fnv1a_32bit_hash
-
-    # Check area hash collisions
+    """Validate that there are no hash collisions between IDs."""
     area_hashes: dict[int, str] = {}
 
-    # Check main area if present
+    # Check main area
     if CONF_AREA in config:
         area_id: core.ID = config[CONF_AREA][CONF_ID]
         if area_id.id:
@@ -125,29 +122,45 @@ def validate_id_hash_collisions(config: dict) -> dict:
     # Check areas list
     for area in config.get(CONF_AREAS, []):
         area_id: core.ID = area[CONF_ID]
-        if area_id.id:
-            area_hash = fnv1a_32bit_hash(area_id.id)
-            if area_hash in area_hashes:
-                raise cv.Invalid(
-                    f"Area ID '{area_id.id}' with hash {area_hash} collides with "
-                    f"existing area ID '{area_hashes[area_hash]}'",
-                    path=[CONF_AREAS, area_id.id],
-                )
+        if not area_id.id:
+            continue
+
+        area_hash = fnv1a_32bit_hash(area_id.id)
+        if area_hash not in area_hashes:
             area_hashes[area_hash] = area_id.id
+            continue
+
+        # Skip exact duplicates (handled by IDPassValidationStep)
+        if area_id.id == area_hashes[area_hash]:
+            continue
+
+        raise cv.Invalid(
+            f"Area ID '{area_id.id}' with hash {area_hash} collides with "
+            f"existing area ID '{area_hashes[area_hash]}'",
+            path=[CONF_AREAS, area_id.id],
+        )
 
     # Check device hash collisions
     device_hashes: dict[int, str] = {}
     for device in config.get(CONF_DEVICES, []):
         device_id: core.ID = device[CONF_ID]
-        if device_id.id:
-            device_hash = fnv1a_32bit_hash(device_id.id)
-            if device_hash in device_hashes:
-                raise cv.Invalid(
-                    f"Device ID '{device_id.id}' with hash {device_hash} collides with "
-                    f"existing device ID '{device_hashes[device_hash]}'",
-                    path=[CONF_DEVICES, device_id.id],
-                )
+        if not device_id.id:
+            continue
+
+        device_hash = fnv1a_32bit_hash(device_id.id)
+        if device_hash not in device_hashes:
             device_hashes[device_hash] = device_id.id
+            continue
+
+        # Skip exact duplicates (handled by IDPassValidationStep)
+        if device_id.id == device_hashes[device_hash]:
+            continue
+
+        raise cv.Invalid(
+            f"Device ID '{device_id.id}' with hash {device_hash} collides "
+            f"with existing device ID '{device_hashes[device_hash]}'",
+            path=[CONF_DEVICES, device_id.id],
+        )
 
     return config
 

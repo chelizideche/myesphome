@@ -172,11 +172,8 @@ def test_area_id_collision(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
-    # Since duplicate IDs have the same hash, our hash collision detection catches this
-    assert (
-        "Area ID 'duplicate_id' with hash 1805131238 collides with existing area ID 'duplicate_id'"
-        in captured.out
-    )
+    # Exact duplicates are now caught by IDPassValidationStep
+    assert "ID duplicate_id redefined! Check esphome->area->id." in captured.out
 
 
 def test_device_without_area(yaml_file: Callable[[str], str]) -> None:
@@ -241,3 +238,15 @@ def test_area_id_hash_collision(
         "Area ID 'd6ka' with hash 3082558663 collides with existing area ID 'test_2258'"
         in captured.out
     )
+
+
+def test_device_duplicate_id(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that duplicate device IDs are detected by IDPassValidationStep."""
+    result = load_config_from_fixture(yaml_file, "device_duplicate_id.yaml")
+    assert result is None
+
+    # Check for the specific error message from IDPassValidationStep
+    captured = capsys.readouterr()
+    assert "ID duplicate_device redefined!" in captured.out
