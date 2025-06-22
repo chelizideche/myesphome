@@ -107,15 +107,20 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
     if (is_special_map_char) {
       led_on = current_char == current_map_char;
     } else {
-      if (*str >= ' ' && *str <= '~') {
+      if (current_char >= ' ' && current_char <= '~') {
         data = progmem_read_byte(&ASCII_TO_RAW[current_char - ' ']);
       }
 
       if (data == UNKNOWN_CHAR) {
-        ESP_LOGW(TAG, "Encountered character '%c' with no representation while translating string!", *str);
+        ESP_LOGW(TAG, "Encountered character '%c' with no representation while translating string!", current_char);
       }
 
-      bit_locator = 0x01 << (6 - current_map_char + 'A');
+      if (current_map_char >= 'A' && current_map_char <= 'Z') {
+        bit_locator = 0x01 << (6 - (current_map_char - 'A'));
+      } else {
+        ESP_LOGW(TAG, "Invalid map character '%c' encountered, skipping calculation.", current_map_char);
+        continue;
+      }
       led_on = (bit_locator & data) == bit_locator;
     }
 
