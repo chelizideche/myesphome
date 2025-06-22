@@ -469,12 +469,9 @@ class EFont:
 
 
 class GlyphInfo:
-    def __init__(
-        self, glyph, data_len, data, advance, offset_x, offset_y, width, height
-    ):
+    def __init__(self, glyph, data, advance, offset_x, offset_y, width, height):
         self.glyph = glyph
-        self.data_len = data_len
-        self.data = data
+        self.bitmap_data = data
         self.advance = advance
         self.offset_x = offset_x
         self.offset_y = offset_y
@@ -527,9 +524,8 @@ def glyph_to_glyphinfo(glyph, font, size, bpp):
                 font.family_name,
                 font.style_name,
             )
-    ret = GlyphInfo(
+    return GlyphInfo(
         glyph,
-        len(glyph_data),
         glyph_data,
         pt_to_px(font.glyph.metrics.horiAdvance),
         font.glyph.bitmap_left,
@@ -537,8 +533,6 @@ def glyph_to_glyphinfo(glyph, font, size, bpp):
         width,
         height,
     )
-    # data += glyph_data
-    return ret
 
 
 async def to_code(config):
@@ -573,35 +567,34 @@ async def to_code(config):
     bpp = config[CONF_BPP]
     size = config[CONF_SIZE]
     # create the data array for all glyphs
-    glyph_args = list(
-        map(lambda x: glyph_to_glyphinfo(x, point_font_map[x], size, bpp), codepoints)
-    )
-    rhs = [HexInt(x) for x in flatten(map(lambda x: x.data, glyph_args))]
+    glyph_args = [
+        glyph_to_glyphinfo(x, point_font_map[x], size, bpp) for x in codepoints
+    ]
+    rhs = [HexInt(x) for x in flatten([x.bitmap_data for x in glyph_args])]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
 
     # Create the glyph table that points to data in the above array.
-    glyph_initializer = list(
-        map(
-            lambda x, y: cg.StructInitializer(
-                GlyphData,
-                (
-                    "a_char",
-                    cg.RawExpression(f"(const uint8_t *){cpp_string_escape(x.glyph)}"),
-                ),
-                (
-                    "data",
-                    cg.RawExpression(f"{str(prog_arr)} + {str(y - x.data_len)}"),
-                ),
-                ("advance", x.advance),
-                ("offset_x", x.offset_x),
-                ("offset_y", x.offset_y),
-                ("width", x.width),
-                ("height", x.height),
+    glyph_initializer = [
+        cg.StructInitializer(
+            GlyphData,
+            (
+                "a_char",
+                cg.RawExpression(f"(const uint8_t *){cpp_string_escape(x.glyph)}"),
             ),
-            glyph_args,
-            list(accumulate(map(lambda x: x.data_len, glyph_args))),
+            (
+                "data",
+                cg.RawExpression(f"{str(prog_arr)} + {str(y - len(x.bitmap_data))}"),
+            ),
+            ("advance", x.advance),
+            ("offset_x", x.offset_x),
+            ("offset_y", x.offset_y),
+            ("width", x.width),
+            ("height", x.height),
         )
-    )
+        for (x, y) in zip(
+            glyph_args, list(accumulate([len(x.bitmap_data) for x in glyph_args]))
+        )
+    ]
 
     glyphs = cg.static_const_array(config[CONF_RAW_GLYPH_ID], glyph_initializer)
 
@@ -609,9 +602,9 @@ async def to_code(config):
     ascender = pt_to_px(base_font.size.ascender)
     descender = abs(pt_to_px(base_font.size.descender))
     g = glyph_to_glyphinfo("x", base_font, size, bpp)
-    xheight = g.height if g.data_len > 1 else 0
+    xheight = g.height if len(g.bitmap_data) > 1 else 0
     g = glyph_to_glyphinfo("X", base_font, size, bpp)
-    capheight = g.height if g.data_len > 1 else 0
+    capheight = g.height if len(g.bitmap_data) > 1 else 0
     if font_height == 0:
         if not base_font.is_scalable:
             font_height = size
@@ -624,7 +617,6 @@ async def to_code(config):
         len(glyph_initializer),
         ascender,
         font_height,
-        ascender,
         descender,
         xheight,
         capheight,
