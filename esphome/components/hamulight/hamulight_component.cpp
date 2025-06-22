@@ -60,7 +60,7 @@ void HamulightComponent::setup() {
   ESP_LOGCONFIG(TAG, "setup(): HamulightComponent is being set up...");
   ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);                                                                     
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_num_);
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
@@ -138,10 +138,10 @@ void HamulightComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  HamulightComponent Configuration");
   ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_num_);
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
-  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_running_ ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
     if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms",
       static_cast<uint8_t>(cmdscan_start_->state),
