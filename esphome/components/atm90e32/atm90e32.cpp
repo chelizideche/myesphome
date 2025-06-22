@@ -1,6 +1,7 @@
 #include "atm90e32.h"
 #include <cinttypes>
 #include <cmath>
+#include <numbers>
 #include "esphome/core/log.h"
 
 namespace esphome {
