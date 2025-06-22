@@ -17,7 +17,8 @@ class HamulightBrightnessNumber : public number::Number {
   void set_callback(std::function<void(float)> cb) { cb_ = std::move(cb); }
  protected:
   void control(float value) override {
-    if (cb_) cb_(value);
+    if (cb_)
+      cb_(value);
     publish_state(value); // Keep UI in sync
   }
   std::function<void(float)> cb_;
