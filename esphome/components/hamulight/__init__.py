@@ -2,6 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 from esphome import pins
+from esphome.components import button, number, sensor
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
 HamulightComponent = HAMULIGHT_NAMESPACE.class_('HamulightComponent', cg.Component)
@@ -38,7 +39,9 @@ async def to_code(config):
         "hamulight_cmdscan_stop_btn": var.stop_command_scan,
     }
     for btn_id, method in button_actions.items():
-        await cg.register_template_button(var, btn_id, on_press=method)
+        await button.template.register_template_button(
+            var, btn_id, on_press=method
+        )
 
     # Register template numbers and their actions
     number_actions = {
@@ -48,7 +51,11 @@ async def to_code(config):
         "hamulight_cmdscan_pause": var.set_cmdscan_pause_number,
     }
     for num_id, method in number_actions.items():
-        await cg.register_template_number(var, num_id, set_action=method)
+        await number.template.register_template_number(
+            var, num_id, set_action=method
+        )
 
     # Register template sensor for last scanned command
-    await cg.register_template_sensor(var, "hamulight_last_scanned_command", method=var.set_last_scanned_sensor)
+    await sensor.template.register_template_sensor(
+        var, "hamulight_last_scanned_command", method=var.set_last_scanned_sensor
+    )
