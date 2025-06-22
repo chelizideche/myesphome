@@ -1,5 +1,7 @@
 """Helpers for config validation using voluptuous."""
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -348,7 +350,7 @@ def icon(value):
     )
 
 
-def sub_device_id(value):
+def sub_device_id(value) -> core.ID:
     # Lazy import to avoid circular imports
     from esphome.core.config import Device
 
@@ -1931,7 +1933,7 @@ class Version:
         return f"{self.major}.{self.minor}.{self.patch}"
 
     @classmethod
-    def parse(cls, value: str) -> "Version":
+    def parse(cls, value: str) -> Version:
         match = re.match(r"^(\d+).(\d+).(\d+)-?\w*$", value)
         if match is None:
             raise ValueError(f"Not a valid version number {value}")
