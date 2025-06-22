@@ -49,7 +49,7 @@ void DigitalDisplay::display_() {
   auto val = this->external_light_state_->current_values;
   auto color = color_from_light_color_values(val);
 
-  for (uint8_t i = 0; i < this->num_leds_; i++) {
+  for (int i = 0; i < this->num_leds_; i++) {
     light::ESPColorView view = (*this->internal_light_output_)[i];
     if (this->led_buffer_[i]) {
       view.set(color);
@@ -67,7 +67,6 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
   }
 
   ESP_LOGV(TAG, "Print at %d: %s", start_pos, str);
-  uint8_t pos = start_pos;
   uint8_t data = UNKNOWN_CHAR;
 
   uint8_t map_length = this->led_map_.size();
