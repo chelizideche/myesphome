@@ -19,7 +19,7 @@ void DigitalDisplay::setup_state(light::LightState *state) {
 void DigitalDisplay::write_state(light::LightState *state) {
   ESP_LOGD(TAG, "Writing state");
   this->internal_light_output_->update_state(state);
-  this->display();
+  this->display_();
 }
 
 void DigitalDisplay::dump_config() {
@@ -41,11 +41,11 @@ void DigitalDisplay::setup() {
 void DigitalDisplay::update() {
   if (this->writer_.has_value())
     (*this->writer_)(*this);
-  this->display();
+  this->display_();
 }
 
-void DigitalDisplay::display() {
-  ESP_LOGV(TAG, "display()");
+void DigitalDisplay::display_() {
+  ESP_LOGV(TAG, "display_()");
   auto val = this->external_light_state_->current_values;
   auto color = color_from_light_color_values(val);
 

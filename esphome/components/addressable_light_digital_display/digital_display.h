@@ -28,16 +28,16 @@ class DigitalDisplay : public PollingComponent, public LightOutput, public Print
 
   // ========== this =============
   void set_led_map(const std::string &led_map);
-  void set_max_characters(const uint8_t max_characters);
-  void set_reverse(const bool reverse);
+  void set_max_characters(uint8_t max_characters);
+  void set_reverse(bool reverse);
   void set_internal_light(light::LightState *state);
   void set_external_light(light::LightState *state);
   void set_writer(writer_t &&writer);
 
  protected:
-  void display();
+  void display_();
   optional<writer_t> writer_{};
-  uint8_t print_core(uint8_t pos, const char *str);
+  uint8_t print_core(uint8_t pos, const char *str) override;
   bool *led_buffer_;
   std::string led_map_;
   uint8_t max_characters_;
