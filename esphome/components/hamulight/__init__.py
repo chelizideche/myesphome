@@ -55,6 +55,7 @@ async def to_code(config):
     if CONF_LED_PIN in config:
         led_pin_code = await cg.gpio_pin_expression(config[CONF_LED_PIN])
         cg.add(var.set_led_pin(led_pin_code))
+        cg.add(var.set_led_pin_num(config[CONF_LED_PIN]["number"]))
     cg.add(var.set_rf_address(config[CONF_RF_ADDRESS]))
 
     # Link buttons to actions
