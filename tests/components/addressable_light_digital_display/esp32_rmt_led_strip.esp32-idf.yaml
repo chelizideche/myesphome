@@ -1,5 +1,5 @@
 substitutions:
   pin: GPIO2
 
-<<: !include common-fastled.yaml
+<<: !include common-esp32-rmt.yaml
 <<: !include common-display.yaml

@@ -1,3 +1,14 @@
+wifi:
+  ssid: MySSID
+  password: password1
+
+api:
+
+time:
+  - platform: homeassistant
+  - platform: sntp
+    id: sntp_time
+
 display:
   - platform: addressable_light_digital_display
     id: digital_clock
