@@ -91,18 +91,22 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
     current_map_char = this->led_map_[map_index];
     current_char = reverse ? str[max_char - 1 - char_index] : str[char_index];
     is_special_map_char = current_map_char == '.' || current_map_char == ':';
-    if (is_special_map_char && (current_char != current_map_char) && (current_char != ' ')){
+    if (is_special_map_char && (current_char != current_map_char) && (current_char != ' ')) {
       skip_led = true;
       led_index++;
       continue;
     }
 
     if (current_map_char == ' ') {
-      if (! skip_led){char_index++;}
+      if (!skip_led) {
+        char_index++;
+      }
       continue;
     }
 
-    if (char_index >= max_char) { break; }
+    if (char_index >= max_char) {
+      break;
+    }
 
     if (is_special_map_char) {
       led_on = current_char == current_map_char;
@@ -126,7 +130,9 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
 
     this->led_buffer_[led_index] = led_on;
     led_index++;
-    if (led_index >= max_led) { break; }
+    if (led_index >= max_led) {
+      break;
+    }
     skip_led = false;
   }
 
