@@ -142,7 +142,7 @@ void HamulightComponent::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
-    if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
+  if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms",
       static_cast<uint8_t>(cmdscan_start_->state),
       static_cast<uint8_t>(cmdscan_end_->state),
