@@ -1,8 +1,8 @@
 #include "digital_display.h"
 #include "ascii_to_raw.h"
 #include "esphome/core/log.h"
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 namespace esphome {
 namespace addressable_light_digital_display {
