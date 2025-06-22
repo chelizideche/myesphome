@@ -12,22 +12,29 @@ namespace hamulight {
  * the entity to Home Assistant. Any YAML on_value automations
  * are also triggered by ESPHome after the control() call.
  *
- * The class forwards all base class setter methods for min/max/step/mode,
+ * The class implements its own setters/getters for min/max/step/mode,
  * so it can be configured just like a stock ESPHome number.
  */
 class HamulightBrightnessNumber : public number::Number {
  public:
+  HamulightBrightnessNumber()
+      : min_value_(0), max_value_(100), step_(1), mode_(number::NumberMode::NUMBER_MODE_SLIDER) {}
+
   /**
    * @brief Set the callback function to be called when the number is set.
    * @param cb Function taking the new float value.
    */
   void set_callback(std::function<void(float)> cb) { cb_ = std::move(cb); }
 
-  // Forward base class setter methods so this class can be configured like a stock Number.
-  using number::Number::set_min_value;
-  using number::Number::set_max_value;
-  using number::Number::set_step;
-  using number::Number::set_mode;
+  void set_min_value(float val) { min_value_ = val; }
+  void set_max_value(float val) { max_value_ = val; }
+  void set_step(float val) { step_ = val; }
+  void set_mode(number::NumberMode mode) { mode_ = mode; }
+
+  float get_min_value() const override { return min_value_; }
+  float get_max_value() const override { return max_value_; }
+  float get_step() const override { return step_; }
+  number::NumberMode get_mode() const override { return mode_; }
 
  protected:
   /**
@@ -36,12 +43,22 @@ class HamulightBrightnessNumber : public number::Number {
    * @param value The new value.
    */
   void control(float value) override {
-    if (cb_)
-      cb_(value);
-    publish_state(value); // Keep UI in sync with HA
+    // Clamp value to min/max and adjust to step
+    float v = value;
+    if (v < min_value_) v = min_value_;
+    if (v > max_value_) v = max_value_;
+    // Optionally round to step here if desired
+
+    if (cb_) cb_(v);
+    publish_state(v); // Keep UI in sync with HA
   }
 
   std::function<void(float)> cb_; ///< Callback for value change
+
+  float min_value_;
+  float max_value_;
+  float step_;
+  number::NumberMode mode_;
 };
 
 }  // namespace hamulight
