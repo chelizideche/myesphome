@@ -3,6 +3,8 @@ from esphome.components import climate_ir
 import esphome.config_validation as cv
 from esphome.const import CONF_MODEL, CONF_USE_FAHRENHEIT
 
+CODEOWNERS = ["@rwrozelle"]
+
 AUTO_LOAD = ["climate_ir"]
 
 friedrich_ns = cg.esphome_ns.namespace("friedrich")
