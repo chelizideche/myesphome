@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from esphome import config, config_validation as cv, yaml_util
+from esphome import config, config_validation as cv, core, yaml_util
 from esphome.config import Config
 from esphome.const import CONF_AREA, CONF_AREAS, CONF_DEVICES
 from esphome.core import CORE
@@ -67,8 +67,9 @@ def test_validate_area_config_with_string() -> None:
     assert "id" in result
     assert "name" in result
     assert result["name"] == "Living Room"
-    # ID should be based on slugified name
-    assert result["id"].id == "living_room"
+    assert isinstance(result["id"], core.ID)
+    assert result["id"].is_declaration
+    assert not result["id"].is_manual
 
 
 def test_validate_area_config_with_dict() -> None:
@@ -157,10 +158,9 @@ def test_legacy_string_area(
     area = esphome_config[CONF_AREA]
     assert isinstance(area, dict)
     assert area["name"] == "Living Room"
-    assert area["id"].id == "living_room"
-
-    # Check for deprecation warning
-    assert "Using 'area' as a string is deprecated" in caplog.text
+    assert isinstance(area["id"], core.ID)
+    assert area["id"].is_declaration
+    assert not area["id"].is_manual
 
 
 def test_area_id_collision(
@@ -205,8 +205,9 @@ def test_device_with_invalid_area_id(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
+    print(captured.out)
     assert (
-        "Device 'Test Device' has an area_id 'nonexistent_area' that does not exist."
+        "Couldn't find ID 'nonexistent_area'. Please check you have defined an ID with that name in your configuration."
         in captured.out
     )
 

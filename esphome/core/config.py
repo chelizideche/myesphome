@@ -125,21 +125,11 @@ def validate_ids_and_references(config: ConfigType) -> ConfigType:
 
     # Validate device hash collisions and area references
     device_hashes: dict[int, str] = {}
-    for i, device in enumerate(config[CONF_DEVICES]):
+    for device in config[CONF_DEVICES]:
         device_id: core.ID = device[CONF_ID]
         check_hash_collision(
             device_id, device_hashes, "Device", [CONF_DEVICES, device_id.id]
         )
-
-        # Validate area_id reference if present
-        if CONF_AREA_ID in device:
-            area_ref_id: core.ID = device[CONF_AREA_ID]
-            if area_ref_id.id not in area_ids:
-                raise cv.Invalid(
-                    f"Device '{device[CONF_NAME]}' has an area_id '{area_ref_id.id}'"
-                    " that does not exist.",
-                    path=[CONF_DEVICES, i, CONF_AREA_ID],
-                )
 
     return config
 
@@ -200,12 +190,16 @@ DEVICE_SCHEMA = cv.Schema(
 )
 
 
+def validate_area_config(config: dict | str) -> dict[str, str | core.ID]:
+    return cv.maybe_simple_value(AREA_SCHEMA, key=CONF_NAME)(config)
+
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Required(CONF_NAME): cv.valid_name,
             cv.Optional(CONF_FRIENDLY_NAME, ""): cv.string,
-            cv.Optional(CONF_AREA): cv.maybe_simple_value(AREA_SCHEMA, key=CONF_NAME),
+            cv.Optional(CONF_AREA): validate_area_config,
             cv.Optional(CONF_COMMENT): cv.string,
             cv.Required(CONF_BUILD_PATH): cv.string,
             cv.Optional(CONF_PLATFORMIO_OPTIONS, default={}): cv.Schema(
@@ -260,8 +254,11 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     validate_hostname,
-    validate_ids_and_references,
 )
+
+
+FINAL_VALIDATE_SCHEMA = cv.All(validate_ids_and_references)
+
 
 PRELOAD_CONFIG_SCHEMA = cv.Schema(
     {
