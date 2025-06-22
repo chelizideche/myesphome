@@ -47,6 +47,11 @@ void APIServer::setup() {
   }
 #endif
 
+  // Schedule reboot if no clients connect within timeout
+  if (this->reboot_timeout_ != 0) {
+    this->schedule_reboot_timeout_();
+  }
+
   this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
   if (this->socket_ == nullptr) {
     ESP_LOGW(TAG, "Could not create socket");
@@ -106,8 +111,6 @@ void APIServer::setup() {
   }
 #endif
 
-  this->last_connected_ = App.get_loop_component_start_time();
-
 #ifdef USE_ESP32_CAMERA
   if (esp32_camera::global_esp32_camera != nullptr && !esp32_camera::global_esp32_camera->is_internal()) {
     esp32_camera::global_esp32_camera->add_image_callback(
@@ -119,6 +122,16 @@ void APIServer::setup() {
         });
   }
 #endif
+}
+
+void APIServer::schedule_reboot_timeout_() {
+  this->status_set_warning();
+  this->set_timeout("api_reboot", this->reboot_timeout_, []() {
+    if (!global_api_server->is_connected()) {
+      ESP_LOGE(TAG, "No client connected; rebooting");
+      App.reboot();
+    }
+  });
 }
 
 void APIServer::loop() {
@@ -135,6 +148,12 @@ void APIServer::loop() {
       auto *conn = new APIConnection(std::move(sock), this);
       this->clients_.emplace_back(conn);
       conn->start();
+
+      // Clear warning status and cancel reboot when first client connects
+      if (this->clients_.size() == 1 && this->reboot_timeout_ != 0) {
+        this->status_clear_warning();
+        this->cancel_timeout("api_reboot");
+      }
     }
   }
 
@@ -154,6 +173,12 @@ void APIServer::loop() {
           std::swap(this->clients_[client_index], this->clients_.back());
         }
         this->clients_.pop_back();
+
+        // Schedule reboot when last client disconnects
+        if (this->clients_.empty() && this->reboot_timeout_ != 0) {
+          this->schedule_reboot_timeout_();
+        }
+
         // Don't increment client_index since we need to process the swapped element
       } else {
         // Process active client
@@ -163,19 +188,7 @@ void APIServer::loop() {
     }
   }
 
-  if (this->reboot_timeout_ != 0) {
-    const uint32_t now = App.get_loop_component_start_time();
-    if (!this->is_connected()) {
-      if (now - this->last_connected_ > this->reboot_timeout_) {
-        ESP_LOGE(TAG, "No client connected; rebooting");
-        App.reboot();
-      }
-      this->status_set_warning();
-    } else {
-      this->last_connected_ = now;
-      this->status_clear_warning();
-    }
-  }
+  // Reboot timeout is now handled by connection/disconnection events
 }
 
 void APIServer::dump_config() {
