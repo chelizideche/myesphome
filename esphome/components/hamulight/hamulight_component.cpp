@@ -57,22 +57,30 @@ void HamulightComponent::setup() {
   toggle_button_ = new HamulightButton();
   toggle_button_->set_name("On/off");
   toggle_button_->set_callback([this]() { this->toggle(); });
+  ESP_LOGD(TAG, "Registering toggle_button_");
   App.register_button(toggle_button_);
+  ESP_LOGD(TAG, "toggle_button_ registered");
 
   pair_button_ = new HamulightButton();
   pair_button_->set_name("Pair/max. brightness");
   pair_button_->set_callback([this]() { this->pair_with_driver(); });
+  ESP_LOGD(TAG, "Registering pair_button_");
   App.register_button(pair_button_);
+  ESP_LOGD(TAG, "pair_button_ registered");
 
   cmdscan_start_button_ = new HamulightButton();
   cmdscan_start_button_->set_name("Start Command Scanner");
   cmdscan_start_button_->set_callback([this]() { this->start_command_scan(); });
+  ESP_LOGD(TAG, "Registering cmdscan_start_button_");
   App.register_button(cmdscan_start_button_);
+  ESP_LOGD(TAG, "cmdscan_start_button_ registered");
 
   cmdscan_stop_button_ = new HamulightButton();
   cmdscan_stop_button_->set_name("Stop Command Scanner");
   cmdscan_stop_button_->set_callback([this]() { this->stop_command_scan(); });
+  ESP_LOGD(TAG, "Registering cmdscan_stop_button_");
   App.register_button(cmdscan_stop_button_);
+  ESP_LOGD(TAG, "cmdscan_stop_button_ registered");
   
   // Use custom HamulightBrightnessNumber with forwarded setters
   brightness_number_ = new HamulightBrightnessNumber();
