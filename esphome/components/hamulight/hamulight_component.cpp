@@ -1,9 +1,26 @@
+/**
+ * @file hamulight_component.cpp
+ * @brief Implementation of the HamulightComponent for ESPHome
+ *
+ * This file implements all logic for controlling Hamulight RF lights:
+ *  - Toggle (stateless button)
+ *  - Pairing/100% brightness (stateless button)
+ *  - Brightness (stateless slider/number)
+ *  - Command scanning (start/stop buttons, scan config via numbers, last scanned command via sensor)
+ *  - RMT-based RF transmission for ESP32 and variants
+ *
+ * All configuration and entity wiring is handled in __init__.py.
+ *
+ * Author: madmat17
+ */
+
 #include "hamulight_component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
+// RMT only available for ESP32 - this line should avoid that the code compiles for other boards
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 #include <driver/gpio.h>
 #include "driver/rmt_tx.h"
@@ -18,47 +35,46 @@ static const char *const TAG = "hamulight";
 /**
  * @brief Constructor
  *
- * Use this to debug if the constructor is called.
+ * Logs construction for debugging.
  */
 HamulightComponent::HamulightComponent() {
   ESP_LOGCONFIG(TAG, "HamulightComponent CONSTRUCTOR called!");
 }
 
 /**
- * @brief Called once at ESP startup.
- *
- * Initializes the GPIO pins and outputs basic configuration information.
- * Allocates the RMT channel and encoder ONCE for the lifetime of this component.
+ * @brief ESPHome setup() lifecycle.
+ *  - Initialize all configured pins (RF and optional LED)
+ *  - Allocate and configure RMT channel and encoder (once, for all RF transmissions)
  */
 void HamulightComponent::setup() {
-  // Sets the RF transmit pin as an output and ensures it's initially LOW.
+  // Initialize RF output pin, set LOW initially.
   this->rf_transmit_pin_->setup();
   this->rf_transmit_pin_->digital_write(false);
 
-  // If an optional LED pin is configured, initializes it as an output and turns the LED off.
+  // Optional feedback LED
   if (this->led_pin_ != nullptr) {
     this->led_pin_->setup();
     this->led_pin_->digital_write(false);
   }
 
-  ESP_LOGCONFIG(TAG, "  setup(): HamulightComponent is being set up...");
-  ESP_LOGCONFIG(TAG, "  setup(): RF Transmit Pin: configured");
-  ESP_LOGCONFIG(TAG, "  setup(): RF Address: 0x%04X", this->rf_address_);
+  ESP_LOGCONFIG(TAG, "setup(): HamulightComponent is being set up...");
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);                                                                     
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  setup(): LED Pin: configured");
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_->get_pin());
   }
-  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_scanner_enabled_ ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
+  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
-  ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");
+  // ----------- RMT Peripheral Allocation -----------
+  ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");        // Log -> did this part compile?
   ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
-  ESP_LOGD(TAG, "setup(): Setting up RMT...");
 
   bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
   rmt_tx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
-  channel.resolution_hz = 1000000; // 1 MHz for microsecond accuracy
+  channel.resolution_hz = 1000000; // 1 MHz = 1us resolution
   channel.gpio_num = gpio_num_t(this->rf_pin_num_);
   channel.mem_block_symbols = 64;
   channel.trans_queue_depth = 1;
@@ -78,13 +94,14 @@ void HamulightComponent::setup() {
     return;
   }
 
-  // Setup pullup if needed (optional, but matches remote_transmitter reference)
+  // Configure pullup if required
   if (this->rf_transmit_pin_->get_flags() & gpio::FLAG_PULLUP) {
     gpio_pullup_en(gpio_num_t(this->rf_pin_num_));
   } else {
     gpio_pullup_dis(gpio_num_t(this->rf_pin_num_));
   }
 
+  // Allocate encoder (raw copy)
   rmt_copy_encoder_config_t encoder_cfg = {};
   error = rmt_new_copy_encoder(&encoder_cfg, &this->encoder_);
   ESP_LOGD(TAG, "setup(): rmt_new_copy_encoder returned: %d", error);
@@ -96,6 +113,7 @@ void HamulightComponent::setup() {
     return;
   }
 
+  // Enable channel
   error = rmt_enable(this->tx_channel_);
   ESP_LOGD(TAG, "setup(): rmt_enable returned: %d", error);
   if (error != ESP_OK) {
@@ -111,101 +129,42 @@ void HamulightComponent::setup() {
 }
 
 /**
- * @brief Outputs the complete configuration of the component to the log.
+ * @brief ESPHome dump_config() - logs current configuration.
  *
- * This method is useful for debugging to check if the YAML configuration
- * has been correctly applied by the component.
+ * INCOMPLETE, as RF tranmit PIN and LED Pin are not handed over to log print
+ * (
  */
 void HamulightComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "  HamulightComponent (RF Light)");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
+  ESP_LOGCONFIG(TAG, "  HamulightComponent Configuration");
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: configured");
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_->get_pin());
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
-  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_scanner_enabled_ ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_running_ ? "ENABLED" : "DISABLED");
+    if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
+    ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms",
+      static_cast<uint8_t>(cmdscan_start_->state),
+      static_cast<uint8_t>(cmdscan_end_->state),
+      static_cast<uint32_t>(cmdscan_pause_->state));
+  } else {
+    ESP_LOGCONFIG(TAG, "  Command Scan Range: not fully configured");
+  }
 }
 
-/**
- * @brief Returns the supported features of the light to Home Assistant.
- *
- * This indicates that the light supports on/off and brightness control.
- * Color functions are not relevant in this case.
- * @return light::LightTraits object.
- */
-light::LightTraits HamulightComponent::get_traits() {
-  auto traits = light::LightTraits();
-  // Only supports dimming (brightness)
-  traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS});
-  return traits;
-}
+
 
 /**
- * @brief Called by Home Assistant to change the state of the light (brightness and on/off).
+ * @brief Generates the RF code sequence for a given command.
  *
- * This method is the central point for all HA interactions (power button and slider).
- * It first checks if the light should be turned on or off (is_on).
- * Then checks for the desired brightness value (brightness).
- * Power button OFF: RF_POWER_COMMAND
- * Power button ON + brightness < 100%: sends dim value
- * Power button ON + brightness == 100%: RF_BRIGHT100_COMMAND (pairing)
- */
-void HamulightComponent::write_state(light::LightState *state) {
-  bool is_on = state->remote_values.is_on();
-  float brightness = state->remote_values.get_brightness();
-
-  ESP_LOGD(TAG, "write_state() called, HA is_on: %d, brightness: %.4f", (int)is_on, brightness);
-
-  if (!is_on) {
-    ESP_LOGD(TAG, "Sending RF_POWER_COMMAND (OFF)");
-    this->transmit_rf_command(RF_POWER_COMMAND);
-    return;
-  }
-
-  // Now the light is ON:
-  if (brightness >= 0.999f) {
-    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
-    this->transmit_rf_command(RF_BRIGHT100_COMMAND);
-    return;
-  }
-
-  // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
-  // This provides 128 discrete steps (0 to 127).
-  uint8_t dim_value_0_127 = (uint8_t) round(brightness * (RF_SLIDE_STEPS - 1));
-
-  // 2. Calculate the brightness value to transmit.
-  // This directly applies the offset and leverages uint8_t's natural overflow behavior
-  // as described in the RF protocol.
-  // Example: For dim_value_0_127 = 0 (0% brightness), result is 0xA8.
-  // Example: For dim_value_0_127 = 88, result is (0xA8 + 88) = 256, which becomes 0x00 as uint8_t.
-  uint8_t brightness_to_transmit = RF_SLIDE_OFFSET + dim_value_0_127;
-
-  // A general safeguard: if for some reason the calculated brightness falls outside
-  // the expected range, cap it to the maximum allowed RF value.
-  // Given the 0-127 input and 0xA8 offset, the values will naturally wrap.
-  // The max calculated value is 0xA8 + 127 = 0x127 (295 dec), which wraps to 0x27 (39 dec) as uint8_t.
-  // So this check might not be triggered with the current constants, but remains for robustness.
-  if (brightness_to_transmit > RF_SLIDE_RANGE_MAX) {
-      ESP_LOGW(TAG, "Slider input value (0x%02X) exceeding allowed RF range (0x%02X), capping to max (0x%02X).",
-               brightness_to_transmit, RF_SLIDE_RANGE_MAX, RF_SLIDE_RANGE_MAX);
-      brightness_to_transmit = RF_SLIDE_RANGE_MAX;
-  }
-
-  ESP_LOGD(TAG, "Sending dimming value: %.4f → %d → 0x%02X (with offset)",
-           brightness, dim_value_0_127, brightness_to_transmit);
-  this->transmit_rf_brightness(brightness_to_transmit);
-}
-
-/**
- * @brief Generates the 32-bit signal sequence and fills the code_sequence_ array.
+ *  - Packs address, command, and checksum into 32 bits
+ *  - Converts each bit to a pair of pulse entries (Manchester encoding)
+ *  - Result: code_sequence_[] is ready for transmission
  *
- * This method implements the logic for creating the RF signal,
- * including checksum calculation and bit conversion into pulse durations.
- * @param command The 8-bit command (e.g., 0x5F for Power, or a brightness value).
+ * @param command 8-bit command (toggle, pair, brightness, or scanned)
  */
 void HamulightComponent::generate_code_sequence(uint8_t command) {
   uint32_t combined = 0;
-  // Checksum offset as specified in the original code.
   int8_t cks_offset = 83;
   uint8_t checksum = 0;
 
@@ -216,8 +175,7 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
   // Calculates the checksum byte.
   checksum = (rf_address_byte0 + rf_address_byte1 + command - cks_offset);
 
-  // Combines all 4 signal bytes into a 32-bit word.
-  // The order is: Address Byte 0, Address Byte 1, Command, Checksum.
+  // Format: [address M] [address L] [command] [checksum]
   combined = ((uint32_t)rf_address_byte0 << 24) |
              ((uint32_t)rf_address_byte1 << 16) |
              ((uint32_t)command << 8) |
@@ -225,7 +183,7 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
 
   ESP_LOGD(TAG, "RF Command: 0x%02X, Combined Signal: 0x%08X", command, combined);
 
-  // Parses the combined 32-bit word bit by bit.
+  // Manchester encode, writing bits in reverse order for transmission
   // Bits are read from LSB (Bit 0) to MSB (Bit 31) and written in reverse order
   // into the code_sequence_ array to mirror the transmission order.
   int n = (sizeof(combined) * 8) - 1; // n = 31 for a 32-bit word
@@ -234,50 +192,139 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
     // Calculates the position in the code_sequence_ array.
     // (n - i) * 2 reverses the bit order and multiplies by 2, since each bit consists of 2 pulses.
     int current_sequence_pos = (n - i) * 2;
-    if (b) { // If the bit is 1, use the BIT1_PULSE values
+    if (b) { 
+      // If the bit is 1, use the BIT1_PULSE values
       code_sequence_[current_sequence_pos] = BIT1_PULSE[0];
       code_sequence_[current_sequence_pos + 1] = BIT1_PULSE[1];
-    } else { // If the bit is 0, use the BIT0_PULSE values
+    } else { 
+      // If the bit is 0, use the BIT0_PULSE values
       code_sequence_[current_sequence_pos] = BIT0_PULSE[0];
       code_sequence_[current_sequence_pos + 1] = BIT0_PULSE[1];
     }
   }
 }
 
+
 /**
- * @brief Public method for sending a specific RF command.
- *
- * Called by Home Assistant buttons to send predefined commands.
- * @param command The 8-bit command (e.g., RF_POWER_COMMAND, RF_BRIGHT100_COMMAND).
+ * @brief Handles stateless "toggle" button press.
+ */
+void HamulightComponent::toggle() {
+  this->transmit_rf_command(RF_POWER_COMMAND);
+}
+
+/**
+ * @brief Handles stateless "pair with driver" button press (100% brightness).
+ */
+void HamulightComponent::pair_with_driver() {
+  this->transmit_rf_command(RF_BRIGHT100_COMMAND);
+}
+
+/**
+ * @brief Handles brightness slider (number entity).
+ *  - Maps 0-100 (float) to RF dimming protocol value, including offset and clamping.
+ * @param brightness (0.0..100.0)
+ */
+void HamulightComponent::set_brightness(float brightness) {
+  uint8_t dim_raw = static_cast<uint8_t>(brightness * (RF_SLIDE_STEPS - 1) / 100.0f);
+  uint8_t rf_value = RF_SLIDE_OFFSET + dim_raw;
+  if (rf_value > RF_SLIDE_RANGE_MAX)
+    rf_value = RF_SLIDE_RANGE_MAX;
+  this->transmit_rf_brightness(rf_value);
+}
+
+/**
+ * @brief Starts the command scan (used by Start Command Scan button).
+ *  - Sets up internal scan state, ready to advance via loop()
+ */
+void HamulightComponent::start_command_scan() {
+  if (!scanner_running_) {
+    scanner_running_ = true;
+    scanner_last_time_ = 0;
+    scanner_current_ = cmdscan_start_ ? static_cast<uint8_t>(cmdscan_start_->state) : 0;
+    ESP_LOGI(TAG, "Command scan started at command 0x%02X.", scanner_current_);
+  }
+}
+
+/**
+ * @brief Stops the command scan (used by Stop Command Scan button).
+ */
+void HamulightComponent::stop_command_scan() {
+  if (scanner_running_) {
+    scanner_running_ = false;
+    ESP_LOGI(TAG, "Command scan stopped at command 0x%02X.", scanner_current_);
+  }
+}
+
+/**
+ * @brief ESPHome loop() - handles the command scanner state machine.
+ *  - Sends each command in range [start, end], at pause interval.
+ *  - Publishes the last scanned command to the template sensor.
+ *  - Keeps track of scanner state and publishes progress.
+ */
+void HamulightComponent::loop() {
+  if (!scanner_running_)
+    return;
+
+  // Check if all scanner configuration entities are present
+  if (!cmdscan_start_ || !cmdscan_end_ || !cmdscan_pause_)
+    return;
+
+  uint8_t start = static_cast<uint8_t>(cmdscan_start_->state);
+  uint8_t end = static_cast<uint8_t>(cmdscan_end_->state);
+  uint32_t pause = static_cast<uint32_t>(cmdscan_pause_->state);
+
+  // On the first run or when scan was just started, reset to start value
+  if (scanner_last_time_ == 0)
+    scanner_current_ = start;
+
+  uint32_t now = millis();
+  if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
+    if (scanner_current_ <= end) {
+      ESP_LOGD(TAG, "Command scan: sending 0x%02X", scanner_current_);
+      this->transmit_rf_command(scanner_current_);
+      // Update last scanned command sensor (if assigned)
+      if (last_scanned_sensor_ != nullptr)
+        last_scanned_sensor_->publish_state(scanner_current_);
+      scanner_last_time_ = now;
+      scanner_current_++;
+    } else {
+      scanner_running_ = false;
+      ESP_LOGI(TAG, "Command scan finished at command 0x%02X.", scanner_current_ - 1);
+      // Optionally, publish a "done" value to the sensor (not required)
+    }
+  }
+}
+
+/**
+ * @brief Internal: Transmit an arbitrary 8-bit RF command (used by all actions).
+ * @param command 8-bit protocol command
  */
 void HamulightComponent::transmit_rf_command(uint8_t command) {
   ESP_LOGD(TAG, "transmit_rf_command: 0x%02X", command);
-  this->generate_code_sequence(command); // Generates the sequence for the command
-  this->send_rf_signal_rmt();            // Use RMT-based sending on ESP32
+  this->generate_code_sequence(command);
+  this->send_rf_signal_rmt();
 }
 
 /**
- * @brief Public method for sending a specific RF brightness value.
- *
- * Called by the write_state method (for the Home Assistant brightness slider).
- * @param brightness_value The 8-bit brightness value (in the range of RF_SLIDE_RANGE_MIN to RF_SLIDE_RANGE_MAX).
+ * @brief Internal: Transmit a protocol brightness value (as per set_brightness).
+ * @param brightness_value 8-bit protocol value
  */
 void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   ESP_LOGD(TAG, "transmit_rf_brightness: 0x%02X", brightness_value);
-  this->generate_code_sequence(brightness_value); // Generates the sequence for the brightness value
-  this->send_rf_signal_rmt();                     // Use RMT-based sending on ESP32
+  this->generate_code_sequence(brightness_value);
+  this->send_rf_signal_rmt();
 }
 
 /**
- * @brief Sends the generated RF signal using the ESP32 RMT peripheral (ESP32 only).
- *
- * This implementation leverages the ESP32's RMT hardware for precise and non-blocking transmission.
- * The RMT TX channel and encoder are allocated ONCE in setup() and reused for every transmission.
+ * @brief Low-level: Send the code_sequence_[] via ESP32 RMT peripheral.
+ *  - Allocates no hardware resources here (all done in setup)
+ *  - Handles feedback LED on/off
+ *  - Sends start sequence + code sequence, repeated SIGNAL_REPETITIONS times
  */
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 void HamulightComponent::send_rf_signal_rmt() {
   if (this->led_pin_ != nullptr) {
-    this->led_pin_->digital_write(true); // LED ON
+    this->led_pin_->digital_write(true);
   }
 
   if (this->tx_channel_ == nullptr || this->encoder_ == nullptr) {
@@ -288,12 +335,11 @@ void HamulightComponent::send_rf_signal_rmt() {
 
   ESP_LOGD(TAG, "Preparing RMT items buffer...");
 
-  // --- Prepare RMT symbols for the transmission buffer ---
   std::vector<rmt_symbol_word_t> items;
 
-  // Repeat the entire signal transmission multiple times for robustness.
+  // Repeat the transmission for protocol robustness
   for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
-    // Transmission of the start sequence:
+    // Start sequence
     for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
       rmt_symbol_word_t word = {};
       word.level0 = 1;
@@ -302,7 +348,7 @@ void HamulightComponent::send_rf_signal_rmt() {
       word.duration1 = BASE_PULSE * START_SEQUENCE[j + 1];
       items.push_back(word);
     }
-    // Transmission of the code sequence:
+    // Code sequence (payload)
     for (int k = 0; k < CODE_SEQUENCE_SIZE; k += 2) {
       rmt_symbol_word_t word = {};
       word.level0 = 1;
@@ -315,7 +361,6 @@ void HamulightComponent::send_rf_signal_rmt() {
 
   ESP_LOGD(TAG, "Starting RMT transmission: total items = %d", static_cast<int>(items.size()));
 
-  // --- Transmit the buffer using RMT hardware ---
   rmt_transmit_config_t tx_config;
   memset(&tx_config, 0, sizeof(tx_config));
   tx_config.loop_count = 0;
@@ -332,64 +377,10 @@ void HamulightComponent::send_rf_signal_rmt() {
   ESP_LOGD(TAG, "RF signal transmission via RMT completed.");
 
   if (this->led_pin_ != nullptr) {
-    this->led_pin_->digital_write(false); // LED OFF
+    this->led_pin_->digital_write(false);
   }
 }
 #endif
-
-// --- Command Scanner logic called from YAML via id() ---
-
-void HamulightComponent::start_command_scan() {
-  if (!command_scanner_enabled_)
-    return;
-
-  // Get values from YAML number entities using global id()s (see YAML example)
-  // These are set in YAML and accessed in loop() below
-  scanner_running_ = true;
-  scanner_last_time_ = 0; // force send immediately
-  // scanner_current_ will be set in loop by reading id(hamulight_cmdscan_start)
-  ESP_LOGI(TAG, "Command scan started (values will be read from YAML numbers in loop).");
-                                                
-                                                     
-}
-
-void HamulightComponent::stop_command_scan() {
-  if (!command_scanner_enabled_)
-    return;
-  scanner_running_ = false;
-  ESP_LOGI(TAG, "Command scan stopped.");
-}
-
-void HamulightComponent::loop() {
-  // Command scanner non-blocking scan logic using number pointers
-  if (!command_scanner_enabled_ || !scanner_running_)
-    return;
-
-  if (!cmdscan_start_ || !cmdscan_end_ || !cmdscan_pause_)
-    return;
-
-  uint8_t start = (uint8_t)cmdscan_start_->state;
-  uint8_t end = (uint8_t)cmdscan_end_->state;
-  uint32_t pause = (uint32_t)cmdscan_pause_->state;
-
-  if (scanner_last_time_ == 0)
-    scanner_current_ = start; // initialize on first loop
-
-  uint32_t now = millis();
-  if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
-    if (scanner_current_ <= end) {
-      this->transmit_rf_command(scanner_current_);
-      last_scanned_command_ = scanner_current_;
-      scanner_last_time_ = now;
-      scanner_current_++;
-    } else {
-      scanner_running_ = false;
-      ESP_LOGI(TAG, "Command scan finished.");
-    }
-  }
-}
-
-
 
 } // namespace hamulight
 } // namespace esphome
