@@ -79,8 +79,8 @@ void FriedrichClimate::transmit_state() {
   }
 
   ESP_LOGV(TAG, "Transmit state");
-  
-  std::vector<uint8_t> remote_state = {};  
+
+  std::vector<uint8_t> remote_state = {};
   for (uint8_t i = 0; i < STATE_MESSAGE_LENGTH; ++i) {
     remote_state.push_back(0);
   }
@@ -164,7 +164,7 @@ void FriedrichClimate::transmit_state() {
         break;
     }
   }
-  else 
+  else
   {
     ESP_LOGI(TAG, "use_fahrenheit: False is not a valid setting at present, code needs modification.");
   }
@@ -241,7 +241,7 @@ void FriedrichClimate::transmit_off_() {
   ESP_LOGV(TAG, "Transmit off");
 
   if (this->power_) {
-    std::vector<uint8_t> remote_state = {};  
+    std::vector<uint8_t> remote_state = {};
     for (uint8_t i = 0; i < STATE_MESSAGE_LENGTH_UTIL; ++i) {
       remote_state.push_back(0);
     }
@@ -367,7 +367,7 @@ bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
             break;
         }
       }
-      else 
+      else
       {
         ESP_LOGI(TAG, "use_fahrenheit: False is not a valid setting at present, code needs modification.");
       }

@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import climate_ir
 import esphome.config_validation as cv
-from esphome.const import CONF_MODEL,CONF_USE_FAHRENHEIT
+from esphome.const import CONF_MODEL, CONF_USE_FAHRENHEIT
 
 AUTO_LOAD = ["climate_ir"]
 
@@ -21,6 +21,7 @@ CONFIG_SCHEMA = climate_ir.climate_ir_with_receiver_schema(FriedrichClimate).ext
         cv.Optional(CONF_USE_FAHRENHEIT, default=True): cv.boolean,
     }
 )
+
 
 async def to_code(config):
     var = await climate_ir.new_climate_ir(config)

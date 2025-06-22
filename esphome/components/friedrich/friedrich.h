@@ -8,7 +8,7 @@
 
 namespace esphome {
 namespace friedrich {
-  
+
 // Simple enum to represent models.
 // Stub for future develpment of other models, currently nothing depends upon Model.
 enum Model {
@@ -31,7 +31,7 @@ class FriedrichClimate : public climate_ir::ClimateIR {
     this->fahrenheit_ = value;
     this->temperature_step_ = value ? 2.0f : 1.0f;
   }
-  
+
   void set_model(Model model) { this->model_ = model; }
 
  protected:
