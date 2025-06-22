@@ -205,7 +205,10 @@ def test_device_with_invalid_area_id(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
-    assert "Couldn't find ID 'nonexistent_area'" in captured.out
+    assert (
+        "Device 'Test Device' has an area_id 'nonexistent_area' that does not exist."
+        in captured.out
+    )
 
 
 def test_device_id_hash_collision(
