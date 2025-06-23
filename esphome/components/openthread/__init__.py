@@ -61,9 +61,7 @@ def set_sdkconfig_options(config):
             "CONFIG_OPENTHREAD_MESH_LOCAL_PREFIX", f"{mesh_local_prefix}".lower()
         )
     if (pskc := config.get(CONF_PSKC)) is not None:
-        add_idf_sdkconfig_option(
-            "CONFIG_OPENTHREAD_NETWORK_PSKC", f"{pskc:X}".lower()
-        )
+        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PSKC", f"{pskc:X}".lower())
 
     if CONF_FORCE_DATASET in config:
         if config[CONF_FORCE_DATASET]:
