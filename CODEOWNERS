@@ -155,6 +155,7 @@ esphome/components/ethernet_info/* @gtjadsonsantos
 esphome/components/event/* @nohat
 esphome/components/event_emitter/* @Rapsssito
 esphome/components/exposure_notifications/* @OttoWinter
+esphome/components/external_eeprom/* @pebblebed-tech
 esphome/components/ezo/* @ssieb
 esphome/components/ezo_pmp/* @carlos-sarmiento
 esphome/components/factory_reset/* @anatoly-savchenkov
