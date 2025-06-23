@@ -470,11 +470,13 @@ async def to_code(config):
         bufferpixels,
         display_pixel_mode,
         bus_type,
+        width,
+        height,
+        offset_width,
+        offset_height,
         DISPLAY_ROTATIONS[config.get(CONF_ROTATION, 0)],
     )
-    var = cg.new_Pvariable(
-        config[CONF_ID], templateargs, width, height, offset_width, offset_height
-    )
+    var = cg.new_Pvariable(config[CONF_ID], templateargs)
     buffer_size = (
         color_depth // 8 * width * height
         if any(key in config for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD))

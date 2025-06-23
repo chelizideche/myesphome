@@ -1,4 +1,5 @@
 #pragma once
+#include "mipi_spi_base.h"
 
 namespace esphome {
 namespace mipi_spi {
@@ -13,12 +14,11 @@ namespace mipi_spi {
  * @tparam BUS_TYPE The type of the interface bus (single, quad, octal)
  * @tparam ROTATION The rotation of the display
  */
-template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE,
-         display::DisplayRotation ROTATION>
-class MipiSpiBuffer : public MipiSpi {
+template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE, int WIDTH, int HEIGHT,
+         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION>
+class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT, BUS_TYPE> {
  public:
-  MipiSpiBuffer(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
-      : MipiSpi(width, height, offset_width, offset_height) {
+  MipiSpiBuffer() {
     switch (BUFFERPIXEL) {
       case PIXEL_MODE_8:
         this->color_depth_ = display::COLOR_BITNESS_332;
@@ -31,28 +31,29 @@ class MipiSpiBuffer : public MipiSpi {
     }
   }
 
-  void setup() override {
-    MipiSpi::setup();
+  bool buffer_setup_() override {
     if (this->buffer_size_ != 0) {
       RAMAllocator<BUFFERTYPE> allocator{};
       this->buffer_ = allocator.allocate(this->buffer_size_ / sizeof(BUFFERTYPE));
       if (this->buffer_ == nullptr) {
         this->mark_failed("Buffer allocation failed");
+        return false;
       }
       this->clear();
     }
+    return true;
   }
 
   int get_width() override {
     if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES || ROTATION == display::DISPLAY_ROTATION_270_DEGREES)
-      return this->height_;
-    return this->width_;
+      return HEIGHT;
+    return WIDTH;
   }
 
   int get_height() override {
     if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES || ROTATION == display::DISPLAY_ROTATION_270_DEGREES)
-      return this->width_;
-    return this->height_;
+      return WIDTH;
+    return HEIGHT;
   }
 
  protected:
@@ -136,7 +137,7 @@ class MipiSpiBuffer : public MipiSpi {
   std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const BUFFERTYPE *ptr,
                                                                                               size_t w, size_t h,
                                                                                               size_t pad) {
-    MipiSpi::write_command_(WDATA);
+    this->write_command_(WDATA);
     ESP_LOGV(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
     this->enable();
     if (pad == 0) {
@@ -163,71 +164,29 @@ class MipiSpiBuffer : public MipiSpi {
   }
 
   // write a command for various bus types
-  void write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
-    ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
-    if constexpr (BUS_TYPE == BUS_TYPE_QUAD) {
-      this->enable();
-      this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
-      this->disable();
-    } else if constexpr (BUS_TYPE == BUS_TYPE_OCTAL) {
-      this->dc_pin_->digital_write(false);
-      this->enable();
-      this->write_cmd_addr_data(0, 0, 0, 0, &cmd, 1, 8);
-      this->disable();
-      this->dc_pin_->digital_write(true);
-      if (len != 0) {
-        this->enable();
-        this->write_cmd_addr_data(0, 0, 0, 0, bytes, len, 8);
-        this->disable();
-      }
-    } else if constexpr (BUS_TYPE == BUS_TYPE_SINGLE) {
-      this->dc_pin_->digital_write(false);
-      this->enable();
-      this->write_byte(cmd);
-      this->disable();
-      this->dc_pin_->digital_write(true);
-      if (len != 0) {
-        this->enable();
-        this->write_array(bytes, len);
-        this->disable();
-      }
-    } else if constexpr (BUS_TYPE == BUS_TYPE_SINGLE_16) {
-      this->dc_pin_->digital_write(false);
-      this->enable();
-      this->write_byte(cmd);
-      this->disable();
-      this->dc_pin_->digital_write(true);
-      for (size_t i = 0; i != len; i++) {
-        this->enable();
-        this->write_byte(0);
-        this->write_byte(bytes[i]);
-        this->disable();
-      }
-    }
-  }
 
   // methods for drawing pixels with different pixel modes
   void draw_pixel_at(int x, int y, Color color) override {
     if (this->buffer_ == nullptr)
       return;
     if constexpr (ROTATION == display::DISPLAY_ROTATION_180_DEGREES) {
-      x = this->width_ - x - 1;
-      y = this->height_ - y - 1;
+      x = WIDTH - x - 1;
+      y = HEIGHT - y - 1;
     } else if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES) {
       std::swap(x, y);
-      x = this->width_ - x - 1;
+      x = WIDTH - x - 1;
     } else if constexpr (ROTATION == display::DISPLAY_ROTATION_270_DEGREES) {
       std::swap(x, y);
-      y = this->height_ - y - 1;
+      y = HEIGHT - y - 1;
     }
-    if (x < 0 || x >= this->width_ || y < 0 || y >= this->height_)
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
       return;
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
-      this->buffer_[y * this->width_ + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
+      this->buffer_[y * WIDTH + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
     } else if constexpr (BUFFERPIXEL == PIXEL_MODE_16) {
       uint16_t new_color = color.r >> 3 << 11 | color.g >> 2 << 5 | color.b >> 3;
       new_color = (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
-      this->buffer_[y * this->width_ + x] = new_color;
+      this->buffer_[y * WIDTH + x] = new_color;
     }
     if (x < this->x_low_) {
       this->x_low_ = x;
