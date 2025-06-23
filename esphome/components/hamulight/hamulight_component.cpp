@@ -139,7 +139,7 @@ void HamulightComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
   if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms", static_cast<uint8_t>(cmdscan_start_->state),
-              static_cast<uint8_t>(cmdscan_end_->state), static_cast<uint32_t>(cmdscan_pause_->state));
+                    static_cast<uint8_t>(cmdscan_end_->state), static_cast<uint32_t>(cmdscan_pause_->state));
   } else {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: not fully configured");
   }
@@ -168,24 +168,24 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
 
   // Format: [address M] [address L] [command] [checksum]
   combined = ((uint32_t) rf_address_byte0 << 24) | ((uint32_t) rf_address_byte1 << 16) | ((uint32_t) command << 8) |
-           (uint32_t) checksum;
+              (uint32_t) checksum;
 
   ESP_LOGD(TAG, "RF Command: 0x%02X, Combined Signal: 0x%08X", command, combined);
 
   // Manchester encode, writing bits in reverse order for transmission
   // Bits are read from LSB (Bit 0) to MSB (Bit 31) and written in reverse order
   // into the code_sequence_ array to mirror the transmission order.
-  int n = (sizeof(combined) * 8) - 1; // n = 31 for a 32-bit word
+  int n = (sizeof(combined) * 8) - 1;  // n = 31 for a 32-bit word
   for (int i = 0; i < (sizeof(combined) * 8); i++) {
-    bool b = (combined >> i) & 1; // Reads the i-th bit from 'combined'
+    bool b = (combined >> i) & 1;  // Reads the i-th bit from 'combined'
     // Calculates the position in the code_sequence_ array.
     // (n - i) * 2 reverses the bit order and multiplies by 2, since each bit consists of 2 pulses.
     int current_sequence_pos = (n - i) * 2;
-    if (b) { 
+    if (b) {
       // If the bit is 1, use the BIT1_PULSE values
       code_sequence_[current_sequence_pos] = BIT1_PULSE[0];
       code_sequence_[current_sequence_pos + 1] = BIT1_PULSE[1];
-    } else { 
+    } else {
       // If the bit is 0, use the BIT0_PULSE values
       code_sequence_[current_sequence_pos] = BIT0_PULSE[0];
       code_sequence_[current_sequence_pos + 1] = BIT0_PULSE[1];
@@ -314,7 +314,7 @@ void HamulightComponent::send_rf_signal_rmt() {
   ESP_LOGD(TAG, "Preparing RMT items buffer...");
 
   std::vector<rmt_symbol_word_t> items;
- 
+
   // Compose the full RF transmission: START_SEQUENCE and code_sequence_
   // Repeat the transmission for protocol robustness - probalby to be dismissed due to HA sending command repeatedly
   for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
