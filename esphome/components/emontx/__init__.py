@@ -1,5 +1,6 @@
 import logging
 
+from esphome import yaml_util
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
@@ -29,6 +30,44 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
 )
 
 
+# Store original load_config function to patch
+original_load_yaml = yaml_util.load_yaml
+
+
+# Intercept YAML loading to inject our MQTT settings very early in the process
+def patched_load_yaml(fname):
+    config = original_load_yaml(fname)
+
+    # Check if we have both MQTT and EmonTX with MQTT config
+    if (
+        "mqtt" in config
+        and "emontx" in config
+        and isinstance(config["emontx"], dict)
+        and CONF_MQTT in config["emontx"]
+    ):
+        emontx_mqtt = config["emontx"][CONF_MQTT]
+
+        # Transfer topic_prefix if present
+        if CONF_TOPIC_PREFIX in emontx_mqtt:
+            topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
+            logging.warning(
+                f"*** INJECTING MQTT topic_prefix '{topic_prefix}' from EmonTX ***"
+            )
+            config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
+
+        # Transfer discovery setting if present
+        if CONF_DISCOVERY in emontx_mqtt:
+            discovery = emontx_mqtt[CONF_DISCOVERY]
+            logging.warning(f"*** INJECTING MQTT discovery {discovery} from EmonTX ***")
+            config["mqtt"][CONF_DISCOVERY] = discovery
+
+    return config
+
+
+# Apply the patch
+yaml_util.load_yaml = patched_load_yaml
+
+
 # Create a reusable function to validate non-empty strings
 def not_empty(name):
     def validator(value):
@@ -38,30 +77,6 @@ def not_empty(name):
         return value
 
     return validator
-
-
-# This function modifies the raw config before component validation happens
-def preprocess_config(config):
-    # Make sure we have both emontx with MQTT and mqtt component
-    if CONF_MQTT in config and "mqtt" in config:
-        emontx_mqtt = config[CONF_MQTT]
-        mqtt_config = config["mqtt"]
-
-        # Transfer topic_prefix if set
-        if CONF_TOPIC_PREFIX in emontx_mqtt:
-            topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
-            logging.info(
-                f"Setting MQTT topic_prefix to '{topic_prefix}' from EmonTX config"
-            )
-            mqtt_config[CONF_TOPIC_PREFIX] = topic_prefix
-
-        # Transfer discovery setting if set
-        if CONF_DISCOVERY in emontx_mqtt:
-            discovery = emontx_mqtt[CONF_DISCOVERY]
-            logging.info(f"Setting MQTT discovery to {discovery} from EmonTX config")
-            mqtt_config[CONF_DISCOVERY] = discovery
-
-    return config
 
 
 # Simple yet effective server URL validation
@@ -131,7 +146,6 @@ def validate_mqtt_forward(config):
 
 
 CONFIG_SCHEMA = cv.All(
-    preprocess_config,
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
