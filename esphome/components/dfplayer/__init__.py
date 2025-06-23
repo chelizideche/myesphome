@@ -359,6 +359,7 @@ async def dfplayer_random_to_code(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     return var
 
+
 @automation.register_action(
     "dfplayer.enable_loop",
     EnableLoopAction,
@@ -373,6 +374,7 @@ async def dfplayer_enable_loop_to_code(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     return var
 
+
 @automation.register_action(
     "dfplayer.disable_loop",
     DisableLoopAction,
@@ -386,6 +388,7 @@ async def dfplayer_disable_loop_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     return var
+
 
 @automation.register_condition(
     "dfplayer.is_playing",
