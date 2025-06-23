@@ -38,7 +38,7 @@ struct PacketInfo {
       : message_type(type), offset(off), payload_size(size), padding(0) {}
 };
 
-enum class APIError : int {
+enum class APIError : uint16_t {
   OK = 0,
   WOULD_BLOCK = 1001,
   BAD_HANDSHAKE_PACKET_LEN = 1002,
