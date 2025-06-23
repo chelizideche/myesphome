@@ -46,8 +46,8 @@ void HOT Logger::log_vprintf_(uint8_t level, const char *tag, int line, const ch
   bool message_sent = false;
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
-  message_sent = this->log_buffer_->send_message_thread_safe(level, tag,
-                                                             static_cast<uint16_t>(line), current_task, format, args);
+  message_sent =
+      this->log_buffer_->send_message_thread_safe(level, tag, static_cast<uint16_t>(line), current_task, format, args);
   if (message_sent) {
     // Enable logger loop to process the buffered message
     // This is safe to call from any context including ISRs
