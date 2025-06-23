@@ -12,7 +12,8 @@ namespace mipi_spi {
  * @tparam DISPLAYPIXEL Color depth of the display
  * @tparam BUS_TYPE The type of the interface bus (single, quad, octal)
  */
-template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class MipiSpiBuffer : public MipiSpi {
+template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE>
+class MipiSpiBuffer : public MipiSpi {
  public:
   MipiSpiBuffer(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
       : MipiSpi(width, height, offset_width, offset_height) {
@@ -28,9 +29,21 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
     }
   }
 
+  void setup() override {
+    MipiSpi::setup();
+    if (this->buffer_size_ != 0) {
+      RAMAllocator<BUFFERTYPE> allocator{};
+      this->buffer_ = allocator.allocate(this->buffer_size_ / sizeof(BUFFERTYPE));
+      if (this->buffer_ == nullptr) {
+        this->mark_failed("Buffer allocation failed");
+      }
+      this->clear();
+    }
+  }
+
  protected:
   size_t get_buffer_bits_() const override {
-    return BUFFERPIXEL * 8;  // return the number of bits in a pixel
+    return sizeof(BUFFERTYPE) * 8;  // return the number of bits in a pixel
   }
 
   size_t get_display_bits_() const override { return DISPLAYPIXEL * 8; }
@@ -39,39 +52,24 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
     return BUS_TYPE;  // return the number of bits in a bus transfer
   }
 
-  bool check_buffer_() {
-    if (this->is_failed())
-      return false;
-    if (this->buffer_ != nullptr)
-      return true;
-    this->init_internal_(this->width_ * this->height_ * BUFFERPIXEL);
-    if (this->buffer_ == nullptr) {
-      this->mark_failed();
-      return false;
-    }
-    this->buffer_bytes_ = this->width_ * this->height_ * BUFFERPIXEL;
-    return true;
-  }
-
   // functions to convert from one pixel format to another
 
   template<PixelMode B = BUFFERPIXEL, PixelMode D = DISPLAYPIXEL>
   static std::enable_if_t<(B == PIXEL_MODE_8 && D == PIXEL_MODE_16), void> convert_pixel_(const uint8_t *&from,
-                                                                                          uint8_t *&to) {
+                                                                                          uint16_t *&to) {
     auto color_val = *from++;
     *to++ = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
     *to++ = (color_val & 0x3) << 3;
   }
 
   template<PixelMode B = BUFFERPIXEL, PixelMode D = DISPLAYPIXEL>
-  static std::enable_if_t<(B == PIXEL_MODE_16 && D == PIXEL_MODE_18), void> convert_pixel_(const uint8_t *&from,
+  static std::enable_if_t<(B == PIXEL_MODE_16 && D == PIXEL_MODE_18), void> convert_pixel_(const uint16_t *&from,
                                                                                            uint8_t *&to) {
-    uint16_t color_val = *from++ << 8;  // Read the high byte
-    color_val |= *from++;
+    uint16_t color_val = *from++;
     // deal with byte swapping
-    *to++ = (color_val & 0xF8);                                       // Blue
+    *to++ = color_val << 3;                                           // blue
     *to++ = ((color_val & 0x7) << 5) | ((color_val & 0xE000) >> 11);  // Green
-    *to++ = (color_val >> 5) & 0xF8;                                  // Red
+    *to++ = color_val >> 11 << 3;
   }
 
   template<PixelMode B = BUFFERPIXEL, PixelMode D = DISPLAYPIXEL>
@@ -88,14 +86,16 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
   // width and pad are in bytes, height in rows
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_QUAD, void> write_display_data_(const uint8_t *ptr, size_t w, size_t h, size_t pad) {
+  std::enable_if_t<M == BUS_TYPE_QUAD, void> write_display_data_(const BUFFERTYPE *ptr, size_t w, size_t h,
+                                                                 size_t pad) {
     this->enable();
     if (pad == 0) {
-      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h, 4);
+      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, reinterpret_cast<const uint8_t *>(ptr),
+                                w * h * sizeof(BUFFERTYPE), 4);
     } else {
       this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
       for (int y = 0; y != h; y++) {
-        this->write_cmd_addr_data(0, 0, 0, 0, ptr, w, 4);
+        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE), 4);
         ptr += w + pad;
       }
     }
@@ -103,14 +103,15 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
   }
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_OCTAL, void> write_display_data_(const uint8_t *ptr, size_t w, size_t h, size_t pad) {
+  std::enable_if_t<M == BUS_TYPE_OCTAL, void> write_display_data_(const BUFFERTYPE *ptr, size_t w, size_t h,
+                                                                  size_t pad) {
     this->write_command_(WDATA);
     this->enable();
     if (pad == 0) {
-      this->write_cmd_addr_data(0, 0, 0, 0, ptr, w * h, 8);
+      this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * h * sizeof(BUFFERTYPE), 8);
     } else {
       for (int y = 0; y != h; y++) {
-        this->write_cmd_addr_data(0, 0, 0, 0, ptr, w, 8);
+        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE), 8);
         ptr += w + pad;
       }
     }
@@ -118,16 +119,17 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
   }
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const uint8_t *ptr,
+  std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const BUFFERTYPE *ptr,
                                                                                               size_t w, size_t h,
                                                                                               size_t pad) {
     MipiSpi::write_command_(WDATA);
+    ESP_LOGV(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
     this->enable();
     if (pad == 0) {
-      this->write_array(ptr, w * h);
+      this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h * sizeof(BUFFERTYPE));
     } else {
       for (int y = 0; y != h; y++) {
-        this->write_array(ptr, w);
+        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE));
         ptr += w + pad;
       }
     }
@@ -135,12 +137,14 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
   }
 
   // Write to display, with the same pixel mode for buffer and display
-  void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+  void write_to_display_(int x_start, int y_start, int w, int h, const void *ptr, int x_offset, int y_offset,
                          int x_pad) override {
+    if (ptr == nullptr)
+      ptr = this->buffer_;
     this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
     if constexpr (BUFFERPIXEL == DISPLAYPIXEL) {
-      ptr += y_offset * (x_offset + w + x_pad) * BUFFERPIXEL + x_offset * BUFFERPIXEL;
-      this->write_display_data_(ptr, w * BUFFERPIXEL, h, x_pad * BUFFERPIXEL);
+      const auto *ptr_cast = static_cast<const BUFFERTYPE *>(ptr) + y_offset * (x_offset + w + x_pad) + x_offset;
+      this->write_display_data_(ptr_cast, w, h, x_pad);
     }
   }
 
@@ -189,18 +193,17 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
   }
 
   // methods for drawing pixels with different pixel modes
-  void draw_absolute_pixel_internal(int x, int y, Color color) override {
-    if (!this->check_buffer_())
+  void draw_pixel_at(int x, int y, Color color) override {
+    if (this->buffer_ == nullptr)
       return;
     if (x < 0 || x >= this->width_ || y < 0 || y >= this->height_)
       return;
-    uint8_t *ptr = this->buffer_ + (y * this->width_ + x) * BUFFERPIXEL;
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
-      *ptr = (color.red & 0xE000) + ((color.g & 0xE000) >> 3) + ((color.b & 0xC000) >> 6);
+      this->buffer_[y * this->width_ + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
     } else if constexpr (BUFFERPIXEL == PIXEL_MODE_16) {
-      uint16_t new_color = (color.red & 0xF800) + ((color.g & 0xFC00) >> 5) + ((color.b & 0xF800) >> 11);
-      *ptr++ = new_color >> 8;
-      *ptr = new_color & 0xFF;
+      uint16_t new_color = color.r >> 3 << 11 | color.g >> 2 << 5 | color.b >> 3;
+      new_color = (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
+      this->buffer_[y * this->width_ + x] = new_color;
     }
     if (x < this->x_low_) {
       this->x_low_ = x;
@@ -211,7 +214,12 @@ template<PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE> class 
     if (y < this->y_low_) {
       this->y_low_ = y;
     }
+    if (y > this->y_high_) {
+      this->y_high_ = y;
+    }
   }
+
+  BUFFERTYPE *buffer_{nullptr};
 };
 
 }  // namespace mipi_spi

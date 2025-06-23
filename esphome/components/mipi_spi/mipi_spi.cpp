@@ -79,18 +79,28 @@ void MipiSpi::setup() {
         delay(10);
     }
   }
-  this->setup_complete_ = true;
   this->init_sequence_.clear();
   ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
 
 void MipiSpi::update() {
   ESP_LOGV(TAG, "Update called");
-  if (!this->setup_complete_ || this->is_failed()) {
+  if (this->buffer_size_ == 0 || this->is_failed()) {
     return;
   }
-  this->do_update_();
-  if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
+  if (this->auto_clear_enabled_) {
+    this->clear();
+  }
+  if (this->show_test_card_) {
+    this->test_card();
+  } else if (this->page_ != nullptr) {
+    this->page_->get_writer()(*this);
+  } else if (this->writer_.has_value()) {
+    (*this->writer_)(*this);
+  } else {
+    return;
+  }
+  if (this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
     return;
   ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
   // Some chips require that the drawing window be aligned on certain boundaries
@@ -101,7 +111,7 @@ void MipiSpi::update() {
   this->y_high_ = (this->y_high_ + dr) / dr * dr - 1;
   int w = this->x_high_ - this->x_low_ + 1;
   int h = this->y_high_ - this->y_low_ + 1;
-  this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, nullptr, this->x_low_, this->y_low_,
                           this->width_ - w - this->x_low_);
   // invalidate watermarks
   this->x_low_ = this->width_;
@@ -193,10 +203,12 @@ void MipiSpi::dump_config() {
                 "  Invert colors: %s\n"
                 "  Color order: %s\n"
                 "  Buffer pixels: %d bits\n"
-                "  Display pixels: %d bits",
+                "  Display pixels: %d bits"
+                "  Buffer size: %zu bytes",
                 YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
                 YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), YESNO(this->invert_colors_),
-                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->get_buffer_bits_(), this->get_display_bits_());
+                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->get_buffer_bits_(), this->get_display_bits_(),
+                this->buffer_size_);
   if (this->brightness_.has_value())
     ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
   ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);

@@ -24,6 +24,7 @@ from esphome.const import (
     CONF_MODEL,
     CONF_OFFSET_HEIGHT,
     CONF_OFFSET_WIDTH,
+    CONF_PAGES,
     CONF_RESET_PIN,
     CONF_ROTATION,
     CONF_SWAP_XY,
@@ -34,6 +35,7 @@ from esphome.core import TimePeriod
 
 from ...cpp_generator import TemplateArguments
 from ..const import CONF_DRAW_ROUNDING
+from ..display import CONF_SHOW_TEST_CARD
 from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
@@ -452,7 +454,8 @@ async def to_code(config):
     color_depth = config[CONF_COLOR_DEPTH]
     if color_depth.endswith("bit"):
         color_depth = color_depth[:-3]
-    color_depth = COLOR_DEPTHS[int(color_depth)]
+    color_depth = int(color_depth)
+    bufferpixels = COLOR_DEPTHS[color_depth]
 
     display_pixel_mode = DISPLAY_PIXEL_MODES[config[CONF_PIXEL_MODE]][1]
     bus_type = config[CONF_BUS_MODE]
@@ -461,10 +464,20 @@ async def to_code(config):
         bus_type = BusType.BUS_TYPE_SINGLE_16
     else:
         bus_type = BusTypes[bus_type]
-    templateargs = TemplateArguments(color_depth, display_pixel_mode, bus_type)
+    buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
+    templateargs = TemplateArguments(
+        buffer_type, bufferpixels, display_pixel_mode, bus_type
+    )
     var = cg.new_Pvariable(
         config[CONF_ID], templateargs, width, height, offset_width, offset_height
     )
+    buffer_size = (
+        color_depth // 8 * width * height
+        if any(key in config for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD))
+        else 0
+    )
+    if buffer_size != 0:
+        cg.add(var.set_buffer_size(buffer_size))
     cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
         if CONF_TRANSFORM in config:

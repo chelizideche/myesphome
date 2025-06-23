@@ -4,7 +4,6 @@
 
 #include "esphome/components/spi/spi.h"
 #include "esphome/components/display/display.h"
-#include "esphome/components/display/display_buffer.h"
 #include "esphome/components/display/display_color_utils.h"
 
 namespace esphome {
@@ -65,7 +64,7 @@ enum BusType {
  * This defines methods and properties that don't depend on the pixel mode or bus type.
  */
 
-class MipiSpi : public display::DisplayBuffer,
+class MipiSpi : public display::Display,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
@@ -92,9 +91,9 @@ class MipiSpi : public display::DisplayBuffer,
 
   int get_width_internal() override { return this->width_; }
   int get_height_internal() override { return this->height_; }
-  bool can_proceed() override { return this->setup_complete_; }
   void set_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequence_ = sequence; }
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
+  void set_buffer_size(signed long buffer_size) { this->buffer_size_ = buffer_size; }
 
  protected:
   /* METHODS */
@@ -113,7 +112,7 @@ class MipiSpi : public display::DisplayBuffer,
   // virtual functions implemented in templated subclasses
 
   // Writes a buffer to the display.
-  virtual void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+  virtual void write_to_display_(int x_start, int y_start, int w, int h, const void *ptr, int x_offset, int y_offset,
                                  int x_pad) = 0;
   // Writes a command to the display, with the given bytes.
   virtual void write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) = 0;
@@ -150,7 +149,7 @@ class MipiSpi : public display::DisplayBuffer,
   uint16_t x_high_{0};
   uint16_t y_high_{0};
   bool setup_complete_{};
-  size_t buffer_bytes_{0};
+  size_t buffer_size_{0};  // buffer size in bytes, 0 means no buffer
   uint8_t madctl_{};
 };
 
