@@ -252,7 +252,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
       std::string value;
       if (kv.value().is<float>() || kv.value().is<int>()) {
         value = to_string(kv.value().as<float>());
-      } else if (kv.value().is<const char *>() || kv.value().is<char *>()) {
+      } else if (kv.value().is<const char *>()) {
         value = kv.value().as<const char *>();
       } else {
         value = "unknown";
