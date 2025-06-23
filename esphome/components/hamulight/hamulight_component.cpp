@@ -11,7 +11,7 @@
  *
  * All configuration and entity wiring is handled in __init__.py.
  *
- * Author: madmat17
+ * Author: madmat17, 2025/06
  */
 
 #include "hamulight_component.h"
