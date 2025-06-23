@@ -207,11 +207,9 @@ void APIConnection::loop() {
   }
 #endif
 
-  if (state_subs_at_ != -1) {
+  if (state_subs_at_ >= 0) {
     const auto &subs = this->parent_->get_state_subs();
-    if (state_subs_at_ >= (int) subs.size()) {
-      state_subs_at_ = -1;
-    } else {
+    if (state_subs_at_ < static_cast<int>(subs.size())) {
       auto &it = subs[state_subs_at_];
       SubscribeHomeAssistantStateResponse resp;
       resp.entity_id = it.entity_id;
@@ -220,6 +218,8 @@ void APIConnection::loop() {
       if (this->send_message(resp)) {
         state_subs_at_++;
       }
+    } else {
+      state_subs_at_ = -1;
     }
   }
 }
