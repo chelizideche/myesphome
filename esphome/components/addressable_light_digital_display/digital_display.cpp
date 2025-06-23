@@ -74,7 +74,11 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
   uint8_t led_index = 0;
   uint8_t bit_locator = 0;
   char current_char = ' ';
-  uint8_t max_char = strlen(str);
+  uint8_t max_char = strlen(str) > this->max_characters_ ? this->max_characters_ : strlen(str);
+  if (strlen(str) > this->max_characters_) {
+    ESP_LOGW(TAG, "Input string exceeds max_characters_ (%d). Truncating to %d characters.", this->max_characters_,
+             this->max_characters_);
+  }
   uint8_t max_led = this->num_leds_;
   bool reverse = this->reverse_;
   char current_map_char;
