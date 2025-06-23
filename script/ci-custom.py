@@ -293,6 +293,7 @@ def highlight(s):
         "esphome/components/socket/headers.h",
         "esphome/core/defines.h",
         "esphome/components/http_request/httplib.h",
+        "esphome/core/span.h",
     ],
 )
 def lint_no_defines(fname, match):
