@@ -1,6 +1,6 @@
 import esphome.codegen as cg
+from esphome.components import ble_client, climate
 import esphome.config_validation as cv
-from esphome.components import climate, ble_client
 from esphome.const import CONF_ID
 
 CODEOWNERS = ["@Petapton"]
@@ -12,7 +12,7 @@ Madoka = madoka_ns.class_(
 )
 
 CONFIG_SCHEMA = (
-    climate.CLIMATE_SCHEMA.extend(
+    climate.climate_schema(
         {
             cv.GenerateID(): cv.declare_id(Madoka),
         }
