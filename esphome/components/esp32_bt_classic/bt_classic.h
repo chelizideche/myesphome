@@ -186,7 +186,7 @@ class ESP32BtClassic : public Component, public BtClassicItf {
   std::vector<BtClassicScanResultListner *> scan_result_listners_;
 
   // Ble-Queue which thread safety precautions:
-  esp32_bt_common::Queue<BtGapEvent> bt_events_;
+  esp32_bt_common::LockFreeQueue<BtGapEvent, 16> bt_events_;
 
 #ifdef USE_BUTTON
   button::Button *reset_bt_stack_button_{nullptr};
