@@ -4,7 +4,6 @@ import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
-from esphome.core import CORE
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -87,32 +86,22 @@ def validate_emoncms(config):
 
 # This will be called early during config validation
 def pre_validate_config(config):
-    # Check if EmonTX has MQTT configuration
-    if CONF_MQTT in config:
-        mqtt_config = config[CONF_MQTT]
+    # Check if this config contains both EmonTX with MQTT settings AND mqtt component
+    if CONF_MQTT in config and "mqtt" in config:
+        emontx_mqtt_config = config[CONF_MQTT]
+        mqtt_config = config["mqtt"]
 
-        # If we have topic_prefix and/or discovery in EmonTX's MQTT config
-        if CONF_TOPIC_PREFIX in mqtt_config or CONF_DISCOVERY in mqtt_config:
-            # Make sure the global MQTT component exists
-            if "mqtt" not in CORE.config:
-                logging.warning(
-                    "EmonTX has MQTT configuration but no global MQTT component found"
-                )
-                return config
+        # Transfer topic_prefix from EmonTX to mqtt config if defined
+        if CONF_TOPIC_PREFIX in emontx_mqtt_config:
+            topic_prefix = emontx_mqtt_config[CONF_TOPIC_PREFIX]
+            logging.info(f"Injecting topic_prefix from EmonTX: {topic_prefix}")
+            mqtt_config[CONF_TOPIC_PREFIX] = topic_prefix
 
-            # Forward topic_prefix if provided
-            if CONF_TOPIC_PREFIX in mqtt_config:
-                topic_prefix = mqtt_config[CONF_TOPIC_PREFIX]
-                logging.info(
-                    f"EmonTX: Setting global MQTT topic_prefix to '{topic_prefix}'"
-                )
-                CORE.config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
-
-            # Forward discovery setting if provided
-            if CONF_DISCOVERY in mqtt_config:
-                discovery = mqtt_config[CONF_DISCOVERY]
-                logging.info(f"EmonTX: Setting global MQTT discovery to '{discovery}'")
-                CORE.config["mqtt"][CONF_DISCOVERY] = discovery
+        # Transfer discovery setting from EmonTX to mqtt config if defined
+        if CONF_DISCOVERY in emontx_mqtt_config:
+            discovery = emontx_mqtt_config[CONF_DISCOVERY]
+            logging.info(f"Injecting discovery from EmonTX: {discovery}")
+            mqtt_config[CONF_DISCOVERY] = discovery
 
     return config
 
