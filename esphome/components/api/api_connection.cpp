@@ -158,7 +158,7 @@ void APIConnection::loop() {
 
   if (!this->list_entities_iterator_.completed())
     this->list_entities_iterator_.advance();
-  if (!this->initial_state_iterator_.completed() && this->list_entities_iterator_.completed())
+  else if (!this->initial_state_iterator_.completed())
     this->initial_state_iterator_.advance();
 
   static uint8_t max_ping_retries = 60;

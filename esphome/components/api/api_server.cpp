@@ -136,7 +136,7 @@ void APIServer::schedule_reboot_timeout_() {
 
 void APIServer::loop() {
   // Accept new clients only if the socket exists and has incoming connections
-  if (this->socket_ && this->socket_->ready()) {
+  if (this->socket_->ready()) {
     while (true) {
       struct sockaddr_storage source_addr;
       socklen_t addr_len = sizeof(source_addr);
