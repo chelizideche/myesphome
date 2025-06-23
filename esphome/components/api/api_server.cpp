@@ -157,11 +157,11 @@ void APIServer::loop() {
     }
   }
 
-  // Process clients and remove disconnected ones in a single pass
   if (this->clients_.empty()) {
     return;
   }
 
+  // Process clients and remove disconnected ones in a single pass
   // Check network connectivity once for all clients
   if (!network::is_connected()) {
     // Network is down - disconnect all clients
