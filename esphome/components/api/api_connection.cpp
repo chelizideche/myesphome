@@ -200,9 +200,9 @@ void APIConnection::loop() {
 
     if (success) {
       this->image_reader_.consume_data(to_send);
-    }
-    if (success && done) {
-      this->image_reader_.return_image();
+      if (done) {
+        this->image_reader_.return_image();
+      }
     }
   }
 #endif
