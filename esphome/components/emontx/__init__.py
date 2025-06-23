@@ -2,6 +2,7 @@ import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.core import CORE
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -98,7 +99,7 @@ def validate_emoncms(config):
     return config
 
 
-# Validate MQTT forward config
+# Validate MQTT forward config and modify MQTT component config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
     if CONF_MQTT in config:
@@ -113,8 +114,24 @@ def validate_mqtt_forward(config):
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
         # Add MQTT component as a dependency
-        # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
+
+        # Get the topic prefix from our component's configuration
+        topic_prefix = config[CONF_MQTT][CONF_TOPIC_PREFIX]
+
+        # Inject settings into the MQTT component configuration
+        # This modifies the actual MQTT component configuration
+        if CORE.raw_config.get("mqtt", None) is not None:
+            mqtt_config = CORE.raw_config["mqtt"]
+
+            # Set the topic prefix in the MQTT config
+            mqtt_config["topic_prefix"] = topic_prefix
+
+            # Set discovery to false
+            mqtt_config["discovery"] = False
+
+            # Update the config in CORE
+            CORE.raw_config["mqtt"] = mqtt_config
 
     return config
 

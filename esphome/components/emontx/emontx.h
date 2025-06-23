@@ -77,9 +77,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
     mqtt_topic_prefix_ = topic_prefix;
     has_mqtt_config_ = true;
   }
-
-  // Override setup priority to run before MQTT when needed
-  float get_setup_priority() const override { return setup_priority::AFTER_CONNECTION + 1.0f; }
 #endif
 
  protected:
