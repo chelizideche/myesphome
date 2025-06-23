@@ -143,7 +143,7 @@ void APIServer::loop() {
       auto sock = this->socket_->accept_loop_monitored((struct sockaddr *) &source_addr, &addr_len);
       if (!sock)
         break;
-      ESP_LOGD(TAG, "Accepted %s", sock->getpeername().c_str());
+      ESP_LOGD(TAG, "Accept %s", sock->getpeername().c_str());
 
       auto *conn = new APIConnection(std::move(sock), this);
       this->clients_.emplace_back(conn);
