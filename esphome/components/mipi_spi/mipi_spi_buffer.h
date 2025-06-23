@@ -101,16 +101,14 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
   // width and pad are in bytes, height in rows
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_QUAD, void> write_display_data_(const BUFFERTYPE *ptr, size_t w, size_t h,
-                                                                 size_t pad) {
+  std::enable_if_t<M == BUS_TYPE_QUAD, void> write_display_data_(const uint8_t *ptr, size_t w, size_t h, size_t pad) {
     this->enable();
     if (pad == 0) {
-      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, reinterpret_cast<const uint8_t *>(ptr),
-                                w * h * sizeof(BUFFERTYPE), 4);
+      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h, 4);
     } else {
       this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
       for (int y = 0; y != h; y++) {
-        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE), 4);
+        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w, 4);
         ptr += w + pad;
       }
     }
@@ -118,15 +116,14 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
   }
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_OCTAL, void> write_display_data_(const BUFFERTYPE *ptr, size_t w, size_t h,
-                                                                  size_t pad) {
+  std::enable_if_t<M == BUS_TYPE_OCTAL, void> write_display_data_(const uint8_t *ptr, size_t w, size_t h, size_t pad) {
     this->write_command_(WDATA);
     this->enable();
     if (pad == 0) {
-      this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * h * sizeof(BUFFERTYPE), 8);
+      this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * h, 8);
     } else {
       for (int y = 0; y != h; y++) {
-        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE), 8);
+        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w, 8);
         ptr += w + pad;
       }
     }
@@ -134,32 +131,46 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
   }
 
   template<BusType M = BUS_TYPE>
-  std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const BUFFERTYPE *ptr,
+  std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const uint8_t *ptr,
                                                                                               size_t w, size_t h,
                                                                                               size_t pad) {
     this->write_command_(WDATA);
     ESP_LOGV(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
     this->enable();
     if (pad == 0) {
-      this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h * sizeof(BUFFERTYPE));
+      this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h);
     } else {
       for (int y = 0; y != h; y++) {
-        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE));
+        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w);
         ptr += w + pad;
       }
     }
     this->disable();
   }
 
-  // Write to display, with the same pixel mode for buffer and display
   void write_to_display_(int x_start, int y_start, int w, int h, const void *ptr, int x_offset, int y_offset,
                          int x_pad) override {
     if (ptr == nullptr)
       ptr = this->buffer_;
     this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
+    const auto *ptr_cast = static_cast<const BUFFERTYPE *>(ptr) + y_offset * (x_offset + w + x_pad) + x_offset;
     if constexpr (BUFFERPIXEL == DISPLAYPIXEL) {
-      const auto *ptr_cast = static_cast<const BUFFERTYPE *>(ptr) + y_offset * (x_offset + w + x_pad) + x_offset;
-      this->write_display_data_(ptr_cast, w, h, x_pad);
+      this->write_display_data_(ptr_cast, w * sizeof(BUFFERTYPE), h, x_pad);
+    } else {
+      uint8_t dbuffer[6 * 4 * WIDTH];
+      uint8_t *dptr = dbuffer;
+      for (size_t y = 0; y != h; y++) {
+        for (size_t x = 0; x != w; x++) {
+          convert_pixel_<BUFFERPIXEL, DISPLAYPIXEL>(ptr_cast, dptr);
+          if (dptr == dbuffer + sizeof(dbuffer)) {
+            this->write_display_data_(dbuffer, sizeof(dbuffer), 1, 0);
+            dptr = dbuffer;
+          }
+        }
+      }
+      if (dptr != dbuffer) {
+        this->write_display_data_(dbuffer, dptr - dbuffer, 1, 0);
+      }
     }
   }
 
