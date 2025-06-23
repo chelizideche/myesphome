@@ -128,7 +128,7 @@ void APIServer::schedule_reboot_timeout_() {
   this->status_set_warning();
   this->set_timeout("api_reboot", this->reboot_timeout_, []() {
     if (!global_api_server->is_connected()) {
-      ESP_LOGE(TAG, "No client connected; rebooting");
+      ESP_LOGE(TAG, "No clients; rebooting");
       App.reboot();
     }
   });
