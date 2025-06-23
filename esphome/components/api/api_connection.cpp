@@ -156,8 +156,7 @@ void APIConnection::loop() {
 
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
-    static constexpr uint32_t keepalive_disconnect_timeout = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
-    if (now - this->last_traffic_ > keepalive_disconnect_timeout) {
+    if (now - this->last_traffic_ > KEEPALIVE_DISCONNECT_TIMEOUT) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->get_client_combined_info().c_str());
     }
