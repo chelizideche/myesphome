@@ -35,6 +35,7 @@ namespace api {
 static constexpr uint8_t MAX_MESSAGES_PER_LOOP = 5;
 static constexpr uint8_t MAX_PING_RETRIES = 60;
 static constexpr uint16_t PING_RETRY_INTERVAL = 1000;
+static constexpr uint32_t KEEPALIVE_DISCONNECT_TIMEOUT = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
 
 static const char *const TAG = "api.connection";
 static const int ESP32_CAMERA_STOP_STREAM = 5000;
