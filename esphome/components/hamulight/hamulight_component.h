@@ -110,10 +110,10 @@ class HamulightComponent : public Component {
   rmt_channel_handle_t tx_channel_{nullptr};
   rmt_encoder_handle_t encoder_{nullptr};
 
-  void generate_code_sequence(uint8_t command);
-  void send_rf_signal_rmt();
-  void transmit_rf_command(uint8_t command);
-  void transmit_rf_brightness(uint8_t brightness_value);
+  void generate_code_sequence_(uint8_t command);
+  void send_rf_signal_rmt_();
+  void transmit_rf_command_(uint8_t command);
+  void transmit_rf_brightness_(uint8_t brightness_value);
 
   uint16_t code_sequence_[CODE_SEQUENCE_SIZE];
   bool scanner_running_{false};
