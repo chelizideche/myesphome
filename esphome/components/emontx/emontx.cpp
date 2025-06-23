@@ -60,8 +60,21 @@ void EmonTx::setup() {
   if (has_mqtt_config_) {
     ESP_LOGCONFIG(TAG, "MQTT forwarding enabled:");
     ESP_LOGCONFIG(TAG, "  Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+
     ESP_LOGCONFIG(TAG, "  Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
+    // Disable global discovery directly in setup
+    if (mqtt::global_mqtt_client != nullptr) {
+      ESP_LOGI(TAG, "Attempting to disable global MQTT discovery");
+      mqtt::global_mqtt_client->disable_discovery();
+      ESP_LOGI(TAG, "Global MQTT discovery disabled successfully");
+    } else {
+      ESP_LOGW(TAG, "Could not disable discovery - MQTT client not available");
+    }
+
+    ESP_LOGCONFIG(
+        TAG, "  Global MQTT discovery: %s",
+        mqtt::global_mqtt_client && mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
   }
 #endif
 }

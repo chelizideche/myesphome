@@ -148,7 +148,10 @@ async def to_code(config):
     # Set MQTT forwarding if configured
     if CONF_MQTT in config:
         mqtt_config = config[CONF_MQTT]
-        cg.add(var.set_mqtt_forward(mqtt_config[CONF_TOPIC_PREFIX]))
+        topic_prefix = mqtt_config[CONF_TOPIC_PREFIX]
+        discovery = mqtt_config.get(CONF_DISCOVERY, False)
+
+        cg.add(var.set_mqtt_forward(topic_prefix, discovery))
 
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:

@@ -73,8 +73,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding configuration
-  void set_mqtt_forward(const std::string &topic_prefix) {
+  void set_mqtt_forward(const std::string &topic_prefix, bool discovery) {
     mqtt_topic_prefix_ = topic_prefix;
+    mqtt_discovery_ = discovery;
     has_mqtt_config_ = true;
   }
 #endif
@@ -104,6 +105,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding config
   bool has_mqtt_config_{false};
+  bool mqtt_discovery_{false};
   std::string mqtt_topic_prefix_;
   void send_to_mqtt_(const std::string &json_data);
 #endif
