@@ -339,17 +339,15 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
       return APIError::WOULD_BLOCK;
     }
 
+    if (rx_header_buf_[0] != 0x01) {
+      state_ = State::FAILED;
+      HELPER_LOG("Bad indicator byte %u", rx_header_buf_[0]);
+      return APIError::BAD_INDICATOR;
+    }
     // header reading done
   }
 
   // read body
-  uint8_t indicator = rx_header_buf_[0];
-  if (indicator != 0x01) {
-    state_ = State::FAILED;
-    HELPER_LOG("Bad indicator byte %u", indicator);
-    return APIError::BAD_INDICATOR;
-  }
-
   uint16_t msg_size = (((uint16_t) rx_header_buf_[1]) << 8) | rx_header_buf_[2];
 
   if (state_ != State::DATA && msg_size > 128) {
