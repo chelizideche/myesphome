@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_TYPE_ID,
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
+    CONF_ID,
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
@@ -19,6 +20,7 @@ from esphome.cpp_types import App
 from esphome.helpers import sanitize, snake_case
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
+from esphome import config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,9 +102,19 @@ async def setup_entity(var, config):
     """Set up generic properties of an Entity"""
     add(var.set_name(config[CONF_NAME]))
     if not config[CONF_NAME]:
-        add(var.set_object_id(sanitize(snake_case(CORE.friendly_name))))
+        object_id = sanitize(snake_case(CORE.friendly_name))
     else:
-        add(var.set_object_id(sanitize(snake_case(config[CONF_NAME]))))
+        object_id = sanitize(snake_case(config[CONF_NAME]))
+        #    If the result is empty or only underscores (e.g. from non-ASCII characters),fallback to a more reliable identifier
+        if not object_id or set(object_id) == {"_"}:
+            if CONF_ID in config:
+                object_id = sanitize(snake_case(str(config[CONF_ID])))
+            else:
+                raise cv.Invalid(
+                    f"The name '{config[CONF_NAME]}' is not valid for object_id generation. \n"
+                    f"Please set an explicit 'id:' for this entity."
+                )
+    add(var.set_object_id(object_id))
     add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
     if CONF_INTERNAL in config:
         add(var.set_internal(config[CONF_INTERNAL]))
