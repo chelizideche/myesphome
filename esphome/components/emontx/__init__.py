@@ -1,6 +1,5 @@
 import logging
 
-from esphome import core
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
@@ -41,45 +40,28 @@ def not_empty(name):
     return validator
 
 
-# Create a dedicated hook that runs before component validation
-# This is the key function that will be registered with ESPHome's core
-def emontx_mqtt_config_hook(raw_config):
-    # Check if emontx with mqtt is in the configuration
-    if "emontx" not in raw_config:
-        return raw_config
+# This function modifies the raw config before component validation happens
+def preprocess_config(config):
+    # Make sure we have both emontx with MQTT and mqtt component
+    if CONF_MQTT in config and "mqtt" in config:
+        emontx_mqtt = config[CONF_MQTT]
+        mqtt_config = config["mqtt"]
 
-    emontx_config = raw_config["emontx"]
-    if not isinstance(emontx_config, dict) or CONF_MQTT not in emontx_config:
-        return raw_config
+        # Transfer topic_prefix if set
+        if CONF_TOPIC_PREFIX in emontx_mqtt:
+            topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
+            logging.info(
+                f"Setting MQTT topic_prefix to '{topic_prefix}' from EmonTX config"
+            )
+            mqtt_config[CONF_TOPIC_PREFIX] = topic_prefix
 
-    # We found emontx with mqtt config
-    emontx_mqtt = emontx_config[CONF_MQTT]
-    if not isinstance(emontx_mqtt, dict):
-        return raw_config
+        # Transfer discovery setting if set
+        if CONF_DISCOVERY in emontx_mqtt:
+            discovery = emontx_mqtt[CONF_DISCOVERY]
+            logging.info(f"Setting MQTT discovery to {discovery} from EmonTX config")
+            mqtt_config[CONF_DISCOVERY] = discovery
 
-    # Check if mqtt component exists
-    if "mqtt" not in raw_config:
-        logging.warning("EmonTX has MQTT config but no global MQTT component found")
-        return raw_config
-
-    # Now we can inject the parameters
-    if CONF_TOPIC_PREFIX in emontx_mqtt:
-        topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
-        logging.info(f"Injecting MQTT topic_prefix from EmonTX: '{topic_prefix}'")
-        raw_config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
-
-    if CONF_DISCOVERY in emontx_mqtt:
-        discovery = emontx_mqtt[CONF_DISCOVERY]
-        logging.info(f"Injecting MQTT discovery from EmonTX: {discovery}")
-        raw_config["mqtt"][CONF_DISCOVERY] = discovery
-
-    return raw_config
-
-
-# Register our hook to run before any component validation happens
-core.CORE.add_job(
-    lambda: core.CORE.register_component_schema_pre_hook(emontx_mqtt_config_hook)
-)
+    return config
 
 
 # Simple yet effective server URL validation
@@ -149,6 +131,7 @@ def validate_mqtt_forward(config):
 
 
 CONFIG_SCHEMA = cv.All(
+    preprocess_config,
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
