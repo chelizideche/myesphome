@@ -74,7 +74,7 @@ class APIFrameHelper {
   }
   virtual ~APIFrameHelper() = default;
   virtual APIError init() = 0;
-  virtual APIError loop() = 0;
+  virtual APIError loop();
   virtual APIError read_packet(ReadPacketBuffer *buffer) = 0;
   bool can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
   std::string getpeername() { return socket_->getpeername(); }

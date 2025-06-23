@@ -66,6 +66,17 @@ const char *api_error_to_str(APIError err) {
   return "UNKNOWN";
 }
 
+// Default implementation for loop - handles sending buffered data
+APIError APIFrameHelper::loop() {
+  if (!this->tx_buf_.empty()) {
+    APIError err = try_send_tx_buf_();
+    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
+      return err;
+    }
+  }
+  return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
+}
+
 // Helper method to buffer data from IOVs
 void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len) {
   SendBuffer buffer;
@@ -287,13 +298,8 @@ APIError APINoiseFrameHelper::loop() {
     }
   }
 
-  if (!this->tx_buf_.empty()) {
-    APIError err = try_send_tx_buf_();
-    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
-      return err;
-    }
-  }
-  return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
+  // Use base class implementation for buffer sending
+  return APIFrameHelper::loop();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
@@ -829,13 +835,8 @@ APIError APIPlaintextFrameHelper::loop() {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
-  if (!this->tx_buf_.empty()) {
-    APIError err = try_send_tx_buf_();
-    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
-      return err;
-    }
-  }
-  return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
+  // Use base class implementation for buffer sending
+  return APIFrameHelper::loop();
 }
 
 /** Read a packet into the rx_buf_. If successful, stores frame data in the frame parameter
