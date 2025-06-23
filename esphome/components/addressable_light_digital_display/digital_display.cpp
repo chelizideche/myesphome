@@ -67,7 +67,6 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
   }
 
   ESP_LOGV(TAG, "Print at %d: %s", start_pos, str);
-  uint8_t data = UNKNOWN_CHAR;
 
   uint8_t map_length = this->led_map_.size();
   uint8_t char_index = 0;
@@ -114,6 +113,7 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
     if (is_special_map_char) {
       led_on = current_char == current_map_char;
     } else {
+      uint8_t data = UNKNOWN_CHAR;
       if (current_char >= ' ' && current_char <= '~') {
         data = progmem_read_byte(&ASCII_TO_RAW[current_char - ' ']);
       }
