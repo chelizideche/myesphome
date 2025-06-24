@@ -11,7 +11,14 @@ const StringRef &EntityBase::get_name() const { return this->name_; }
 void EntityBase::set_name(const char *name) {
   this->name_ = StringRef(name);
   if (this->name_.empty()) {
-    this->name_ = StringRef(App.get_friendly_name());
+#ifdef USE_DEVICES
+    if (this->device_ != nullptr) {
+      this->name_ = StringRef(this->device_->get_name());
+    } else
+#endif
+    {
+      this->name_ = StringRef(App.get_friendly_name());
+    }
     this->flags_.has_own_name = false;
   } else {
     this->flags_.has_own_name = true;
@@ -29,16 +36,21 @@ void EntityBase::set_icon(const char *icon) { this->icon_c_str_ = icon; }
 
 // Entity Object ID
 std::string EntityBase::get_object_id() const {
+  std::string suffix = "";
+#ifdef USE_DEVICES
+  if (this->device_ != nullptr) {
+    suffix = "@" + str_sanitize(str_snake_case(this->device_->get_name()));
+  }
+#endif
   // Check if `App.get_friendly_name()` is constant or dynamic.
   if (!this->flags_.has_own_name && App.is_name_add_mac_suffix_enabled()) {
     // `App.get_friendly_name()` is dynamic.
-    return str_sanitize(str_snake_case(App.get_friendly_name()));
-  } else {
-    // `App.get_friendly_name()` is constant.
+    return str_sanitize(str_snake_case(App.get_friendly_name())) + suffix;
+  } else {  // `App.get_friendly_name()` is constant.
     if (this->object_id_c_str_ == nullptr) {
-      return "";
+      return suffix;
     }
-    return this->object_id_c_str_;
+    return this->object_id_c_str_ + suffix;
   }
 }
 void EntityBase::set_object_id(const char *object_id) {
@@ -47,19 +59,7 @@ void EntityBase::set_object_id(const char *object_id) {
 }
 
 // Calculate Object ID Hash from Entity Name
-void EntityBase::calc_object_id_() {
-  // Check if `App.get_friendly_name()` is constant or dynamic.
-  if (!this->flags_.has_own_name && App.is_name_add_mac_suffix_enabled()) {
-    // `App.get_friendly_name()` is dynamic.
-    const auto object_id = str_sanitize(str_snake_case(App.get_friendly_name()));
-    // FNV-1 hash
-    this->object_id_hash_ = fnv1_hash(object_id);
-  } else {
-    // `App.get_friendly_name()` is constant.
-    // FNV-1 hash
-    this->object_id_hash_ = fnv1_hash(this->object_id_c_str_);
-  }
-}
+void EntityBase::calc_object_id_() { this->object_id_hash_ = fnv1_hash(this->get_object_id()); }
 
 uint32_t EntityBase::get_object_id_hash() { return this->object_id_hash_; }
 

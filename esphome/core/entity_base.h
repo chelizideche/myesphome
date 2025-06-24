@@ -6,6 +6,10 @@
 #include "helpers.h"
 #include "log.h"
 
+#ifdef USE_DEVICES
+#include "device.h"
+#endif
+
 namespace esphome {
 
 enum EntityCategory : uint8_t {
@@ -53,8 +57,13 @@ class EntityBase {
 
 #ifdef USE_DEVICES
   // Get/set this entity's device id
-  uint32_t get_device_id() const { return this->device_id_; }
-  void set_device_id(const uint32_t device_id) { this->device_id_ = device_id; }
+  uint32_t get_device_id() const {
+    if (this->device_ == nullptr) {
+      return 0;  // No device set, return 0
+    }
+    return this->device_->get_device_id();
+  }
+  void set_device(Device *device) { this->device_ = device; }
 #endif
 
   // Check if this entity has state
@@ -74,7 +83,7 @@ class EntityBase {
   const char *icon_c_str_{nullptr};
   uint32_t object_id_hash_{};
 #ifdef USE_DEVICES
-  uint32_t device_id_{};
+  Device *device_{};
 #endif
 
   // Bit-packed flags to save memory (1 byte instead of 5)
