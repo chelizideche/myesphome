@@ -133,15 +133,10 @@ def validate_mqtt_forward(config):
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
 
-        DEBUG_PRINT(f"CORE.raw_config type: {type(CORE.raw_config)}")
+        DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
         DEBUG_PRINT(
             f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
         )
-
-        # Get the topic prefix from our component's configuration
-        topic_prefix = config[CONF_MQTT][CONF_TOPIC_PREFIX]
-
-        DEBUG_PRINT(f"TOPIC PREFIX: {topic_prefix}")
 
         # Examine all available properties of CORE
         DEBUG_PRINT(f"CORE ATTRIBUTES: {dir(CORE)}")
@@ -151,27 +146,6 @@ def validate_mqtt_forward(config):
         DEBUG_PRINT(
             f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
         )
-
-        # Inject settings into the MQTT component configuration
-        # This modifies the actual MQTT component configuration
-        if CORE.raw_config.get("mqtt", None) is not None:
-            DEBUG_PRINT(f"MQTT IN RAW CONFIG: {CORE.raw_config['mqtt']}")
-
-            mqtt_config = CORE.raw_config["mqtt"]
-
-            # Set the topic prefix in the MQTT config
-            mqtt_config["topic_prefix"] = topic_prefix
-
-            # Set discovery to false
-            mqtt_config["discovery"] = False
-
-            # Update the config in CORE
-            CORE.raw_config["mqtt"] = mqtt_config
-
-            DEBUG_PRINT(f"MQTT CONFIG AFTER MODIFICATION: {CORE.raw_config['mqtt']}")
-        else:
-            DEBUG_PRINT("MQTT NOT FOUND IN RAW CONFIG")
-            # Try another approach - use the mqtt plugin's process_config
 
     return config
 
