@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
 
 # Debug helpers that WILL appear in console
@@ -125,6 +125,7 @@ def validate_mqtt_forward(config):
         mqtt_schema = cv.Schema(
             {
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
+                cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
             }
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
@@ -134,20 +135,19 @@ def validate_mqtt_forward(config):
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
 
-        DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
-
         DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
 
-        # DEBUG_PRINT(
-        #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
-        # )
-        # # Examine all available properties of CORE
-        # DEBUG_PRINT(f"CORE ATTRIBUTES: {dir(CORE)}")
-        # # Try different ways to access the MQTT config
-        # DEBUG_PRINT(f"CORE.raw_config type: {type(CORE.raw_config)}")
-        # DEBUG_PRINT(
-        #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
-        # )
+        if CORE.raw_config and "mqtt" in CORE.raw_config:
+            mqtt_config = CORE.raw_config["mqtt"]
+
+            # Set the topic prefix in the MQTT config
+            mqtt_config["topic_prefix"] = config[CONF_MQTT][CONF_TOPIC_PREFIX]
+
+            # Set discovery to false
+            mqtt_config["discovery"] = config[CONF_MQTT][CONF_DISCOVERY]
+
+            # Update the config in CORE
+            CORE.raw_config["mqtt"] = mqtt_config
 
     return config
 
