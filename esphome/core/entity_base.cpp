@@ -40,7 +40,8 @@ std::string EntityBase::get_object_id() const {
   if (!this->flags_.has_own_name && App.is_name_add_mac_suffix_enabled()) {
     // `App.get_friendly_name()` is dynamic.
     return str_sanitize(str_snake_case(App.get_friendly_name()));
-  } else {  // `App.get_friendly_name()` is constant.
+  } else {
+    // `App.get_friendly_name()` is constant.
     if (this->object_id_c_str_ == nullptr) {
       return "";
     }
