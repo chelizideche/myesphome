@@ -1,4 +1,4 @@
-"""Integration test for duplicate entity handling."""
+"""Integration test for duplicate entity handling with new validation."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ from .types import APIClientConnectedFactory, RunCompiledFunction
 
 
 @pytest.mark.asyncio
-async def test_duplicate_entities(
+async def test_duplicate_entities_on_different_devices(
     yaml_config: str,
     run_compiled: RunCompiledFunction,
     api_client_connected: APIClientConnectedFactory,
 ) -> None:
-    """Test that duplicate entity names are automatically suffixed with _2, _3, _4."""
+    """Test that duplicate entity names are allowed on different devices."""
     async with run_compiled(yaml_config), api_client_connected() as client:
         # Get device info
         device_info = await client.device_info()
@@ -24,14 +24,16 @@ async def test_duplicate_entities(
 
         # Get devices
         devices = device_info.devices
-        assert len(devices) >= 2, f"Expected at least 2 devices, got {len(devices)}"
+        assert len(devices) >= 3, f"Expected at least 3 devices, got {len(devices)}"
 
         # Find our test devices
         controller_1 = next((d for d in devices if d.name == "Controller 1"), None)
         controller_2 = next((d for d in devices if d.name == "Controller 2"), None)
+        controller_3 = next((d for d in devices if d.name == "Controller 3"), None)
 
         assert controller_1 is not None, "Controller 1 device not found"
         assert controller_2 is not None, "Controller 2 device not found"
+        assert controller_3 is not None, "Controller 3 device not found"
 
         # Get entity list
         entities = await client.list_entities_services()
@@ -48,203 +50,129 @@ async def test_duplicate_entities(
             e for e in all_entities if e.__class__.__name__ == "TextSensorInfo"
         ]
         switches = [e for e in all_entities if e.__class__.__name__ == "SwitchInfo"]
+        buttons = [e for e in all_entities if e.__class__.__name__ == "ButtonInfo"]
+        numbers = [e for e in all_entities if e.__class__.__name__ == "NumberInfo"]
 
-        # Scenario 1: Check sensors with duplicate "Temperature" names
+        # Scenario 1: Check sensors with same "Temperature" name on different devices
         temp_sensors = [s for s in sensors if s.name == "Temperature"]
-        temp_object_ids = sorted([s.object_id for s in temp_sensors])
-
-        # Should have temperature, temperature_2, temperature_3, temperature_4
-        assert len(temp_object_ids) >= 4, (
-            f"Expected at least 4 temperature sensors, got {len(temp_object_ids)}"
-        )
-        assert "temperature" in temp_object_ids, (
-            "First temperature sensor should not have suffix"
-        )
-        assert "temperature_2" in temp_object_ids, (
-            "Second temperature sensor should be temperature_2"
-        )
-        assert "temperature_3" in temp_object_ids, (
-            "Third temperature sensor should be temperature_3"
-        )
-        assert "temperature_4" in temp_object_ids, (
-            "Fourth temperature sensor should be temperature_4"
+        assert len(temp_sensors) == 4, (
+            f"Expected exactly 4 temperature sensors, got {len(temp_sensors)}"
         )
 
-        # Scenario 2: Check device-specific sensors don't conflict
-        device_temp_sensors = [s for s in sensors if s.name == "Device Temperature"]
+        # Verify each sensor is on a different device
+        temp_device_ids = set()
+        temp_object_ids = set()
 
-        # Group by device
-        controller_1_temps = [
-            s
-            for s in device_temp_sensors
-            if getattr(s, "device_id", None) == controller_1.device_id
-        ]
-        controller_2_temps = [
-            s
-            for s in device_temp_sensors
-            if getattr(s, "device_id", None) == controller_2.device_id
-        ]
+        for sensor in temp_sensors:
+            device_id = getattr(sensor, "device_id", None)
+            temp_device_ids.add(device_id)
+            temp_object_ids.add(sensor.object_id)
 
-        # Controller 1 should have device_temperature, device_temperature_2, device_temperature_3
-        c1_object_ids = sorted([s.object_id for s in controller_1_temps])
-        assert len(c1_object_ids) >= 3, (
-            f"Expected at least 3 sensors on controller_1, got {len(c1_object_ids)}"
-        )
-        assert "device_temperature" in c1_object_ids, (
-            "First device sensor should not have suffix"
-        )
-        assert "device_temperature_2" in c1_object_ids, (
-            "Second device sensor should be device_temperature_2"
-        )
-        assert "device_temperature_3" in c1_object_ids, (
-            "Third device sensor should be device_temperature_3"
+            # All should have object_id "temperature" (no suffix)
+            assert sensor.object_id == "temperature", (
+                f"Expected object_id 'temperature', got '{sensor.object_id}'"
+            )
+
+        # Should have 4 different device IDs (including None for main device)
+        assert len(temp_device_ids) == 4, (
+            f"Temperature sensors should be on different devices, got {temp_device_ids}"
         )
 
-        # Controller 2 should have only device_temperature (no suffix)
-        c2_object_ids = [s.object_id for s in controller_2_temps]
-        assert len(c2_object_ids) >= 1, (
-            f"Expected at least 1 sensor on controller_2, got {len(c2_object_ids)}"
-        )
-        assert "device_temperature" in c2_object_ids, (
-            "Controller 2 sensor should not have suffix"
+        # Scenario 2: Check binary sensors "Status" on different devices
+        status_binary = [b for b in binary_sensors if b.name == "Status"]
+        assert len(status_binary) == 3, (
+            f"Expected exactly 3 status binary sensors, got {len(status_binary)}"
         )
 
-        # Scenario 3: Check binary sensors (different platform, same name)
+        # All should have object_id "status"
+        for binary in status_binary:
+            assert binary.object_id == "status", (
+                f"Expected object_id 'status', got '{binary.object_id}'"
+            )
+
+        # Scenario 3: Check that sensor and binary_sensor can have same name
         temp_binary = [b for b in binary_sensors if b.name == "Temperature"]
-        binary_object_ids = sorted([b.object_id for b in temp_binary])
+        assert len(temp_binary) == 1, (
+            f"Expected exactly 1 temperature binary sensor, got {len(temp_binary)}"
+        )
+        assert temp_binary[0].object_id == "temperature"
 
-        # Should have temperature, temperature_2, temperature_3 (no conflict with sensor platform)
-        assert len(binary_object_ids) >= 3, (
-            f"Expected at least 3 binary sensors, got {len(binary_object_ids)}"
-        )
-        assert "temperature" in binary_object_ids, (
-            "First binary sensor should not have suffix"
-        )
-        assert "temperature_2" in binary_object_ids, (
-            "Second binary sensor should be temperature_2"
-        )
-        assert "temperature_3" in binary_object_ids, (
-            "Third binary sensor should be temperature_3"
+        # Scenario 4: Check text sensors "Device Info" on different devices
+        info_text = [t for t in text_sensors if t.name == "Device Info"]
+        assert len(info_text) == 3, (
+            f"Expected exactly 3 device info text sensors, got {len(info_text)}"
         )
 
-        # Scenario 4: Check text sensors with special characters
-        status_sensors = [t for t in text_sensors if t.name == "Status Message!"]
-        status_object_ids = sorted([t.object_id for t in status_sensors])
+        # All should have object_id "device_info"
+        for text in info_text:
+            assert text.object_id == "device_info", (
+                f"Expected object_id 'device_info', got '{text.object_id}'"
+            )
 
-        # Special characters should be sanitized to _
-        assert len(status_object_ids) >= 3, (
-            f"Expected at least 3 status sensors, got {len(status_object_ids)}"
-        )
-        assert "status_message_" in status_object_ids, (
-            "First status sensor should be status_message_"
-        )
-        assert "status_message__2" in status_object_ids, (
-            "Second status sensor should be status_message__2"
-        )
-        assert "status_message__3" in status_object_ids, (
-            "Third status sensor should be status_message__3"
+        # Scenario 5: Check switches "Power" on different devices
+        power_switches = [s for s in switches if s.name == "Power"]
+        assert len(power_switches) == 3, (
+            f"Expected exactly 3 power switches, got {len(power_switches)}"
         )
 
-        # Scenario 5: Check switches with duplicate names
-        power_switches = [s for s in switches if s.name == "Power Switch"]
-        power_object_ids = sorted([s.object_id for s in power_switches])
+        # All should have object_id "power"
+        for switch in power_switches:
+            assert switch.object_id == "power", (
+                f"Expected object_id 'power', got '{switch.object_id}'"
+            )
 
-        # Should have power_switch, power_switch_2
-        assert len(power_object_ids) >= 2, (
-            f"Expected at least 2 power switches, got {len(power_object_ids)}"
+        # Scenario 6: Check empty name buttons (should use device name)
+        empty_buttons = [b for b in buttons if b.name == ""]
+        assert len(empty_buttons) == 3, (
+            f"Expected exactly 3 empty name buttons, got {len(empty_buttons)}"
         )
-        assert "power_switch" in power_object_ids, (
-            "First power switch should be power_switch"
-        )
-        assert "power_switch_2" in power_object_ids, (
-            "Second power switch should be power_switch_2"
-        )
-
-        # Scenario 6: Check empty names on main device (Issue #6953)
-        empty_binary = [b for b in binary_sensors if b.name == ""]
-        empty_binary_ids = sorted([b.object_id for b in empty_binary])
-
-        # Should use device name "duplicate-entities-test" (sanitized, not snake_case)
-        assert len(empty_binary_ids) >= 4, (
-            f"Expected at least 4 empty name binary sensors, got {len(empty_binary_ids)}"
-        )
-        assert "duplicate-entities-test" in empty_binary_ids, (
-            "First empty binary sensor should use device name"
-        )
-        assert "duplicate-entities-test_2" in empty_binary_ids, (
-            "Second empty binary sensor should be duplicate-entities-test_2"
-        )
-        assert "duplicate-entities-test_3" in empty_binary_ids, (
-            "Third empty binary sensor should be duplicate-entities-test_3"
-        )
-        assert "duplicate-entities-test_4" in empty_binary_ids, (
-            "Fourth empty binary sensor should be duplicate-entities-test_4"
-        )
-
-        # Scenario 7: Check empty names on sub-devices (Issue #6953)
-        empty_switches = [s for s in switches if s.name == ""]
 
         # Group by device
-        c1_empty_switches = [
-            s
-            for s in empty_switches
-            if getattr(s, "device_id", None) == controller_1.device_id
+        c1_buttons = [
+            b
+            for b in empty_buttons
+            if getattr(b, "device_id", 0) == controller_1.device_id
         ]
-        c2_empty_switches = [
-            s
-            for s in empty_switches
-            if getattr(s, "device_id", None) == controller_2.device_id
-        ]
-        main_empty_switches = [
-            s
-            for s in empty_switches
-            if getattr(s, "device_id", None)
-            not in [controller_1.device_id, controller_2.device_id]
+        c2_buttons = [
+            b
+            for b in empty_buttons
+            if getattr(b, "device_id", 0) == controller_2.device_id
         ]
 
-        # Controller 1 empty switches should use "controller_1"
-        c1_empty_ids = sorted([s.object_id for s in c1_empty_switches])
-        assert len(c1_empty_ids) >= 3, (
-            f"Expected at least 3 empty switches on controller_1, got {len(c1_empty_ids)}"
-        )
-        assert "controller_1" in c1_empty_ids, "First should be controller_1"
-        assert "controller_1_2" in c1_empty_ids, "Second should be controller_1_2"
-        assert "controller_1_3" in c1_empty_ids, "Third should be controller_1_3"
+        # For main device, device_id is 0
+        main_buttons = [b for b in empty_buttons if getattr(b, "device_id", 0) == 0]
 
-        # Controller 2 empty switches
-        c2_empty_ids = sorted([s.object_id for s in c2_empty_switches])
-        assert len(c2_empty_ids) >= 2, (
-            f"Expected at least 2 empty switches on controller_2, got {len(c2_empty_ids)}"
+        # Check object IDs for empty name entities
+        assert len(c1_buttons) == 1 and c1_buttons[0].object_id == "controller_1"
+        assert len(c2_buttons) == 1 and c2_buttons[0].object_id == "controller_2"
+        assert (
+            len(main_buttons) == 1
+            and main_buttons[0].object_id == "duplicate-entities-test"
         )
-        assert "controller_2" in c2_empty_ids, "First should be controller_2"
-        assert "controller_2_2" in c2_empty_ids, "Second should be controller_2_2"
 
-        # Main device empty switches
-        main_empty_ids = sorted([s.object_id for s in main_empty_switches])
-        assert len(main_empty_ids) >= 3, (
-            f"Expected at least 3 empty switches on main device, got {len(main_empty_ids)}"
+        # Scenario 7: Check special characters in number names
+        temp_numbers = [n for n in numbers if n.name == "Temperature Setpoint!"]
+        assert len(temp_numbers) == 2, (
+            f"Expected exactly 2 temperature setpoint numbers, got {len(temp_numbers)}"
         )
-        assert "duplicate-entities-test" in main_empty_ids
-        assert "duplicate-entities-test_2" in main_empty_ids
-        assert "duplicate-entities-test_3" in main_empty_ids
 
-        # Scenario 8: Check "xyz" duplicates (Issue #6953)
-        xyz_switches = [s for s in switches if s.name == "xyz"]
-        xyz_ids = sorted([s.object_id for s in xyz_switches])
-
-        assert len(xyz_ids) >= 3, (
-            f"Expected at least 3 xyz switches, got {len(xyz_ids)}"
-        )
-        assert "xyz" in xyz_ids, "First xyz switch should be xyz"
-        assert "xyz_2" in xyz_ids, "Second xyz switch should be xyz_2"
-        assert "xyz_3" in xyz_ids, "Third xyz switch should be xyz_3"
+        # Special characters should be sanitized to _ in object_id
+        for number in temp_numbers:
+            assert number.object_id == "temperature_setpoint_", (
+                f"Expected object_id 'temperature_setpoint_', got '{number.object_id}'"
+            )
 
         # Verify we can get states for all entities (ensures they're functional)
         loop = asyncio.get_running_loop()
         states_future: asyncio.Future[None] = loop.create_future()
         state_count = 0
         expected_count = (
-            len(sensors) + len(binary_sensors) + len(text_sensors) + len(switches)
+            len(sensors)
+            + len(binary_sensors)
+            + len(text_sensors)
+            + len(switches)
+            + len(buttons)
+            + len(numbers)
         )
 
         def on_state(state) -> None:
