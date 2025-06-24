@@ -133,6 +133,11 @@ def validate_mqtt_forward(config):
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
 
+        DEBUG_PRINT(f"CORE.raw_config type: {type(CORE.raw_config)}")
+        DEBUG_PRINT(
+            f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
+        )
+
         # Get the topic prefix from our component's configuration
         topic_prefix = config[CONF_MQTT][CONF_TOPIC_PREFIX]
 
