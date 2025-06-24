@@ -2,7 +2,6 @@ import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
-from esphome.core import CORE
 
 
 # Debug helpers that WILL appear in console
@@ -133,19 +132,20 @@ def validate_mqtt_forward(config):
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
 
-        DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
-        DEBUG_PRINT(
-            f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
-        )
+        DEBUG_PRINT("MQTT forward validation complete")
 
-        # Examine all available properties of CORE
-        DEBUG_PRINT(f"CORE ATTRIBUTES: {dir(CORE)}")
-
-        # Try different ways to access the MQTT config
-        DEBUG_PRINT(f"CORE.raw_config type: {type(CORE.raw_config)}")
-        DEBUG_PRINT(
-            f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
-        )
+        # DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
+        # DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
+        # DEBUG_PRINT(
+        #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
+        # )
+        # # Examine all available properties of CORE
+        # DEBUG_PRINT(f"CORE ATTRIBUTES: {dir(CORE)}")
+        # # Try different ways to access the MQTT config
+        # DEBUG_PRINT(f"CORE.raw_config type: {type(CORE.raw_config)}")
+        # DEBUG_PRINT(
+        #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
+        # )
 
     return config
 
