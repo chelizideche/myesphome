@@ -1,0 +1,16 @@
+spi:
+  - id: spi_mcp3201
+    clk_pin: 14
+    mosi_pin: 13
+    miso_pin: 12
+
+mcp3201:
+  - id: mcp3201_hub
+    cs_pin: 15
+    reference_voltage: 4.096V
+
+sensor:
+  - platform: mcp3201
+    id: mcp3201_sensor
+    mcp3201_id: mcp3201_hub
+    update_interval: 5s
