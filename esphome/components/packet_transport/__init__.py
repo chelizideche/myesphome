@@ -76,7 +76,6 @@ ENCRYPTION_SCHEMA = {
     )
 }
 
-
 PROVIDER_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_NAME): provider_name_validate,
@@ -174,7 +173,6 @@ async def register_packet_transport(var, config):
     }.union(x[CONF_NAME] for x in config[CONF_PROVIDERS])
     for provider in providers:
         cg.add(var.add_provider(provider))
-
     for provider in config[CONF_PROVIDERS]:
         name = provider[CONF_NAME]
         if encryption := provider.get(CONF_ENCRYPTION):
