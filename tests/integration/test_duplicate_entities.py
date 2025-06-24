@@ -37,8 +37,7 @@ async def test_duplicate_entities(
         entities = await client.list_entities_services()
         all_entities: list[EntityInfo] = []
         for entity_list in entities[0]:
-            if hasattr(entity_list, "object_id"):
-                all_entities.append(entity_list)
+            all_entities.append(entity_list)
 
         # Group entities by type for easier testing
         sensors = [e for e in all_entities if e.__class__.__name__ == "SensorInfo"]
@@ -242,7 +241,7 @@ async def test_duplicate_entities(
 
         # Verify we can get states for all entities (ensures they're functional)
         loop = asyncio.get_running_loop()
-        states_future: asyncio.Future[bool] = loop.create_future()
+        states_future: asyncio.Future[None] = loop.create_future()
         state_count = 0
         expected_count = (
             len(sensors) + len(binary_sensors) + len(text_sensors) + len(switches)
@@ -252,7 +251,7 @@ async def test_duplicate_entities(
             nonlocal state_count
             state_count += 1
             if state_count >= expected_count and not states_future.done():
-                states_future.set_result(True)
+                states_future.set_result(None)
 
         client.subscribe_states(on_state)
 
