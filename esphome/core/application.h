@@ -109,7 +109,6 @@ class Application {
       this->name_ = name;
       this->friendly_name_ = friendly_name;
     }
-    // area is now handled through the areas system
     this->comment_ = comment;
     this->compilation_time_ = compilation_time;
   }
