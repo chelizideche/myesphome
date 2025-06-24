@@ -136,7 +136,8 @@ def validate_mqtt_forward(config):
 
         DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
 
-        # DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
+        DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
+
         # DEBUG_PRINT(
         #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
         # )
