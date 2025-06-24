@@ -143,15 +143,17 @@ def validate_mqtt_forward(config):
             mqtt_config = CORE.raw_config["mqtt"]
 
             # Set the topic prefix in the MQTT config
-            mqtt_config["topic_prefix"] = config[CONF_MQTT][CONF_TOPIC_PREFIX]
+            mqtt_config[CONF_TOPIC_PREFIX] = config[CONF_MQTT][CONF_TOPIC_PREFIX]
 
             # Set discovery to false
-            mqtt_config["discovery"] = config[CONF_MQTT][CONF_DISCOVERY]
+            mqtt_config[CONF_DISCOVERY] = config[CONF_MQTT][CONF_DISCOVERY]
 
             # Update the config in CORE
-            CORE.raw_config["mqtt"] = mqtt_config
+            CORE.raw_config[CONF_MQTT] = mqtt_config
 
         DEBUG_PRINT(f"CORE.raw_config[mqtt] after: {CORE.raw_config[CONF_MQTT]}")
+
+        DEBUG_PRINT(f"CORE.raw_config after: {CORE.raw_config}")
 
     return config
 
