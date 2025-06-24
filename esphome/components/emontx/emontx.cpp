@@ -122,6 +122,7 @@ void EmonTx::loop() {
 
 void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
+  ESP_LOGV(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
 
   bool success = json::parse_json(data, [this](JsonObject root) {
 #ifdef USE_SENSOR
@@ -132,14 +133,14 @@ void EmonTx::parse_json_(const std::string &data) {
 
       if (root.containsKey(tag)) {
         float value = root[tag];
-        ESP_LOGD(TAG, "Updating sensor '%s' with value: %.2f", tag.c_str(), value);
+        ESP_LOGV(TAG, "Updating sensor '%s' with value: %.2f", tag.c_str(), value);
         sensor->publish_state(value);
       }
     }
 #endif
 
     // Also update all listeners
-    ESP_LOGD(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
+    ESP_LOGV(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
     for (auto *listener : this->emontx_listeners_) {
       if (root.containsKey(listener->tag)) {
         const auto value = root[listener->tag].as<std::string>();
