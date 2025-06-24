@@ -1,6 +1,7 @@
 """Test get_base_entity_object_id function matches C++ behavior."""
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from pathlib import Path
 import re
 from typing import Any
 
@@ -13,8 +14,12 @@ from esphome.core.entity_helpers import get_base_entity_object_id, setup_entity
 from esphome.cpp_generator import MockObj
 from esphome.helpers import sanitize, snake_case
 
+from .common import load_config_from_yaml
+
 # Pre-compiled regex pattern for extracting object IDs from expressions
 OBJECT_ID_PATTERN = re.compile(r'\.set_object_id\(["\'](.*?)["\']\)')
+
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "core" / "entity_helpers"
 
 
 @pytest.fixture(autouse=True)
@@ -548,3 +553,104 @@ def test_entity_duplicate_validator_with_devices() -> None:
         match=r"Duplicate sensor entity with name 'Temperature' found on device 'device1'",
     ):
         validator(config3)
+
+
+def test_duplicate_entity_yaml_validation(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that duplicate entity names are caught during YAML config validation."""
+    yaml_content = """
+esphome:
+  name: test-duplicate
+
+esp32:
+  board: esp32dev
+
+sensor:
+  - platform: template
+    name: "Temperature"
+    lambda: return 21.0;
+  - platform: template
+    name: "Temperature"  # Duplicate - should fail
+    lambda: return 22.0;
+"""
+    result = load_config_from_yaml(yaml_file, yaml_content)
+    assert result is None
+
+    # Check for the duplicate entity error message
+    captured = capsys.readouterr()
+    assert "Duplicate sensor entity with name 'Temperature' found" in captured.out
+
+
+def test_duplicate_entity_with_devices_yaml_validation(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test duplicate entity validation with devices."""
+    yaml_content = """
+esphome:
+  name: test-duplicate-devices
+  devices:
+    - id: device1
+      name: "Device 1"
+    - id: device2
+      name: "Device 2"
+
+esp32:
+  board: esp32dev
+
+sensor:
+  # Same name on different devices - should pass
+  - platform: template
+    device_id: device1
+    name: "Temperature"
+    lambda: return 21.0;
+  - platform: template
+    device_id: device2
+    name: "Temperature"
+    lambda: return 22.0;
+  # Duplicate on same device - should fail
+  - platform: template
+    device_id: device1
+    name: "Temperature"
+    lambda: return 23.0;
+"""
+    result = load_config_from_yaml(yaml_file, yaml_content)
+    assert result is None
+
+    # Check for the duplicate entity error message with device
+    captured = capsys.readouterr()
+    assert (
+        "Duplicate sensor entity with name 'Temperature' found on device 'device1'"
+        in captured.out
+    )
+
+
+def test_entity_different_platforms_yaml_validation(
+    yaml_file: Callable[[str], str],
+) -> None:
+    """Test that same entity name on different platforms is allowed."""
+    yaml_content = """
+esphome:
+  name: test-different-platforms
+
+esp32:
+  board: esp32dev
+
+sensor:
+  - platform: template
+    name: "Status"
+    lambda: return 1.0;
+
+binary_sensor:
+  - platform: template
+    name: "Status"  # Same name, different platform - should pass
+    lambda: return true;
+
+text_sensor:
+  - platform: template
+    name: "Status"  # Same name, different platform - should pass
+    lambda: return {"OK"};
+"""
+    result = load_config_from_yaml(yaml_file, yaml_content)
+    # This should succeed
+    assert result is not None

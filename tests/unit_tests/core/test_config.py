@@ -3,41 +3,16 @@
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
-from esphome import config, config_validation as cv, core, yaml_util
-from esphome.config import Config
+from esphome import config_validation as cv, core
 from esphome.const import CONF_AREA, CONF_AREAS, CONF_DEVICES
-from esphome.core import CORE
 from esphome.core.config import Area, validate_area_config
 
+from .common import load_config_from_fixture
+
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "core" / "config"
-
-
-def load_config_from_yaml(
-    yaml_file: Callable[[str], str], yaml_content: str
-) -> Config | None:
-    """Load configuration from YAML content."""
-    yaml_path = yaml_file(yaml_content)
-    parsed_yaml = yaml_util.load_yaml(yaml_path)
-
-    # Mock yaml_util.load_yaml to return our parsed content
-    with (
-        patch.object(yaml_util, "load_yaml", return_value=parsed_yaml),
-        patch.object(CORE, "config_path", yaml_path),
-    ):
-        return config.read_config({})
-
-
-def load_config_from_fixture(
-    yaml_file: Callable[[str], str], fixture_name: str
-) -> Config | None:
-    """Load configuration from a fixture file."""
-    fixture_path = FIXTURES_DIR / fixture_name
-    yaml_content = fixture_path.read_text()
-    return load_config_from_yaml(yaml_file, yaml_content)
 
 
 def test_validate_area_config_with_string() -> None:
@@ -70,7 +45,7 @@ def test_validate_area_config_with_dict() -> None:
 
 def test_device_with_valid_area_id(yaml_file: Callable[[str], str]) -> None:
     """Test that device with valid area_id works correctly."""
-    result = load_config_from_fixture(yaml_file, "valid_area_device.yaml")
+    result = load_config_from_fixture(yaml_file, "valid_area_device.yaml", FIXTURES_DIR)
     assert result is not None
 
     esphome_config = result["esphome"]
@@ -93,7 +68,9 @@ def test_device_with_valid_area_id(yaml_file: Callable[[str], str]) -> None:
 
 def test_multiple_areas_and_devices(yaml_file: Callable[[str], str]) -> None:
     """Test multiple areas and devices configuration."""
-    result = load_config_from_fixture(yaml_file, "multiple_areas_devices.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "multiple_areas_devices.yaml", FIXTURES_DIR
+    )
     assert result is not None
 
     esphome_config = result["esphome"]
@@ -129,7 +106,9 @@ def test_legacy_string_area(
     yaml_file: Callable[[str], str], caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test legacy string area configuration with deprecation warning."""
-    result = load_config_from_fixture(yaml_file, "legacy_string_area.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "legacy_string_area.yaml", FIXTURES_DIR
+    )
     assert result is not None
 
     esphome_config = result["esphome"]
@@ -148,7 +127,7 @@ def test_area_id_collision(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that duplicate area IDs are detected."""
-    result = load_config_from_fixture(yaml_file, "area_id_collision.yaml")
+    result = load_config_from_fixture(yaml_file, "area_id_collision.yaml", FIXTURES_DIR)
     assert result is None
 
     # Check for the specific error message in stdout
@@ -159,7 +138,9 @@ def test_area_id_collision(
 
 def test_device_without_area(yaml_file: Callable[[str], str]) -> None:
     """Test that devices without area_id work correctly."""
-    result = load_config_from_fixture(yaml_file, "device_without_area.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "device_without_area.yaml", FIXTURES_DIR
+    )
     assert result is not None
 
     esphome_config = result["esphome"]
@@ -181,7 +162,9 @@ def test_device_with_invalid_area_id(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that device with non-existent area_id fails validation."""
-    result = load_config_from_fixture(yaml_file, "device_invalid_area.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "device_invalid_area.yaml", FIXTURES_DIR
+    )
     assert result is None
 
     # Check for the specific error message in stdout
@@ -196,7 +179,9 @@ def test_device_id_hash_collision(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that device IDs with hash collisions are detected."""
-    result = load_config_from_fixture(yaml_file, "device_id_collision.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "device_id_collision.yaml", FIXTURES_DIR
+    )
     assert result is None
 
     # Check for the specific error message about hash collision
@@ -212,7 +197,9 @@ def test_area_id_hash_collision(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that area IDs with hash collisions are detected."""
-    result = load_config_from_fixture(yaml_file, "area_id_hash_collision.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "area_id_hash_collision.yaml", FIXTURES_DIR
+    )
     assert result is None
 
     # Check for the specific error message about hash collision
@@ -228,7 +215,9 @@ def test_device_duplicate_id(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that duplicate device IDs are detected by IDPassValidationStep."""
-    result = load_config_from_fixture(yaml_file, "device_duplicate_id.yaml")
+    result = load_config_from_fixture(
+        yaml_file, "device_duplicate_id.yaml", FIXTURES_DIR
+    )
     assert result is None
 
     # Check for the specific error message from IDPassValidationStep
