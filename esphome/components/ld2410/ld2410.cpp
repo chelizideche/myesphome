@@ -8,6 +8,8 @@
 #include "esphome/components/sensor/sensor.h"
 #endif
 
+#include "esphome/core/application.h"
+
 #define highbyte(val) (uint8_t)((val) >> 8)
 #define lowbyte(val) (uint8_t)((val) &0xff)
 
@@ -153,7 +155,7 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
   /*
     Reduce data update rate to prevent home assistant database size grow fast
   */
-  int32_t current_millis = millis();
+  int32_t current_millis = App.get_loop_component_start_time();
   if (current_millis - last_periodic_millis_ < this->throttle_)
     return;
   last_periodic_millis_ = current_millis;
@@ -544,7 +546,7 @@ void LD2410Component::set_bluetooth_password(const std::string &password) {
 
 void LD2410Component::set_engineering_mode(bool enable) {
   this->set_config_mode_(true);
-  last_engineering_mode_change_millis_ = millis();
+  last_engineering_mode_change_millis_ = App.get_loop_component_start_time();
   uint8_t cmd = enable ? CMD_ENABLE_ENG : CMD_DISABLE_ENG;
   this->send_command_(cmd, nullptr, 0);
   this->set_config_mode_(false);
