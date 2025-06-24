@@ -64,8 +64,7 @@ async def test_duplicate_entities_on_different_devices(
         temp_object_ids = set()
 
         for sensor in temp_sensors:
-            device_id = getattr(sensor, "device_id", None)
-            temp_device_ids.add(device_id)
+            temp_device_ids.add(sensor.device_id)
             temp_object_ids.add(sensor.object_id)
 
             # All should have object_id "temperature" (no suffix)
@@ -128,19 +127,11 @@ async def test_duplicate_entities_on_different_devices(
         )
 
         # Group by device
-        c1_buttons = [
-            b
-            for b in empty_buttons
-            if getattr(b, "device_id", 0) == controller_1.device_id
-        ]
-        c2_buttons = [
-            b
-            for b in empty_buttons
-            if getattr(b, "device_id", 0) == controller_2.device_id
-        ]
+        c1_buttons = [b for b in empty_buttons if b.device_id == controller_1.device_id]
+        c2_buttons = [b for b in empty_buttons if b.device_id == controller_2.device_id]
 
         # For main device, device_id is 0
-        main_buttons = [b for b in empty_buttons if getattr(b, "device_id", 0) == 0]
+        main_buttons = [b for b in empty_buttons if b.device_id == 0]
 
         # Check object IDs for empty name entities
         assert len(c1_buttons) == 1 and c1_buttons[0].object_id == "controller_1"

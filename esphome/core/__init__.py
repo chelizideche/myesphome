@@ -523,7 +523,7 @@ class EsphomeCore:
         # Key: platform name (e.g. "sensor", "binary_sensor"), Value: count
         self.platform_counts: defaultdict[str, int] = defaultdict(int)
         # Track entity unique IDs to handle duplicates
-        # Set of (device_id, platform, object_id) tuples
+        # Set of (device_id, platform, sanitized_name) tuples
         self.unique_ids: set[tuple[str, str, str]] = set()
         # Whether ESPHome was started in verbose mode
         self.verbose = False
