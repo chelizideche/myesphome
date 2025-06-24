@@ -176,7 +176,7 @@ async def to_code(config):
 
             http_config = emoncms_config[CONF_HTTP]
 
-            http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
+            http_var = await cg.get_variable(http_config[CONF_HTTP_REQUEST_ID])
 
             cg.add(
                 var.set_http_forward(
