@@ -3,20 +3,6 @@ from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
-
-# Debug helpers that WILL appear in console
-def DEBUG_PRINT(message):
-    """Print a message that's impossible to miss in console"""
-    border = "!" * 80
-    print(f"\n{border}")
-    print(f"!!! DEBUG: {message}")
-    print(f"{border}\n")
-
-
-# Track execution flow
-DEBUG_PRINT("EMONTX MODULE LOADED")
-
-
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
 MULTI_CONF = True
@@ -115,10 +101,7 @@ def validate_emoncms(config):
 # Validate MQTT forward config and modify MQTT component config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
-    DEBUG_PRINT(f"Starting MQTT forward validation with config: {config}")
-
     if CONF_MQTT in config:
-        DEBUG_PRINT(f"MQTT config found: {config[CONF_MQTT]}")
         cg.add_define("USE_MQTT_FORWARD")
 
         # Validate MQTT forwarding configuration
@@ -130,30 +113,8 @@ def validate_mqtt_forward(config):
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
-        from esphome.core import CORE
-
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
-
-        DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
-
-        if CORE.raw_config and "mqtt" in CORE.raw_config:
-            DEBUG_PRINT("Entering MQTT config modification block")
-
-            mqtt_config = CORE.raw_config["mqtt"]
-
-            # Set the topic prefix in the MQTT config
-            mqtt_config[CONF_TOPIC_PREFIX] = config[CONF_MQTT][CONF_TOPIC_PREFIX]
-
-            # Set discovery to false
-            mqtt_config[CONF_DISCOVERY] = config[CONF_MQTT][CONF_DISCOVERY]
-
-            # Update the config in CORE
-            CORE.raw_config[CONF_MQTT] = mqtt_config
-
-        DEBUG_PRINT(f"CORE.raw_config[mqtt] after: {CORE.raw_config[CONF_MQTT]}")
-
-        DEBUG_PRINT(f"CORE.raw_config after: {CORE.raw_config}")
 
     return config
 
