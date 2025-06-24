@@ -87,7 +87,7 @@ UPDATE_SCHEMA.add_extra(cv.deprecated_schema_constant("update"))
 
 
 async def setup_update_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "update")
 
     if device_class_config := config.get(CONF_DEVICE_CLASS):
         cg.add(var.set_device_class(device_class_config))

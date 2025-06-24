@@ -522,6 +522,9 @@ class EsphomeCore:
         # Dict to track platform entity counts for pre-allocation
         # Key: platform name (e.g. "sensor", "binary_sensor"), Value: count
         self.platform_counts: defaultdict[str, int] = defaultdict(int)
+        # Track entity unique IDs to handle duplicates
+        # Key: (device_id, platform, object_id), Value: count of duplicates
+        self.unique_ids: dict[tuple[int, str, str], int] = {}
         # Whether ESPHome was started in verbose mode
         self.verbose = False
         # Whether ESPHome was started in quiet mode
@@ -553,6 +556,7 @@ class EsphomeCore:
         self.loaded_integrations = set()
         self.component_ids = set()
         self.platform_counts = defaultdict(int)
+        self.unique_ids = {}
         PIN_SCHEMA_REGISTRY.reset()
 
     @property

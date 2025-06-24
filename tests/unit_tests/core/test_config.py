@@ -28,13 +28,6 @@ def yaml_file(tmp_path: Path) -> Callable[[str], str]:
     return _yaml_file
 
 
-@pytest.fixture(autouse=True)
-def reset_core():
-    """Reset CORE after each test."""
-    yield
-    CORE.reset()
-
-
 def load_config_from_yaml(
     yaml_file: Callable[[str], str], yaml_content: str
 ) -> Config | None:
@@ -61,7 +54,7 @@ def load_config_from_fixture(
 
 def test_validate_area_config_with_string() -> None:
     """Test that string area config is converted to structured format."""
-    result: dict[str, Any] = validate_area_config("Living Room")
+    result = validate_area_config("Living Room")
 
     assert isinstance(result, dict)
     assert "id" in result
@@ -80,7 +73,7 @@ def test_validate_area_config_with_dict() -> None:
         "name": "Test Area",
     }
 
-    result: dict[str, Any] = validate_area_config(input_config)
+    result = validate_area_config(input_config)
 
     assert result == input_config
     assert result["id"] == area_id
@@ -205,7 +198,6 @@ def test_device_with_invalid_area_id(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
-    print(captured.out)
     assert (
         "Couldn't find ID 'nonexistent_area'. Please check you have defined an ID with that name in your configuration."
         in captured.out

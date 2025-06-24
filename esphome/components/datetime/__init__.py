@@ -133,7 +133,7 @@ def datetime_schema(class_: MockObjClass) -> cv.Schema:
 
 
 async def setup_datetime_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "datetime")
 
     if (mqtt_id := config.get(CONF_MQTT_ID)) is not None:
         mqtt_ = cg.new_Pvariable(mqtt_id, var)

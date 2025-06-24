@@ -81,7 +81,7 @@ IsAnnouncingCondition = media_player_ns.class_(
 
 
 async def setup_media_player_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "media_player")
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)

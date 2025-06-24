@@ -207,7 +207,7 @@ def validate_color_temperature_channels(value):
 
 
 async def setup_light_core_(light_var, output_var, config):
-    await setup_entity(light_var, config)
+    await setup_entity(light_var, config, "light")
 
     cg.add(light_var.set_restore_mode(config[CONF_RESTORE_MODE]))
 

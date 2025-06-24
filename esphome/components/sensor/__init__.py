@@ -787,7 +787,7 @@ async def build_filters(config):
 
 
 async def setup_sensor_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "sensor")
 
     if (device_class := config.get(CONF_DEVICE_CLASS)) is not None:
         cg.add(var.set_device_class(device_class))

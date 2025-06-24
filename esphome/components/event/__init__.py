@@ -88,7 +88,7 @@ EVENT_SCHEMA.add_extra(cv.deprecated_schema_constant("event"))
 
 
 async def setup_event_core_(var, config, *, event_types: list[str]):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "event")
 
     for conf in config.get(CONF_ON_EVENT, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)

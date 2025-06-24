@@ -132,7 +132,7 @@ VALVE_SCHEMA.add_extra(cv.deprecated_schema_constant("valve"))
 
 
 async def _setup_valve_core(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "valve")
 
     if device_class_config := config.get(CONF_DEVICE_CLASS):
         cg.add(var.set_device_class(device_class_config))

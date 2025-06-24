@@ -154,7 +154,7 @@ COVER_SCHEMA.add_extra(cv.deprecated_schema_constant("cover"))
 
 
 async def setup_cover_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "cover")
 
     if (device_class := config.get(CONF_DEVICE_CLASS)) is not None:
         cg.add(var.set_device_class(device_class))

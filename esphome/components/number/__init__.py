@@ -237,7 +237,7 @@ NUMBER_SCHEMA.add_extra(cv.deprecated_schema_constant("number"))
 async def setup_number_core_(
     var, config, *, min_value: float, max_value: float, step: float
 ):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "number")
 
     cg.add(var.traits.set_min_value(min_value))
     cg.add(var.traits.set_max_value(max_value))

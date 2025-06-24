@@ -94,7 +94,7 @@ async def setup_text_core_(
     max_length: int | None,
     pattern: str | None,
 ):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "text")
 
     cg.add(var.traits.set_min_length(min_length))
     cg.add(var.traits.set_max_length(max_length))

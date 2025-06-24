@@ -284,7 +284,7 @@ SETTERS = {
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await setup_entity(var, config)
+    await setup_entity(var, config, "camera")
     await cg.register_component(var, config)
 
     for key, setter in SETTERS.items():

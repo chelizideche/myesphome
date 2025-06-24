@@ -131,7 +131,7 @@ SWITCH_SCHEMA.add_extra(cv.deprecated_schema_constant("switch"))
 
 
 async def setup_switch_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "switch")
 
     if (inverted := config.get(CONF_INVERTED)) is not None:
         cg.add(var.set_inverted(inverted))

@@ -521,7 +521,7 @@ BINARY_SENSOR_SCHEMA.add_extra(cv.deprecated_schema_constant("binary_sensor"))
 
 
 async def setup_binary_sensor_core_(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "binary_sensor")
 
     if (device_class := config.get(CONF_DEVICE_CLASS)) is not None:
         cg.add(var.set_device_class(device_class))

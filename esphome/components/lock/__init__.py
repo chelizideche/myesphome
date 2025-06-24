@@ -94,7 +94,7 @@ LOCK_SCHEMA.add_extra(cv.deprecated_schema_constant("lock"))
 
 
 async def _setup_lock_core(var, config):
-    await setup_entity(var, config)
+    await setup_entity(var, config, "lock")
 
     for conf in config.get(CONF_ON_LOCK, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
