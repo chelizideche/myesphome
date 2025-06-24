@@ -195,4 +195,4 @@ async def to_code(config):
             topic_prefix = mqtt_config[CONF_NODE]  # Use NODE as topic_prefix
 
             # Call updated method with both prefixes
-            cg.add(var.set_mqtt_forward(base_prefix, topic_prefix))
+            cg.add(var.set_mqtt_config(base_prefix, topic_prefix))

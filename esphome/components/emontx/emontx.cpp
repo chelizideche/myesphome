@@ -224,16 +224,8 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     return;
   }
 
-  // Build topic using base_prefix/topic_prefix/data
-  std::string topic = mqtt_base_prefix_;
-  if (topic.back() != '/') {
-    topic += '/';
-  }
-  topic += mqtt_topic_prefix_;
-  if (topic.back() != '/') {
-    topic += '/';
-  }
-  topic += "data";
+  // Use the pre-computed topic prefix + "data"
+  std::string topic = mqtt_topic_prefix_full_ + "data";
 
   // Send the raw JSON data
   ESP_LOGV(TAG, "Publishing to MQTT topic %s: %s", topic.c_str(), json_data.c_str());
@@ -246,11 +238,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     // For each key-value pair in the JSON
     for (JsonPair kv : root) {
       // Create topic for this value: prefix/key
-      std::string value_topic = mqtt_topic_prefix_;
-      if (value_topic.back() != '/') {
-        value_topic += '/';
-      }
-      value_topic += kv.key().c_str();
+      std::string value_topic = mqtt_topic_prefix_full_ + kv.key().c_str();
 
       // Convert value to string
       std::string value;
