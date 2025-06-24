@@ -133,7 +133,7 @@ void OpenThreadComponent::ot_main() {
       ESP_LOGW(TAG, "TLV buffer too small, truncating");
       len = sizeof(dataset.mTlvs);
     }
-    int n = parse_hex(OPENTHREAD_TLVS, sizeof(OPENTHREAD_TLVS) - 1, dataset.mTlvs, len);
+    parse_hex(OPENTHREAD_TLVS, sizeof(OPENTHREAD_TLVS) - 1, dataset.mTlvs, len);
     dataset.mLength = len;
   }
 #endif
