@@ -23,7 +23,7 @@ class NumberUInt8 : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {
     this->publish_state(value);
-    (this->parent_->*F)((uint8_t) lround(value));
+    (this->parent_->*F)((uint8_t) std::lround(value));
   }
 };
 
@@ -32,7 +32,7 @@ class NumberInt8 : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {
     this->publish_state(value);
-    (this->parent_->*F)((int8_t) lround(value));
+    (this->parent_->*F)((int8_t) std::lround(value));
   }
 };
 
