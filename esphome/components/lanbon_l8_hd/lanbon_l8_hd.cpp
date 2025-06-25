@@ -57,7 +57,7 @@ light::LightTraits LocalDimmerOutput::get_traits() {
 
 void LocalDimmerOutput::dump_config() {
   ESP_LOGCONFIG(TAG,
-                "Lanbon L8-DS Dimmer: '%s'\n"
+                "Lanbon L8-HD Dimmer: '%s'\n"
                 "  Minimal brightness: %d"
                 "  Maximal brightness: %d",
                 this->light_state_ ? this->light_state_->get_name().c_str() : "", this->min_value_, this->max_value_);
