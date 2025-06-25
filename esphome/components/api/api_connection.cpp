@@ -1902,7 +1902,7 @@ void APIConnection::process_batch_() {
 
 uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                    bool is_single, uint16_t message_type) const {
-  if (is_string()) {
+  if (has_tagged_string_ptr()) {
     // Handle string-based messages
     switch (message_type) {
 #ifdef USE_EVENT
