@@ -95,6 +95,9 @@ class RuntimeStatsCollector {
 
   void record_component_time(Component *component, uint32_t duration_ms, uint32_t current_time);
 
+  // Process any pending stats printing (should be called after component loop)
+  void process_pending_stats(uint32_t current_time);
+
  protected:
   void log_stats_();
 

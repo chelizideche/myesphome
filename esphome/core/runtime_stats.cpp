@@ -28,11 +28,7 @@ void RuntimeStatsCollector::record_component_time(Component *component, uint32_t
     return;
   }
 
-  if (current_time >= this->next_log_time_) {
-    this->log_stats_();
-    this->reset_stats_();
-    this->next_log_time_ = current_time + this->log_interval_;
-  }
+  // Don't print stats here anymore - let process_pending_stats handle it
 }
 
 void RuntimeStatsCollector::log_stats_() {
@@ -79,6 +75,17 @@ void RuntimeStatsCollector::log_stats_() {
     ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
              stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
              stats->get_total_time_ms());
+  }
+}
+
+void RuntimeStatsCollector::process_pending_stats(uint32_t current_time) {
+  if (!this->enabled_ || this->next_log_time_ == 0)
+    return;
+
+  if (current_time >= this->next_log_time_) {
+    this->log_stats_();
+    this->reset_stats_();
+    this->next_log_time_ = current_time + this->log_interval_;
   }
 }
 
