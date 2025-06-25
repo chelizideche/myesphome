@@ -22,8 +22,17 @@ static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
 // iterating over them from the loop task is fine; but iterating from any other context requires the lock to be held to
 // avoid the main thread modifying the list while it is being accessed.
 
+void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
+  return this->set_timeout_(component, name, timeout, func, false);
+}
+
 void HOT Scheduler::set_timeout(Component *component, const std::string &name, uint32_t timeout,
                                 std::function<void()> func) {
+  return this->set_timeout_(component, name, timeout, func, true);
+}
+
+void HOT Scheduler::set_timeout_(Component *component, const std::string &name, uint32_t timeout,
+                                 std::function<void()> func, bool make_copy) {
   const auto now = this->millis_();
 
   if (!name.empty())
@@ -34,7 +43,7 @@ void HOT Scheduler::set_timeout(Component *component, const std::string &name, u
 
   auto item = make_unique<SchedulerItem>();
   item->component = component;
-  item->name = name;
+  item->set_name(name.c_str(), make_copy);
   item->type = SchedulerItem::TIMEOUT;
   item->next_execution_ = now + timeout;
   item->callback = std::move(func);
@@ -49,6 +58,14 @@ bool HOT Scheduler::cancel_timeout(Component *component, const std::string &name
 }
 void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
                                  std::function<void()> func) {
+  this->set_interval_(component, name, interval, func, true);
+}
+void HOT Scheduler::set_interval(Component *component, const char *name, uint32_t interval,
+                                 std::function<void()> func) {
+  this->set_interval_(component, name, interval, func, false);
+}
+void HOT Scheduler::set_interval_(Component *component, const std::string &name, uint32_t interval,
+                                  std::function<void()> func, bool make_copy) {
   const auto now = this->millis_();
 
   if (!name.empty())
@@ -64,7 +81,7 @@ void HOT Scheduler::set_interval(Component *component, const std::string &name, 
 
   auto item = make_unique<SchedulerItem>();
   item->component = component;
-  item->name = name;
+  item->set_name(name.c_str(), make_copy);
   item->type = SchedulerItem::INTERVAL;
   item->interval = interval;
   item->next_execution_ = now + offset;
@@ -85,7 +102,7 @@ struct RetryArgs {
   uint8_t retry_countdown;
   uint32_t current_interval;
   Component *component;
-  std::string name;
+  std::string name;  // Keep as std::string since retry uses it dynamically
   float backoff_increase_factor;
   Scheduler *scheduler;
 };
@@ -303,14 +320,16 @@ bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, 
   LockGuard guard{this->lock_};
   bool ret = false;
   for (auto &it : this->items_) {
-    if (it->component == component && it->name == name && it->type == type && !it->remove) {
+    const char *item_name = it->get_name();
+    if (it->component == component && item_name != nullptr && name == item_name && it->type == type && !it->remove) {
       to_remove_++;
       it->remove = true;
       ret = true;
     }
   }
   for (auto &it : this->to_add_) {
-    if (it->component == component && it->name == name && it->type == type) {
+    const char *item_name = it->get_name();
+    if (it->component == component && item_name != nullptr && name == item_name && it->type == type) {
       it->remove = true;
       ret = true;
     }

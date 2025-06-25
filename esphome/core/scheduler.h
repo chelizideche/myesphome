@@ -12,11 +12,19 @@ class Component;
 
 class Scheduler {
  public:
+  // Public API - accepts std::string for backward compatibility
   void set_timeout(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func);
+  void set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func);
+  void set_timeout_(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func,
+                    bool make_copy);
+
   bool cancel_timeout(Component *component, const std::string &name);
   void set_interval(Component *component, const std::string &name, uint32_t interval, std::function<void()> func);
-  bool cancel_interval(Component *component, const std::string &name);
+  void set_interval(Component *component, const char *name, uint32_t interval, std::function<void()> func);
+  void set_interval_(Component *component, const std::string &name, uint32_t interval, std::function<void()> func,
+                     bool make_copy);
 
+  bool cancel_interval(Component *component, const std::string &name);
   void set_retry(Component *component, const std::string &name, uint32_t initial_wait_time, uint8_t max_attempts,
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
@@ -36,10 +44,65 @@ class Scheduler {
     // with a 16-bit rollover counter to create a 64-bit time that won't roll over for
     // billions of years. This ensures correct scheduling even when devices run for months.
     uint64_t next_execution_;
-    std::string name;
+
+    // Optimized name storage using tagged union
+    union {
+      const char *static_name;  // For string literals (no allocation)
+      char *dynamic_name;       // For allocated strings
+    } name_;
+
     std::function<void()> callback;
-    enum Type : uint8_t { TIMEOUT, INTERVAL } type;
-    bool remove;
+
+    // Bit-packed fields to minimize padding
+    enum Type : uint8_t { TIMEOUT, INTERVAL } type : 1;
+    bool remove : 1;
+    bool owns_name : 1;  // True if name_.dynamic_name needs to be freed
+    // 5 bits padding
+
+    // Constructor
+    SchedulerItem()
+        : component(nullptr),
+          interval(0),
+          next_execution_(0),
+          callback(nullptr),
+          type(TIMEOUT),
+          remove(false),
+          owns_name(false) {
+      name_.static_name = nullptr;
+    }
+
+    // Destructor to clean up dynamic names
+    ~SchedulerItem() {
+      if (owns_name && name_.dynamic_name) {
+        delete[] name_.dynamic_name;
+      }
+    }
+
+    // Helper to get the name regardless of storage type
+    const char *get_name() const { return owns_name ? name_.dynamic_name : name_.static_name; }
+
+    // Helper to set name with proper ownership
+    void set_name(const char *name, bool make_copy = false) {
+      // Clean up old dynamic name if any
+      if (owns_name && name_.dynamic_name) {
+        delete[] name_.dynamic_name;
+      }
+
+      if (name == nullptr || name[0] == '\0') {
+        name_.static_name = nullptr;
+        owns_name = false;
+      } else if (make_copy) {
+        // Make a copy for dynamic strings
+        size_t len = strlen(name);
+        name_.dynamic_name = new char[len + 1];
+        strcpy(name_.dynamic_name, name);
+        owns_name = true;
+      } else {
+        // Use static string directly
+        name_.static_name = name;
+        owns_name = false;
+      }
+    }
 
     static bool cmp(const std::unique_ptr<SchedulerItem> &a, const std::unique_ptr<SchedulerItem> &b);
     const char *get_type_str() {
