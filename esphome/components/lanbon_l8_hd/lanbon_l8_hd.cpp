@@ -60,9 +60,7 @@ void LocalDimmerOutput::dump_config() {
                 "Lanbon L8-DS Dimmer: '%s'\n"
                 "  Minimal brightness: %d"
                 "  Maximal brightness: %d",
-                this->light_state_ ? this->light_state_->get_name().c_str() : "",
-                this->min_value_,
-                this->max_value_);
+                this->light_state_ ? this->light_state_->get_name().c_str() : "", this->min_value_, this->max_value_);
 
   this->started_ = false;
 }
