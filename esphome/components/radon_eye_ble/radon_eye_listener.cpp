@@ -13,7 +13,7 @@ static const char *const TAG = "radon_eye_ble";
 bool RadonEyeListener::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
   if (not device.get_name().empty()) {
     // Vector containing the prefixes to search for
-    std::vector<std::string> prefixes = {"FR:R", "FR:I", "FR:H"};
+    std::vector<std::string> prefixes = {"FR:"};
 
     // Check if the device name starts with any of the prefixes
     if (std::any_of(prefixes.begin(), prefixes.end(),
