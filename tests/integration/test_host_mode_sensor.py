@@ -62,8 +62,8 @@ async def test_host_mode_with_sensor(
         assert sensor_info.accuracy_decimals == 2, (
             f"Expected accuracy_decimals=2, got {sensor_info.accuracy_decimals}"
         )
-        assert sensor_info.state_class == aioesphomeapi.StateClass.MEASUREMENT, (
-            f"Expected state_class=StateClass.MEASUREMENT, got {sensor_info.state_class}"
+        assert sensor_info.state_class == 1, (
+            f"Expected state_class=1 (measurement), got {sensor_info.state_class}"
         )
         assert sensor_info.force_update is True, (
             f"Expected force_update=True, got {sensor_info.force_update}"
