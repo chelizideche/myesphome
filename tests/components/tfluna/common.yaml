@@ -1,0 +1,19 @@
+i2c:
+  - scl: ${scl_pin}
+    sda: ${sda_pin}
+
+tfluna:
+
+sensor:
+  - platform: tfluna
+    distance:
+      name: "Distance"
+    signal_strength:
+      name: TF-Luna Signal Strength
+    temperature:
+      name: TF-Luna Temperature
+
+text_sensor:
+  - platform: tfluna
+    version:
+      name: "TF-Luna firmware version"
