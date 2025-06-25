@@ -505,15 +505,15 @@ class APIConnection : public APIServerConnection {
 
     // Destructor
     ~MessageCreator() {
-      if (has_tagged_string_ptr()) {
-        delete get_string_ptr();
+      if (has_tagged_string_ptr_()) {
+        delete get_string_ptr_();
       }
     }
 
     // Copy constructor
     MessageCreator(const MessageCreator &other) {
-      if (other.has_tagged_string_ptr()) {
-        auto *str = new std::string(*other.get_string_ptr());
+      if (other.has_tagged_string_ptr_()) {
+        auto *str = new std::string(*other.get_string_ptr_());
         data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
       } else {
         data_ = other.data_;
@@ -527,12 +527,12 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(const MessageCreator &other) {
       if (this != &other) {
         // Clean up current string data if needed
-        if (has_tagged_string_ptr()) {
-          delete get_string_ptr();
+        if (has_tagged_string_ptr_()) {
+          delete get_string_ptr_();
         }
         // Copy new data
-        if (other.has_tagged_string_ptr()) {
-          auto *str = new std::string(*other.get_string_ptr());
+        if (other.has_tagged_string_ptr_()) {
+          auto *str = new std::string(*other.get_string_ptr_());
           data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
         } else {
           data_ = other.data_;
@@ -544,8 +544,8 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(MessageCreator &&other) noexcept {
       if (this != &other) {
         // Clean up current string data if needed
-        if (has_tagged_string_ptr()) {
-          delete get_string_ptr();
+        if (has_tagged_string_ptr_()) {
+          delete get_string_ptr_();
         }
         // Move data
         data_ = other.data_;
@@ -561,10 +561,10 @@ class APIConnection : public APIServerConnection {
 
    private:
     // Check if this contains a string pointer
-    bool has_tagged_string_ptr() const { return (data_.tagged & 1) != 0; }
+    bool has_tagged_string_ptr_() const { return (data_.tagged & 1) != 0; }
 
     // Get the actual string pointer (clears the tag bit)
-    std::string *get_string_ptr() const { return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1)); }
+    std::string *get_string_ptr_() const { return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1)); }
 
     union {
       MessageCreatorPtr ptr;
