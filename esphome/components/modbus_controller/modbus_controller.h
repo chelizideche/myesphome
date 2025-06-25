@@ -67,30 +67,6 @@ inline bool value_type_is_float(SensorValueType v) {
   return v == SensorValueType::FP32 || v == SensorValueType::FP32_R;
 }
 
-inline uint8_t value_type_size_in_words(SensorValueType v) {
-  switch (v) {
-    case SensorValueType::RAW:
-    case SensorValueType::U_WORD:
-    case SensorValueType::S_WORD:
-    case SensorValueType::BIT:
-      return 1;
-    case SensorValueType::U_DWORD:
-    case SensorValueType::S_DWORD:
-    case SensorValueType::U_DWORD_R:
-    case SensorValueType::S_DWORD_R:
-    case SensorValueType::FP32:
-    case SensorValueType::FP32_R:
-      return 2;
-    case SensorValueType::U_QWORD:
-    case SensorValueType::S_QWORD:
-    case SensorValueType::U_QWORD_R:
-    case SensorValueType::S_QWORD_R:
-      return 4;
-    default:
-      return 0;  // unknown type
-  }
-}
-
 inline ModbusFunctionCode modbus_register_read_function(ModbusRegisterType reg_type) {
   switch (reg_type) {
     case ModbusRegisterType::COIL:
@@ -282,7 +258,7 @@ class SensorItem {
 
 class ServerRegister {
   using ReadLambda = std::function<int64_t()>;
-  using WriteLambda = std::function<bool(const void *, size_t)>;
+  using WriteLambda = std::function<bool(int64_t value)>;
 
  public:
   ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count) {
@@ -299,6 +275,17 @@ class ServerRegister {
       } else {
         return static_cast<int64_t>(user_value);
       }
+    };
+  }
+
+  template<typename T>
+  void set_write_lambda(const std::function<bool(uint16_t address, const T v)> &&user_write_lambda) {
+    this->write_lambda = [this, user_write_lambda](int64_t number) {
+      if constexpr (std::is_same_v<T, float>) {
+        float float_value = bit_cast<float>(static_cast<uint32_t>(number));
+        return user_write_lambda(this->address, float_value);
+      }
+      return user_write_lambda(this->address, static_cast<T>(number));
     };
   }
 
@@ -330,16 +317,6 @@ class ServerRegister {
   uint8_t register_count{0};
   ReadLambda read_lambda;
   WriteLambda write_lambda;
-
-  template<typename T>
-  void set_write_lambda(const std::function<bool(uint16_t address, const T v)> &&user_write_lambda) {
-    this->write_lambda = [this, user_write_lambda](const void *value, size_t size) {
-      if (size != sizeof(T)) {
-        return false;
-      }
-      return user_write_lambda(this->address, *static_cast<const T *>(value));
-    };
-  }
 };
 
 // ModbusController::create_register_ranges_ tries to optimize register range

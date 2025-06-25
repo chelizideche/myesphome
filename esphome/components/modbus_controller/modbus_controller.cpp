@@ -154,7 +154,6 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
 
 void ModbusController::on_modbus_write_registers(uint8_t function_code, const std::vector<uint8_t> &data) {
   uint16_t number_of_registers;
-  uint16_t payload_size;
   uint16_t payload_offset;
 
   if (function_code == 0x10) {
@@ -164,7 +163,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
       send_error(function_code, 3);
       return;
     }
-    payload_size = data[4];
+    uint16_t payload_size = data[4];
     if (payload_size != number_of_registers * 2) {
       ESP_LOGW(TAG, "Payload size of %d bytes is not 2 times the number of registers (%d). Sending exception response.",
                payload_size, number_of_registers);
@@ -174,7 +173,6 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
     payload_offset = 5;
   } else if (function_code == 0x06) {
     number_of_registers = 1;
-    payload_size = 2;
     payload_offset = 2;
   } else {
     ESP_LOGW(TAG, "Invalid function code 0x%X. Sending exception response.", function_code);
@@ -220,14 +218,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
   // Actually write to the registers:
   if (!for_each_register([&data](ServerRegister *server_register, uint16_t offset) {
         int64_t number = payload_to_number(data, server_register->value_type, offset, 0xFFFFFFFF);
-
-        if (value_type_is_float(server_register->value_type)) {
-          float float_value = bit_cast<float>(static_cast<uint32_t>(number));
-          return server_register->write_lambda(&float_value, sizeof(float));
-        } else {
-          size_t size = value_type_size_in_words(server_register->value_type) * 2;
-          return server_register->write_lambda(&number, size);
-        }
+        return server_register->write_lambda(number);
       })) {
     send_error(function_code, 4);
     return;

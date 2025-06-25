@@ -321,7 +321,6 @@ async def to_code(config):
                 )
             )
             if CONF_WRITE_LAMBDA in server_register:
-                cpp_type = CPP_TYPE_REGISTER_MAP[server_register[CONF_VALUE_TYPE]]
                 cg.add(
                     server_register_var.set_write_lambda(
                         cg.TemplateArguments(cpp_type),
