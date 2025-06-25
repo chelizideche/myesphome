@@ -8,6 +8,7 @@
 #endif
 #include "esphome/core/application.h"
 #include "esphome/core/component.h"
+#include "esphome/core/helpers.h"
 
 #define highbyte(val) (uint8_t)((val) >> 8)
 #define lowbyte(val) (uint8_t)((val) &0xff)
@@ -95,11 +96,6 @@ static inline std::string get_direction(int16_t speed) {
     return APPROACHING;
   }
   return STATIONARY;
-}
-
-static inline std::string format_mac(uint8_t *buffer) {
-  return str_snprintf("%02X:%02X:%02X:%02X:%02X:%02X", 17, buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
-                      buffer[15]);
 }
 
 static inline std::string format_version(uint8_t *buffer) {
@@ -612,7 +608,7 @@ bool LD2450Component::handle_ack_data_(uint8_t *buffer, uint8_t len) {
       if (len < 20) {
         return false;
       }
-      this->mac_ = ld2450::format_mac(buffer);
+      this->mac_ = format_mac_address_pretty(&buffer[10]);
       ESP_LOGV(TAG, "MAC address: %s", this->mac_.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->mac_text_sensor_ != nullptr) {
@@ -621,7 +617,7 @@ bool LD2450Component::handle_ack_data_(uint8_t *buffer, uint8_t len) {
 #endif
 #ifdef USE_SWITCH
       if (this->bluetooth_switch_ != nullptr) {
-        this->bluetooth_switch_->publish_state(this->mac_ != NO_MAC);
+        this->bluetooth_switch_->publish_state(this->mac_ != UNKNOWN_MAC);
       }
 #endif
       break;
