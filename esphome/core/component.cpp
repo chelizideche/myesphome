@@ -189,7 +189,7 @@ bool Component::is_in_loop_state() const {
   return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP;
 }
 void Component::defer(std::function<void()> &&f) {  // NOLINT
-  App.scheduler.set_timeout(this, "", 0, std::move(f));
+  App.scheduler.set_timeout(this, static_cast<const char *>(nullptr), 0, std::move(f));
 }
 bool Component::cancel_defer(const std::string &name) {  // NOLINT
   return App.scheduler.cancel_timeout(this, name);
