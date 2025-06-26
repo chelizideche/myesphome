@@ -168,6 +168,18 @@ void APIConnection::loop() {
       ESP_LOGVV(TAG, "Failed to send ping directly, scheduling at front of batch");
       this->schedule_message_front_(nullptr, &APIConnection::try_send_ping_request, PingRequest::MESSAGE_TYPE);
       this->sent_ping_ = true;  // Mark as sent to avoid scheduling multiple pings
+
+      // Also set up retry tracking from upstream
+      this->next_ping_retry_ = now + PING_RETRY_INTERVAL;
+      this->ping_retries_++;
+      if (this->ping_retries_ >= MAX_PING_RETRIES) {
+        on_fatal_error();
+        ESP_LOGE(TAG, "%s: Ping failed %u times", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else if (this->ping_retries_ >= 10) {
+        ESP_LOGW(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else {
+        ESP_LOGD(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      }
     }
   }
 
@@ -266,6 +278,11 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
 
   // Encode directly into buffer
   msg.encode(buffer);
+
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  // Log the message for VV debugging
+  conn->log_send_message_(msg.message_name(), msg.dump());
+#endif
 
   // Calculate actual encoded size (not including header that was already added)
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
