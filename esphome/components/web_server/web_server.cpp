@@ -411,12 +411,7 @@ std::string WebServer::sensor_json(sensor::Sensor *obj, float value, JsonDetail 
     }
     set_json_icon_state_value(root, obj, "sensor-" + obj->get_object_id(), state, value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
       if (!obj->get_unit_of_measurement().empty())
         root["uom"] = obj->get_unit_of_measurement();
     }
@@ -460,12 +455,7 @@ std::string WebServer::text_sensor_json(text_sensor::TextSensor *obj, const std:
   return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "text_sensor-" + obj->get_object_id(), value, value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -517,12 +507,7 @@ std::string WebServer::switch_json(switch_::Switch *obj, bool value, JsonDetail 
     set_json_icon_state_value(root, obj, "switch-" + obj->get_object_id(), value ? "ON" : "OFF", value, start_config);
     if (start_config == DETAIL_ALL) {
       root["assumed_state"] = obj->assumed_state();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -562,12 +547,7 @@ std::string WebServer::button_json(button::Button *obj, JsonDetail start_config)
   return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "button-" + obj->get_object_id(), start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -609,12 +589,7 @@ std::string WebServer::binary_sensor_json(binary_sensor::BinarySensor *obj, bool
     set_json_icon_state_value(root, obj, "binary_sensor-" + obj->get_object_id(), value ? "ON" : "OFF", value,
                               start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -699,12 +674,7 @@ std::string WebServer::fan_json(fan::Fan *obj, JsonDetail start_config) {
     if (obj->get_traits().supports_oscillation())
       root["oscillation"] = obj->oscillating;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -824,12 +794,7 @@ std::string WebServer::light_json(light::LightState *obj, JsonDetail start_confi
       for (auto const &option : obj->get_effects()) {
         opt.add(option->get_name());
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -914,12 +879,7 @@ std::string WebServer::cover_json(cover::Cover *obj, JsonDetail start_config) {
     if (obj->get_traits().get_supports_tilt())
       root["tilt"] = obj->tilt;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -984,12 +944,7 @@ std::string WebServer::number_json(number::Number *obj, float value, JsonDetail 
       root["mode"] = (int) obj->traits.get_mode();
       if (!obj->traits.get_unit_of_measurement().empty())
         root["uom"] = obj->traits.get_unit_of_measurement();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
     if (std::isnan(value)) {
       root["value"] = "\"NaN\"";
@@ -1062,12 +1017,7 @@ std::string WebServer::date_json(datetime::DateEntity *obj, JsonDetail start_con
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1129,12 +1079,7 @@ std::string WebServer::time_json(datetime::TimeEntity *obj, JsonDetail start_con
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1197,12 +1142,7 @@ std::string WebServer::datetime_json(datetime::DateTimeEntity *obj, JsonDetail s
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1267,12 +1207,7 @@ std::string WebServer::text_json(text::Text *obj, const std::string &value, Json
     root["value"] = value;
     if (start_config == DETAIL_ALL) {
       root["mode"] = (int) obj->traits.get_mode();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1332,12 +1267,7 @@ std::string WebServer::select_json(select::Select *obj, const std::string &value
       for (auto &option : obj->traits.get_options()) {
         opt.add(option);
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1458,12 +1388,7 @@ std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_conf
         for (auto const &custom_preset : traits.get_supported_custom_presets())
           opt.add(custom_preset);
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
 
     bool has_state = false;
@@ -1560,12 +1485,7 @@ std::string WebServer::lock_json(lock::Lock *obj, lock::LockState value, JsonDet
     set_json_icon_state_value(root, obj, "lock-" + obj->get_object_id(), lock::lock_state_to_string(value), value,
                               start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1641,12 +1561,7 @@ std::string WebServer::valve_json(valve::Valve *obj, JsonDetail start_config) {
     if (obj->get_traits().get_supports_position())
       root["position"] = obj->position;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1718,12 +1633,7 @@ std::string WebServer::alarm_control_panel_json(alarm_control_panel::AlarmContro
     set_json_icon_state_value(root, obj, "alarm-control-panel-" + obj->get_object_id(),
                               PSTR_LOCAL(alarm_control_panel_state_to_string(value)), value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1772,12 +1682,7 @@ std::string WebServer::event_json(event::Event *obj, const std::string &event_ty
         event_types.add(event_type);
       }
       root["device_class"] = obj->get_device_class();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1845,12 +1750,7 @@ std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_c
       root["title"] = obj->update_info.title;
       root["summary"] = obj->update_info.summary;
       root["release_url"] = obj->update_info.release_url;
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -2166,6 +2066,15 @@ void WebServer::add_entity_config(EntityBase *entity, float weight, uint64_t gro
 
 void WebServer::add_sorting_group(uint64_t group_id, const std::string &group_name, float weight) {
   this->sorting_groups_[group_id] = SortingGroup{group_name, weight};
+}
+
+void WebServer::add_sorting_info_(JsonObject &root, EntityBase *entity) {
+  if (this->sorting_entitys_.find(entity) != this->sorting_entitys_.end()) {
+    root["sorting_weight"] = this->sorting_entitys_[entity].weight;
+    if (this->sorting_groups_.find(this->sorting_entitys_[entity].group_id) != this->sorting_groups_.end()) {
+      root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[entity].group_id].name;
+    }
+  }
 }
 
 void WebServer::schedule_(std::function<void()> &&f) {

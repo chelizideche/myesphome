@@ -482,6 +482,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   bool include_internal_{false};
 
  protected:
+  void add_sorting_info_(JsonObject &root, EntityBase *entity);
   void schedule_(std::function<void()> &&f);
   web_server_base::WebServerBase *base_;
 #ifdef USE_ARDUINO
