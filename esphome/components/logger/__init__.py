@@ -184,7 +184,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(Logger),
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
-            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
+            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.All(
+                cv.validate_bytes, cv.int_range(min=160, max=65535)
+            ),
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             cv.SplitDefault(
                 CONF_TASK_LOG_BUFFER_SIZE,
@@ -324,7 +326,10 @@ async def to_code(config):
     if CORE.using_arduino:
         if config[CONF_HARDWARE_UART] == USB_CDC:
             cg.add_build_flag("-DARDUINO_USB_CDC_ON_BOOT=1")
-            if CORE.is_esp32 and get_esp32_variant() == VARIANT_ESP32C3:
+            if CORE.is_esp32 and get_esp32_variant() in (
+                VARIANT_ESP32C3,
+                VARIANT_ESP32C6,
+            ):
                 cg.add_build_flag("-DARDUINO_USB_MODE=1")
 
     if CORE.using_esp_idf:
