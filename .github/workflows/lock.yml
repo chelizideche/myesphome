@@ -10,4 +10,4 @@ jobs:
   lock:
     uses: esphome/workflows/.github/workflows/lock.yml@main
     with:
-      since-days: 365
+      since-days: 3650
