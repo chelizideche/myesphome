@@ -87,6 +87,7 @@ async def to_code(config):
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
         config[CONF_D3_PIN],
     )
+    esp32.add_idf_sdkconfig_option("CONFIG_ESP_HOSTED_CUSTOM_SDIO_PINS", True)
 
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
     os.environ["ESP_IDF_VERSION"] = f"{framework_ver.major}.{framework_ver.minor}"
