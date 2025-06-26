@@ -502,7 +502,7 @@ bool APIServer::save_noise_psk(psk_t psk, bool make_active) {
 #ifdef USE_HOMEASSISTANT_TIME
 void APIServer::request_time() {
   for (auto &client : this->clients_) {
-    if (!client->remove_ && client->is_authenticated())
+    if (!client->flags_.remove && client->is_authenticated())
       client->send_time_request();
   }
 }
