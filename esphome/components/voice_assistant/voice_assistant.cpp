@@ -622,6 +622,8 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
       if (text.empty()) {
         ESP_LOGW(TAG, "No text in STT_END event");
         return;
+      } else if (text.length() > 500) {
+        text = text.substr(0, 497) + "...";
       }
       ESP_LOGD(TAG, "Speech recognised as: \"%s\"", text.c_str());
       this->defer([this, text]() { this->stt_end_trigger_->trigger(text); });
@@ -652,6 +654,9 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
       if (text.empty()) {
         ESP_LOGW(TAG, "No text in TTS_START event");
         return;
+      }
+      if (text.length() > 500) {
+        text = text.substr(0, 497) + "...";
       }
       ESP_LOGD(TAG, "Response: \"%s\"", text.c_str());
       this->defer([this, text]() {
