@@ -1898,13 +1898,13 @@ void APIConnection::process_batch_() {
 
 uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                    bool is_single, uint16_t message_type) const {
-  if (is_string()) {
+  if (has_tagged_string_ptr_()) {
     // Handle string-based messages
     switch (message_type) {
 #ifdef USE_EVENT
       case EventResponse::MESSAGE_TYPE: {
         auto *e = static_cast<event::Event *>(entity);
-        return APIConnection::try_send_event_response(e, *get_string_ptr(), conn, remaining_size, is_single);
+        return APIConnection::try_send_event_response(e, *get_string_ptr_(), conn, remaining_size, is_single);
       }
 #endif
       default:
