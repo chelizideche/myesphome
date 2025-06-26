@@ -33,9 +33,14 @@ namespace api {
 // Since each message could contain multiple protobuf messages when using packet batching,
 // this limits the number of messages processed, not the number of TCP packets.
 static constexpr uint8_t MAX_MESSAGES_PER_LOOP = 5;
+static constexpr uint8_t MAX_PING_RETRIES = 60;
+static constexpr uint16_t PING_RETRY_INTERVAL = 1000;
+static constexpr uint32_t KEEPALIVE_DISCONNECT_TIMEOUT = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
 
 static const char *const TAG = "api.connection";
+#ifdef USE_ESP32_CAMERA
 static const int ESP32_CAMERA_STOP_STREAM = 5000;
+#endif
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
@@ -86,16 +91,6 @@ APIConnection::~APIConnection() {
 }
 
 void APIConnection::loop() {
-  if (this->remove_)
-    return;
-
-  if (!network::is_connected()) {
-    // when network is disconnected force disconnect immediately
-    // don't wait for timeout
-    this->on_fatal_error();
-    ESP_LOGW(TAG, "%s: Network unavailable; disconnecting", this->get_client_combined_info().c_str());
-    return;
-  }
   if (this->next_close_) {
     // requested a disconnect
     this->helper_->close();
@@ -148,18 +143,19 @@ void APIConnection::loop() {
 
   // Process deferred batch if scheduled
   if (this->deferred_batch_.batch_scheduled &&
-      App.get_loop_component_start_time() - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
+      now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
     this->process_batch_();
   }
 
-  if (!this->list_entities_iterator_.completed())
+  if (!this->list_entities_iterator_.completed()) {
     this->list_entities_iterator_.advance();
-  if (!this->initial_state_iterator_.completed() && this->list_entities_iterator_.completed())
+  } else if (!this->initial_state_iterator_.completed()) {
     this->initial_state_iterator_.advance();
+  }
 
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
-    if (now - this->last_traffic_ > (KEEPALIVE_TIMEOUT_MS * 5) / 2) {
+    if (now - this->last_traffic_ > KEEPALIVE_DISCONNECT_TIMEOUT) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->get_client_combined_info().c_str());
     }
@@ -172,6 +168,18 @@ void APIConnection::loop() {
       ESP_LOGVV(TAG, "Failed to send ping directly, scheduling at front of batch");
       this->schedule_message_front_(nullptr, &APIConnection::try_send_ping_request, PingRequest::MESSAGE_TYPE);
       this->sent_ping_ = true;  // Mark as sent to avoid scheduling multiple pings
+
+      // Also set up retry tracking from upstream
+      this->next_ping_retry_ = now + PING_RETRY_INTERVAL;
+      this->ping_retries_++;
+      if (this->ping_retries_ >= MAX_PING_RETRIES) {
+        on_fatal_error();
+        ESP_LOGE(TAG, "%s: Ping failed %u times", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else if (this->ping_retries_ >= 10) {
+        ESP_LOGW(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else {
+        ESP_LOGD(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      }
     }
   }
 
@@ -194,22 +202,20 @@ void APIConnection::loop() {
     // bool done = 3;
     buffer.encode_bool(3, done);
 
-    bool success = this->send_buffer(buffer, 44);
+    bool success = this->send_buffer(buffer, CameraImageResponse::MESSAGE_TYPE);
 
     if (success) {
       this->image_reader_.consume_data(to_send);
-    }
-    if (success && done) {
-      this->image_reader_.return_image();
+      if (done) {
+        this->image_reader_.return_image();
+      }
     }
   }
 #endif
 
-  if (state_subs_at_ != -1) {
+  if (state_subs_at_ >= 0) {
     const auto &subs = this->parent_->get_state_subs();
-    if (state_subs_at_ >= (int) subs.size()) {
-      state_subs_at_ = -1;
-    } else {
+    if (state_subs_at_ < static_cast<int>(subs.size())) {
       auto &it = subs[state_subs_at_];
       SubscribeHomeAssistantStateResponse resp;
       resp.entity_id = it.entity_id;
@@ -218,6 +224,8 @@ void APIConnection::loop() {
       if (this->send_message(resp)) {
         state_subs_at_++;
       }
+    } else {
+      state_subs_at_ = -1;
     }
   }
 }
@@ -270,6 +278,11 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t mes
 
   // Encode directly into buffer
   msg.encode(buffer);
+
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  // Log the message for VV debugging
+  conn->log_send_message_(msg.message_name(), msg.dump());
+#endif
 
   // Calculate actual encoded size (not including header that was already added)
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
@@ -1427,7 +1440,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, const std::string &event_type) {
-  this->schedule_message_(event, MessageCreator(event_type, EventResponse::MESSAGE_TYPE), EventResponse::MESSAGE_TYPE);
+  this->schedule_message_(event, MessageCreator(event_type), EventResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_message_(event, &APIConnection::try_send_event_info, ListEntitiesEventResponse::MESSAGE_TYPE);
@@ -1787,7 +1800,8 @@ void APIConnection::process_batch_() {
     const auto &item = this->deferred_batch_.items[0];
 
     // Let the creator calculate size and encode if it fits
-    uint16_t payload_size = item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true);
+    uint16_t payload_size =
+        item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true, item.message_type);
 
     if (payload_size > 0 &&
         this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, item.message_type)) {
@@ -1837,7 +1851,7 @@ void APIConnection::process_batch_() {
   for (const auto &item : this->deferred_batch_.items) {
     // Try to encode message
     // The creator will calculate overhead to determine if the message fits
-    uint16_t payload_size = item.creator(item.entity, this, remaining_size, false);
+    uint16_t payload_size = item.creator(item.entity, this, remaining_size, false, item.message_type);
 
     if (payload_size == 0) {
       // Message won't fit, stop processing
@@ -1900,21 +1914,23 @@ void APIConnection::process_batch_() {
 }
 
 uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                   bool is_single) const {
-  switch (message_type_) {
-    case 0:  // Function pointer
-      return data_.ptr(entity, conn, remaining_size, is_single);
-
+                                                   bool is_single, uint16_t message_type) const {
+  if (has_tagged_string_ptr_()) {
+    // Handle string-based messages
+    switch (message_type) {
 #ifdef USE_EVENT
-    case EventResponse::MESSAGE_TYPE: {
-      auto *e = static_cast<event::Event *>(entity);
-      return APIConnection::try_send_event_response(e, *data_.string_ptr, conn, remaining_size, is_single);
-    }
+      case EventResponse::MESSAGE_TYPE: {
+        auto *e = static_cast<event::Event *>(entity);
+        return APIConnection::try_send_event_response(e, *get_string_ptr_(), conn, remaining_size, is_single);
+      }
 #endif
-
-    default:
-      // Should not happen, return 0 to indicate no message
-      return 0;
+      default:
+        // Should not happen, return 0 to indicate no message
+        return 0;
+    }
+  } else {
+    // Function pointer case
+    return data_.ptr(entity, conn, remaining_size, is_single);
   }
 }
 
