@@ -338,6 +338,9 @@ class Application {
    * Each component can request a high frequency loop execution by using the HighFrequencyLoopRequester
    * helper in helpers.h
    *
+   * Note: This method is not called by ESPHome core code. It is only used by lambda functions
+   * in YAML configurations or by external components.
+   *
    * @param loop_interval The interval in milliseconds to run the core loop at. Defaults to 16 milliseconds.
    */
   void set_loop_interval(uint32_t loop_interval) {
