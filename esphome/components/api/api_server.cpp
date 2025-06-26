@@ -184,7 +184,7 @@ void APIServer::loop() {
     }
 
     // Rare case: handle disconnection
-    this->client_disconnected_trigger_->trigger(client->client_info_, client->client_peername_);
+    this->client_disconnected_trigger_->trigger(client->client_info_, client->helper_->getpeername());
     ESP_LOGV(TAG, "Remove connection %s", client->client_info_.c_str());
 
     // Swap with the last element and pop (avoids expensive vector shifts)

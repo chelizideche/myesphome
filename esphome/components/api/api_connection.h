@@ -276,11 +276,12 @@ class APIConnection : public APIServerConnection {
   bool send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) override;
 
   std::string get_client_combined_info() const {
-    if (this->client_info_ == this->client_peername_) {
+    std::string peername = this->helper_->getpeername();
+    if (this->client_info_ == peername) {
       // Before Hello message, both are the same (just IP:port)
       return this->client_info_;
     }
-    return this->client_info_ + " (" + this->client_peername_ + ")";
+    return this->client_info_ + " (" + peername + ")";
   }
 
   // Buffer allocator methods for batch processing
@@ -452,7 +453,6 @@ class APIConnection : public APIServerConnection {
 
   // Strings (12 bytes each on 32-bit)
   std::string client_info_;
-  std::string client_peername_;
 
   // 2-byte aligned types
   uint16_t client_api_version_major_{0};

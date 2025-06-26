@@ -77,7 +77,6 @@ void APIConnection::start() {
     return;
   }
   this->client_info_ = helper_->getpeername();
-  this->client_peername_ = this->client_info_;
   this->helper_->set_log_info(this->client_info_);
 }
 
@@ -1550,12 +1549,11 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
 
 HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->client_info_ = msg.client_info;
-  this->client_peername_ = this->helper_->getpeername();
   this->helper_->set_log_info(this->get_client_combined_info());
   this->client_api_version_major_ = msg.api_version_major;
   this->client_api_version_minor_ = msg.api_version_minor;
   ESP_LOGV(TAG, "Hello from client: '%s' | %s | API Version %" PRIu32 ".%" PRIu32, this->client_info_.c_str(),
-           this->client_peername_.c_str(), this->client_api_version_major_, this->client_api_version_minor_);
+           this->helper_->getpeername().c_str(), this->client_api_version_major_, this->client_api_version_minor_);
 
   HelloResponse resp;
   resp.api_version_major = 1;
@@ -1575,7 +1573,7 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   if (correct) {
     ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
     this->connection_state_ = ConnectionState::AUTHENTICATED;
-    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
+    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->helper_->getpeername());
 #ifdef USE_HOMEASSISTANT_TIME
     if (homeassistant::global_homeassistant_time != nullptr) {
       this->send_time_request();
