@@ -13,7 +13,7 @@ namespace esphome {
 class ESPHomeOTAComponent : public ota::OTAComponent {
  public:
 #ifdef USE_OTA_PASSWORD
-  void set_auth_password(const std::string &password) { password_ = password; }
+  void set_auth_password(const char *password) { password_ = password; }
 #endif  // USE_OTA_PASSWORD
 
   /// Manually set the port OTA should listen on
@@ -32,7 +32,7 @@ class ESPHomeOTAComponent : public ota::OTAComponent {
   bool writeall_(const uint8_t *buf, size_t len);
 
 #ifdef USE_OTA_PASSWORD
-  std::string password_;
+  const char *password_{nullptr};
 #endif  // USE_OTA_PASSWORD
 
   uint16_t port_;
