@@ -22,7 +22,7 @@ static const uint32_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 100;
 
 static const size_t HTTP_STREAM_BUFFER_SIZE = 2048;
 
-static const uint8_t MAX_REDIRECTION = 5;
+static const uint8_t MAX_REDIRECTIONS = 5;
 
 // Some common HTTP status codes - borrowed from http_request component accessed 20241224
 enum HttpStatus {
@@ -94,7 +94,7 @@ esp_err_t AudioReader::start(const std::string &uri, AudioFileType &file_type) {
   client_config.url = uri.c_str();
   client_config.cert_pem = nullptr;
   client_config.disable_auto_redirect = false;
-  client_config.max_redirection_count = 10;
+  client_config.max_redirection_count = MAX_REDIRECTIONS;
   client_config.event_handler = http_event_handler;
   client_config.user_data = this;
   client_config.buffer_size = HTTP_STREAM_BUFFER_SIZE;
@@ -135,7 +135,7 @@ esp_err_t AudioReader::start(const std::string &uri, AudioFileType &file_type) {
 
   ssize_t redirect_count = 0;
 
-  while ((esp_http_client_set_redirection(this->client_) == ESP_OK) && (redirect_count < MAX_REDIRECTION)) {
+  while ((esp_http_client_set_redirection(this->client_) == ESP_OK) && (redirect_count < MAX_REDIRECTIONS)) {
     err = esp_http_client_open(this->client_, 0);
     if (err != ESP_OK) {
       this->cleanup_connection_();
