@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iomanip>
-#include <map>
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -65,35 +63,6 @@ struct ZoneOfNumbers {
   number::Number *y2 = nullptr;
 };
 #endif
-
-enum BaudRateStructure : uint8_t {
-  BAUD_RATE_9600 = 1,
-  BAUD_RATE_19200 = 2,
-  BAUD_RATE_38400 = 3,
-  BAUD_RATE_57600 = 4,
-  BAUD_RATE_115200 = 5,
-  BAUD_RATE_230400 = 6,
-  BAUD_RATE_256000 = 7,
-  BAUD_RATE_460800 = 8
-};
-
-// Zone type struct
-enum ZoneTypeStructure : uint8_t {
-  ZONE_DISABLED = 0,
-  ZONE_DETECTION = 1,
-  ZONE_FILTER = 2,
-};
-
-enum PeriodicDataStructure : uint8_t {
-  TARGET_X = 4,
-  TARGET_Y = 6,
-  TARGET_SPEED = 8,
-  TARGET_RESOLUTION = 10,
-};
-
-enum PeriodicDataValue : uint8_t { HEAD = 0xAA, END = 0x55, CHECK = 0x00 };
-
-enum AckDataStructure : uint8_t { COMMAND = 6, COMMAND_STATUS = 7 };
 
 class LD2450Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
