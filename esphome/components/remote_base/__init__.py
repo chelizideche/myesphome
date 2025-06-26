@@ -126,7 +126,9 @@ def register_trigger(name, type, data_type):
     return decorator
 
 
-def register_dumper(name, type, schema={}):
+def register_dumper(name, type, schema=None):
+    if schema is None:
+        schema = {}
     registerer = DUMPER_REGISTRY.register(name, type, schema)
 
     def decorator(func):
