@@ -7,6 +7,7 @@ namespace esphome {
 namespace tfluna {
 
 // see https://files.waveshare.com/upload/a/ac/SJ-PM-TF-Luna_A05_Product_Manual.pdf
+static const uint8_t SAVE_REGISTER = 0x20;
 static const uint8_t VERSION_REVISION_REGISTER = 0x0A;
 static const uint8_t VERSION_MINOR_REGISTER = 0x0B;
 static const uint8_t VERSION_MAJOR_REGISTER = 0x0C;
@@ -68,6 +69,12 @@ void TFLuna::setup() {
 
   if (!this->write_byte(MODE_REGISTER, MODE_TRIGGER)) {
     ESP_LOGE(TAG, "Failed to set mode to trigger mode");
+    this->mark_failed();
+    return;
+  }
+
+  if (!this->write_byte(SAVE_REGISTER, 1)) {
+    ESP_LOGE(TAG, "Failed to set save settings");
     this->mark_failed();
     return;
   }
