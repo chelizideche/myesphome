@@ -21,6 +21,73 @@ static const char *const NO_MAC = "08:05:04:03:02:01";
 static const char *const UNKNOWN_MAC = "unknown";
 static const char *const VERSION_FMT = "%u.%02X.%02X%02X%02X%02X";
 
+static const std::map<std::string, uint8_t> BAUD_RATE_ENUM_TO_INT{
+    {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
+    {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
+    {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800},
+};
+
+static const std::map<std::string, uint8_t> DISTANCE_RESOLUTION_ENUM_TO_INT{
+    {"0.2m", DISTANCE_RESOLUTION_0_2},
+    {"0.75m", DISTANCE_RESOLUTION_0_75},
+};
+
+static const std::map<uint8_t, std::string> DISTANCE_RESOLUTION_INT_TO_ENUM{
+    {DISTANCE_RESOLUTION_0_2, "0.2m"},
+    {DISTANCE_RESOLUTION_0_75, "0.75m"},
+};
+
+static const std::map<std::string, uint8_t> LIGHT_FUNCTION_ENUM_TO_INT{
+    {"off", LIGHT_FUNCTION_OFF},
+    {"below", LIGHT_FUNCTION_BELOW},
+    {"above", LIGHT_FUNCTION_ABOVE},
+};
+
+static const std::map<uint8_t, std::string> LIGHT_FUNCTION_INT_TO_ENUM{
+    {LIGHT_FUNCTION_OFF, "off"},
+    {LIGHT_FUNCTION_BELOW, "below"},
+    {LIGHT_FUNCTION_ABOVE, "above"},
+};
+
+static const std::map<std::string, uint8_t> OUT_PIN_LEVEL_ENUM_TO_INT{
+    {"low", OUT_PIN_LEVEL_LOW},
+    {"high", OUT_PIN_LEVEL_HIGH},
+};
+
+static const std::map<uint8_t, std::string> OUT_PIN_LEVEL_INT_TO_ENUM{
+    {OUT_PIN_LEVEL_LOW, "low"},
+    {OUT_PIN_LEVEL_HIGH, "high"},
+};
+// Commands
+static const uint8_t CMD_ENABLE_CONF = 0xFF;
+static const uint8_t CMD_DISABLE_CONF = 0xFE;
+static const uint8_t CMD_ENABLE_ENG = 0x62;
+static const uint8_t CMD_DISABLE_ENG = 0x63;
+static const uint8_t CMD_MAXDIST_DURATION = 0x60;
+static const uint8_t CMD_QUERY = 0x61;
+static const uint8_t CMD_GATE_SENS = 0x64;
+static const uint8_t CMD_VERSION = 0xA0;
+static const uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0xAB;
+static const uint8_t CMD_SET_DISTANCE_RESOLUTION = 0xAA;
+static const uint8_t CMD_QUERY_LIGHT_CONTROL = 0xAE;
+static const uint8_t CMD_SET_LIGHT_CONTROL = 0xAD;
+static const uint8_t CMD_SET_BAUD_RATE = 0xA1;
+static const uint8_t CMD_BT_PASSWORD = 0xA9;
+static const uint8_t CMD_MAC = 0xA5;
+static const uint8_t CMD_RESET = 0xA2;
+static const uint8_t CMD_RESTART = 0xA3;
+static const uint8_t CMD_BLUETOOTH = 0xA4;
+// Commands values
+static const uint8_t CMD_MAX_MOVE_VALUE = 0x00;
+static const uint8_t CMD_MAX_STILL_VALUE = 0x01;
+static const uint8_t CMD_DURATION_VALUE = 0x02;
+// Command Header & Footer
+static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
+static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
+// Data Header & Footer
+static const uint8_t DATA_FRAME_HEADER[4] = {0xF4, 0xF3, 0xF2, 0xF1};
+static const uint8_t DATA_FRAME_END[4] = {0xF8, 0xF7, 0xF6, 0xF5};
+
 void LD2410Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2410:");
 #ifdef USE_BINARY_SENSOR
