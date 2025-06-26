@@ -60,7 +60,7 @@ void EmonTx::setup() {
   if (has_mqtt_config_) {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
     ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
-    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_.c_str());
+    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_ == MqttPublishMode::JSON ? "json" : "individual");
     ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
   } else {
@@ -232,12 +232,12 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     return;
   }
 
-  if (mqtt_publish_mode_ == "json") {  // Send the raw JSON data
+  if (mqtt_publish_mode_ == MqttPublishMode::JSON) {
     ESP_LOGV(TAG, "Publishing JSON to MQTT topic %s: %s", mqtt_topic_prefix_full_.c_str(), json_data.c_str());
     mqtt::global_mqtt_client->publish(mqtt_topic_prefix_full_, json_data, 0, false);
 
     ESP_LOGI(TAG, "JSON data published to MQTT topic %s", mqtt_topic_prefix_full_.c_str());
-  } else if (mqtt_publish_mode_ == "individual") {
+  } else if (mqtt_publish_mode_ == MqttPublishMode::INDIVIDUAL) {
     // Send only individual values to separate topics
     ESP_LOGI(TAG, "Publishing individual values to MQTT topics under %s", mqtt_topic_prefix_full_.c_str());
 
@@ -267,9 +267,6 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     if (!success) {
       ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
     }
-  } else {
-    // This should never happen with the validation, but just in case
-    ESP_LOGE(TAG, "Unknown MQTT publish mode: %s", mqtt_publish_mode_.c_str());
   }
 ]
 #endif
@@ -312,7 +309,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
   if (has_mqtt_config_) {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
     ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
-    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_.c_str());
+    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_ == MqttPublishMode::JSON ? "json" : "individual");
     ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
   } else {

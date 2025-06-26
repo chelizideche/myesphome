@@ -37,6 +37,9 @@ class EmonTxListener {
   virtual void publish_val(const std::string &val){};
 };
 
+// Define the enum for publish modes
+enum class MqttPublishMode { JSON, INDIVIDUAL };
+
 /**
  * @class EmonTx
  * @brief Main class for the EmonTx component.
@@ -77,6 +80,15 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
                        const std::string &publish_mode = "json") {
     mqtt_base_prefix_ = base_prefix;
     mqtt_topic_prefix_ = topic_prefix;
+
+    // Convert string to enum
+    if (publish_mode == "individual") {
+      mqtt_publish_mode_ = MqttPublishMode::INDIVIDUAL;
+    } else {
+      // Default to JSON
+      mqtt_publish_mode_ = MqttPublishMode::JSON;
+    }
+
     has_mqtt_config_ = true;
 
     // Pre-compute the full topic prefix
@@ -117,6 +129,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::string mqtt_topic_prefix_;
   // Pre-computed MQTT topic prefix (base_prefix/topic_prefix/)
   std::string mqtt_topic_prefix_full_;
+  MqttPublishMode mqtt_publish_mode_{MqttPublishMode::JSON};  // Use enum now
 
   void send_to_mqtt_(const std::string &json_data);
 #endif
