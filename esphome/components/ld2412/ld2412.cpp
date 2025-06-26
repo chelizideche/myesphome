@@ -15,8 +15,9 @@ namespace esphome {
 namespace ld2412 {
 
 static const char *const TAG = "ld2412";
-
-LD2412Component::LD2412Component() {}
+static const char NO_MAC[] = "08:05:04:03:02:01";
+static const char UNKNOWN_MAC[] = "unknown";
+static const char VERSION_FMT[] = "%u.%02X.%02X%02X%02X%02X";
 
 void LD2412Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2412:");
@@ -73,10 +74,10 @@ void LD2412Component::dump_config() {
   // }
 #endif
   ESP_LOGCONFIG(TAG,
-                "  Throttle_ : %u ms\n"
-                "  MAC Address : %s\n"
-                "  Firmware Version : %s",
-                this->throttle_, const_cast<char *>(this->mac_.c_str()), const_cast<char *>(this->version_.c_str()));
+                "  Throttle: %ums\n"
+                "  MAC address: %s\n"
+                "  Firmware version: %s",
+                this->throttle_, this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_.c_str(), this->version_.c_str());
 }
 
 void LD2412Component::setup() {
@@ -95,7 +96,7 @@ void LD2412Component::read_all_info() {
   // this->get_light_control_();
   this->query_parameters_();
   delay(10);  // NOLINT
-  this->query_dymanic_background_correction_();
+  this->query_dynamic_background_correction_();
   delay(10);  // NOLINT
 #ifdef USE_NUMBER
   this->get_gate_threshold();
@@ -312,40 +313,6 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
 #endif
 }
 
-const char VERSION_FMT[] = "%u.%02X.%02X%02X%02X%02X";
-
-std::string format_version(uint8_t *buffer) {
-  std::string::size_type version_size = 256;
-  std::string version;
-  do {
-    version.resize(version_size + 1);
-    version_size = std::snprintf(&version[0], version.size(), VERSION_FMT, buffer[13], buffer[12], buffer[17],
-                                 buffer[16], buffer[15], buffer[14]);
-  } while (version_size + 1 > version.size());
-  version.resize(version_size);
-  return version;
-}
-
-const char MAC_FMT[] = "%02X:%02X:%02X:%02X:%02X:%02X";
-
-const std::string UNKNOWN_MAC("unknown");
-const std::string NO_MAC("08:05:04:03:02:01");
-
-std::string format_mac(uint8_t *buffer) {
-  std::string::size_type mac_size = 256;
-  std::string mac;
-  do {
-    mac.resize(mac_size + 1);
-    mac_size = std::snprintf(&mac[0], mac.size(), MAC_FMT, buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
-                             buffer[15]);
-  } while (mac_size + 1 > mac.size());
-  mac.resize(mac_size);
-  if (mac == NO_MAC) {
-    return UNKNOWN_MAC;
-  }
-  return mac;
-}
-
 #ifdef USE_NUMBER
 std::function<void(void)> set_number_value(number::Number *n, float value) {
   float normalized_value = value * 1.0;
@@ -366,8 +333,8 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
   if (buffer[0] != 0xFD || buffer[1] != 0xFC || buffer[2] != 0xFB || buffer[3] != 0xFA) {  // check 4 frame start bytes
     ESP_LOGE(TAG, "Incorrect header: %02X, %02X, %02X, %02X", buffer[0], buffer[1], buffer[2], buffer[3]);
     // just a patch to handle a strange behavior. better this than have a costant wrong mode
-    if (this->dynamic_bakground_correction_active_) {
-      this->query_dymanic_background_correction_();
+    if (this->dynamic_background_correction_active_) {
+      this->query_dynamic_background_correction_();
     }
     return true;
   }
@@ -396,8 +363,8 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
 #endif
       break;
     case lowbyte(CMD_VERSION):
-      this->version_ = format_version(buffer);
-      ESP_LOGV(TAG, "FW version is: %s", const_cast<char *>(this->version_.c_str()));
+      this->version_ = str_sprintf(VERSION_FMT, buffer[13], buffer[12], buffer[17], buffer[16], buffer[15], buffer[14]);
+      ESP_LOGV(TAG, "Firmware version: %s", const_cast<char *>(this->version_.c_str()));
 #ifdef USE_TEXT_SENSOR
       if (this->version_text_sensor_ != nullptr) {
         this->version_text_sensor_->publish_state(this->version_);
@@ -444,11 +411,11 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       if (len < 20) {
         return false;
       }
-      this->mac_ = format_mac(buffer);
-      ESP_LOGV(TAG, "MAC address: %s", const_cast<char *>(this->mac_.c_str()));
+      this->mac_ = format_mac_address_pretty(&buffer[10]);
+      ESP_LOGV(TAG, "MAC address: %s", this->mac_.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->mac_text_sensor_ != nullptr) {
-        this->mac_text_sensor_->publish_state(this->mac_);
+        this->mac_text_sensor_->publish_state(this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_);
       }
 #endif
 #ifdef USE_SWITCH
@@ -464,17 +431,17 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       ESP_LOGV(TAG, "Handled query dynamic background correction");
       dynamic_background_correction_active = (buffer[10] == 0x01);
 #ifdef USE_SELECT
-      if (this->dynamic_bakground_correction_active_ != dynamic_background_correction_active &&
+      if (this->dynamic_background_correction_active_ != dynamic_background_correction_active &&
           dynamic_background_correction_active) {
         this->mode_select_->publish_state("Dynamic background correction");
-      } else if (this->dynamic_bakground_correction_active_ != dynamic_background_correction_active &&
+      } else if (this->dynamic_background_correction_active_ != dynamic_background_correction_active &&
                  !dynamic_background_correction_active) {
         this->mode_select_->publish_state("Normal");
       }
 #endif
-      this->dynamic_bakground_correction_active_ = dynamic_background_correction_active;
-      if (this->dynamic_bakground_correction_active_) {
-        this->set_timeout(1000, [this]() { this->query_dymanic_background_correction_(); });
+      this->dynamic_background_correction_active_ = dynamic_background_correction_active;
+      if (this->dynamic_background_correction_active_) {
+        this->set_timeout(1000, [this]() { this->query_dynamic_background_correction_(); });
       }
       break;
       //    case lowbyte(CMD_GATE_SENS):
@@ -655,13 +622,13 @@ void LD2412Component::set_mode(const std::string &state) {
     this->send_command_(cmd, nullptr, 0);
     this->set_config_mode_(false);
     if (cmd == CMD_DYNAMIC_BACKGROUND_CORRECTION) {
-      this->dynamic_bakground_correction_active_ = true;
-      this->set_timeout(1000, [this]() { this->query_dymanic_background_correction_(); });
+      this->dynamic_background_correction_active_ = true;
+      this->set_timeout(1000, [this]() { this->query_dynamic_background_correction_(); });
     }
   }
 }
 
-void LD2412Component::query_dymanic_background_correction_() {
+void LD2412Component::query_dynamic_background_correction_() {
   this->set_config_mode_(true);
   this->send_command_(CMD_QUEY_DYNAMIC_BACKGROUND_CORRECTION, nullptr, 0);
   this->set_config_mode_(false);

@@ -212,7 +212,6 @@ class LD2412Component : public Component, public uart::UARTDevice {
 #endif
 
  public:
-  LD2412Component();
   void setup() override;
   void dump_config() override;
   void loop() override;
@@ -255,7 +254,7 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void get_distance_resolution_();
   void get_light_control_();
   void restart_();
-  void query_dymanic_background_correction_();
+  void query_dynamic_background_correction_();
 
   static std::string format_buffer(const uint8_t *buffer, size_t len) {
     std::string version;
@@ -267,15 +266,15 @@ class LD2412Component : public Component, public uart::UARTDevice {
     return version;
   }
 
-  int32_t last_periodic_millis_ = millis();
-  int32_t last_engineering_mode_change_millis_ = millis();
-  uint16_t throttle_;
+  float light_threshold_ = -1;
   std::string version_;
   std::string mac_;
   std::string out_pin_level_;
-  bool dynamic_bakground_correction_active_;
   std::string light_function_;
-  float light_threshold_ = -1;
+  int32_t last_periodic_millis_ = 0;
+  int32_t last_engineering_mode_change_millis_ = 0;
+  uint16_t throttle_;
+  bool dynamic_background_correction_active_;
 #ifdef USE_NUMBER
   std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(14);
   std::vector<number::Number *> gate_move_threshold_numbers_ = std::vector<number::Number *>(14);
