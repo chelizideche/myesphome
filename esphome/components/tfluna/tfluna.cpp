@@ -96,6 +96,32 @@ void TFLuna::update() {
     return;
   }
 
+  uint8_t timestamp_low;
+  if (!this->read_byte(TIMESTAMP_LOW_REGISTER, &timestamp_low)) {
+    ESP_LOGE(TAG, "Failed to get timestamp low");
+    this->status_set_warning();
+    return;
+  }
+  uint8_t timestamp_high;
+  if (!this->read_byte(TIMESTAMP_HIGH_REGISTER, &timestamp_high)) {
+    ESP_LOGE(TAG, "Failed to get timestamp high");
+    this->status_set_warning();
+    return;
+  }
+  uint16_t timestamp = timestamp_low + timestamp_high * 256;
+  static uint16_t previous_timestamp = 0;
+  if (timestamp == previous_timestamp) {
+    ESP_LOGE(TAG, "Timestamp has not changed; the device must have hung. Restarting...");
+    this->status_set_warning();
+    this->restart();
+    return;
+  }
+  previous_timestamp = timestamp;
+  if (this->timestamp_sensor_ != nullptr) {
+    ESP_LOGD(TAG, "Got timestamp=%d", timestamp);
+    this->timestamp_sensor_->publish_state(timestamp);
+  }
+
 #ifdef USE_SENSOR
   if (this->distance_sensor_ != nullptr) {
     uint8_t distance_low;
@@ -152,25 +178,6 @@ void TFLuna::update() {
 
     ESP_LOGD(TAG, "Got signal strength=%d", signal_strength);
     this->signal_strength_sensor_->publish_state(signal_strength);
-  }
-
-  if (this->timestamp_sensor_ != nullptr) {
-    uint8_t timestamp_low;
-    if (!this->read_byte(TIMESTAMP_LOW_REGISTER, &timestamp_low)) {
-      ESP_LOGE(TAG, "Failed to get timestamp low");
-      this->status_set_warning();
-      return;
-    }
-    uint8_t timestamp_high;
-    if (!this->read_byte(TIMESTAMP_HIGH_REGISTER, &timestamp_high)) {
-      ESP_LOGE(TAG, "Failed to get timestamp high");
-      this->status_set_warning();
-      return;
-    }
-    uint16_t timestamp = timestamp_low + timestamp_high * 256;
-
-    ESP_LOGD(TAG, "Got timestamp=%d", timestamp);
-    this->timestamp_sensor_->publish_state(timestamp);
   }
 #endif
   this->status_clear_warning();
