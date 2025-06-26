@@ -165,7 +165,7 @@ void APIConnection::loop() {
     if (!this->sent_ping_) {
       // If we can't send the ping request directly (tx_buffer full),
       // schedule it at the front of the batch so it will be sent with priority
-      ESP_LOGVV(TAG, "Failed to send ping directly, scheduling at front of batch");
+      ESP_LOGW(TAG, "Buffer full, ping queued");
       this->schedule_message_front_(nullptr, &APIConnection::try_send_ping_request, PingRequest::MESSAGE_TYPE);
       this->sent_ping_ = true;  // Mark as sent to avoid scheduling multiple pings
     }
