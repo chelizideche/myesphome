@@ -402,7 +402,7 @@ std::string WebServer::sensor_all_json_generator(WebServer *web_server, void *so
   return web_server->sensor_json((sensor::Sensor *) (source), ((sensor::Sensor *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::sensor_json(sensor::Sensor *obj, float value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     std::string state;
     if (std::isnan(value)) {
       state = "NA";
@@ -456,7 +456,7 @@ std::string WebServer::text_sensor_all_json_generator(WebServer *web_server, voi
 }
 std::string WebServer::text_sensor_json(text_sensor::TextSensor *obj, const std::string &value,
                                         JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "text_sensor-" + obj->get_object_id(), value, value, start_config);
     if (start_config == DETAIL_ALL) {
 #ifdef USE_WEBSERVER_SORTING
@@ -509,7 +509,7 @@ std::string WebServer::switch_all_json_generator(WebServer *web_server, void *so
   return web_server->switch_json((switch_::Switch *) (source), ((switch_::Switch *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::switch_json(switch_::Switch *obj, bool value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "switch-" + obj->get_object_id(), value ? "ON" : "OFF", value, start_config);
     if (start_config == DETAIL_ALL) {
       root["assumed_state"] = obj->assumed_state();
@@ -552,7 +552,7 @@ std::string WebServer::button_all_json_generator(WebServer *web_server, void *so
   return web_server->button_json((button::Button *) (source), DETAIL_ALL);
 }
 std::string WebServer::button_json(button::Button *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "button-" + obj->get_object_id(), start_config);
     if (start_config == DETAIL_ALL) {
 #ifdef USE_WEBSERVER_SORTING
@@ -595,7 +595,7 @@ std::string WebServer::binary_sensor_all_json_generator(WebServer *web_server, v
                                         ((binary_sensor::BinarySensor *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::binary_sensor_json(binary_sensor::BinarySensor *obj, bool value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "binary_sensor-" + obj->get_object_id(), value ? "ON" : "OFF", value,
                               start_config);
     if (start_config == DETAIL_ALL) {
@@ -675,7 +675,7 @@ std::string WebServer::fan_all_json_generator(WebServer *web_server, void *sourc
   return web_server->fan_json((fan::Fan *) (source), DETAIL_ALL);
 }
 std::string WebServer::fan_json(fan::Fan *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "fan-" + obj->get_object_id(), obj->state ? "ON" : "OFF", obj->state,
                               start_config);
     const auto traits = obj->get_traits();
@@ -797,7 +797,7 @@ std::string WebServer::light_all_json_generator(WebServer *web_server, void *sou
   return web_server->light_json((light::LightState *) (source), DETAIL_ALL);
 }
 std::string WebServer::light_json(light::LightState *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "light-" + obj->get_object_id(), start_config);
     root["state"] = obj->remote_values.is_on() ? "ON" : "OFF";
 
@@ -885,7 +885,7 @@ std::string WebServer::cover_all_json_generator(WebServer *web_server, void *sou
   return web_server->cover_json((cover::Cover *) (source), DETAIL_STATE);
 }
 std::string WebServer::cover_json(cover::Cover *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "cover-" + obj->get_object_id(), obj->is_fully_closed() ? "CLOSED" : "OPEN",
                               obj->position, start_config);
     root["current_operation"] = cover::cover_operation_to_str(obj->current_operation);
@@ -950,7 +950,7 @@ std::string WebServer::number_all_json_generator(WebServer *web_server, void *so
   return web_server->number_json((number::Number *) (source), ((number::Number *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::number_json(number::Number *obj, float value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_id(root, obj, "number-" + obj->get_object_id(), start_config);
     if (start_config == DETAIL_ALL) {
       root["min_value"] =
@@ -1031,7 +1031,7 @@ std::string WebServer::date_all_json_generator(WebServer *web_server, void *sour
   return web_server->date_json((datetime::DateEntity *) (source), DETAIL_ALL);
 }
 std::string WebServer::date_json(datetime::DateEntity *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "date-" + obj->get_object_id(), start_config);
     std::string value = str_sprintf("%d-%02d-%02d", obj->year, obj->month, obj->day);
     root["value"] = value;
@@ -1095,7 +1095,7 @@ std::string WebServer::time_all_json_generator(WebServer *web_server, void *sour
   return web_server->time_json((datetime::TimeEntity *) (source), DETAIL_ALL);
 }
 std::string WebServer::time_json(datetime::TimeEntity *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "time-" + obj->get_object_id(), start_config);
     std::string value = str_sprintf("%02d:%02d:%02d", obj->hour, obj->minute, obj->second);
     root["value"] = value;
@@ -1159,7 +1159,7 @@ std::string WebServer::datetime_all_json_generator(WebServer *web_server, void *
   return web_server->datetime_json((datetime::DateTimeEntity *) (source), DETAIL_ALL);
 }
 std::string WebServer::datetime_json(datetime::DateTimeEntity *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "datetime-" + obj->get_object_id(), start_config);
     std::string value = str_sprintf("%d-%02d-%02d %02d:%02d:%02d", obj->year, obj->month, obj->day, obj->hour,
                                     obj->minute, obj->second);
@@ -1220,7 +1220,7 @@ std::string WebServer::text_all_json_generator(WebServer *web_server, void *sour
   return web_server->text_json((text::Text *) (source), ((text::Text *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::text_json(text::Text *obj, const std::string &value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_id(root, obj, "text-" + obj->get_object_id(), start_config);
     root["min_length"] = obj->traits.get_min_length();
     root["max_length"] = obj->traits.get_max_length();
@@ -1288,7 +1288,7 @@ std::string WebServer::select_all_json_generator(WebServer *web_server, void *so
   return web_server->select_json((select::Select *) (source), ((select::Select *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::select_json(select::Select *obj, const std::string &value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "select-" + obj->get_object_id(), value, value, start_config);
     if (start_config == DETAIL_ALL) {
       JsonArray opt = root.createNestedArray("option");
@@ -1381,7 +1381,7 @@ std::string WebServer::climate_all_json_generator(WebServer *web_server, void *s
   return web_server->climate_json((climate::Climate *) (source), DETAIL_ALL);
 }
 std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "climate-" + obj->get_object_id(), start_config);
     const auto traits = obj->get_traits();
     int8_t target_accuracy = traits.get_target_temperature_accuracy_decimals();
@@ -1513,7 +1513,7 @@ std::string WebServer::lock_all_json_generator(WebServer *web_server, void *sour
   return web_server->lock_json((lock::Lock *) (source), ((lock::Lock *) (source))->state, DETAIL_ALL);
 }
 std::string WebServer::lock_json(lock::Lock *obj, lock::LockState value, JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "lock-" + obj->get_object_id(), lock::lock_state_to_string(value), value,
                               start_config);
     if (start_config == DETAIL_ALL) {
@@ -1587,7 +1587,7 @@ std::string WebServer::valve_all_json_generator(WebServer *web_server, void *sou
   return web_server->valve_json((valve::Valve *) (source), DETAIL_ALL);
 }
 std::string WebServer::valve_json(valve::Valve *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "valve-" + obj->get_object_id(), obj->is_fully_closed() ? "CLOSED" : "OPEN",
                               obj->position, start_config);
     root["current_operation"] = valve::valve_operation_to_str(obj->current_operation);
@@ -1664,7 +1664,7 @@ std::string WebServer::alarm_control_panel_all_json_generator(WebServer *web_ser
 std::string WebServer::alarm_control_panel_json(alarm_control_panel::AlarmControlPanel *obj,
                                                 alarm_control_panel::AlarmControlPanelState value,
                                                 JsonDetail start_config) {
-  return json::build_json([obj, value, start_config](JsonObject root) {
+  return json::build_json([this, obj, value, start_config](JsonObject root) {
     char buf[16];
     set_json_icon_state_value(root, obj, "alarm-control-panel-" + obj->get_object_id(),
                               PSTR_LOCAL(alarm_control_panel_state_to_string(value)), value, start_config);
@@ -1709,7 +1709,7 @@ std::string WebServer::event_all_json_generator(WebServer *web_server, void *sou
   return web_server->event_json((event::Event *) (source), *(((event::Event *) (source))->last_event_type), DETAIL_ALL);
 }
 std::string WebServer::event_json(event::Event *obj, const std::string &event_type, JsonDetail start_config) {
-  return json::build_json([obj, event_type, start_config](JsonObject root) {
+  return json::build_json([this, obj, event_type, start_config](JsonObject root) {
     set_json_id(root, obj, "event-" + obj->get_object_id(), start_config);
     if (!event_type.empty()) {
       root["event_type"] = event_type;
@@ -1768,7 +1768,7 @@ std::string WebServer::update_all_json_generator(WebServer *web_server, void *so
   return web_server->update_json((update::UpdateEntity *) (source), DETAIL_STATE);
 }
 std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_config) {
-  return json::build_json([obj, start_config](JsonObject root) {
+  return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "update-" + obj->get_object_id(), start_config);
     root["value"] = obj->update_info.latest_version;
     switch (obj->state) {
