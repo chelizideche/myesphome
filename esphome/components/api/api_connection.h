@@ -240,8 +240,8 @@ class APIConnection : public APIServerConnection {
     // - Header padding: space for protocol headers (7 bytes for Noise, 6 for Plaintext)
     // - Footer: space for MAC (16 bytes for Noise, 0 for Plaintext)
     shared_buf.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
-    // Insert header padding bytes so message encoding starts at the correct position
-    shared_buf.insert(shared_buf.begin(), header_padding, 0);
+    // Resize to add header padding so message encoding starts at the correct position
+    shared_buf.resize(header_padding);
     return {&shared_buf};
   }
 
@@ -249,31 +249,25 @@ class APIConnection : public APIServerConnection {
   ProtoWriteBuffer prepare_message_buffer(uint16_t message_size, bool is_first_message) {
     // Get reference to shared buffer (it maintains state between batch messages)
     std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
-    size_t current_size = shared_buf.size();
 
     if (is_first_message) {
-      // For first message, initialize buffer with header padding
-      uint8_t header_padding = this->helper_->frame_header_padding();
       shared_buf.clear();
-      shared_buf.reserve(message_size + header_padding);
-      shared_buf.resize(header_padding);
-      // Fill header padding with zeros
-      std::fill(shared_buf.begin(), shared_buf.end(), 0);
-    } else {
-      // For subsequent messages, add footer space for previous message and header for this message
-      uint8_t footer_size = this->helper_->frame_footer_size();
-      uint8_t header_padding = this->helper_->frame_header_padding();
-
-      // Reserve additional space for everything
-      shared_buf.reserve(current_size + footer_size + header_padding + message_size);
-
-      // Single resize to add both footer and header padding
-      size_t new_size = current_size + footer_size + header_padding;
-      shared_buf.resize(new_size);
-
-      // Fill the newly added bytes with zeros (footer + header padding)
-      std::fill(shared_buf.begin() + current_size, shared_buf.end(), 0);
     }
+
+    size_t current_size = shared_buf.size();
+
+    // Calculate padding to add:
+    // - First message: just header padding
+    // - Subsequent messages: footer for previous message + header padding for this message
+    size_t padding_to_add = is_first_message
+                                ? this->helper_->frame_header_padding()
+                                : this->helper_->frame_header_padding() + this->helper_->frame_footer_size();
+
+    // Reserve space for padding + message
+    shared_buf.reserve(current_size + padding_to_add + message_size);
+
+    // Resize to add the padding bytes
+    shared_buf.resize(current_size + padding_to_add);
 
     return {&shared_buf};
   }
@@ -281,15 +275,21 @@ class APIConnection : public APIServerConnection {
   bool try_to_clear_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) override;
 
-  std::string get_client_combined_info() const { return this->client_combined_info_; }
+  std::string get_client_combined_info() const {
+    if (this->client_info_ == this->client_peername_) {
+      // Before Hello message, both are the same (just IP:port)
+      return this->client_info_;
+    }
+    return this->client_info_ + " (" + this->client_peername_ + ")";
+  }
 
   // Buffer allocator methods for batch processing
   ProtoWriteBuffer allocate_single_message_buffer(uint16_t size);
   ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
 
  protected:
-  // Helper function to fill common entity fields
-  template<typename ResponseT> static void fill_entity_info_base(esphome::EntityBase *entity, ResponseT &response) {
+  // Helper function to fill common entity info fields
+  static void fill_entity_info_base(esphome::EntityBase *entity, InfoResponseProtoMessage &response) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
     response.object_id = entity->get_object_id();
@@ -301,6 +301,14 @@ class APIConnection : public APIServerConnection {
     response.icon = entity->get_icon();
     response.disabled_by_default = entity->is_disabled_by_default();
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
+#ifdef USE_DEVICES
+    response.device_id = entity->get_device_id();
+#endif
+  }
+
+  // Helper function to fill common entity state fields
+  static void fill_entity_state_base(esphome::EntityBase *entity, StateResponseProtoMessage &response) {
+    response.key = entity->get_object_id_hash();
   }
 
   // Non-template helper to encode any ProtoMessage
@@ -433,90 +441,99 @@ class APIConnection : public APIServerConnection {
   // Helper function to get estimated message size for buffer pre-allocation
   static uint16_t get_estimated_message_size(uint16_t message_type);
 
-  enum class ConnectionState {
+  // Pointers first (4 bytes each, naturally aligned)
+  std::unique_ptr<APIFrameHelper> helper_;
+  APIServer *parent_;
+
+  // 4-byte aligned types
+  uint32_t last_traffic_;
+  uint32_t next_ping_retry_{0};
+  int state_subs_at_ = -1;
+
+  // Strings (12 bytes each on 32-bit)
+  std::string client_info_;
+  std::string client_peername_;
+
+  // 2-byte aligned types
+  uint16_t client_api_version_major_{0};
+  uint16_t client_api_version_minor_{0};
+
+  // Group all 1-byte types together to minimize padding
+  enum class ConnectionState : uint8_t {
     WAITING_FOR_HELLO,
     CONNECTED,
     AUTHENTICATED,
   } connection_state_{ConnectionState::WAITING_FOR_HELLO};
-
+  uint8_t log_subscription_{ESPHOME_LOG_LEVEL_NONE};
   bool remove_{false};
+  bool state_subscription_{false};
+  bool sent_ping_{false};
+  bool service_call_subscription_{false};
+  bool next_close_ = false;
+  uint8_t ping_retries_{0};
+  // 8 bytes used, no padding needed
 
-  std::unique_ptr<APIFrameHelper> helper_;
-
-  std::string client_info_;
-  std::string client_peername_;
-  std::string client_combined_info_;
-  uint32_t client_api_version_major_{0};
-  uint32_t client_api_version_minor_{0};
+  // Larger objects at the end
+  InitialStateIterator initial_state_iterator_;
+  ListEntitiesIterator list_entities_iterator_;
 #ifdef USE_CAMERA
   std::unique_ptr<camera::CameraImageReader> image_reader_;
 #endif
 
-  bool state_subscription_{false};
-  int log_subscription_{ESPHOME_LOG_LEVEL_NONE};
-  uint32_t last_traffic_;
-  uint32_t next_ping_retry_{0};
-  uint8_t ping_retries_{0};
-  bool sent_ping_{false};
-  bool service_call_subscription_{false};
-  bool next_close_ = false;
-  APIServer *parent_;
-  InitialStateIterator initial_state_iterator_;
-  ListEntitiesIterator list_entities_iterator_;
-  int state_subs_at_ = -1;
-
   // Function pointer type for message encoding
   using MessageCreatorPtr = uint16_t (*)(EntityBase *, APIConnection *, uint32_t remaining_size, bool is_single);
 
-  // Optimized MessageCreator class using union dispatch
+  // Optimized MessageCreator class using tagged pointer
   class MessageCreator {
+    // Ensure pointer alignment allows LSB tagging
+    static_assert(alignof(std::string *) > 1, "String pointer alignment must be > 1 for LSB tagging");
+
    public:
-    // Constructor for function pointer (message_type = 0)
-    MessageCreator(MessageCreatorPtr ptr) : message_type_(0) { data_.ptr = ptr; }
+    // Constructor for function pointer
+    MessageCreator(MessageCreatorPtr ptr) {
+      // Function pointers are always aligned, so LSB is 0
+      data_.ptr = ptr;
+    }
 
     // Constructor for string state capture
-    MessageCreator(const std::string &value, uint16_t msg_type) : message_type_(msg_type) {
-      data_.string_ptr = new std::string(value);
+    explicit MessageCreator(const std::string &str_value) {
+      // Allocate string and tag the pointer
+      auto *str = new std::string(str_value);
+      // Set LSB to 1 to indicate string pointer
+      data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
     }
 
     // Destructor
     ~MessageCreator() {
-      // Clean up string data for string-based message types
-      if (uses_string_data_()) {
-        delete data_.string_ptr;
+      if (has_tagged_string_ptr_()) {
+        delete get_string_ptr_();
       }
     }
 
     // Copy constructor
-    MessageCreator(const MessageCreator &other) : message_type_(other.message_type_) {
-      if (message_type_ == 0) {
-        data_.ptr = other.data_.ptr;
-      } else if (uses_string_data_()) {
-        data_.string_ptr = new std::string(*other.data_.string_ptr);
+    MessageCreator(const MessageCreator &other) {
+      if (other.has_tagged_string_ptr_()) {
+        auto *str = new std::string(*other.get_string_ptr_());
+        data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
       } else {
-        data_ = other.data_;  // For POD types
+        data_ = other.data_;
       }
     }
 
     // Move constructor
-    MessageCreator(MessageCreator &&other) noexcept : data_(other.data_), message_type_(other.message_type_) {
-      other.message_type_ = 0;  // Reset other to function pointer type
-      other.data_.ptr = nullptr;
-    }
+    MessageCreator(MessageCreator &&other) noexcept : data_(other.data_) { other.data_.ptr = nullptr; }
 
     // Assignment operators (needed for batch deduplication)
     MessageCreator &operator=(const MessageCreator &other) {
       if (this != &other) {
         // Clean up current string data if needed
-        if (uses_string_data_()) {
-          delete data_.string_ptr;
+        if (has_tagged_string_ptr_()) {
+          delete get_string_ptr_();
         }
         // Copy new data
-        message_type_ = other.message_type_;
-        if (other.message_type_ == 0) {
-          data_.ptr = other.data_.ptr;
-        } else if (other.uses_string_data_()) {
-          data_.string_ptr = new std::string(*other.data_.string_ptr);
+        if (other.has_tagged_string_ptr_()) {
+          auto *str = new std::string(*other.get_string_ptr_());
+          data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
         } else {
           data_ = other.data_;
         }
@@ -527,30 +544,35 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(MessageCreator &&other) noexcept {
       if (this != &other) {
         // Clean up current string data if needed
-        if (uses_string_data_()) {
-          delete data_.string_ptr;
+        if (has_tagged_string_ptr_()) {
+          delete get_string_ptr_();
         }
         // Move data
-        message_type_ = other.message_type_;
         data_ = other.data_;
         // Reset other to safe state
-        other.message_type_ = 0;
         other.data_.ptr = nullptr;
       }
       return *this;
     }
 
-    // Call operator
-    uint16_t operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) const;
+    // Call operator - now accepts message_type as parameter
+    uint16_t operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single,
+                        uint16_t message_type) const;
 
    private:
-    // Helper to check if this message type uses heap-allocated strings
-    bool uses_string_data_() const { return message_type_ == EventResponse::MESSAGE_TYPE; }
-    union CreatorData {
-      MessageCreatorPtr ptr;    // 8 bytes
-      std::string *string_ptr;  // 8 bytes
-    } data_;                    // 8 bytes
-    uint16_t message_type_;     // 2 bytes (0 = function ptr, >0 = state capture)
+    // Check if this contains a string pointer
+    bool has_tagged_string_ptr_() const { return (data_.tagged & 1) != 0; }
+
+    // Get the actual string pointer (clears the tag bit)
+    std::string *get_string_ptr_() const {
+      // NOLINTNEXTLINE(performance-no-int-to-ptr)
+      return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1));
+    }
+
+    union {
+      MessageCreatorPtr ptr;
+      uintptr_t tagged;
+    } data_;  // 4 bytes on 32-bit
   };
 
   // Generic batching mechanism for both state updates and entity info

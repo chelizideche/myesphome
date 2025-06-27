@@ -1,6 +1,7 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import camera
+from esphome.components import i2c
 from esphome.components.esp32 import add_idf_component
 import esphome.config_validation as cv
 from esphome.const import (
@@ -8,6 +9,7 @@ from esphome.const import (
     CONF_CONTRAST,
     CONF_DATA_PINS,
     CONF_FREQUENCY,
+    CONF_I2C_ID,
     CONF_ID,
     CONF_PIN,
     CONF_RESET_PIN,
@@ -17,7 +19,7 @@ from esphome.const import (
     CONF_VSYNC_PIN,
 )
 from esphome.core import CORE
-from esphome.cpp_helpers import setup_entity
+from esphome.core.entity_helpers import setup_entity
 
 DEPENDENCIES = ["esp32"]
 
@@ -131,7 +133,7 @@ CONF_FRAME_BUFFER_COUNT = "frame_buffer_count"
 
 camera_range_param = cv.int_range(min=-2, max=2)
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     cv.ENTITY_BASE_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(ESP32Camera),
@@ -150,11 +152,15 @@ CONFIG_SCHEMA = (
                     ),
                 }
             ),
-            cv.Required(CONF_I2C_PINS): cv.Schema(
+            cv.Optional(CONF_I2C_PINS): cv.Schema(
                 {
                     cv.Required(CONF_SDA): pins.internal_gpio_output_pin_number,
                     cv.Required(CONF_SCL): pins.internal_gpio_output_pin_number,
                 }
+            ),
+            cv.Optional(CONF_I2C_ID): cv.Any(
+                cv.use_id(i2c.InternalI2CBus),
+                msg="I2C bus must be an internal ESP32 I2C bus",
             ),
             cv.Optional(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_POWER_DOWN_PIN): pins.internal_gpio_output_pin_number,
@@ -200,10 +206,7 @@ CONFIG_SCHEMA = (
                 cv.framerate, cv.Range(min=0, max=1)
             ),
             cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
-        }
-    )
-    .extend(cv.COMPONENT_SCHEMA)
-    .extend(camera.CAMERA_AUTOMATION_SCHEMA)
+    cv.has_exactly_one_key(CONF_I2C_PINS, CONF_I2C_ID),
 )
 
 SETTERS = {
@@ -241,7 +244,7 @@ SETTERS = {
 async def to_code(config):
     cg.add_define("USE_CAMERA")
     var = cg.new_Pvariable(config[CONF_ID])
-    await setup_entity(var, config)
+    await setup_entity(var, config, "camera")
     await cg.register_component(var, config)
     await camera.setup_camera_automation(var, config)
 
@@ -251,8 +254,12 @@ async def to_code(config):
 
     extclk = config[CONF_EXTERNAL_CLOCK]
     cg.add(var.set_external_clock(extclk[CONF_PIN], extclk[CONF_FREQUENCY]))
-    i2c_pins = config[CONF_I2C_PINS]
-    cg.add(var.set_i2c_pins(i2c_pins[CONF_SDA], i2c_pins[CONF_SCL]))
+    if i2c_id := config.get(CONF_I2C_ID):
+        i2c_hub = await cg.get_variable(i2c_id)
+        cg.add(var.set_i2c_id(i2c_hub))
+    else:
+        i2c_pins = config[CONF_I2C_PINS]
+        cg.add(var.set_i2c_pins(i2c_pins[CONF_SDA], i2c_pins[CONF_SCL]))
     cg.add(var.set_max_update_interval(1000 / config[CONF_MAX_FRAMERATE]))
     if config[CONF_IDLE_FRAMERATE] == 0:
         cg.add(var.set_idle_update_interval(0))
@@ -262,8 +269,4 @@ async def to_code(config):
     cg.add(var.set_frame_size(config[CONF_RESOLUTION]))
 
     if CORE.using_esp_idf:
-        add_idf_component(
-            name="esp32-camera",
-            repo="https://github.com/espressif/esp32-camera.git",
-            ref="v2.0.15",
-        )
+        add_idf_component(name="espressif/esp32-camera", ref="2.0.15")
