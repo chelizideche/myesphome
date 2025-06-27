@@ -218,23 +218,25 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
     // Process all queued items
     struct QueueElement *elem;
     while ((elem = this_mqtt->mqtt_queue_.pop()) != nullptr) {
-      switch (elem->type) {
-        case MQTT_EVENT_SUBSCRIBED:
-          esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
-          break;
+      if (this_mqtt->is_connected_) {
+        switch (elem->type) {
+          case MQTT_EVENT_SUBSCRIBED:
+            esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
+            break;
 
-        case MQTT_EVENT_UNSUBSCRIBED:
-          esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
-          break;
+          case MQTT_EVENT_UNSUBSCRIBED:
+            esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
+            break;
 
-        case MQTT_EVENT_PUBLISHED:
-          esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
-                                  elem->retain);
-          break;
+          case MQTT_EVENT_PUBLISHED:
+            esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
+                                    elem->retain);
+            break;
 
-        default:
-          ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
-          break;
+          default:
+            ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
+            break;
+        }
       }
       this_mqtt->mqtt_event_pool_.release(elem);
     }
