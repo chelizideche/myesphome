@@ -50,14 +50,20 @@ struct QueueElement {
   esp_mqtt_event_id_t type;
   char *topic;
   char *payload;
-  uint32_t payload_len;
-  int qos;
-  bool retain;
+  uint16_t payload_len;  // MQTT max payload is 64KB
+  uint8_t qos : 2;       // QoS only needs values 0-2
+  uint8_t retain : 1;
+  uint8_t reserved : 5;  // Reserved for future use
 
-  QueueElement() : topic(nullptr), payload(nullptr), payload_len(0) {}
+  QueueElement() : topic(nullptr), payload(nullptr), payload_len(0), qos(0), retain(0), reserved(0) {}
 
   // Helper to set topic/payload (handles malloc)
   bool set_data(const char *topic_str, const char *payload_data, size_t len) {
+    // Check payload size limit (MQTT max is 64KB)
+    if (len > UINT16_MAX) {
+      return false;
+    }
+
     topic = strdup(topic_str);
     if (!topic)
       return false;
@@ -70,7 +76,7 @@ struct QueueElement {
         return false;
       }
       memcpy(payload, payload_data, len);
-      payload_len = len;
+      payload_len = static_cast<uint16_t>(len);
     } else {
       payload = nullptr;
       payload_len = 0;
@@ -97,7 +103,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static const size_t MQTT_BUFFER_SIZE = 4096;
   static const size_t TASK_STACK_SIZE = 4096;
   static const ssize_t TASK_PRIORITY = 5;
-  static const uint32_t MQTT_QUEUE_LENGTH = 20;
+  static const uint8_t MQTT_QUEUE_LENGTH = 30;  // Was 20*24 bytes = 480, now 30*16 bytes = 480
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
