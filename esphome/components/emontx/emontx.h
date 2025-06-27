@@ -78,9 +78,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   // MQTT forwarding configuration
   void set_mqtt_config(const std::string &base_prefix, const std::string &topic_prefix,
                        const std::string &publish_mode = "json") {
-    mqtt_base_prefix_ = base_prefix;
-    mqtt_topic_prefix_ = topic_prefix;
-
     // Convert string to enum
     if (publish_mode == "individual") {
       mqtt_publish_mode_ = MqttPublishMode::INDIVIDUAL;
@@ -92,10 +89,13 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
     has_mqtt_config_ = true;
 
     // Pre-compute the full topic prefix
-    mqtt_topic_prefix_full_ = mqtt_base_prefix_;
+    mqtt_topic_prefix_full_ = base_prefix;
     if (!mqtt_topic_prefix_full_.empty() && mqtt_topic_prefix_full_.back() != '/') {
       mqtt_topic_prefix_full_ += '/';
     }
+
+    // Add this line to append the topic prefix to the base prefix
+    mqtt_topic_prefix_full_ += topic_prefix;
   }
 #endif
 
@@ -125,8 +125,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding config
   bool has_mqtt_config_{false};
-  std::string mqtt_base_prefix_;  // Default base prefix
-  std::string mqtt_topic_prefix_;
   // Pre-computed MQTT topic prefix (base_prefix/topic_prefix/)
   std::string mqtt_topic_prefix_full_;
   MqttPublishMode mqtt_publish_mode_{MqttPublishMode::JSON};  // Use enum now
