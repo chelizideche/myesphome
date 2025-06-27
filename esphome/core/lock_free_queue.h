@@ -31,18 +31,35 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     uint8_t current_tail = tail_.load(std::memory_order_relaxed);
     uint8_t next_tail = (current_tail + 1) % SIZE;
 
-    if (next_tail == head_.load(std::memory_order_acquire)) {
+    // Read head before incrementing tail
+    uint8_t head_before = head_.load(std::memory_order_acquire);
+
+    if (next_tail == head_before) {
       // Buffer full
       dropped_count_.fetch_add(1, std::memory_order_relaxed);
       return false;
     }
 
+    // Check if queue was empty before push
+    bool was_empty = (current_tail == head_before);
+
     buffer_[current_tail] = element;
     tail_.store(next_tail, std::memory_order_release);
 
-    // Notify the consumer task if set (optional)
+    // Notify optimization: only notify if we need to
     if (task_to_notify_ != nullptr) {
-      xTaskNotifyGive(task_to_notify_);
+      if (was_empty) {
+        // Queue was empty - consumer might be going to sleep, must notify
+        xTaskNotifyGive(task_to_notify_);
+      } else {
+        // Queue wasn't empty - check if consumer has caught up to previous tail
+        uint8_t head_after = head_.load(std::memory_order_acquire);
+        if (head_after == current_tail) {
+          // Consumer just caught up to where tail was - might go to sleep, must notify
+          xTaskNotifyGive(task_to_notify_);
+        }
+        // Otherwise: consumer is still behind, no need to notify
+      }
     }
 
     return true;
