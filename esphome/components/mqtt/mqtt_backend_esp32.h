@@ -9,10 +9,10 @@
 #include <mqtt_client.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include "event_pool.h"
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/lock_free_queue.h"
+#include "esphome/core/event_pool.h"
 
 namespace esphome {
 namespace mqtt {
