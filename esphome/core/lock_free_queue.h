@@ -1,11 +1,17 @@
 #pragma once
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
 
 #include <atomic>
 #include <cstddef>
+
+#if defined(USE_ESP32)
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#elif defined(USE_LIBRETINY)
+#include <FreeRTOS.h>
+#include <task.h>
+#endif
 
 /*
  * Lock-free queue for single-producer single-consumer scenarios.
@@ -13,9 +19,14 @@
  * blocking each other.
  *
  * This is a Single-Producer Single-Consumer (SPSC) lock-free ring buffer.
+ * Available on platforms with FreeRTOS support (ESP32, LibreTiny).
+ *
  * Common use cases:
  * - BLE events: BLE task produces, main loop consumes
  * - MQTT messages: main task produces, MQTT thread consumes
+ *
+ * @tparam T The type of elements stored in the queue (must be a pointer type)
+ * @tparam SIZE The maximum number of elements (1-255, limited by uint8_t indices)
  */
 
 namespace esphome {
@@ -56,6 +67,9 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
         uint8_t head_after = head_.load(std::memory_order_acquire);
         if (head_after == current_tail) {
           // Consumer just caught up to where tail was - might go to sleep, must notify
+          // Note: There's a benign race here - between reading head_after and calling
+          // xTaskNotifyGive(), the consumer could advance further. This would result
+          // in an unnecessary wake-up, but is harmless and extremely rare in practice.
           xTaskNotifyGive(task_to_notify_);
         }
         // Otherwise: consumer is still behind, no need to notify
@@ -94,6 +108,9 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
+  // Set the FreeRTOS task handle to notify when items are pushed to the queue
+  // This enables efficient wake-up of a consumer task that's waiting for data
+  // @param task The FreeRTOS task handle to notify, or nullptr to disable notifications
   void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
 
  protected:
@@ -101,6 +118,8 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
   std::atomic<uint16_t> dropped_count_;  // 65535 max - more than enough for drop tracking
   // Atomic: written by consumer (pop), read by producer (push) to check if full
+  // Using uint8_t limits queue size to 255 elements but saves memory and ensures
+  // atomic operations are efficient on all platforms
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
@@ -110,4 +129,4 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
 
 }  // namespace esphome
 
-#endif
+#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
