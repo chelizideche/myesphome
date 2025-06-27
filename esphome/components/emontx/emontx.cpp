@@ -1,6 +1,7 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
+#include <algorithm>
 
 #ifdef USE_HTTP_REQUEST
 #include "esphome/components/network/util.h"
