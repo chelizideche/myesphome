@@ -100,16 +100,12 @@ void EmonTx::loop() {
 
 #ifdef USE_HTTP_REQUEST
         // Forward to EmonCMS if configured
-        if (has_emoncms_config_ && network::is_connected()) {
-          send_to_emoncms_(buffer_);
-        }
+        send_to_emoncms_(buffer_);
 #endif
 
 #ifdef USE_MQTT_FORWARD
         // Forward to MQTT if configured
-        if (has_mqtt_config_ && mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected()) {
-          send_to_mqtt_(buffer_);
-        }
+        send_to_mqtt_(buffer_);
 #endif
         buffer_.clear();
       }
