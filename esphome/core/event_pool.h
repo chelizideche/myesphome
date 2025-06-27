@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
 
 #include <atomic>
 #include <cstddef>
@@ -17,6 +17,10 @@ template<class T, uint8_t SIZE> class EventPool {
 
   ~EventPool() {
     // Clean up any remaining events in the free list
+    // IMPORTANT: This destructor assumes no concurrent access. The EventPool must not
+    // be destroyed while any thread might still call allocate() or release().
+    // In practice, this is typically ensured by destroying the pool only during
+    // component shutdown when all producer/consumer threads have been stopped.
     T *event;
     RAMAllocator<T> allocator(RAMAllocator<T>::ALLOC_INTERNAL);
     while ((event = this->free_list_.pop()) != nullptr) {
@@ -72,4 +76,4 @@ template<class T, uint8_t SIZE> class EventPool {
 
 }  // namespace esphome
 
-#endif
+#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)

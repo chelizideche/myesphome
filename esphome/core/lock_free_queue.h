@@ -1,11 +1,17 @@
 #pragma once
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
 
 #include <atomic>
 #include <cstddef>
+
+#if defined(USE_ESP32)
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#elif defined(USE_LIBRETINY)
+#include <FreeRTOS.h>
+#include <task.h>
+#endif
 
 /*
  * Lock-free queue for single-producer single-consumer scenarios.
@@ -13,6 +19,8 @@
  * blocking each other.
  *
  * This is a Single-Producer Single-Consumer (SPSC) lock-free ring buffer.
+ * Available on platforms with FreeRTOS support (ESP32, LibreTiny).
+ *
  * Common use cases:
  * - BLE events: BLE task produces, main loop consumes
  * - MQTT messages: main task produces, MQTT thread consumes
@@ -56,6 +64,9 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
         uint8_t head_after = head_.load(std::memory_order_acquire);
         if (head_after == current_tail) {
           // Consumer just caught up to where tail was - might go to sleep, must notify
+          // Note: There's a benign race here - between reading head_after and calling
+          // xTaskNotifyGive(), the consumer could advance further. This would result
+          // in an unnecessary wake-up, but is harmless and extremely rare in practice.
           xTaskNotifyGive(task_to_notify_);
         }
         // Otherwise: consumer is still behind, no need to notify
@@ -113,4 +124,4 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
 
 }  // namespace esphome
 
-#endif
+#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
