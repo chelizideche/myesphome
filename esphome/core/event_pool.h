@@ -4,22 +4,20 @@
 
 #include <atomic>
 #include <cstddef>
-#include "ble_event.h"
-#include "queue.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/lock_free_queue.h"
 
 namespace esphome {
-namespace esp32_ble {
 
-// BLE Event Pool - On-demand pool of BLEEvent objects to avoid heap fragmentation
+// Event Pool - On-demand pool of objects to avoid heap fragmentation
 // Events are allocated on first use and reused thereafter, growing to peak usage
-template<uint8_t SIZE> class BLEEventPool {
+template<class T, uint8_t SIZE> class EventPool {
  public:
-  BLEEventPool() : total_created_(0) {}
+  EventPool() : total_created_(0) {}
 
-  ~BLEEventPool() {
+  ~EventPool() {
     // Clean up any remaining events in the free list
-    BLEEvent *event;
+    T *event;
     while ((event = this->free_list_.pop()) != nullptr) {
       delete event;
     }
@@ -27,9 +25,9 @@ template<uint8_t SIZE> class BLEEventPool {
 
   // Allocate an event from the pool
   // Returns nullptr if pool is full
-  BLEEvent *allocate() {
+  T *allocate() {
     // Try to get from free list first
-    BLEEvent *event = this->free_list_.pop();
+    T *event = this->free_list_.pop();
     if (event != nullptr)
       return event;
 
@@ -40,7 +38,7 @@ template<uint8_t SIZE> class BLEEventPool {
     }
 
     // Use internal RAM for better performance
-    RAMAllocator<BLEEvent> allocator(RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
+    RAMAllocator<T> allocator(RAMAllocator<T>::ALLOC_INTERNAL);
     event = allocator.allocate(1);
 
     if (event == nullptr) {
@@ -49,24 +47,25 @@ template<uint8_t SIZE> class BLEEventPool {
     }
 
     // Placement new to construct the object
-    new (event) BLEEvent();
+    new (event) T();
     this->total_created_++;
     return event;
   }
 
   // Return an event to the pool for reuse
-  void release(BLEEvent *event) {
+  void release(T *event) {
     if (event != nullptr) {
+      // Clean up the event's allocated memory
+      event->clear();
       this->free_list_.push(event);
     }
   }
 
  private:
-  LockFreeQueue<BLEEvent, SIZE> free_list_;  // Free events ready for reuse
-  uint8_t total_created_;                    // Total events created (high water mark)
+  LockFreeQueue<T, SIZE> free_list_;  // Free events ready for reuse
+  uint8_t total_created_;             // Total events created (high water mark)
 };
 
-}  // namespace esp32_ble
 }  // namespace esphome
 
 #endif

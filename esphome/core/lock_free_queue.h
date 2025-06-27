@@ -4,23 +4,25 @@
 
 #include <atomic>
 #include <cstddef>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 /*
- * BLE events come in from a separate Task (thread) in the ESP32 stack. Rather
- * than using mutex-based locking, this lock-free queue allows the BLE
- * task to enqueue events without blocking. The main loop() then processes
- * these events at a safer time.
+ * Lock-free queue for single-producer single-consumer scenarios.
+ * This allows one thread to push items and another to pop them without
+ * blocking each other.
  *
  * This is a Single-Producer Single-Consumer (SPSC) lock-free ring buffer.
- * The BLE task is the only producer, and the main loop() is the only consumer.
+ * Common use cases:
+ * - BLE events: BLE task produces, main loop consumes
+ * - MQTT messages: main task produces, MQTT thread consumes
  */
 
 namespace esphome {
-namespace esp32_ble {
 
 template<class T, uint8_t SIZE> class LockFreeQueue {
  public:
-  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0) {}
+  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0), task_to_notify_(nullptr) {}
 
   bool push(T *element) {
     if (element == nullptr)
@@ -29,14 +31,37 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     uint8_t current_tail = tail_.load(std::memory_order_relaxed);
     uint8_t next_tail = (current_tail + 1) % SIZE;
 
-    if (next_tail == head_.load(std::memory_order_acquire)) {
+    // Read head before incrementing tail
+    uint8_t head_before = head_.load(std::memory_order_acquire);
+
+    if (next_tail == head_before) {
       // Buffer full
       dropped_count_.fetch_add(1, std::memory_order_relaxed);
       return false;
     }
 
+    // Check if queue was empty before push
+    bool was_empty = (current_tail == head_before);
+
     buffer_[current_tail] = element;
     tail_.store(next_tail, std::memory_order_release);
+
+    // Notify optimization: only notify if we need to
+    if (task_to_notify_ != nullptr) {
+      if (was_empty) {
+        // Queue was empty - consumer might be going to sleep, must notify
+        xTaskNotifyGive(task_to_notify_);
+      } else {
+        // Queue wasn't empty - check if consumer has caught up to previous tail
+        uint8_t head_after = head_.load(std::memory_order_acquire);
+        if (head_after == current_tail) {
+          // Consumer just caught up to where tail was - might go to sleep, must notify
+          xTaskNotifyGive(task_to_notify_);
+        }
+        // Otherwise: consumer is still behind, no need to notify
+      }
+    }
+
     return true;
   }
 
@@ -69,6 +94,8 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
+  void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
+
  protected:
   T *buffer_[SIZE];
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
@@ -77,9 +104,10 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
+  // Task handle for notification (optional)
+  TaskHandle_t task_to_notify_;
 };
 
-}  // namespace esp32_ble
 }  // namespace esphome
 
 #endif

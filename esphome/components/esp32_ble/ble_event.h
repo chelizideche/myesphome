@@ -139,6 +139,9 @@ class BLEEvent {
   // Default constructor for pre-allocation in pool
   BLEEvent() : type_(GAP) {}
 
+  // Invoked on return to EventPool
+  void clear() { this->cleanup_heap_data(); }
+
   // Clean up any heap-allocated data
   void cleanup_heap_data() {
     if (this->type_ == GAP) {
