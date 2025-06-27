@@ -77,6 +77,7 @@ class EmerioPac125152Climate : public climate_ir::ClimateIR {
 
   climate::ClimateTraits traits() override;
   void setup() override;
+  void control(const climate::ClimateCall &call) override;
 
   // Manual state calibration
   void calibrate_state(climate::ClimateMode mode, float temperature, climate::ClimateFanMode fan_mode);
@@ -89,19 +90,24 @@ class EmerioPac125152Climate : public climate_ir::ClimateIR {
   void transmit_state() override;
   ESPPreferenceObject emeriopac_rtc_;
 
-  // Internal state tracking
+  // Internal state tracking - what we think the AC hardware is set to
   climate::ClimateMode mode_before_{climate::CLIMATE_MODE_OFF};
   climate::ClimateFanMode fan_mode_before_{climate::CLIMATE_FAN_AUTO};
   float target_temperature_before_{TEMP_MIN};
   bool prev_dehumidify_{false};
-  bool prev_on_off_{false};          // true if the device was ON, false if it was OFF
-  uint32_t setpoint_busy_until_{0};  // Not saved
+  bool prev_on_off_{false};                                            // true if the device was ON, false if it was OFF
+  climate::ClimateFanMode fan_before_dry_{climate::CLIMATE_FAN_AUTO};  // Fan setting before entering DRY mode
+  uint32_t setpoint_busy_until_{0};                                    // Not saved
 
   // Helper to send NEC command
   void send_nec_command_(uint16_t command);
 
+  // Device-specific state management
   optional<EmerioPac125152ClimateDeviceRestoreState> restore_emerio_pac_state_();
   void save_emerio_pac_state_();
+
+  // Helper to sync all state variables consistently
+  void sync_all_state_variables_();
 };
 
 template<typename... Ts> class CalibrateStateAction : public Action<Ts...> {
