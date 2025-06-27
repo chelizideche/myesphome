@@ -124,13 +124,6 @@ void MQTTBackendESP32::loop() {
     mqtt_event_handler_(event);
     mqtt_events_.pop();
   }
-#if defined(USE_MQTT_IDF_ENQUEUE)
-  // Log dropped messages periodically
-  uint16_t dropped = mqtt_queue_.get_and_reset_dropped_count();
-  if (dropped > 0) {
-    ESP_LOGW(TAG, "Dropped %u outbound MQTT messages due to buffer overflow", dropped);
-  }
-#endif
 }
 
 void MQTTBackendESP32::mqtt_event_handler_(const Event &event) {
@@ -211,6 +204,12 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   while (true) {
     // Wait for notification indefinitely
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    // Log dropped messages periodically
+    uint16_t dropped = this_mqtt->mqtt_queue_.get_and_reset_dropped_count();
+    if (dropped > 0) {
+      ESP_LOGW(TAG, "Dropped %u outbound MQTT messages due to buffer overflow", dropped);
+    }
 
     // Check shutdown flag after waking
     if (this_mqtt->shutdown_requested_.load(std::memory_order_acquire))
