@@ -1,6 +1,7 @@
 #include "atm90e32.h"
 #include <cinttypes>
 #include <cmath>
+#include <numbers>
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -686,7 +687,7 @@ void ATM90E32Component::restore_power_offset_calibrations_() {
 }
 
 void ATM90E32Component::clear_gain_calibrations() {
-  ESP_LOGI(TAG, "[CALIBRATION] Clearing stored gain calibrations and restoring config-defined values...");
+  ESP_LOGI(TAG, "[CALIBRATION] Clearing stored gain calibrations and restoring config-defined values");
 
   for (int phase = 0; phase < 3; phase++) {
     gain_phase_[phase].voltage_gain = this->phase_[phase].voltage_gain_;
@@ -848,7 +849,7 @@ uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t 
   float nominal_voltage = (line_freq == 60) ? 120.0f : 220.0f;
   float target_voltage = nominal_voltage * multiplier;
 
-  float peak_01v = target_voltage * 100.0f * std::sqrt(2.0f);  // convert RMS → peak, scale to 0.01V
+  float peak_01v = target_voltage * 100.0f * std::numbers::sqrt2_v<float>;  // convert RMS → peak, scale to 0.01V
   float divider = (2.0f * ugain) / 32768.0f;
 
   float threshold = peak_01v / divider;

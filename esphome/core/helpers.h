@@ -192,14 +192,14 @@ bool random_bytes(uint8_t *data, size_t len);
 constexpr uint16_t encode_uint16(uint8_t msb, uint8_t lsb) {
   return (static_cast<uint16_t>(msb) << 8) | (static_cast<uint16_t>(lsb));
 }
+/// Encode a 24-bit value given three bytes in most to least significant byte order.
+constexpr uint32_t encode_uint24(uint8_t byte1, uint8_t byte2, uint8_t byte3) {
+  return (static_cast<uint32_t>(byte1) << 16) | (static_cast<uint32_t>(byte2) << 8) | (static_cast<uint32_t>(byte3));
+}
 /// Encode a 32-bit value given four bytes in most to least significant byte order.
 constexpr uint32_t encode_uint32(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
   return (static_cast<uint32_t>(byte1) << 24) | (static_cast<uint32_t>(byte2) << 16) |
          (static_cast<uint32_t>(byte3) << 8) | (static_cast<uint32_t>(byte4));
-}
-/// Encode a 24-bit value given three bytes in most to least significant byte order.
-constexpr uint32_t encode_uint24(uint8_t byte1, uint8_t byte2, uint8_t byte3) {
-  return ((static_cast<uint32_t>(byte1) << 16) | (static_cast<uint32_t>(byte2) << 8) | (static_cast<uint32_t>(byte3)));
 }
 
 /// Encode a value from its constituent bytes (from most to least significant) in an array with length sizeof(T).
@@ -402,6 +402,8 @@ template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> optional<
   return parse_hex<T>(str.c_str(), str.length());
 }
 
+/// Format the six-byte array \p mac into a MAC address.
+std::string format_mac_address_pretty(const uint8_t mac[6]);
 /// Format the byte array \p data of length \p len in lowercased hex.
 std::string format_hex(const uint8_t *data, size_t length);
 /// Format the vector \p data in lowercased hex.
@@ -438,7 +440,7 @@ template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::stri
 }
 
 /// Return values for parse_on_off().
-enum ParseOnOffState {
+enum ParseOnOffState : uint8_t {
   PARSE_NONE = 0,
   PARSE_ON,
   PARSE_OFF,
