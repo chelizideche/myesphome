@@ -63,6 +63,7 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_ == MqttPublishMode::JSON ? "json" : "individual");
     ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
+    mqtt::global_mqtt_client->enable();
   } else {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
   }
