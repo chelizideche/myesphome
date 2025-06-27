@@ -7,10 +7,12 @@
 #include <string>
 #include <queue>
 #include <mqtt_client.h>
-#include "lockfreequeue.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "event_pool.h"
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/lock_free_queue.h"
 
 namespace esphome {
 namespace mqtt {
@@ -51,6 +53,43 @@ struct QueueElement {
   uint32_t payload_len;
   int qos;
   bool retain;
+
+  QueueElement() : topic(nullptr), payload(nullptr), payload_len(0) {}
+
+  // Helper to set topic/payload (handles malloc)
+  bool set_data(const char *topic_str, const char *payload_data, size_t len) {
+    topic = strdup(topic_str);
+    if (!topic)
+      return false;
+
+    if (payload_data && len) {
+      payload = (char *) malloc(len);  // NOLINT
+      if (!payload) {
+        free(topic);  // NOLINT
+        topic = nullptr;
+        return false;
+      }
+      memcpy(payload, payload_data, len);
+      payload_len = len;
+    } else {
+      payload = nullptr;
+      payload_len = 0;
+    }
+    return true;
+  }
+
+  // Helper to clear (handles free)
+  void clear() {
+    if (topic) {
+      free(topic);  // NOLINT
+      topic = nullptr;
+    }
+    if (payload) {
+      free(payload);  // NOLINT
+      payload = nullptr;
+    }
+    payload_len = 0;
+  }
 };
 
 class MQTTBackendESP32 final : public MQTTBackend {
@@ -153,15 +192,14 @@ class MQTTBackendESP32 final : public MQTTBackend {
 
   ~MQTTBackendESP32() {
 #if defined(USE_MQTT_IDF_ENQUEUE)
-    if (this->task_handle_)
-      vTaskDelete(this->task_handle_);
-
-    struct QueueElement *elem;
-    while ((elem = this->mqtt_queue_.pop())) {
-      free(elem->topic);    // NOLINT
-      free(elem->payload);  // NOLINT
-      this->mqtt_event_pool_.release(elem);
+    if (this->task_handle_ != nullptr) {
+      // Signal shutdown
+      this->shutdown_requested_.store(true, std::memory_order_release);
+      // Wake the task so it can see the shutdown flag and clean up
+      xTaskNotifyGive(this->task_handle_);
+      // The task will clean up the queue and delete itself
     }
+    // EventPool destructor will handle cleanup of any allocated events
 #endif
   }
 
@@ -200,7 +238,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static void esphome_mqtt_task(void *params);
   EventPool<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_event_pool_;
   LockFreeQueue<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_queue_;
-  TaskHandle_t task_handle_;
+  TaskHandle_t task_handle_{nullptr};
+  std::atomic<bool> shutdown_requested_{false};
   bool enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
                 const char *payload = NULL, size_t len = 0);
 #endif

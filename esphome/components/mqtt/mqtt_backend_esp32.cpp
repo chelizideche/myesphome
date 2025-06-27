@@ -101,6 +101,8 @@ bool MQTTBackendESP32::initialize_() {
     ESP_LOGE(TAG, "Failed to start MQTT thread");
     return false;
   }
+  // Set the task handle so the queue can notify it
+  this->mqtt_queue_.set_task_to_notify(this->task_handle_);
 #endif
   auto *mqtt_client = esp_mqtt_client_init(&mqtt_cfg_);
   if (mqtt_client) {
@@ -207,37 +209,56 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   MQTTBackendESP32 *this_mqtt = (MQTTBackendESP32 *) params;
 
   while (true) {
-    struct QueueElement *elem = this_mqtt->mqtt_queue_.pop();
+    // Wait for notification indefinitely
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    if (!elem)
-      continue;
+    // Check shutdown flag after waking
+    if (this_mqtt->shutdown_requested_.load(std::memory_order_acquire))
+      break;
 
-    switch (elem->type) {
-      case MQTT_EVENT_SUBSCRIBED:
-        esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
-        break;
+    // Process all queued items
+    struct QueueElement *elem;
+    while ((elem = this_mqtt->mqtt_queue_.pop()) != nullptr) {
+      switch (elem->type) {
+        case MQTT_EVENT_SUBSCRIBED:
+          esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
+          break;
 
-      case MQTT_EVENT_UNSUBSCRIBED:
-        esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
-        break;
+        case MQTT_EVENT_UNSUBSCRIBED:
+          esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
+          break;
 
-      case MQTT_EVENT_PUBLISHED:
-        esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
-                                elem->retain);
-        break;
+        case MQTT_EVENT_PUBLISHED:
+          esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
+                                  elem->retain);
+          break;
 
-      default:
-        ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
-        break;
+        default:
+          ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
+          break;
+      }
+      this_mqtt->mqtt_event_pool_.release(elem);
     }
-    free(elem->topic);    // NOLINT
-    free(elem->payload);  // NOLINT
+  }
+
+  // Clean up any remaining items in the queue
+  struct QueueElement *elem;
+  while ((elem = this_mqtt->mqtt_queue_.pop()) != nullptr) {
     this_mqtt->mqtt_event_pool_.release(elem);
   }
+
+  // Note: EventPool destructor will clean up the pool itself
+  // Task will delete itself
+  vTaskDelete(nullptr);
 }
 
 bool MQTTBackendESP32::enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos, bool retain, const char *payload,
                                 size_t len) {
+  // Don't accept new items if shutting down
+  if (this->shutdown_requested_.load(std::memory_order_acquire)) {
+    return false;
+  }
+
   auto *elem = this->mqtt_event_pool_.allocate();
 
   if (!elem) {
@@ -248,15 +269,13 @@ bool MQTTBackendESP32::enqueue_(esp_mqtt_event_id_t type, const char *topic, int
   elem->type = type;
   elem->qos = qos;
   elem->retain = retain;
-  elem->payload_len = len;
-  elem->topic = strdup(topic);
-  if (payload && len) {
-    elem->payload = (char *) malloc(len);  // NOLINT
-    elem->payload_len = len;
-    memcpy(elem->payload, payload, len);
-  } else {
-    elem->payload = NULL;
-    elem->payload_len = 0;
+
+  // Use the helper to allocate and copy data
+  if (!elem->set_data(topic, payload, len)) {
+    // Allocation failed, return elem to pool
+    this->mqtt_event_pool_.release(elem);
+    this->mqtt_queue_.increment_dropped_count();
+    return false;
   }
 
   // Push always succeeds because we're the only producer and the pool ensures we never exceed queue size

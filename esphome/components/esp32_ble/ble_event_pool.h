@@ -5,7 +5,7 @@
 #include <atomic>
 #include <cstddef>
 #include "ble_event.h"
-#include "queue.h"
+#include "esphome/core/lock_free_queue.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome {
@@ -62,8 +62,8 @@ template<uint8_t SIZE> class BLEEventPool {
   }
 
  private:
-  LockFreeQueue<BLEEvent, SIZE> free_list_;  // Free events ready for reuse
-  uint8_t total_created_;                    // Total events created (high water mark)
+  esphome::LockFreeQueue<BLEEvent, SIZE> free_list_;  // Free events ready for reuse
+  uint8_t total_created_;                             // Total events created (high water mark)
 };
 
 }  // namespace esp32_ble

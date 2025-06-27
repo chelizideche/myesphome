@@ -4,8 +4,8 @@
 
 #include <atomic>
 #include <cstddef>
-#include "lockfreequeue.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/lock_free_queue.h"
 
 namespace esphome {
 namespace mqtt {
@@ -56,6 +56,8 @@ template<class T, uint8_t SIZE> class EventPool {
   // Return an event to the pool for reuse
   void release(T *event) {
     if (event != nullptr) {
+      // Clean up the event's allocated memory
+      event->clear();
       this->free_list_.push(event);
     }
   }

@@ -4,23 +4,25 @@
 
 #include <atomic>
 #include <cstddef>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 /*
- * MQTT messagess come in from a separate Task (thread) in the ESP32 stack. Rather
- * than using mutex-based locking, this lock-free queue allows the main
- * task to enqueue events without blocking. The MQTT thread then processes
- * these events at a safer time.
+ * Lock-free queue for single-producer single-consumer scenarios.
+ * This allows one thread to push items and another to pop them without
+ * blocking each other.
  *
  * This is a Single-Producer Single-Consumer (SPSC) lock-free ring buffer.
- * The main task is the only producer, and the MQTT thread is the only consumer.
+ * Common use cases:
+ * - BLE events: BLE task produces, main loop consumes
+ * - MQTT messages: main task produces, MQTT thread consumes
  */
 
 namespace esphome {
-namespace mqtt {
 
 template<class T, uint8_t SIZE> class LockFreeQueue {
  public:
-  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0) {}
+  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0), task_to_notify_(nullptr) {}
 
   bool push(T *element) {
     if (element == nullptr)
@@ -37,6 +39,12 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
 
     buffer_[current_tail] = element;
     tail_.store(next_tail, std::memory_order_release);
+
+    // Notify the consumer task if set (optional)
+    if (task_to_notify_ != nullptr) {
+      xTaskNotifyGive(task_to_notify_);
+    }
+
     return true;
   }
 
@@ -69,6 +77,8 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
+  void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
+
  protected:
   T *buffer_[SIZE];
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
@@ -77,9 +87,10 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
+  // Task handle for notification (optional)
+  TaskHandle_t task_to_notify_;
 };
 
-}  // namespace mqtt
 }  // namespace esphome
 
 #endif
