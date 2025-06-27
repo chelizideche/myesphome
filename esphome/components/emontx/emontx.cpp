@@ -1,7 +1,6 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
-#include <algorithm>
 
 #ifdef USE_HTTP_REQUEST
 #include "esphome/components/network/util.h"
@@ -253,7 +252,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     // Calculate next retry time with exponential backoff
     // Start with 10 seconds for first failure, then double each time
     // Use min function to cap at 10 bits (about 17 minutes max)
-    uint32_t backoff_seconds = 10 * (1 << std::min(mqtt_failure_counter_, 10u));
+    uint32_t backoff_seconds = 10 * (1 << std::min(mqtt_failure_counter_, static_cast<uint8_t>(10)));
     mqtt_next_retry_time_ = now + (backoff_seconds * 1000);
 
     ESP_LOGW(TAG, "MQTT not connected (failure %d), next retry in %u seconds", mqtt_failure_counter_, backoff_seconds);
