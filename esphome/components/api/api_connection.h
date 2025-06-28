@@ -470,6 +470,10 @@ class APIConnection : public APIServerConnection {
   bool sent_ping_{false};
   bool service_call_subscription_{false};
   bool next_close_ = false;
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  // When true, encode_message_to_buffer will only log, not encode
+  bool log_only_mode_{false};
+#endif
   uint8_t ping_retries_{0};
   // 8 bytes used, no padding needed
 
@@ -628,9 +632,6 @@ class APIConnection : public APIServerConnection {
   bool batch_first_message_{false};
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
-  // When true, encode_message_to_buffer will only log, not encode
-  bool log_only_mode_{false};
-
   void log_batch_item_(const DeferredBatch::BatchItem &item);
 #endif
 
