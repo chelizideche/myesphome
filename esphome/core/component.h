@@ -261,6 +261,22 @@ class Component {
    */
   void set_interval(const std::string &name, uint32_t interval, std::function<void()> &&f);  // NOLINT
 
+  /** Set an interval function with a const char* name.
+   *
+   * IMPORTANT: The provided name pointer must remain valid for the lifetime of the scheduler item.
+   * This means the name should be:
+   *   - A string literal (e.g., "update")
+   *   - A static const char* variable
+   *   - A pointer with lifetime >= the scheduled task
+   *
+   * For dynamic strings, use the std::string overload instead.
+   *
+   * @param name The identifier for this interval function (must have static lifetime)
+   * @param interval The interval in ms
+   * @param f The function to call
+   */
+  void set_interval(const char *name, uint32_t interval, std::function<void()> &&f);  // NOLINT
+
   void set_interval(uint32_t interval, std::function<void()> &&f);  // NOLINT
 
   /** Cancel an interval function.
@@ -328,6 +344,22 @@ class Component {
    * @see cancel_timeout()
    */
   void set_timeout(const std::string &name, uint32_t timeout, std::function<void()> &&f);  // NOLINT
+
+  /** Set a timeout function with a const char* name.
+   *
+   * IMPORTANT: The provided name pointer must remain valid for the lifetime of the scheduler item.
+   * This means the name should be:
+   *   - A string literal (e.g., "init")
+   *   - A static const char* variable
+   *   - A pointer with lifetime >= the timeout duration
+   *
+   * For dynamic strings, use the std::string overload instead.
+   *
+   * @param name The identifier for this timeout function (must have static lifetime)
+   * @param timeout The timeout in ms
+   * @param f The function to call
+   */
+  void set_timeout(const char *name, uint32_t timeout, std::function<void()> &&f);  // NOLINT
 
   void set_timeout(uint32_t timeout, std::function<void()> &&f);  // NOLINT
 
