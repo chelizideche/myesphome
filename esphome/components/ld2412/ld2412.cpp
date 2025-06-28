@@ -8,6 +8,7 @@
 #include "esphome/components/sensor/sensor.h"
 #endif
 
+#define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
 #define highbyte(val) (uint8_t)((val) >> 8)
 #define lowbyte(val) (uint8_t)((val) &0xff)
 
@@ -18,6 +19,201 @@ static const char *const TAG = "ld2412";
 static const char *const NO_MAC = "08:05:04:03:02:01";
 static const char *const UNKNOWN_MAC = "unknown";
 static const char *const VERSION_FMT = "%u.%02X.%02X%02X%02X%02X";
+
+enum BaudRateStructure : uint8_t {
+  BAUD_RATE_9600 = 1,
+  BAUD_RATE_19200 = 2,
+  BAUD_RATE_38400 = 3,
+  BAUD_RATE_57600 = 4,
+  BAUD_RATE_115200 = 5,
+  BAUD_RATE_230400 = 6,
+  BAUD_RATE_256000 = 7,
+  BAUD_RATE_460800 = 8
+};
+
+enum DistanceResolutionStructure : uint8_t {
+  DISTANCE_RESOLUTION_0_2 = 0x03,
+  DISTANCE_RESOLUTION_0_5 = 0x01,
+  DISTANCE_RESOLUTION_0_75 = 0x00
+};
+
+// enum LightFunctionStructure : uint8_t {
+//   LIGHT_FUNCTION_OFF = 0x00,
+//   LIGHT_FUNCTION_BELOW = 0x01,
+//   LIGHT_FUNCTION_ABOVE = 0x02
+// };
+
+enum ModeStructure : uint8_t {
+  NORMAL_MODE = 1,
+  ENGINEERING_MODE = 2,
+  BACKGROUND_INIT_MODE = 3,
+};
+
+enum OutPinLevelStructure : uint8_t {
+  OUT_PIN_LEVEL_LOW = 0x01,
+  OUT_PIN_LEVEL_HIGH = 0x00,
+};
+
+/*
+Data Type: 6th byte
+Target states: 9th byte
+    Moving target distance: 10~11th bytes
+    Moving target energy: 12th byte
+    Still target distance: 13~14th bytes
+    Still target energy: 15th byte
+    Detect distance: 16~17th bytes
+*/
+enum PeriodicDataStructure : uint8_t {
+  DATA_TYPES = 6,
+  TARGET_STATES = 8,
+  MOVING_TARGET_LOW = 9,
+  MOVING_TARGET_HIGH = 10,
+  MOVING_ENERGY = 11,
+  STILL_TARGET_LOW = 12,
+  STILL_TARGET_HIGH = 13,
+  STILL_ENERGY = 14,
+  MOVING_SENSOR_START = 17,
+  STILL_SENSOR_START = 31,
+  LIGHT_SENSOR = 45,
+  OUT_PIN_SENSOR = 38,
+};
+
+enum PeriodicDataValue : uint8_t {
+  HEAD = 0XAA,
+  END = 0x55,
+  CHECK = 0x00,
+};
+
+enum AckDataStructure : uint8_t {
+  COMMAND = 6,
+  COMMAND_STATUS = 7,
+};
+
+// Memory-efficient lookup tables
+struct StringToUint8 {
+  const char *str;
+  uint8_t value;
+};
+
+struct Uint8ToString {
+  uint8_t value;
+  const char *str;
+};
+
+constexpr StringToUint8 BAUD_RATES_BY_STR[] = {
+    {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
+    {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
+    {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800},
+};
+
+constexpr StringToUint8 MODE_BY_STR[] = {
+    {"Normal", NORMAL_MODE},
+    {"Engineering", ENGINEERING_MODE},
+    {"Dynamic background correction", BACKGROUND_INIT_MODE},
+};
+
+constexpr StringToUint8 DISTANCE_RESOLUTIONS_BY_STR[] = {
+    {"0.2m", DISTANCE_RESOLUTION_0_2},
+    {"0.5m", DISTANCE_RESOLUTION_0_5},
+    {"0.75m", DISTANCE_RESOLUTION_0_75},
+};
+
+constexpr Uint8ToString DISTANCE_RESOLUTIONS_BY_UINT[] = {
+    {DISTANCE_RESOLUTION_0_2, "0.2m"},
+    {DISTANCE_RESOLUTION_0_5, "0.5m"},
+    {DISTANCE_RESOLUTION_0_75, "0.75m"},
+};
+
+// constexpr StringToUint8 LIGHT_FUNCTION_BY_STR[] = {
+//     {"off", LIGHT_FUNCTION_OFF},
+//     {"below", LIGHT_FUNCTION_BELOW},
+//     {"above", LIGHT_FUNCTION_ABOVE},
+// };
+
+// constexpr Uint8ToString LIGHT_FUNCTION_BY_UINT[] = {
+//     {LIGHT_FUNCTION_OFF, "off"},
+//     {LIGHT_FUNCTION_BELOW, "below"},
+//     {LIGHT_FUNCTION_ABOVE, "above"},
+// };
+
+constexpr StringToUint8 OUT_PIN_LEVELS_BY_STR[] = {
+    {"low", OUT_PIN_LEVEL_LOW},
+    {"high", OUT_PIN_LEVEL_HIGH},
+};
+
+constexpr Uint8ToString OUT_PIN_LEVELS_BY_UINT[] = {
+    {OUT_PIN_LEVEL_LOW, "low"},
+    {OUT_PIN_LEVEL_HIGH, "high"},
+};
+
+// Helper functions for lookups
+template<size_t N> uint8_t find_uint8(const StringToUint8 (&arr)[N], const std::string &str) {
+  for (const auto &entry : arr) {
+    if (str == entry.str)
+      return entry.value;
+  }
+  return 0xFF;  // Not found
+}
+
+template<size_t N> const char *find_str(const Uint8ToString (&arr)[N], uint8_t value) {
+  for (const auto &entry : arr) {
+    if (value == entry.value)
+      return entry.str;
+  }
+  return "";  // Not found
+}
+
+// Commands
+static const uint8_t CMD_ENABLE_CONF = 0x00FF;
+static const uint8_t CMD_DISABLE_CONF = 0x00FE;
+static const uint8_t CMD_ENABLE_ENG = 0x0062;
+static const uint8_t CMD_DISABLE_ENG = 0x0063;
+static const uint8_t CMD_MAXDIST_DURATION = 0x0060;
+static const uint8_t CMD_QUERY = 0x0012;
+static const uint8_t CMD_BASIC_CONF = 0x0002;
+static const uint8_t CMD_GATE_SENS = 0x0064;
+static const uint8_t CMD_VERSION = 0x00A0;
+static const uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0x0011;
+static const uint8_t CMD_SET_DISTANCE_RESOLUTION = 0x0001;
+static const uint8_t CMD_QUERY_LIGHT_CONTROL = 0x00AE;
+static const uint8_t CMD_SET_LIGHT_CONTROL = 0x00AD;
+static const uint8_t CMD_SET_BAUD_RATE = 0x00A1;
+static const uint8_t CMD_BT_PASSWORD = 0x00A9;
+static const uint8_t CMD_MAC = 0x00A5;
+static const uint8_t CMD_RESET = 0x00A2;
+static const uint8_t CMD_RESTART = 0x00A3;
+static const uint8_t CMD_BLUETOOTH = 0x00A4;
+static const uint8_t CMD_DYNAMIC_BACKGROUND_CORRECTION = 0x000B;
+static const uint8_t CMD_QUEY_DYNAMIC_BACKGROUND_CORRECTION = 0x001B;
+static const uint8_t CMD_MOTION_GATE_SENS = 0x0003;
+static const uint8_t CMD_QUERY_MOTION_GATE_SENS = 0x0013;
+static const uint8_t CMD_STATIC_GATE_SENS = 0x0004;
+static const uint8_t CMD_QUERY_STATIC_GATE_SENS = 0x0014;
+static const uint8_t CMD_NONE = 0x0000;
+// Commands values
+static const uint8_t CMD_MAX_MOVE_VALUE = 0x0000;
+static const uint8_t CMD_MAX_STILL_VALUE = 0x0001;
+static const uint8_t CMD_DURATION_VALUE = 0x0002;
+// Command Header & Footer
+static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
+static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
+// Data Header & Footer
+static const uint8_t DATA_FRAME_HEADER[4] = {0xF4, 0xF3, 0xF2, 0xF1};
+static const uint8_t DATA_FRAME_END[4] = {0xF8, 0xF7, 0xF6, 0xF5};
+
+static const char HEX_POSITIONING_CONVERSION[] = "0123456789ABCDEF";
+
+static std::string format_buffer(const uint8_t *buffer, size_t len) {
+  std::string version;
+  version.resize(len * 2 + 1);
+  for (size_t i = 0; i < len; i++) {
+    version[(i * 2) + 0] = HEX_POSITIONING_CONVERSION[((buffer[i] & 0xF0) >> 4)];
+    version[(i * 2) + 1] = HEX_POSITIONING_CONVERSION[((buffer[i] & 0x0F) >> 0)];
+  }
+  return version;
+}
+
+static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
 
 void LD2412Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2412:");
@@ -221,8 +417,7 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
 #ifdef USE_SENSOR
   if (this->moving_target_distance_sensor_ != nullptr) {
     int new_moving_target_distance =
-        target_state != 0x00 ? LD2412Component::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH])
-                             : 0;
+        target_state != 0x00 ? ld2412::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]) : 0;
     if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
       this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
   }
@@ -233,8 +428,7 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
   }
   if (this->still_target_distance_sensor_ != nullptr) {
     int new_still_target_distance =
-        target_state != 0x00 ? LD2412Component::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH])
-                             : 0;
+        target_state != 0x00 ? ld2412::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]) : 0;
     if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
       this->still_target_distance_sensor_->publish_state(new_still_target_distance);
   }
@@ -246,9 +440,9 @@ void LD2412Component::handle_periodic_data_(uint8_t *buffer, int len) {
   if (this->detection_distance_sensor_ != nullptr) {
     int new_detect_distance = 0;
     if (target_state != 0x00 && CHECK_BIT(target_state, 0)) {
-      new_detect_distance = LD2412Component::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
+      new_detect_distance = ld2412::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
     } else if (target_state != 0x00) {
-      new_detect_distance = LD2412Component::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
+      new_detect_distance = ld2412::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
     }
     if (this->detection_distance_sensor_->get_state() != new_detect_distance)
       this->detection_distance_sensor_->publish_state(new_detect_distance);
@@ -342,7 +536,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
     ESP_LOGE(TAG, "Invalid status");
     return true;
   }
-  if (LD2412Component::two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
+  if (ld2412::two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
     ESP_LOGE(TAG, "Invalid command: %u , %u", buffer[8], buffer[9]);
     return true;
   }
@@ -373,7 +567,7 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       break;
     case lowbyte(CMD_QUERY_DISTANCE_RESOLUTION): {
       std::string distance_resolution =
-          DISTANCE_RESOLUTION_INT_TO_ENUM.at(LD2412Component::two_byte_to_int(buffer[10], buffer[11]));
+          find_str(DISTANCE_RESOLUTIONS_BY_UINT, ld2412::two_byte_to_int(buffer[10], buffer[11]));
       ESP_LOGV(TAG, "Distance resolution: %s", const_cast<char *>(distance_resolution.c_str()));
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr &&
@@ -496,13 +690,12 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       /*
         None Duration: 11~12th bytes
       */
-      updates.push_back(
-          set_number_value(this->timeout_number_, LD2412Component::two_byte_to_int(buffer[12], buffer[13])));
-      ESP_LOGV(TAG, "timeout_number_: %u", LD2412Component::two_byte_to_int(buffer[12], buffer[13]));
+      updates.push_back(set_number_value(this->timeout_number_, ld2412::two_byte_to_int(buffer[12], buffer[13])));
+      ESP_LOGV(TAG, "timeout_number_: %u", ld2412::two_byte_to_int(buffer[12], buffer[13]));
       /*
         Output pin configuration: 13th bytes
       */
-      this->out_pin_level_ = OUT_PIN_LEVEL_INT_TO_ENUM.at(buffer[14]);
+      this->out_pin_level_ = find_str(OUT_PIN_LEVELS_BY_UINT, buffer[14]);
 #ifdef USE_SELECT
       if (this->out_pin_level_select_ != nullptr && this->out_pin_level_select_->state != this->out_pin_level_) {
         this->out_pin_level_select_->publish_state(this->out_pin_level_);
@@ -592,14 +785,14 @@ void LD2412Component::set_bluetooth(bool enable) {
 
 void LD2412Component::set_distance_resolution(const std::string &state) {
   this->set_config_mode_(true);
-  uint8_t cmd_value[6] = {DISTANCE_RESOLUTION_ENUM_TO_INT.at(state), 0x00, 0x00, 0x00, 0x00, 0x00};
+  uint8_t cmd_value[6] = {find_uint8(DISTANCE_RESOLUTIONS_BY_STR, state), 0x00, 0x00, 0x00, 0x00, 0x00};
   this->send_command_(CMD_SET_DISTANCE_RESOLUTION, cmd_value, 6);
   this->set_timeout(200, [this]() { this->restart_and_read_all_info(); });
 }
 
 void LD2412Component::set_baud_rate(const std::string &state) {
   this->set_config_mode_(true);
-  uint8_t cmd_value[2] = {BAUD_RATE_ENUM_TO_INT.at(state), 0x00};
+  uint8_t cmd_value[2] = {find_uint8(BAUD_RATES_BY_STR, state), 0x00};
   this->send_command_(CMD_SET_BAUD_RATE, cmd_value, 2);
   this->set_timeout(200, [this]() { this->restart_(); });
 }
@@ -607,7 +800,7 @@ void LD2412Component::set_baud_rate(const std::string &state) {
 void LD2412Component::set_mode(const std::string &state) {
   this->set_config_mode_(true);
   uint8_t cmd = CMD_NONE;
-  switch (MODE_ENUM_TO_INT.at(state)) {
+  switch (find_uint8(MODE_BY_STR, state)) {
     case NORMAL_MODE:
       cmd = CMD_DISABLE_ENG;
       break;
@@ -693,7 +886,7 @@ void LD2412Component::set_basic_config() {
                       lowbyte(static_cast<int>(this->max_distance_gate_number_->state) + 1),
                       lowbyte(static_cast<int>(this->timeout_number_->state)),
                       highbyte(static_cast<int>(this->timeout_number_->state)),
-                      OUT_PIN_LEVEL_ENUM_TO_INT.at(this->out_pin_level_select_->state)};
+                      find_uint8(OUT_PIN_LEVELS_BY_STR, this->out_pin_level_select_->state)};
   // int max_moving_distance_gate_range = static_cast<int>(this->max_move_distance_gate_number_->state);
   // int max_still_distance_gate_range = static_cast<int>(this->max_still_distance_gate_number_->state);
   // int timeout = static_cast<int>(this->timeout_number_->state);
