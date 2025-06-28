@@ -1908,13 +1908,11 @@ void APIConnection::process_batch_() {
   }
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
-  // Log messages after successful send for VV debugging
-  if (err == APIError::OK) {
-    // Now it's safe to use the buffer for logging since the messages have been sent
-    for (size_t i = 0; i < items_processed; i++) {
-      const auto &item = this->deferred_batch_.items[i];
-      this->log_batch_item_(item);
-    }
+  // Log messages after send attempt for VV debugging
+  // It's safe to use the buffer for logging at this point regardless of send result
+  for (size_t i = 0; i < items_processed; i++) {
+    const auto &item = this->deferred_batch_.items[i];
+    this->log_batch_item_(item);
   }
 #endif
 
