@@ -86,10 +86,18 @@ class Scheduler {
 
     // Destructor to clean up dynamic names
     ~SchedulerItem() {
-      if (owns_name && name_.dynamic_name) {
+      if (owns_name) {
         delete[] name_.dynamic_name;
       }
     }
+
+    // Delete copy operations to prevent accidental copies
+    SchedulerItem(const SchedulerItem &) = delete;
+    SchedulerItem &operator=(const SchedulerItem &) = delete;
+
+    // Default move operations
+    SchedulerItem(SchedulerItem &&) = default;
+    SchedulerItem &operator=(SchedulerItem &&) = default;
 
     // Helper to get the name regardless of storage type
     const char *get_name() const { return owns_name ? name_.dynamic_name : name_.static_name; }
