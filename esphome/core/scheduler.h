@@ -80,13 +80,7 @@ class Scheduler {
 
     // Constructor
     SchedulerItem()
-        : component(nullptr),
-          interval(0),
-          next_execution_(0),
-          callback(nullptr),
-          type(TIMEOUT),
-          remove(false),
-          owns_name(false) {
+        : component(nullptr), interval(0), next_execution_(0), type(TIMEOUT), remove(false), owns_name(false) {
       name_.static_name = nullptr;
     }
 
@@ -105,11 +99,11 @@ class Scheduler {
       // Clean up old dynamic name if any
       if (owns_name && name_.dynamic_name) {
         delete[] name_.dynamic_name;
+        owns_name = false;
       }
 
-      if (name == nullptr || name[0] == '\0') {
+      if (!name || !name[0]) {
         name_.static_name = nullptr;
-        owns_name = false;
       } else if (make_copy) {
         // Make a copy for dynamic strings
         size_t len = strlen(name);
@@ -119,24 +113,12 @@ class Scheduler {
       } else {
         // Use static string directly
         name_.static_name = name;
-        owns_name = false;
       }
     }
 
     static bool cmp(const std::unique_ptr<SchedulerItem> &a, const std::unique_ptr<SchedulerItem> &b);
-    const char *get_type_str() {
-      switch (this->type) {
-        case SchedulerItem::INTERVAL:
-          return "interval";
-        case SchedulerItem::TIMEOUT:
-          return "timeout";
-        default:
-          return "";
-      }
-    }
-    const char *get_source() {
-      return this->component != nullptr ? this->component->get_component_source() : "unknown";
-    }
+    const char *get_type_str() const { return (type == TIMEOUT) ? "timeout" : "interval"; }
+    const char *get_source() const { return component ? component->get_component_source() : "unknown"; }
   };
 
   // Common implementation for both timeout and interval
