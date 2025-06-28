@@ -9,7 +9,6 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-#include <cmath>
 
 #include "esphome/core/optional.h"
 
@@ -50,7 +49,20 @@ using std::make_unique;
 using std::enable_if_t;
 using std::clamp;
 using std::is_invocable;
+#if __cpp_lib_bit_cast >= 201806
 using std::bit_cast;
+#else
+/// Convert data between types, without aliasing issues or undefined behaviour.
+template<
+    typename To, typename From,
+    enable_if_t<sizeof(To) == sizeof(From) && is_trivially_copyable<From>::value && is_trivially_copyable<To>::value,
+                int> = 0>
+To bit_cast(const From &src) {
+  To dst;
+  memcpy(&dst, &src, sizeof(To));
+  return dst;
+}
+#endif
 using std::lerp;
 
 // std::byteswap from C++23
