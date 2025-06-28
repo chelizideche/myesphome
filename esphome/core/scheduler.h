@@ -116,7 +116,7 @@ class Scheduler {
         // Make a copy for dynamic strings
         size_t len = strlen(name);
         name_.dynamic_name = new char[len + 1];
-        strcpy(name_.dynamic_name, name);
+        memcpy(name_.dynamic_name, name, len + 1);
         name_is_dynamic = true;
       } else {
         // Use static string directly
