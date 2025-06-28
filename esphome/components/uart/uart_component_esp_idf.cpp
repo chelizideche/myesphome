@@ -1,5 +1,3 @@
-#include "esphome/core/gpio.h"
-#include "soc/gpio_num.h"
 #ifdef USE_ESP_IDF
 
 #include "uart_component_esp_idf.h"
@@ -8,7 +6,9 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/core/gpio.h"
 #include "driver/gpio.h"
+#include "soc/gpio_num.h"
 
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
