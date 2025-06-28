@@ -211,7 +211,7 @@ void HOT Scheduler::call() {
   if (now - last_print > 2000) {
     last_print = now;
     std::vector<std::unique_ptr<SchedulerItem>> old_items;
-    ESP_LOGD(TAG, "Items: count=%u, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now, this->millis_major_,
+    ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now, this->millis_major_,
              this->last_millis_);
     while (!this->empty_()) {
       this->lock_.lock();

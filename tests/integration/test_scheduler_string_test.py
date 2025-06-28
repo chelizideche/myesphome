@@ -99,24 +99,24 @@ async def test_scheduler_string_test(
 
         # Wait for static string tests
         try:
-            await asyncio.wait_for(static_timeout_1_fired.wait(), timeout=3.0)
+            await asyncio.wait_for(static_timeout_1_fired.wait(), timeout=0.5)
         except asyncio.TimeoutError:
-            pytest.fail("Static timeout 1 did not fire within 3 seconds")
+            pytest.fail("Static timeout 1 did not fire within 0.5 seconds")
 
         try:
-            await asyncio.wait_for(static_timeout_2_fired.wait(), timeout=3.0)
+            await asyncio.wait_for(static_timeout_2_fired.wait(), timeout=0.5)
         except asyncio.TimeoutError:
-            pytest.fail("Static timeout 2 did not fire within 3 seconds")
+            pytest.fail("Static timeout 2 did not fire within 0.5 seconds")
 
         try:
-            await asyncio.wait_for(static_interval_fired.wait(), timeout=3.0)
+            await asyncio.wait_for(static_interval_fired.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Static interval did not fire within 3 seconds")
+            pytest.fail("Static interval did not fire within 1 seconds")
 
         try:
-            await asyncio.wait_for(static_interval_cancelled.wait(), timeout=3.0)
+            await asyncio.wait_for(static_interval_cancelled.wait(), timeout=2.0)
         except asyncio.TimeoutError:
-            pytest.fail("Static interval was not cancelled within 3 seconds")
+            pytest.fail("Static interval was not cancelled within 2 seconds")
 
         # Verify static interval ran at least 3 times
         assert static_interval_count >= 2, (
@@ -125,26 +125,26 @@ async def test_scheduler_string_test(
 
         # Wait for dynamic string tests
         try:
-            await asyncio.wait_for(dynamic_timeout_fired.wait(), timeout=5.0)
+            await asyncio.wait_for(dynamic_timeout_fired.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Dynamic timeout did not fire within 5 seconds")
+            pytest.fail("Dynamic timeout did not fire within 1 seconds")
 
         try:
-            await asyncio.wait_for(dynamic_interval_fired.wait(), timeout=5.0)
+            await asyncio.wait_for(dynamic_interval_fired.wait(), timeout=1.5)
         except asyncio.TimeoutError:
-            pytest.fail("Dynamic interval did not fire within 5 seconds")
+            pytest.fail("Dynamic interval did not fire within 1.5 seconds")
 
         # Wait for cancel test
         try:
-            await asyncio.wait_for(cancel_test_done.wait(), timeout=5.0)
+            await asyncio.wait_for(cancel_test_done.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Cancel test did not complete within 5 seconds")
+            pytest.fail("Cancel test did not complete within 1 seconds")
 
         # Wait for final results
         try:
-            await asyncio.wait_for(final_results_logged.wait(), timeout=10.0)
+            await asyncio.wait_for(final_results_logged.wait(), timeout=4.0)
         except asyncio.TimeoutError:
-            pytest.fail("Final results were not logged within 10 seconds")
+            pytest.fail("Final results were not logged within 4 seconds")
 
         # Verify results
         assert timeout_count >= 3, f"Expected at least 3 timeouts, got {timeout_count}"
@@ -154,10 +154,3 @@ async def test_scheduler_string_test(
 
         # Empty string timeout DOES fire (scheduler accepts empty names)
         assert empty_string_timeout_fired.is_set(), "Empty string timeout should fire"
-
-        # Log final status
-        print("\nScheduler string test completed successfully:")
-        print(f"  Timeouts fired: {timeout_count}")
-        print(f"  Intervals fired: {interval_count}")
-        print(f"  Static interval count: {static_interval_count + 1}")
-        print(f"  Dynamic interval count: {dynamic_interval_count}")
