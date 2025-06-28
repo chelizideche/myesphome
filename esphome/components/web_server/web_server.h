@@ -487,9 +487,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   bool include_internal_{false};
 
  protected:
-#ifdef USE_WEBSERVER_SORTING
   void add_sorting_info_(JsonObject &root, EntityBase *entity);
-#endif
   void schedule_(std::function<void()> &&f);
   web_server_base::WebServerBase *base_;
 #ifdef USE_ARDUINO
