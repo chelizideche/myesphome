@@ -43,4 +43,4 @@ async def to_code(config):
 
     cg.add(var.set_use_interrupt(config[CONF_USE_INTERRUPT]))
     if config[CONF_USE_INTERRUPT]:
-        cg.add(var.set_interrupt_type(INTERRUPT_TYPES[config[CONF_INTERRUPT_TYPE]]))
+        cg.add(var.set_interrupt_type(config[CONF_INTERRUPT_TYPE]))
