@@ -2,7 +2,6 @@
 #ifdef USE_API
 #include "api_connection.h"
 #include "api_pb2.h"
-#include "entity_iterator_macros.h"
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"

@@ -1,7 +1,6 @@
 #include "subscribe_state.h"
 #ifdef USE_API
 #include "api_connection.h"
-#include "entity_iterator_macros.h"
 #include "esphome/core/log.h"
 
 namespace esphome {

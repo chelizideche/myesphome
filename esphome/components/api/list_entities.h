@@ -9,6 +9,14 @@ namespace api {
 
 class APIConnection;
 
+// Macro for generating ListEntitiesIterator handlers
+// Calls schedule_message_ with try_send_*_info
+#define LIST_ENTITIES_HANDLER(entity_type, EntityClass, ResponseType) \
+  bool ListEntitiesIterator::on_##entity_type(EntityClass *entity) { \
+    return this->client_->schedule_message_(entity, &APIConnection::try_send_##entity_type##_info, \
+                                            ResponseType::MESSAGE_TYPE); \
+  }
+
 class ListEntitiesIterator : public ComponentIterator {
  public:
   ListEntitiesIterator(APIConnection *client);
