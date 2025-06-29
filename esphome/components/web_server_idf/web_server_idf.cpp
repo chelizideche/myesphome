@@ -1,6 +1,7 @@
 #ifdef USE_ESP_IDF
 
 #include <cstdarg>
+#include <memory>
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -134,7 +135,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     // Handle multipart upload using the multipart-parser library
     MultipartReader reader(boundary);
     static constexpr size_t CHUNK_SIZE = 1024;
-    char *chunk_buf = new char[CHUNK_SIZE];
+    std::unique_ptr<char[]> chunk_buf(new char[CHUNK_SIZE]);
     size_t total_len = r->content_len;
     size_t remaining = total_len;
     std::string current_filename;
@@ -160,10 +161,9 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
     while (remaining > 0) {
       size_t to_read = std::min(remaining, CHUNK_SIZE);
-      int recv_len = httpd_req_recv(r, chunk_buf, to_read);
+      int recv_len = httpd_req_recv(r, chunk_buf.get(), to_read);
 
       if (recv_len <= 0) {
-        delete[] chunk_buf;
         if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
           httpd_resp_send_err(r, HTTPD_408_REQ_TIMEOUT, nullptr);
           return ESP_ERR_TIMEOUT;
@@ -173,10 +173,9 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
 
       // Parse multipart data
-      size_t parsed = reader.parse(chunk_buf, recv_len);
+      size_t parsed = reader.parse(chunk_buf.get(), recv_len);
       if (parsed != recv_len) {
         ESP_LOGW(TAG, "Multipart parser error at byte %zu", total_len - remaining + parsed);
-        delete[] chunk_buf;
         httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
         return ESP_FAIL;
       }
@@ -193,8 +192,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     if (!current_filename.empty() && upload_started) {
       found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
     }
-
-    delete[] chunk_buf;
 
     // Let handler send response
     found_handler->handleRequest(&req);
