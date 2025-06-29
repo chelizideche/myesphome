@@ -202,12 +202,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
     });
 
-    // Track time to yield periodically
-    uint32_t last_yield = millis();
-    static constexpr uint32_t YIELD_INTERVAL_MS = 50;  // Yield every 50ms
-    uint32_t chunks_processed = 0;
-    static constexpr uint32_t CHUNKS_PER_YIELD = 5;  // Also yield every 5 chunks
-
     while (remaining > 0) {
       size_t to_read = std::min(remaining, CHUNK_SIZE);
       int recv_len = httpd_req_recv(r, chunk_buf.get(), to_read);
@@ -219,16 +213,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
         }
         httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
         return ESP_FAIL;
-      }
-
-      // Yield periodically to prevent watchdog timeout
-      chunks_processed++;
-      uint32_t now = millis();
-      if (now - last_yield > YIELD_INTERVAL_MS || chunks_processed >= CHUNKS_PER_YIELD) {
-        // Don't log during yield - logging itself can cause delays
-        vTaskDelay(2);  // Yield for 2 ticks to give more time to other tasks
-        last_yield = now;
-        chunks_processed = 0;
       }
 
       // Log received vs requested - only log every 100KB to reduce overhead

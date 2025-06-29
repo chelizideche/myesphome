@@ -151,21 +151,6 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   if (len > 0) {
     auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
 
-    // Feed watchdog and yield periodically to prevent timeout during OTA
-    // Flash writes can be slow, especially for large chunks
-    static uint32_t last_ota_yield = 0;
-    static uint32_t ota_chunks_written = 0;
-    uint32_t now = millis();
-    ota_chunks_written++;
-
-    // Yield more frequently during OTA - every 25ms or every 2 chunks
-    if (now - last_ota_yield > 25 || ota_chunks_written >= 2) {
-      // Don't log during yield - logging itself can cause delays
-      vTaskDelay(2);  // Let other tasks run for 2 ticks
-      last_ota_yield = now;
-      ota_chunks_written = 0;
-    }
-
     auto result = backend->write(data, len);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA write failed: %d", result);
