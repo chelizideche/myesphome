@@ -1,10 +1,10 @@
 #include "delonghi_ex105.h"
 #include "esphome/components/remote_base/remote_base.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace delonghi_ex105 {
 
-static const char *const TAG = "delonghi.climate";
 
 void DelonghiClimate::setup() {
   this->mode = climate::CLIMATE_MODE_OFF;
@@ -12,7 +12,7 @@ void DelonghiClimate::setup() {
   this->publish_state();
 }
 
-int mode_to_index(climate::ClimateMode m) {
+static int mode_to_index(climate::ClimateMode m) {
   switch (m) {
     case climate::CLIMATE_MODE_COOL:     return 0;
     case climate::CLIMATE_MODE_DRY:      return 1;
@@ -190,21 +190,44 @@ else if (call.get_target_temperature().has_value()) {
 
 
 
+static const char *const TAG = "delonghi_ex105.climate";
+
+void DelonghiClimate::dump_config() {
+  ESP_LOGCONFIG(TAG, "Delonghi EX105 IR Climate:");
+  climate_ir::ClimateIR::dump_config();
+
+  ESP_LOGCONFIG(TAG, "  Address: 0x%04X", DELONGHI_ADDRESS);
+  ESP_LOGCONFIG(TAG, "  Temperature range: %u–%u °C (step %.1f)",
+                DELONGHI_TEMP_MIN, DELONGHI_TEMP_MAX, this->traits().get_visual_current_temperature_step());
+  ESP_LOGCONFIG(TAG, "  IR carrier: %u Hz", static_cast<unsigned>(DELONGHI_IR_FREQUENCY));
+
+  ESP_LOGCONFIG(TAG, "  Commands:");
+  ESP_LOGCONFIG(TAG, "    Power toggle:       0x%04X", DELONGHI_POWER_TOGGLE);
+  ESP_LOGCONFIG(TAG, "    Mode cycle:         0x%04X", DELONGHI_MODE);
+  ESP_LOGCONFIG(TAG, "    Temp up/down:       0x%04X / 0x%04X",
+                DELONGHI_TEMP_UP, DELONGHI_TEMP_DOWN);
+  ESP_LOGCONFIG(TAG, "    Fan cycle:          0x%04X", DELONGHI_FAN_COMMAND);
+  ESP_LOGCONFIG(TAG, "    Swing cycle:        0x%04X", DELONGHI_SWING_COMMAND);
+  ESP_LOGCONFIG(TAG, "    Eco Real Feel:      0x%04X", ECO_REAL_FEEL_COMMAND);
+  ESP_LOGCONFIG(TAG, "    Silent mode:        0x%04X", SILENT_COMMAND);
+}
+
+
 
 void DelonghiClimate::transmit_state() {
   uint16_t remote_state[2];
   remote_state[0] = DELONGHI_ADDRESS;
-  remote_state[1] = this->pending_command_;  // use the one we set above
+  remote_state[1] = this->pending_command_;
 
   auto xmt = this->transmitter_->transmit();
   auto *data = xmt.get_data();
   data->set_carrier_frequency(DELONGHI_IR_FREQUENCY);
 
-  // header
+
   data->mark(DELONGHI_HEADER_MARK);
   data->space(DELONGHI_HEADER_SPACE);
 
-  // send both words LSB-first
+
   for (uint16_t word : remote_state) {
     uint8_t lsb = word & 0xFF, msb = (word >> 8) & 0xFF;
     for (uint8_t mask = 1; mask; mask <<= 1) {
@@ -225,5 +248,5 @@ void DelonghiClimate::transmit_state() {
 }
 
 
-}  // namespace delonghi
+}  // namespace delonghi_ex105
 }  // namespace esphome
