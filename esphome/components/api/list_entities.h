@@ -11,9 +11,8 @@ class APIConnection;
 
 // Macro for generating ListEntitiesIterator handlers
 // Calls schedule_message_ with try_send_*_info
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
 #define LIST_ENTITIES_HANDLER(entity_type, EntityClass, ResponseType) \
-  bool ListEntitiesIterator::on_##entity_type(EntityClass *entity) { \
+  bool ListEntitiesIterator::on_##entity_type(EntityClass *entity) { /* NOLINT(bugprone-macro-parentheses) */ \
     return this->client_->schedule_message_(entity, &APIConnection::try_send_##entity_type##_info, \
                                             ResponseType::MESSAGE_TYPE); \
   }
