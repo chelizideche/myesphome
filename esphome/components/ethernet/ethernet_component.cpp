@@ -154,7 +154,7 @@ void EthernetComponent::setup() {
   esp32_emac_config.smi_mdio_gpio_num = this->mdio_pin_;
 #endif
   esp32_emac_config.clock_config.rmii.clock_mode = this->clk_mode_;
-  esp32_emac_config.clock_config.rmii.clock_gpio = this->clk_pin_;
+  esp32_emac_config.clock_config.rmii.clock_gpio = (emac_rmii_clock_gpio_t) this->clk_pin_;
 
   esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
 #endif
@@ -364,11 +364,11 @@ void EthernetComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Power Pin: %u", this->power_pin_);
   }
   ESP_LOGCONFIG(TAG,
+                "  CLK Pin: %u\n"
                 "  MDC Pin: %u\n"
                 "  MDIO Pin: %u\n"
-                "  CLK Pin: %u\n"
                 "  PHY addr: %u",
-                this->mdc_pin_, this->mdio_pin_, this->clk_pin_, this->phy_addr_);
+                this->clk_pin_, this->mdc_pin_, this->mdio_pin_, this->phy_addr_);
 #endif
   ESP_LOGCONFIG(TAG, "  Type: %s", eth_type);
 }

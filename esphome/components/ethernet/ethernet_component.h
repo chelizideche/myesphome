@@ -123,10 +123,10 @@ class EthernetComponent : public Component {
   // Group all 32-bit members first
   int power_pin_{-1};
   emac_rmii_clock_mode_t clk_mode_{EMAC_CLK_EXT_IN};
-  emac_rmii_clock_gpio_t clk_pin_{(emac_rmii_clock_gpio_t) 0};
   std::vector<PHYRegister> phy_registers_{};
 
   // Group all 8-bit members together
+  uint8_t clk_pin_{0};
   uint8_t phy_addr_{0};
   uint8_t mdc_pin_{23};
   uint8_t mdio_pin_{18};
