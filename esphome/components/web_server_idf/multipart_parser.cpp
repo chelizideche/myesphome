@@ -10,28 +10,34 @@ static const char *const TAG = "multipart_parser";
 
 bool MultipartParser::parse(const uint8_t *data, size_t len) {
   // Append new data to buffer
-  buffer_.insert(buffer_.end(), data, data + len);
+  if (data && len > 0) {
+    buffer_.insert(buffer_.end(), data, data + len);
+  }
 
-  while (state_ != DONE && state_ != ERROR && !buffer_.empty()) {
+  bool made_progress = true;
+  while (made_progress && state_ != DONE && state_ != ERROR && !buffer_.empty()) {
+    made_progress = false;
+
     switch (state_) {
       case BOUNDARY_SEARCH:
-        if (!find_boundary()) {
-          return false;
+        if (find_boundary()) {
+          state_ = HEADERS;
+          made_progress = true;
         }
-        state_ = HEADERS;
         break;
 
       case HEADERS:
-        if (!parse_headers()) {
-          return false;
+        if (parse_headers()) {
+          state_ = CONTENT;
+          content_start_ = 0;  // Content starts at current buffer position
+          made_progress = true;
         }
-        state_ = CONTENT;
-        content_start_ = 0;  // Content starts at current buffer position
         break;
 
       case CONTENT:
-        if (!extract_content()) {
-          return false;
+        if (extract_content()) {
+          // Content is ready, return to caller
+          return true;
         }
         break;
 
@@ -51,7 +57,7 @@ bool MultipartParser::get_current_part(Part &part) const {
   part.name = current_name_;
   part.filename = current_filename_;
   part.content_type = current_content_type_;
-  part.data = buffer_.data() + content_start_;
+  part.data = buffer_.data();
   part.length = content_length_;
 
   return true;
@@ -63,8 +69,8 @@ void MultipartParser::consume_part() {
   }
 
   // Remove consumed data from buffer
-  if (content_start_ + content_length_ < buffer_.size()) {
-    buffer_.erase(buffer_.begin(), buffer_.begin() + content_start_ + content_length_);
+  if (content_length_ < buffer_.size()) {
+    buffer_.erase(buffer_.begin(), buffer_.begin() + content_length_);
   } else {
     buffer_.clear();
   }
@@ -177,7 +183,7 @@ bool MultipartParser::extract_content() {
 
   if (boundary_pos != std::string::npos) {
     // Found complete part
-    content_length_ = boundary_pos - content_start_;
+    content_length_ = boundary_pos;
     part_ready_ = true;
     return true;
   }
@@ -187,8 +193,8 @@ bool MultipartParser::extract_content() {
   size_t safe_length = buffer_.size();
   if (safe_length > search_boundary.length() + 4) {
     safe_length -= search_boundary.length() + 4;
-    if (safe_length > content_start_) {
-      content_length_ = safe_length - content_start_;
+    if (safe_length > 0) {
+      content_length_ = safe_length;
       // We have partial content but not complete yet
       return false;
     }

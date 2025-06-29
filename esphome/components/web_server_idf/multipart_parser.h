@@ -22,7 +22,12 @@ class MultipartParser {
     size_t length;
   };
 
-  explicit MultipartParser(const std::string &boundary) : boundary_("--" + boundary), state_(BOUNDARY_SEARCH) {}
+  explicit MultipartParser(const std::string &boundary)
+      : boundary_("--" + boundary),
+        state_(BOUNDARY_SEARCH),
+        content_start_(0),
+        content_length_(0),
+        part_ready_(false) {}
 
   // Process incoming data chunk
   // Returns true if a complete part is available
