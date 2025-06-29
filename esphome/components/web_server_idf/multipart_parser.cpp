@@ -13,7 +13,6 @@ static const char *const TAG = "multipart_parser";
 static constexpr size_t CRLF_LENGTH = 2;
 static constexpr size_t MIN_BOUNDARY_BUFFER = 4;  // Extra bytes to keep for split boundary detection
 static constexpr const char *CRLF_STR = "\r\n";
-static constexpr const char *DOUBLE_DASH = "--";
 
 bool MultipartParser::parse(const uint8_t *data, size_t len) {
   // Append new data to buffer

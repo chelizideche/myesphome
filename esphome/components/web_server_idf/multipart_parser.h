@@ -12,6 +12,8 @@ namespace web_server_idf {
 // Multipart form data parser for ESP-IDF
 class MultipartParser {
  public:
+  static constexpr const char *MULTIPART_BOUNDARY_PREFIX = "--";
+
   enum State : uint8_t { BOUNDARY_SEARCH, HEADERS, CONTENT, DONE, ERROR };
 
   struct Part {
@@ -23,7 +25,7 @@ class MultipartParser {
   };
 
   explicit MultipartParser(const std::string &boundary)
-      : boundary_("--" + boundary),
+      : boundary_(MULTIPART_BOUNDARY_PREFIX + boundary),
         state_(BOUNDARY_SEARCH),
         content_start_(0),
         content_length_(0),
