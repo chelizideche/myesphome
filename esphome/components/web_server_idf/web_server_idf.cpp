@@ -83,8 +83,11 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     httpd_resp_send_err(r, HTTPD_411_LENGTH_REQUIRED, nullptr);
     return ESP_OK;
   }
-
+#if (ESP_IDF_VERSION_MAJOR <= 5) && (ESP_IDF_VERSION_MINOR <= 5)
+  if (r->content_len > CONFIG_HTTPD_MAX_REQ_HDR_LEN) {
+#else
   if (r->content_len > HTTPD_MAX_REQ_HDR_LEN) {
+#endif
     ESP_LOGW(TAG, "Request size is to big: %zu", r->content_len);
     httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
     return ESP_FAIL;
