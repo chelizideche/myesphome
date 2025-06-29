@@ -13,7 +13,7 @@ class APIConnection;
 // Macro for generating InitialStateIterator handlers
 // Calls send_*_state
 #define INITIAL_STATE_HANDLER(entity_type, EntityClass) \
-  bool InitialStateIterator::on_##entity_type(EntityClass *entity) { \
+  bool InitialStateIterator::on_##entity_type((EntityClass) *entity) { \
     return this->client_->send_##entity_type##_state(entity); \
   }
 
