@@ -149,8 +149,8 @@ class APIServer : public Component, public Controller {
 #ifdef USE_API_YAML_SERVICES
     return this->user_services_;
 #else
-    static const std::vector<UserServiceDescriptor *> empty;
-    return this->user_services_ ? *this->user_services_ : empty;
+    static const std::vector<UserServiceDescriptor *> EMPTY;
+    return this->user_services_ ? *this->user_services_ : EMPTY;
 #endif
   }
 
