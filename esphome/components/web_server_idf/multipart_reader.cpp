@@ -1,9 +1,9 @@
 #ifdef USE_ESP_IDF
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_reader.h"
+#include "multipart_parser_utils.h"
 #include "esphome/core/log.h"
 #include <cstring>
-#include <cctype>
 
 namespace esphome {
 namespace web_server_idf {
@@ -40,50 +40,22 @@ size_t MultipartReader::parse(const char *data, size_t len) {
   return multipart_parser_execute(parser_, data, len);
 }
 
+void MultipartReader::process_header_() {
+  if (str_startswith_case_insensitive(current_header_field_, "content-disposition")) {
+    // Parse name and filename from Content-Disposition
+    current_part_.name = extract_header_param(current_header_value_, "name");
+    current_part_.filename = extract_header_param(current_header_value_, "filename");
+  } else if (str_startswith_case_insensitive(current_header_field_, "content-type")) {
+    current_part_.content_type = str_trim(current_header_value_);
+  }
+}
+
 int MultipartReader::on_header_field(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
 
   // If we were processing a value, save it
   if (!reader->current_header_value_.empty()) {
-    // Process the previous header
-    std::string field_lower = reader->current_header_field_;
-    std::transform(field_lower.begin(), field_lower.end(), field_lower.begin(), ::tolower);
-
-    if (field_lower == "content-disposition") {
-      // Parse name and filename from Content-Disposition
-      size_t name_pos = reader->current_header_value_.find("name=");
-      if (name_pos != std::string::npos) {
-        name_pos += 5;
-        size_t end_pos;
-        if (reader->current_header_value_[name_pos] == '"') {
-          name_pos++;
-          end_pos = reader->current_header_value_.find('"', name_pos);
-        } else {
-          end_pos = reader->current_header_value_.find_first_of("; \r\n", name_pos);
-        }
-        if (end_pos != std::string::npos) {
-          reader->current_part_.name = reader->current_header_value_.substr(name_pos, end_pos - name_pos);
-        }
-      }
-
-      size_t filename_pos = reader->current_header_value_.find("filename=");
-      if (filename_pos != std::string::npos) {
-        filename_pos += 9;
-        size_t end_pos;
-        if (reader->current_header_value_[filename_pos] == '"') {
-          filename_pos++;
-          end_pos = reader->current_header_value_.find('"', filename_pos);
-        } else {
-          end_pos = reader->current_header_value_.find_first_of("; \r\n", filename_pos);
-        }
-        if (end_pos != std::string::npos) {
-          reader->current_part_.filename = reader->current_header_value_.substr(filename_pos, end_pos - filename_pos);
-        }
-      }
-    } else if (field_lower == "content-type") {
-      reader->current_part_.content_type = reader->current_header_value_;
-    }
-
+    reader->process_header_();
     reader->current_header_value_.clear();
   }
 
@@ -105,43 +77,7 @@ int MultipartReader::on_headers_complete(multipart_parser *parser) {
 
   // Process last header if any
   if (!reader->current_header_value_.empty()) {
-    std::string field_lower = reader->current_header_field_;
-    std::transform(field_lower.begin(), field_lower.end(), field_lower.begin(), ::tolower);
-
-    if (field_lower == "content-disposition") {
-      // Parse name and filename from Content-Disposition
-      size_t name_pos = reader->current_header_value_.find("name=");
-      if (name_pos != std::string::npos) {
-        name_pos += 5;
-        size_t end_pos;
-        if (reader->current_header_value_[name_pos] == '"') {
-          name_pos++;
-          end_pos = reader->current_header_value_.find('"', name_pos);
-        } else {
-          end_pos = reader->current_header_value_.find_first_of("; \r\n", name_pos);
-        }
-        if (end_pos != std::string::npos) {
-          reader->current_part_.name = reader->current_header_value_.substr(name_pos, end_pos - name_pos);
-        }
-      }
-
-      size_t filename_pos = reader->current_header_value_.find("filename=");
-      if (filename_pos != std::string::npos) {
-        filename_pos += 9;
-        size_t end_pos;
-        if (reader->current_header_value_[filename_pos] == '"') {
-          filename_pos++;
-          end_pos = reader->current_header_value_.find('"', filename_pos);
-        } else {
-          end_pos = reader->current_header_value_.find_first_of("; \r\n", filename_pos);
-        }
-        if (end_pos != std::string::npos) {
-          reader->current_part_.filename = reader->current_header_value_.substr(filename_pos, end_pos - filename_pos);
-        }
-      }
-    } else if (field_lower == "content-type") {
-      reader->current_part_.content_type = reader->current_header_value_;
-    }
+    reader->process_header_();
   }
 
   reader->in_headers_ = false;

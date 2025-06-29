@@ -57,6 +57,8 @@ class MultipartReader {
   PartCompleteCallback part_complete_callback_;
 
   bool in_headers_{false};
+
+  void process_header_();
 };
 
 }  // namespace web_server_idf
