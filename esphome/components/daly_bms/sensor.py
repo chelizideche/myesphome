@@ -55,6 +55,12 @@ CONF_CELL_15_VOLTAGE = "cell_15_voltage"
 CONF_CELL_16_VOLTAGE = "cell_16_voltage"
 CONF_CELL_17_VOLTAGE = "cell_17_voltage"
 CONF_CELL_18_VOLTAGE = "cell_18_voltage"
+CONF_CELL_19_VOLTAGE = "cell_19_voltage"
+CONF_CELL_20_VOLTAGE = "cell_20_voltage"
+CONF_CELL_21_VOLTAGE = "cell_21_voltage"
+CONF_CELL_22_VOLTAGE = "cell_22_voltage"
+CONF_CELL_23_VOLTAGE = "cell_23_voltage"
+CONF_CELL_24_VOLTAGE = "cell_24_voltage"
 ICON_CURRENT_DC = "mdi:current-dc"
 ICON_BATTERY_OUTLINE = "mdi:battery-outline"
 ICON_THERMOMETER_CHEVRON_UP = "mdi:thermometer-chevron-up"
@@ -97,6 +103,12 @@ TYPES = [
     CONF_CELL_16_VOLTAGE,
     CONF_CELL_17_VOLTAGE,
     CONF_CELL_18_VOLTAGE,
+    CONF_CELL_19_VOLTAGE,
+    CONF_CELL_20_VOLTAGE,
+    CONF_CELL_21_VOLTAGE,
+    CONF_CELL_22_VOLTAGE,
+    CONF_CELL_23_VOLTAGE,
+    CONF_CELL_24_VOLTAGE,
 ]
 
 CELL_VOLTAGE_SCHEMA = sensor.sensor_schema(
@@ -219,6 +231,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CELL_16_VOLTAGE): CELL_VOLTAGE_SCHEMA,
             cv.Optional(CONF_CELL_17_VOLTAGE): CELL_VOLTAGE_SCHEMA,
             cv.Optional(CONF_CELL_18_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_19_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_20_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_21_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_22_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_23_VOLTAGE): CELL_VOLTAGE_SCHEMA,
+            cv.Optional(CONF_CELL_24_VOLTAGE): CELL_VOLTAGE_SCHEMA,
         }
     ).extend(cv.COMPONENT_SCHEMA)
 )
