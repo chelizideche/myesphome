@@ -1684,11 +1684,14 @@ void WebServer::handle_event_request(AsyncWebServerRequest *request, const UrlMa
 }
 
 std::string WebServer::event_state_json_generator(WebServer *web_server, void *source) {
-  return web_server->event_json((event::Event *) (source), *(((event::Event *) (source))->last_event_type),
-                                DETAIL_STATE);
+  event::Event *event = (event::Event *) source;
+  const std::string event_type = event->last_event_type ? *event->last_event_type : "";
+  return web_server->event_json(event, event_type, DETAIL_STATE);
 }
 std::string WebServer::event_all_json_generator(WebServer *web_server, void *source) {
-  return web_server->event_json((event::Event *) (source), *(((event::Event *) (source))->last_event_type), DETAIL_ALL);
+  event::Event *event = (event::Event *) source;
+  const std::string event_type = event->last_event_type ? *event->last_event_type : "";
+  return web_server->event_json(event, event_type, DETAIL_ALL);
 }
 std::string WebServer::event_json(event::Event *obj, const std::string &event_type, JsonDetail start_config) {
   return json::build_json([this, obj, event_type, start_config](JsonObject root) {
