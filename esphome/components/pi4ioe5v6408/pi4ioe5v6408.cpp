@@ -18,7 +18,7 @@ static const uint8_t PI4IOE5V6408_REGISTER_INTERRUPT_STATUS = 0x13;
 static const char *const TAG = "pi4ioe5v6408";
 
 void PI4IOE5V6408Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up PI4IOE5V6408...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   if (this->reset_) {
     this->reg(PI4IOE5V6408_REGISTER_DEVICE_ID) |= 0b00000001;
     this->reg(PI4IOE5V6408_REGISTER_OUT_HIGH_IMPEDENCE) = 0b00000000;
@@ -39,7 +39,7 @@ void PI4IOE5V6408Component::dump_config() {
   ESP_LOGCONFIG(TAG, "PI4IOE5V6408:");
   LOG_I2C_DEVICE(this)
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with PI4IOE5V6408 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 }
 void PI4IOE5V6408Component::pin_mode(uint8_t pin, gpio::Flags flags) {
