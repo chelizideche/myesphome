@@ -157,7 +157,7 @@ class OTARequestHandler : public AsyncWebHandler {
 
  private:
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-  void *ota_backend_{nullptr};  // Actually ota::OTABackend*, stored as void* to avoid incomplete type issues
+  void *ota_backend_{nullptr};
   bool ota_started_{false};
   bool ota_success_{false};
 #endif

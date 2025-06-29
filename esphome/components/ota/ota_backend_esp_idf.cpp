@@ -19,7 +19,6 @@ std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ID
 OTAResponseTypes IDFOTABackend::begin(size_t image_size) {
   // Reset MD5 validation state
   this->md5_set_ = false;
-  memset(this->expected_bin_md5_, 0, sizeof(this->expected_bin_md5_));
 
   this->partition_ = esp_ota_get_next_update_partition(nullptr);
   if (this->partition_ == nullptr) {

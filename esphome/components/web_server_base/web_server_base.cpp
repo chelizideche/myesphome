@@ -129,14 +129,15 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     auto result = backend->begin(0);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", result);
-      this->ota_success_ = false;
       return;
     }
 
     // Store the backend pointer
     this->ota_backend_ = backend.release();
     this->ota_started_ = true;
-  } else if (!this->ota_started_ || !this->ota_backend_) {
+  }
+
+  if (!this->ota_started_ || !this->ota_backend_) {
     // Begin failed or was aborted
     return;
   }

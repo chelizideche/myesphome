@@ -6,14 +6,13 @@
 #include "esphome/core/defines.h"
 
 #include <esp_ota_ops.h>
-#include <cstring>
 
 namespace esphome {
 namespace ota {
 
 class IDFOTABackend : public OTABackend {
  public:
-  IDFOTABackend() : md5_set_(false) { memset(expected_bin_md5_, 0, sizeof(expected_bin_md5_)); }
+  IDFOTABackend() : md5_set_(false), expected_bin_md5_{} {}
   OTAResponseTypes begin(size_t image_size) override;
   void set_update_md5(const char *md5) override;
   OTAResponseTypes write(uint8_t *data, size_t len) override;
