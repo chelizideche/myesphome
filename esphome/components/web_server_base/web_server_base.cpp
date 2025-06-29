@@ -14,7 +14,7 @@
 #endif
 #endif
 
-#ifdef USE_WEBSERVER_OTA
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
@@ -119,15 +119,17 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     this->ota_started_ = false;
 
     // Create OTA backend
-    this->ota_backend_ = ota::make_ota_backend();
+    auto backend = ota::make_ota_backend();
 
     // Begin OTA with unknown size
-    auto result = this->ota_backend_->begin(0);
+    auto result = backend->begin(0);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", result);
-      this->ota_backend_.reset();
       return;
     }
+
+    // Store the backend pointer
+    this->ota_backend_ = backend.release();
     this->ota_started_ = true;
   } else if (!this->ota_started_ || !this->ota_backend_) {
     // Begin failed or was aborted
@@ -136,11 +138,13 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
   // Write data
   if (len > 0) {
-    auto result = this->ota_backend_->write(data, len);
+    auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+    auto result = backend->write(data, len);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA write failed: %d", result);
-      this->ota_backend_->abort();
-      this->ota_backend_.reset();
+      backend->abort();
+      delete backend;
+      this->ota_backend_ = nullptr;
       this->ota_started_ = false;
       return;
     }
@@ -150,13 +154,15 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   }
 
   if (final) {
-    auto result = this->ota_backend_->end();
+    auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+    auto result = backend->end();
     if (result == ota::OTA_RESPONSE_OK) {
       this->schedule_ota_reboot_();
     } else {
       ESP_LOGE(TAG, "OTA end failed: %d", result);
     }
-    this->ota_backend_.reset();
+    delete backend;
+    this->ota_backend_ = nullptr;
     this->ota_started_ = false;
   }
 #endif  // USE_ESP_IDF
@@ -176,8 +182,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif  // USE_ARDUINO
 #ifdef USE_ESP_IDF
-  response = request->beginResponse(
-      200, "text/plain", (this->ota_started_ && this->ota_backend_) ? "Update Successful!" : "Update Failed!");
+  response = request->beginResponse(200, "text/plain", this->ota_started_ ? "Update Successful!" : "Update Failed!");
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);

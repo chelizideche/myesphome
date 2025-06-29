@@ -148,8 +148,10 @@ class OTARequestHandler : public AsyncWebHandler {
   uint32_t ota_read_length_{0};
 #endif
   WebServerBase *parent_;
+
+ private:
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-  std::unique_ptr<ota::OTABackend> ota_backend_;
+  void *ota_backend_{nullptr};  // Actually ota::OTABackend*, stored as void* to avoid incomplete type issues
   bool ota_started_{false};
 #endif
 };

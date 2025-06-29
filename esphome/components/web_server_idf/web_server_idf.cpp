@@ -9,12 +9,12 @@
 #include "esp_tls_crypto.h"
 
 #include "utils.h"
+#include "web_server_idf.h"
+
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_reader.h"
 #include "multipart_parser_utils.h"
 #endif
-
-#include "web_server_idf.h"
 
 #ifdef USE_WEBSERVER
 #include "esphome/components/web_server/web_server.h"

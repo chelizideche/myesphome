@@ -1,6 +1,5 @@
 from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 import esphome.config_validation as cv
-from esphome.const import CONF_OTA
 from esphome.core import CORE
 
 CODEOWNERS = ["@dentra"]
@@ -17,6 +16,6 @@ async def to_code(config):
 
     # Check if web_server component has OTA enabled
     web_server_config = CORE.config.get("web_server", {})
-    if web_server_config.get(CONF_OTA, True):  # OTA is enabled by default
-        # Add multipart parser component for OTA support
+    if web_server_config and web_server_config.get("ota", True):
+        # Add multipart parser component for ESP-IDF OTA support
         add_idf_component(name="zorxx/multipart-parser", ref="1.0.1")
