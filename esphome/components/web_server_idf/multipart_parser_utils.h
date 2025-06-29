@@ -209,15 +209,6 @@ inline std::string str_trim(const std::string &str) {
   return str.substr(start, end - start + 1);
 }
 
-// Extract header value (everything after the colon)
-inline std::string extract_header_value(const std::string &header) {
-  size_t colon_pos = header.find(':');
-  if (colon_pos == std::string::npos) {
-    return "";
-  }
-  return str_trim(header.substr(colon_pos + 1));
-}
-
 }  // namespace web_server_idf
 }  // namespace esphome
 #endif  // USE_WEBSERVER_OTA
