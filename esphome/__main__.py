@@ -355,7 +355,7 @@ def upload_program(config, args, host):
         if CORE.target_platform in (PLATFORM_RP2040):
             return upload_using_platformio(config, args.device)
 
-        if CORE.target_platform in (PLATFORM_BK72XX, PLATFORM_RTL87XX, PLATFORM_LN882X):
+        if CORE.is_libretiny:
             return upload_using_platformio(config, host)
 
         return 1  # Unknown target platform
