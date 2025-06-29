@@ -22,14 +22,6 @@ inline bool str_ncmp_ci(const char *s1, const char *s2, size_t n) {
   return true;
 }
 
-// Case-insensitive string comparison
-inline bool str_equals_case_insensitive(const std::string &a, const std::string &b) {
-  if (a.length() != b.length()) {
-    return false;
-  }
-  return str_ncmp_ci(a.c_str(), b.c_str(), a.length());
-}
-
 // Case-insensitive string prefix check
 inline bool str_startswith_case_insensitive(const std::string &str, const std::string &prefix) {
   if (str.length() < prefix.length()) {

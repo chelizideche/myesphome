@@ -40,7 +40,6 @@ bool MultipartParser::parse(const uint8_t *data, size_t len) {
       case HEADERS:
         if (parse_headers()) {
           state_ = CONTENT;
-          content_start_ = 0;  // Content starts at current buffer position
           made_progress = true;
         }
         break;
@@ -95,7 +94,6 @@ void MultipartParser::consume_part() {
 
   // Reset for next part
   part_ready_ = false;
-  content_start_ = 0;
   content_length_ = 0;
   current_name_.clear();
   current_filename_.clear();
@@ -109,7 +107,6 @@ void MultipartParser::reset() {
   buffer_.clear();
   state_ = BOUNDARY_SEARCH;
   part_ready_ = false;
-  content_start_ = 0;
   content_length_ = 0;
   current_name_.clear();
   current_filename_.clear();

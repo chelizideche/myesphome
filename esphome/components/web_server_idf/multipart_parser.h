@@ -28,7 +28,6 @@ class MultipartParser {
   explicit MultipartParser(const std::string &boundary)
       : boundary_(MULTIPART_BOUNDARY_PREFIX + boundary),
         state_(BOUNDARY_SEARCH),
-        content_start_(0),
         content_length_(0),
         part_ready_(false) {}
 
@@ -59,7 +58,6 @@ class MultipartParser {
   size_t find_pattern(const uint8_t *pattern, size_t pattern_len, size_t start = 0) const;
 
   std::string boundary_;
-  std::string end_boundary_;
   State state_;
   std::vector<uint8_t> buffer_;
 
@@ -67,7 +65,6 @@ class MultipartParser {
   std::string current_name_;
   std::string current_filename_;
   std::string current_content_type_;
-  size_t content_start_{0};
   size_t content_length_{0};
   bool part_ready_{false};
 };
