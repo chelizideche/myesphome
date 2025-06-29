@@ -11,13 +11,12 @@ class APIConnection;
 
 // Macro for generating ListEntitiesIterator handlers
 // Calls schedule_message_ with try_send_*_info
-// clang-format off
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
 #define LIST_ENTITIES_HANDLER(entity_type, EntityClass, ResponseType) \
   bool ListEntitiesIterator::on_##entity_type(EntityClass *entity) { \
     return this->client_->schedule_message_(entity, &APIConnection::try_send_##entity_type##_info, \
                                             ResponseType::MESSAGE_TYPE); \
   }
-// clang-format on
 
 class ListEntitiesIterator : public ComponentIterator {
  public:
