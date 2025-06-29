@@ -1,6 +1,7 @@
 #ifdef USE_ESP_IDF
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_parser.h"
+#include "multipart_parser_utils.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -141,35 +142,38 @@ bool MultipartParser::parse_headers() {
       return true;
     }
 
-    // Parse Content-Disposition header
-    if (line.find("Content-Disposition:") == 0) {
-      // Extract name
-      size_t name_pos = line.find("name=\"");
-      if (name_pos != std::string::npos) {
-        name_pos += 6;
-        size_t name_end = line.find("\"", name_pos);
-        if (name_end != std::string::npos) {
-          current_name_ = line.substr(name_pos, name_end - name_pos);
-        }
+    // Parse Content-Disposition header (case-insensitive)
+    if (str_startswith_case_insensitive(line, "content-disposition:")) {
+      // Extract name parameter
+      std::string name = extract_header_param(line, "name");
+      if (!name.empty()) {
+        current_name_ = name;
       }
 
-      // Extract filename if present
-      size_t filename_pos = line.find("filename=\"");
-      if (filename_pos != std::string::npos) {
-        filename_pos += 10;
-        size_t filename_end = line.find("\"", filename_pos);
-        if (filename_end != std::string::npos) {
-          current_filename_ = line.substr(filename_pos, filename_end - filename_pos);
-        }
+      // Extract filename parameter if present
+      std::string filename = extract_header_param(line, "filename");
+      if (!filename.empty()) {
+        current_filename_ = filename;
       }
     }
-    // Parse Content-Type header
-    else if (line.find("Content-Type:") == 0) {
-      current_content_type_ = line.substr(14);
-      // Trim whitespace
-      size_t start = current_content_type_.find_first_not_of(" \t");
-      if (start != std::string::npos) {
-        current_content_type_ = current_content_type_.substr(start);
+    // Parse Content-Type header (case-insensitive)
+    else if (str_startswith_case_insensitive(line, "content-type:")) {
+      // Find the colon and skip it
+      size_t colon_pos = line.find(':');
+      if (colon_pos != std::string::npos) {
+        current_content_type_ = line.substr(colon_pos + 1);
+        // Trim leading whitespace
+        size_t start = current_content_type_.find_first_not_of(" \t");
+        if (start != std::string::npos) {
+          current_content_type_ = current_content_type_.substr(start);
+        } else {
+          current_content_type_.clear();
+        }
+        // Trim trailing whitespace
+        size_t end = current_content_type_.find_last_not_of(" \t\r\n");
+        if (end != std::string::npos) {
+          current_content_type_ = current_content_type_.substr(0, end + 1);
+        }
       }
     }
   }
