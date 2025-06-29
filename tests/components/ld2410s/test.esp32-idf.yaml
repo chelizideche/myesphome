@@ -1,17 +1,5 @@
 substitutions:
   uart_tx: GPIO17
   uart_rx: GPIO16
-  keep_awake: GPIO15
-
-deep_sleep:
-  wakeup_pin: ${keep_awake}
-  wakeup_pin_mode: KEEP_AWAKE
-
-button:
-  - platform: template
-    name: Enter sleep mode
-    entity_category: CONFIG
-    on_press:
-      - deep_sleep.enter: {}
 
 <<: !include common.yaml
