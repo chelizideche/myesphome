@@ -146,8 +146,7 @@ void MQTTBackendESP32::loop() {
   if ((now - this->last_dropped_log_time_) >= DROP_LOG_INTERVAL_MS) {
     uint16_t dropped = this->mqtt_queue_.get_and_reset_dropped_count();
     if (dropped > 0) {
-      ESP_LOGW(TAG, "Dropped %u MQTT messages in the last %u seconds (queue full or allocation failed)", dropped,
-               DROP_LOG_INTERVAL_MS / 1000);
+      ESP_LOGW(TAG, "Dropped %u messages (%us)", dropped, DROP_LOG_INTERVAL_MS / 1000);
     }
     this->last_dropped_log_time_ = now;
   }
