@@ -20,6 +20,11 @@ class MultipartReader {
     std::string content_type;
   };
 
+  // IMPORTANT: The data pointer in DataCallback is only valid during the callback!
+  // The multipart parser passes pointers to its internal buffer which will be
+  // overwritten after the callback returns. Callbacks MUST process or copy the
+  // data immediately - storing the pointer for deferred processing will result
+  // in use-after-free bugs.
   using DataCallback = std::function<void(const uint8_t *data, size_t len)>;
   using PartCompleteCallback = std::function<void()>;
 
@@ -58,6 +63,7 @@ class MultipartReader {
   PartCompleteCallback part_complete_callback_;
 
   bool in_headers_{false};
+  bool first_data_logged_{false};
 
   void process_header_();
 };

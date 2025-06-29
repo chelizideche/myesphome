@@ -7,6 +7,8 @@
 #include "esphome/core/log.h"
 
 #include "esp_tls_crypto.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "utils.h"
 #include "web_server_idf.h"
@@ -75,7 +77,7 @@ void AsyncWebServer::begin() {
 }
 
 esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
-  ESP_LOGVV(TAG, "Enter AsyncWebServer::request_post_handler. uri=%s", r->uri);
+  ESP_LOGD(TAG, "Enter AsyncWebServer::request_post_handler. uri=%s", r->uri);
   auto content_type = request_get_header(r, "Content-Type");
 
 #ifdef USE_WEBSERVER_OTA
@@ -91,6 +93,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     if (parse_multipart_boundary(ct.c_str(), &boundary_start, &boundary_len)) {
       boundary.assign(boundary_start, boundary_len);
       is_multipart = true;
+      ESP_LOGD(TAG, "Multipart upload detected, boundary: '%s' (len: %zu)", boundary.c_str(), boundary_len);
     } else if (!is_form_urlencoded(ct.c_str())) {
       ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
       // fallback to get handler to support backward compatibility
@@ -123,41 +126,92 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     for (auto *handler : server->handlers_) {
       if (handler->canHandle(&req)) {
         found_handler = handler;
+        ESP_LOGD(TAG, "Found handler for OTA request");
         break;
       }
     }
 
     if (!found_handler) {
+      ESP_LOGW(TAG, "No handler found for OTA request");
       httpd_resp_send_err(r, HTTPD_404_NOT_FOUND, nullptr);
       return ESP_OK;
     }
 
     // Handle multipart upload using the multipart-parser library
-    MultipartReader reader(boundary);
+    // The multipart data starts with "--" + boundary, so we need to prepend it
+    std::string full_boundary = "--" + boundary;
+    ESP_LOGV(TAG, "Initializing multipart reader with full boundary: '%s'", full_boundary.c_str());
+    MultipartReader reader(full_boundary);
     static constexpr size_t CHUNK_SIZE = 1024;
+    // IMPORTANT: chunk_buf is reused for each chunk read from the socket.
+    // The multipart parser will pass pointers into this buffer to callbacks.
+    // Those pointers are only valid during the callback execution!
     std::unique_ptr<char[]> chunk_buf(new char[CHUNK_SIZE]);
     size_t total_len = r->content_len;
     size_t remaining = total_len;
     std::string current_filename;
     bool upload_started = false;
 
+    // Track if we've started the upload
+    bool file_started = false;
+
     // Set up callbacks for the multipart reader
     reader.set_data_callback([&](const uint8_t *data, size_t len) {
-      if (!current_filename.empty()) {
-        found_handler->handleUpload(&req, current_filename, upload_started ? 1 : 0, const_cast<uint8_t *>(data), len,
-                                    false);
-        upload_started = true;
+      // CRITICAL: The data pointer is only valid during this callback!
+      // The multipart parser passes pointers into the chunk_buf buffer, which will be
+      // overwritten when we read the next chunk. We MUST process the data immediately
+      // within this callback - any deferred processing will result in use-after-free bugs
+      // where the data pointer points to corrupted/overwritten memory.
+
+      // By the time on_part_data is called, on_headers_complete has already been called
+      // so we can check for filename
+      if (reader.has_file()) {
+        if (current_filename.empty()) {
+          // First time we see data for this file
+          current_filename = reader.get_current_part().filename;
+          ESP_LOGD(TAG, "Processing file part: '%s'", current_filename.c_str());
+        }
+
+        // Log first few bytes of firmware data (only once)
+        static bool firmware_data_logged = false;
+        if (!firmware_data_logged && len >= 8) {
+          ESP_LOGD(TAG, "First firmware bytes from callback: %02x %02x %02x %02x %02x %02x %02x %02x", data[0], data[1],
+                   data[2], data[3], data[4], data[5], data[6], data[7]);
+          firmware_data_logged = true;
+        }
+
+        if (!file_started) {
+          // Initialize the upload with index=0
+          ESP_LOGD(TAG, "Starting upload for: '%s'", current_filename.c_str());
+          found_handler->handleUpload(&req, current_filename, 0, nullptr, 0, false);
+          file_started = true;
+          upload_started = true;
+        }
+
+        // Process the data chunk immediately - the pointer won't be valid after this callback returns!
+        // DO NOT store the data pointer for later use or pass it to any async/deferred operations.
+        if (len > 0) {
+          found_handler->handleUpload(&req, current_filename, 1, const_cast<uint8_t *>(data), len, false);
+        }
       }
     });
 
     reader.set_part_complete_callback([&]() {
       if (!current_filename.empty() && upload_started) {
-        // Signal end of this part
-        found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, false);
+        ESP_LOGD(TAG, "Part complete callback called for: '%s'", current_filename.c_str());
+        // Signal end of this part - final=true signals completion
+        found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
         current_filename.clear();
         upload_started = false;
+        file_started = false;
       }
     });
+
+    // Track time to yield periodically
+    uint32_t last_yield = millis();
+    static constexpr uint32_t YIELD_INTERVAL_MS = 50;  // Yield every 50ms
+    uint32_t chunks_processed = 0;
+    static constexpr uint32_t CHUNKS_PER_YIELD = 5;  // Also yield every 5 chunks
 
     while (remaining > 0) {
       size_t to_read = std::min(remaining, CHUNK_SIZE);
@@ -172,29 +226,69 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
         return ESP_FAIL;
       }
 
-      // Parse multipart data
-      size_t parsed = reader.parse(chunk_buf.get(), recv_len);
-      if (parsed != recv_len) {
-        ESP_LOGW(TAG, "Multipart parser error at byte %zu", total_len - remaining + parsed);
-        httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
-        return ESP_FAIL;
+      // Yield periodically to prevent watchdog timeout
+      chunks_processed++;
+      uint32_t now = millis();
+      if (now - last_yield > YIELD_INTERVAL_MS || chunks_processed >= CHUNKS_PER_YIELD) {
+        // Don't log during yield - logging itself can cause delays
+        vTaskDelay(2);  // Yield for 2 ticks to give more time to other tasks
+        last_yield = now;
+        chunks_processed = 0;
       }
 
-      // Check if we found a new file part
-      if (reader.has_file() && current_filename.empty()) {
-        current_filename = reader.get_current_part().filename;
+      // Log received vs requested - only log every 100KB to reduce overhead
+      static size_t bytes_logged = 0;
+      bytes_logged += recv_len;
+      if (bytes_logged > 100000) {
+        ESP_LOGD(TAG, "OTA progress: %zu bytes remaining", remaining);
+        bytes_logged = 0;
+      }
+      // Log first few bytes for debugging
+      if (total_len == remaining) {
+        ESP_LOGD(TAG, "First chunk data (hex): %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) chunk_buf[0],
+                 (uint8_t) chunk_buf[1], (uint8_t) chunk_buf[2], (uint8_t) chunk_buf[3], (uint8_t) chunk_buf[4],
+                 (uint8_t) chunk_buf[5], (uint8_t) chunk_buf[6], (uint8_t) chunk_buf[7]);
+        ESP_LOGD(TAG, "First chunk data (ascii): %.8s", chunk_buf.get());
+        ESP_LOGD(TAG, "Expected boundary start: %.8s", full_boundary.c_str());
+
+        // Log more of the first chunk to see the headers
+        ESP_LOGD(TAG, "First 256 bytes of upload:");
+        for (int i = 0; i < std::min(recv_len, 256); i += 16) {
+          char hex_buf[50];
+          char ascii_buf[17];
+          int n = std::min(16, recv_len - i);
+          for (int j = 0; j < n; j++) {
+            sprintf(hex_buf + j * 3, "%02x ", (uint8_t) chunk_buf[i + j]);
+            ascii_buf[j] = isprint(chunk_buf[i + j]) ? chunk_buf[i + j] : '.';
+          }
+          ascii_buf[n] = '\0';
+          ESP_LOGD(TAG, "%04x: %-48s %s", i, hex_buf, ascii_buf);
+        }
+      }
+
+      size_t parsed = reader.parse(chunk_buf.get(), recv_len);
+      if (parsed != recv_len) {
+        ESP_LOGW(TAG, "Multipart parser error at byte %zu (parsed %zu of %d bytes)", total_len - remaining + parsed,
+                 parsed, recv_len);
+        httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
+        return ESP_FAIL;
       }
 
       remaining -= recv_len;
     }
 
     // Final cleanup - send final signal if upload was in progress
+    // This should not be needed as part_complete_callback should handle it
     if (!current_filename.empty() && upload_started) {
+      ESP_LOGW(TAG, "Upload was not properly closed by part_complete_callback");
       found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
+      file_started = false;
     }
 
     // Let handler send response
+    ESP_LOGD(TAG, "Calling handleRequest for OTA response");
     found_handler->handleRequest(&req);
+    ESP_LOGD(TAG, "handleRequest completed");
     return ESP_OK;
   }
 #endif  // USE_WEBSERVER_OTA

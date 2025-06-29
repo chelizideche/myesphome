@@ -4,6 +4,11 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
+#ifdef USE_ESP_IDF
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
+
 #ifdef USE_ARDUINO
 #include <StreamString.h>
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
@@ -117,6 +122,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   if (index == 0) {
     this->ota_init_(filename.c_str());
     this->ota_started_ = false;
+    this->ota_success_ = false;
 
     // Create OTA backend
     auto backend = ota::make_ota_backend();
@@ -125,12 +131,14 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     auto result = backend->begin(0);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", result);
+      this->ota_success_ = false;
       return;
     }
 
     // Store the backend pointer
     this->ota_backend_ = backend.release();
     this->ota_started_ = true;
+    this->ota_success_ = false;  // Will be set to true only on successful completion
   } else if (!this->ota_started_ || !this->ota_backend_) {
     // Begin failed or was aborted
     return;
@@ -139,6 +147,29 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   // Write data
   if (len > 0) {
     auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+
+    // Log first chunk of data received by OTA handler
+    if (this->ota_read_length_ == 0 && len >= 8) {
+      ESP_LOGD(TAG, "First data received by OTA handler: %02x %02x %02x %02x %02x %02x %02x %02x", data[0], data[1],
+               data[2], data[3], data[4], data[5], data[6], data[7]);
+      ESP_LOGD(TAG, "Data pointer in OTA handler: %p, len: %zu, index: %zu", data, len, index);
+    }
+
+    // Feed watchdog and yield periodically to prevent timeout during OTA
+    // Flash writes can be slow, especially for large chunks
+    static uint32_t last_ota_yield = 0;
+    static uint32_t ota_chunks_written = 0;
+    uint32_t now = millis();
+    ota_chunks_written++;
+
+    // Yield more frequently during OTA - every 25ms or every 2 chunks
+    if (now - last_ota_yield > 25 || ota_chunks_written >= 2) {
+      // Don't log during yield - logging itself can cause delays
+      vTaskDelay(2);  // Let other tasks run for 2 ticks
+      last_ota_yield = now;
+      ota_chunks_written = 0;
+    }
+
     auto result = backend->write(data, len);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA write failed: %d", result);
@@ -146,6 +177,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       delete backend;
       this->ota_backend_ = nullptr;
       this->ota_started_ = false;
+      this->ota_success_ = false;
       return;
     }
 
@@ -157,9 +189,11 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
     auto result = backend->end();
     if (result == ota::OTA_RESPONSE_OK) {
+      this->ota_success_ = true;
       this->schedule_ota_reboot_();
     } else {
       ESP_LOGE(TAG, "OTA end failed: %d", result);
+      this->ota_success_ = false;
     }
     delete backend;
     this->ota_backend_ = nullptr;
@@ -170,6 +204,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 }
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #ifdef USE_WEBSERVER_OTA
+  ESP_LOGD(TAG, "OTA handleRequest called");
   AsyncWebServerResponse *response;
 #ifdef USE_ARDUINO
   if (!Update.hasError()) {
@@ -182,7 +217,12 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif  // USE_ARDUINO
 #ifdef USE_ESP_IDF
-  response = request->beginResponse(200, "text/plain", this->ota_started_ ? "Update Successful!" : "Update Failed!");
+  if (this->ota_success_) {
+    request->send(200, "text/plain", "Update Successful!");
+  } else {
+    request->send(200, "text/plain", "Update Failed!");
+  }
+  return;
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);

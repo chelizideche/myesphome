@@ -12,7 +12,7 @@ namespace web_server_idf {
 
 static const char *const TAG = "multipart_reader";
 
-MultipartReader::MultipartReader(const std::string &boundary) {
+MultipartReader::MultipartReader(const std::string &boundary) : first_data_logged_(false) {
   // Initialize settings with callbacks
   memset(&settings_, 0, sizeof(settings_));
   settings_.on_header_field = on_header_field;
@@ -22,10 +22,14 @@ MultipartReader::MultipartReader(const std::string &boundary) {
   settings_.on_part_data_end = on_part_data_end;
   settings_.on_headers_complete = on_headers_complete;
 
+  ESP_LOGV(TAG, "Initializing multipart parser with boundary: '%s' (len: %zu)", boundary.c_str(), boundary.length());
+
   // Create parser with boundary
   parser_ = multipart_parser_init(boundary.c_str(), &settings_);
   if (parser_) {
     multipart_parser_set_data(parser_, this);
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize multipart parser");
   }
 }
 
@@ -37,9 +41,26 @@ MultipartReader::~MultipartReader() {
 
 size_t MultipartReader::parse(const char *data, size_t len) {
   if (!parser_) {
+    ESP_LOGE(TAG, "Parser not initialized");
     return 0;
   }
-  return multipart_parser_execute(parser_, data, len);
+
+  size_t parsed = multipart_parser_execute(parser_, data, len);
+
+  if (parsed != len) {
+    ESP_LOGD(TAG, "Parser consumed %zu of %zu bytes", parsed, len);
+    // Log the data around the error point
+    if (parsed < len && parsed < 32) {
+      ESP_LOGD(TAG, "Data at error point (offset %zu): %02x %02x %02x %02x", parsed,
+               parsed > 0 ? (uint8_t) data[parsed - 1] : 0, (uint8_t) data[parsed],
+               parsed + 1 < len ? (uint8_t) data[parsed + 1] : 0, parsed + 2 < len ? (uint8_t) data[parsed + 2] : 0);
+
+      // Log what we have vs what parser expects
+      ESP_LOGD(TAG, "Parser error at position %zu: got '%c' (0x%02x)", parsed, data[parsed], (uint8_t) data[parsed]);
+    }
+  }
+
+  return parsed;
 }
 
 void MultipartReader::process_header_() {
@@ -95,7 +116,7 @@ int MultipartReader::on_headers_complete(multipart_parser *parser) {
 
 int MultipartReader::on_part_data_begin(multipart_parser *parser) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-  ESP_LOGD(TAG, "Part data begin");
+  ESP_LOGV(TAG, "Part data begin");
   return 0;
 }
 
@@ -104,6 +125,18 @@ int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size
 
   // Only process file uploads
   if (reader->has_file() && reader->data_callback_) {
+    // IMPORTANT: The 'at' pointer points to data within the parser's input buffer.
+    // This data is only valid during this callback. The callback handler MUST
+    // process or copy the data immediately - it cannot store the pointer for
+    // later use as the buffer will be overwritten.
+    // Log first data bytes from multipart parser
+    if (!reader->first_data_logged_ && length >= 8) {
+      ESP_LOGD(TAG, "First part data from parser: %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) at[0],
+               (uint8_t) at[1], (uint8_t) at[2], (uint8_t) at[3], (uint8_t) at[4], (uint8_t) at[5], (uint8_t) at[6],
+               (uint8_t) at[7]);
+      reader->first_data_logged_ = true;
+    }
+
     reader->data_callback_(reinterpret_cast<const uint8_t *>(at), length);
   }
 
@@ -113,7 +146,7 @@ int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size
 int MultipartReader::on_part_data_end(multipart_parser *parser) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
 
-  ESP_LOGD(TAG, "Part data end");
+  ESP_LOGV(TAG, "Part data end");
 
   if (reader->part_complete_callback_) {
     reader->part_complete_callback_();
@@ -121,6 +154,9 @@ int MultipartReader::on_part_data_end(multipart_parser *parser) {
 
   // Clear part info for next part
   reader->current_part_ = Part{};
+
+  // Reset first_data flag for next upload
+  reader->first_data_logged_ = false;
 
   return 0;
 }

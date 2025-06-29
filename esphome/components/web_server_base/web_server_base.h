@@ -127,7 +127,13 @@ class WebServerBase : public Component {
 
 class OTARequestHandler : public AsyncWebHandler {
  public:
-  OTARequestHandler(WebServerBase *parent) : parent_(parent) {}
+  OTARequestHandler(WebServerBase *parent) : parent_(parent) {
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
+    this->ota_backend_ = nullptr;
+    this->ota_started_ = false;
+    this->ota_success_ = false;
+#endif
+  }
   void handleRequest(AsyncWebServerRequest *request) override;
   void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len,
                     bool final) override;
@@ -153,6 +159,7 @@ class OTARequestHandler : public AsyncWebHandler {
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
   void *ota_backend_{nullptr};  // Actually ota::OTABackend*, stored as void* to avoid incomplete type issues
   bool ota_started_{false};
+  bool ota_success_{false};
 #endif
 };
 
