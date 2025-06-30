@@ -2,12 +2,13 @@
 #include "esphome/core/defines.h"
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 
-#include <esp_http_server.h>
-#include <multipart_parser.h>
-#include <string>
-#include <functional>
 #include <cctype>
 #include <cstring>
+#include <esp_http_server.h>
+#include <functional>
+#include <multipart_parser.h>
+#include <string>
+#include <utility>
 
 namespace esphome {
 namespace web_server_idf {
@@ -33,8 +34,8 @@ class MultipartReader {
   ~MultipartReader();
 
   // Set callbacks for handling data
-  void set_data_callback(DataCallback callback) { data_callback_ = callback; }
-  void set_part_complete_callback(PartCompleteCallback callback) { part_complete_callback_ = callback; }
+  void set_data_callback(DataCallback callback) { data_callback_ = std::move(callback); }
+  void set_part_complete_callback(PartCompleteCallback callback) { part_complete_callback_ = std::move(callback); }
 
   // Parse incoming data
   size_t parse(const char *data, size_t len);

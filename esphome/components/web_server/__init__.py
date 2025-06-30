@@ -34,11 +34,21 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
 
-AUTO_LOAD = ["json", "web_server_base"]
-
 CONF_SORTING_GROUP_ID = "sorting_group_id"
 CONF_SORTING_GROUPS = "sorting_groups"
 CONF_SORTING_WEIGHT = "sorting_weight"
+OTA_DEFAULT = True
+
+
+def AUTO_LOAD() -> list[str]:
+    """Return the components that should be automatically loaded."""
+    components = ["json", "web_server_base"]
+    if CORE.using_esp_idf and CORE.config is not None:
+        web_server_conf = CORE.config.get(CONF_WEB_SERVER, {})
+        if web_server_conf.get(CONF_OTA, OTA_DEFAULT):
+            components.append("ota")
+    return components
+
 
 web_server_ns = cg.esphome_ns.namespace("web_server")
 WebServer = web_server_ns.class_("WebServer", cg.Component, cg.Controller)
@@ -169,7 +179,7 @@ CONFIG_SCHEMA = cv.All(
                 web_server_base.WebServerBase
             ),
             cv.Optional(CONF_INCLUDE_INTERNAL, default=False): cv.boolean,
-            cv.Optional(CONF_OTA, default=True): cv.boolean,
+            cv.Optional(CONF_OTA, default=OTA_DEFAULT): cv.boolean,
             cv.Optional(CONF_LOG, default=True): cv.boolean,
             cv.Optional(CONF_LOCAL): cv.boolean,
             cv.Optional(CONF_SORTING_GROUPS): cv.ensure_list(sorting_group),
@@ -271,7 +281,7 @@ async def to_code(config):
         cg.add(var.set_css_url(config[CONF_CSS_URL]))
         cg.add(var.set_js_url(config[CONF_JS_URL]))
     cg.add(var.set_allow_ota(config[CONF_OTA]))
-    if config[CONF_OTA] and "ota" in CORE.config:
+    if config[CONF_OTA]:
         cg.add_define("USE_WEBSERVER_OTA")
     cg.add(var.set_expose_log(config[CONF_LOG]))
     if config[CONF_ENABLE_PRIVATE_NETWORK_ACCESS]:
