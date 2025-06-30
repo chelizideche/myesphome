@@ -33,10 +33,10 @@ AUTO_LOAD = ["network"]
 CONFLICTS_WITH = ["wifi"]
 DEPENDENCIES = ["esp32"]
 
-CONF_DEVICE_TYPES = {
-    "FTD": "FTD",
-    "MTD": "MTD",
-}
+CONF_DEVICE_TYPES = [
+    "FTD",
+    "MTD",
+]
 
 
 def set_sdkconfig_options(config):
@@ -88,17 +88,7 @@ def set_sdkconfig_options(config):
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT_MAX_SERVICES", 5)
 
     # TODO: Add suport for sleepy end devices
-    if dev_type := config.get(CONF_DEVICE_TYPE):
-        if dev_type == "MTD":
-            add_idf_sdkconfig_option(
-                "CONFIG_OPENTHREAD_MTD", True
-            )  # Minimum Thread Device
-        else:
-            add_idf_sdkconfig_option(
-                "CONFIG_OPENTHREAD_FTD", True
-            )  # Full Thread Device
-    else:
-        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_FTD", True)  # Full Thread Device
+    add_idf_sdkconfig_option(f"CONFIG_OPENTHREAD_{config.get(CONF_DEVICE_TYPE)}", True)
 
 
 openthread_ns = cg.esphome_ns.namespace("openthread")
