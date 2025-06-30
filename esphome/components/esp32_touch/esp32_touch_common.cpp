@@ -153,6 +153,14 @@ void ESP32TouchComponent::calculate_release_timeout_() {
   this->release_check_interval_ms_ = this->release_timeout_ms_ / 4;
 }
 
+void ESP32TouchComponent::initialize_tracking_arrays_() {
+  // Initialize tracking arrays
+  for (size_t i = 0; i < TOUCH_PAD_MAX; i++) {
+    this->last_touch_time_[i] = 0;
+    this->initial_state_published_[i] = false;
+  }
+}
+
 }  // namespace esp32_touch
 }  // namespace esphome
 

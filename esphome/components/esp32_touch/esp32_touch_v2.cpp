@@ -137,16 +137,6 @@ void ESP32TouchComponent::setup() {
 
   // Calculate release timeout based on sleep cycle
   this->calculate_release_timeout_();
-
-  // Initialize tracking arrays
-  for (size_t i = 0; i < TOUCH_PAD_MAX; i++) {
-    this->last_touch_time_[i] = 0;
-    this->initial_state_published_[i] = false;
-  }
-
-  // Mark initial states as not published yet (like v1)
-  // The actual initial state will be determined after release_timeout_ms_ in the loop
-  // This prevents false positives during startup when values may be unstable
 }
 
 void ESP32TouchComponent::dump_config() {
