@@ -48,10 +48,8 @@ class MultipartReader {
  private:
   static int on_header_field(multipart_parser *parser, const char *at, size_t length);
   static int on_header_value(multipart_parser *parser, const char *at, size_t length);
-  static int on_part_data_begin(multipart_parser *parser);
   static int on_part_data(multipart_parser *parser, const char *at, size_t length);
   static int on_part_data_end(multipart_parser *parser);
-  static int on_headers_complete(multipart_parser *parser);
 
   multipart_parser *parser_{nullptr};
   multipart_parser_settings settings_{};

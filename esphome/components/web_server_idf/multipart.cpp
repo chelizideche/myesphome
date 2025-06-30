@@ -18,10 +18,8 @@ MultipartReader::MultipartReader(const std::string &boundary) {
   memset(&settings_, 0, sizeof(settings_));
   settings_.on_header_field = on_header_field;
   settings_.on_header_value = on_header_value;
-  settings_.on_part_data_begin = on_part_data_begin;
   settings_.on_part_data = on_part_data;
   settings_.on_part_data_end = on_part_data_end;
-  settings_.on_headers_complete = on_headers_complete;
 
   ESP_LOGV(TAG, "Initializing multipart parser with boundary: '%s' (len: %zu)", boundary.c_str(), boundary.length());
 
@@ -84,22 +82,6 @@ int MultipartReader::on_header_value(multipart_parser *parser, const char *at, s
   std::string value(at, length);
   reader->process_header_(value);
 
-  return 0;
-}
-
-int MultipartReader::on_headers_complete(multipart_parser *parser) {
-  MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
-  ESP_LOGV(TAG, "Part headers complete: name='%s', filename='%s', content_type='%s'",
-           reader->current_part_.name.c_str(), reader->current_part_.filename.c_str(),
-           reader->current_part_.content_type.c_str());
-
-  return 0;
-}
-
-int MultipartReader::on_part_data_begin(multipart_parser *parser) {
-  MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-  ESP_LOGV(TAG, "Part data begin");
   return 0;
 }
 
