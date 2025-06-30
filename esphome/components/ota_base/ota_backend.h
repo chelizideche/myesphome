@@ -69,29 +69,29 @@ class OTAComponent : public Component {
   }
 
  protected:
-  /** Thread-safe callback manager that automatically defers to main loop.
+  /** Thread-safe callback wrapper that automatically defers to main loop.
    *
    * This ensures all OTA callbacks are executed in the main loop task,
    * making them safe to call from any context (including web_server's OTA task).
    * Existing code doesn't need changes - callbacks are automatically deferred.
    */
-  class DeferredCallbackManager : public CallbackManager<void(OTAState, float, uint8_t)> {
+  class StateCallbackManager {
    public:
-    DeferredCallbackManager(OTAComponent *component) : component_(component) {}
+    StateCallbackManager(OTAComponent *component) : component_(component) {}
 
-    /// Override call to automatically defer to main loop
+    void add(std::function<void(OTAState, float, uint8_t)> &&callback) { callbacks_.add(std::move(callback)); }
+
     void call(OTAState state, float progress, uint8_t error) {
       // Always defer to main loop for thread safety
-      component_->defer([this, state, progress, error]() {
-        CallbackManager<void(OTAState, float, uint8_t)>::call(state, progress, error);
-      });
+      component_->defer([this, state, progress, error]() { this->callbacks_.call(state, progress, error); });
     }
 
    private:
     OTAComponent *component_;
+    CallbackManager<void(OTAState, float, uint8_t)> callbacks_;
   };
 
-  DeferredCallbackManager state_callback_{this};
+  StateCallbackManager state_callback_{this};
 #endif
 };
 
@@ -114,10 +114,10 @@ class OTAGlobalCallback {
 OTAGlobalCallback *get_global_ota_callback();
 void register_ota_platform(OTAComponent *ota_caller);
 
-// Thread-safe callback execution is automatically provided by DeferredCallbackManager
-// which overrides call() to use Component::defer(). This ensures all OTA callbacks
-// run in the main loop task, making them safe to call from any context including
-// web_server's separate OTA task. No code changes needed.
+// Thread-safe callback execution is automatically provided by StateCallbackManager
+// which uses Component::defer() to ensure all OTA callbacks run in the main loop task.
+// This makes OTA callbacks safe to call from any context including web_server's
+// separate OTA task. No code changes needed.
 #endif
 
 }  // namespace ota_base
