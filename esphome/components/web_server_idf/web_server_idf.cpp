@@ -572,11 +572,6 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
   // Constants for upload handling
   static constexpr size_t MULTIPART_CHUNK_SIZE = 1460;       // Match Arduino AsyncWebServer buffer size
   static constexpr size_t YIELD_INTERVAL_BYTES = 16 * 1024;  // Yield every 16KB to prevent watchdog
-
-  // Upload indices for handleUpload callbacks
-  static constexpr size_t UPLOAD_INDEX_BEGIN = 0;
-  static constexpr size_t UPLOAD_INDEX_WRITE = 1;
-  static constexpr size_t UPLOAD_INDEX_END = 2;
   // Parse boundary from content type
   const char *boundary_start = nullptr;
   size_t boundary_len = 0;
@@ -611,7 +606,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     AsyncWebHandler *handler;
     AsyncWebServerRequest *req;
     std::string filename;
-    bool started = false;
+    size_t index = 0;  // Byte position in the current upload
   } ctx{handler, &req};
 
   // Configure callbacks
@@ -624,19 +619,22 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
       ESP_LOGV(TAG, "Processing file: '%s'", ctx.filename.c_str());
     }
 
-    if (!ctx.started) {
-      ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_BEGIN, nullptr, 0, false);
-      ctx.started = true;
+    if (ctx.index == 0) {
+      // First call with index 0 to indicate start of upload
+      ctx.handler->handleUpload(ctx.req, ctx.filename, 0, nullptr, 0, false);
     }
 
-    ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_WRITE, const_cast<uint8_t *>(data), len, false);
+    // Write data with current index
+    ctx.handler->handleUpload(ctx.req, ctx.filename, ctx.index, const_cast<uint8_t *>(data), len, false);
+    ctx.index += len;
   });
 
   reader.set_part_complete_callback([&ctx]() {
-    if (ctx.started) {
-      ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_END, nullptr, 0, true);
+    if (ctx.index > 0) {
+      // Final call with final=true to indicate end of upload
+      ctx.handler->handleUpload(ctx.req, ctx.filename, ctx.index, nullptr, 0, true);
       ctx.filename.clear();
-      ctx.started = false;
+      ctx.index = 0;
     }
   });
 
