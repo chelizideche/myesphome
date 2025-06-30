@@ -11,7 +11,7 @@ namespace web_server_idf {
 
 static const char *const TAG = "multipart_reader";
 
-MultipartReader::MultipartReader(const std::string &boundary) : first_data_logged_(false) {
+MultipartReader::MultipartReader(const std::string &boundary) {
   // Initialize settings with callbacks
   memset(&settings_, 0, sizeof(settings_));
   settings_.on_header_field = on_header_field;
@@ -128,14 +128,6 @@ int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size
     // This data is only valid during this callback. The callback handler MUST
     // process or copy the data immediately - it cannot store the pointer for
     // later use as the buffer will be overwritten.
-    // Log first data bytes from multipart parser
-    if (!reader->first_data_logged_ && length >= 8) {
-      ESP_LOGV(TAG, "First part data from parser: %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) at[0],
-               (uint8_t) at[1], (uint8_t) at[2], (uint8_t) at[3], (uint8_t) at[4], (uint8_t) at[5], (uint8_t) at[6],
-               (uint8_t) at[7]);
-      reader->first_data_logged_ = true;
-    }
-
     reader->data_callback_(reinterpret_cast<const uint8_t *>(at), length);
   }
 
@@ -153,9 +145,6 @@ int MultipartReader::on_part_data_end(multipart_parser *parser) {
 
   // Clear part info for next part
   reader->current_part_ = Part{};
-
-  // Reset first_data flag for next upload
-  reader->first_data_logged_ = false;
 
   return 0;
 }

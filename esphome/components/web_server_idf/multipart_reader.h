@@ -62,7 +62,6 @@ class MultipartReader {
   PartCompleteCallback part_complete_callback_;
 
   bool in_headers_{false};
-  bool first_data_logged_{false};
 
   void process_header_();
 };
