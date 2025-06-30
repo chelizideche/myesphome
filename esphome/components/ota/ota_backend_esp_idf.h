@@ -12,6 +12,7 @@ namespace ota {
 
 class IDFOTABackend : public OTABackend {
  public:
+  IDFOTABackend() : md5_set_(false), expected_bin_md5_{} {}
   OTAResponseTypes begin(size_t image_size) override;
   void set_update_md5(const char *md5) override;
   OTAResponseTypes write(uint8_t *data, size_t len) override;
@@ -24,6 +25,7 @@ class IDFOTABackend : public OTABackend {
   const esp_partition_t *partition_;
   md5::MD5Digest md5_{};
   char expected_bin_md5_[32];
+  bool md5_set_;
 };
 
 }  // namespace ota

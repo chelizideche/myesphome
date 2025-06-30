@@ -6,6 +6,7 @@
 
 #include <esp_ota_ops.h>
 #include <esp_task_wdt.h>
+#include <cstring>
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include <spi_flash_mmap.h>
@@ -17,6 +18,9 @@ namespace ota {
 std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::IDFOTABackend>(); }
 
 OTAResponseTypes IDFOTABackend::begin(size_t image_size) {
+  // Reset MD5 validation state
+  this->md5_set_ = false;
+
   this->partition_ = esp_ota_get_next_update_partition(nullptr);
   if (this->partition_ == nullptr) {
     return OTA_RESPONSE_ERROR_NO_UPDATE_PARTITION;
@@ -67,7 +71,10 @@ OTAResponseTypes IDFOTABackend::begin(size_t image_size) {
   return OTA_RESPONSE_OK;
 }
 
-void IDFOTABackend::set_update_md5(const char *expected_md5) { memcpy(this->expected_bin_md5_, expected_md5, 32); }
+void IDFOTABackend::set_update_md5(const char *expected_md5) {
+  memcpy(this->expected_bin_md5_, expected_md5, 32);
+  this->md5_set_ = true;
+}
 
 OTAResponseTypes IDFOTABackend::write(uint8_t *data, size_t len) {
   esp_err_t err = esp_ota_write(this->update_handle_, data, len);
@@ -85,10 +92,15 @@ OTAResponseTypes IDFOTABackend::write(uint8_t *data, size_t len) {
 
 OTAResponseTypes IDFOTABackend::end() {
   this->md5_.calculate();
-  if (!this->md5_.equals_hex(this->expected_bin_md5_)) {
-    this->abort();
-    return OTA_RESPONSE_ERROR_MD5_MISMATCH;
+
+  // Only validate MD5 if one was provided
+  if (this->md5_set_) {
+    if (!this->md5_.equals_hex(this->expected_bin_md5_)) {
+      this->abort();
+      return OTA_RESPONSE_ERROR_MD5_MISMATCH;
+    }
   }
+
   esp_err_t err = esp_ota_end(this->update_handle_);
   this->update_handle_ = 0;
   if (err == ESP_OK) {

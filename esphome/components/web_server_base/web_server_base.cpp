@@ -14,6 +14,10 @@
 #endif
 #endif
 
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
+#include "esphome/components/ota/ota_backend.h"
+#endif
+
 namespace esphome {
 namespace web_server_base {
 
@@ -31,6 +35,33 @@ void WebServerBase::add_handler(AsyncWebHandler *handler) {
   }
 }
 
+#ifdef USE_WEBSERVER_OTA
+void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
+  const uint32_t now = millis();
+  if (now - this->last_ota_progress_ > 1000) {
+    if (request->contentLength() != 0) {
+      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
+      ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
+    } else {
+      ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
+    }
+    this->last_ota_progress_ = now;
+  }
+}
+
+void OTARequestHandler::schedule_ota_reboot_() {
+  ESP_LOGI(TAG, "OTA update successful!");
+  this->parent_->set_timeout(100, [this]() {
+    ESP_LOGI(TAG, "Performing OTA reboot now");
+    App.safe_reboot();
+  });
+}
+
+void OTARequestHandler::ota_init_(const char *filename) {
+  ESP_LOGI(TAG, "OTA Update Start: %s", filename);
+  this->ota_read_length_ = 0;
+}
+
 void report_ota_error() {
 #ifdef USE_ARDUINO
   StreamString ss;
@@ -44,8 +75,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 #ifdef USE_ARDUINO
   bool success;
   if (index == 0) {
-    ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
-    this->ota_read_length_ = 0;
+    this->ota_init_(filename.c_str());
 #ifdef USE_ESP8266
     Update.runAsync(true);
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
@@ -72,31 +102,67 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     return;
   }
   this->ota_read_length_ += len;
-
-  const uint32_t now = millis();
-  if (now - this->last_ota_progress_ > 1000) {
-    if (request->contentLength() != 0) {
-      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
-      ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
-    } else {
-      ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
-    }
-    this->last_ota_progress_ = now;
-  }
+  this->report_ota_progress_(request);
 
   if (final) {
     if (Update.end(true)) {
-      ESP_LOGI(TAG, "OTA update successful!");
-      this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+      this->schedule_ota_reboot_();
     } else {
       report_ota_error();
     }
   }
-#endif
+#endif  // USE_ARDUINO
+
+#ifdef USE_ESP_IDF
+  // ESP-IDF implementation
+  if (index == 0 && !this->ota_backend_) {
+    // Initialize OTA on first call
+    this->ota_init_(filename.c_str());
+    this->ota_success_ = false;
+
+    auto backend = ota::make_ota_backend();
+    if (backend->begin(0) != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA begin failed");
+      return;
+    }
+    this->ota_backend_ = backend.release();
+  }
+
+  auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+  if (!backend) {
+    return;
+  }
+
+  // Process data
+  if (len > 0) {
+    if (backend->write(data, len) != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA write failed");
+      backend->abort();
+      delete backend;
+      this->ota_backend_ = nullptr;
+      return;
+    }
+    this->ota_read_length_ += len;
+    this->report_ota_progress_(request);
+  }
+
+  // Finalize
+  if (final) {
+    this->ota_success_ = (backend->end() == ota::OTA_RESPONSE_OK);
+    if (this->ota_success_) {
+      this->schedule_ota_reboot_();
+    } else {
+      ESP_LOGE(TAG, "OTA end failed");
+    }
+    delete backend;
+    this->ota_backend_ = nullptr;
+  }
+#endif  // USE_ESP_IDF
 }
+
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
-#ifdef USE_ARDUINO
   AsyncWebServerResponse *response;
+#ifdef USE_ARDUINO
   if (!Update.hasError()) {
     response = request->beginResponse(200, "text/plain", "Update Successful!");
   } else {
@@ -105,16 +171,21 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
     Update.printError(ss);
     response = request->beginResponse(200, "text/plain", ss);
   }
+#endif  // USE_ARDUINO
+#ifdef USE_ESP_IDF
+  // Send response based on the OTA result
+  request->send(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
+  return;
+#endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);
-#endif
 }
 
 void WebServerBase::add_ota_handler() {
-#ifdef USE_ARDUINO
   this->add_handler(new OTARequestHandler(this));  // NOLINT
-#endif
 }
+#endif
+
 float WebServerBase::get_setup_priority() const {
   // Before WiFi (captive portal)
   return setup_priority::WIFI + 2.0f;
