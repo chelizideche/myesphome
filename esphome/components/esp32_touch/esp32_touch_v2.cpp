@@ -331,8 +331,8 @@ void ESP32TouchComponent::loop() {
 
         if (still_touched) {
           // Still touched! Timer was reset in update_touch_state_
-          ESP_LOGD(TAG, "Touch Pad '%s' still touched after %" PRIu32 "ms timeout, resetting timer",
-                   child->get_name().c_str(), this->release_timeout_ms_);
+          ESP_LOGVV(TAG, "Touch Pad '%s' still touched after %" PRIu32 "ms timeout, resetting timer",
+                    child->get_name().c_str(), this->release_timeout_ms_);
         } else {
           // Actually released - already handled by check_and_update_touch_state_
           pads_off++;
