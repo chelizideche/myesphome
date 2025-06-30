@@ -71,24 +71,18 @@ void MultipartReader::process_header_(const char *value, size_t length) {
 
 int MultipartReader::on_header_field(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
-  // Store the header field name
   reader->current_header_field_.assign(at, length);
   return 0;
 }
 
 int MultipartReader::on_header_value(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
-  // Process the header immediately with the value
   reader->process_header_(at, length);
-
   return 0;
 }
 
 int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
   // Only process file uploads
   if (reader->has_file() && reader->data_callback_) {
     // IMPORTANT: The 'at' pointer points to data within the parser's input buffer.
@@ -97,22 +91,17 @@ int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size
     // later use as the buffer will be overwritten.
     reader->data_callback_(reinterpret_cast<const uint8_t *>(at), length);
   }
-
   return 0;
 }
 
 int MultipartReader::on_part_data_end(multipart_parser *parser) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
   ESP_LOGV(TAG, "Part data end");
-
   if (reader->part_complete_callback_) {
     reader->part_complete_callback_();
   }
-
   // Clear part info for next part
   reader->current_part_ = Part{};
-
   return 0;
 }
 
