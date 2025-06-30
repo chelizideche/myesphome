@@ -135,6 +135,9 @@ void ESP32TouchComponent::setup() {
   // Start FSM
   touch_pad_fsm_start();
 
+  // Calculate release timeout based on sleep cycle
+  this->calculate_release_timeout_();
+
   // Initialize tracking arrays
   for (size_t i = 0; i < TOUCH_PAD_MAX; i++) {
     this->last_touch_time_[i] = 0;
@@ -279,15 +282,7 @@ void ESP32TouchComponent::loop() {
   //    This prevents false releases if we missed interrupts
 
   // In setup mode, periodically log all pad values
-  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
-    for (auto *child : this->children_) {
-      // Read the value being used for touch detection
-      uint32_t value = this->read_touch_value(child->get_touch_pad());
-
-      ESP_LOGD(TAG, "Touch Pad '%s' (T%d): %d", child->get_name().c_str(), child->get_touch_pad(), value);
-    }
-    this->setup_mode_last_log_print_ = now;
-  }
+  this->process_setup_mode_logging_(now);
 
   // Process any queued touch events from interrupts
   TouchPadEventV2 event;
@@ -320,25 +315,20 @@ void ESP32TouchComponent::loop() {
   }
 
   // Check for released pads periodically (like v1)
-  static uint32_t last_release_check = 0;
-  if (now - last_release_check < this->release_check_interval_ms_) {
+  if (!this->should_check_for_releases_(now)) {
     return;
   }
-  last_release_check = now;
 
   size_t pads_off = 0;
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
 
     // Handle initial state publication after startup
+    this->publish_initial_state_if_needed_(child, now);
+
     if (!this->initial_state_published_[pad]) {
-      // Check if enough time has passed since startup
-      if (now > this->release_timeout_ms_) {
-        child->publish_initial_state(false);
-        this->initial_state_published_[pad] = true;
-        ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
-        pads_off++;
-      }
+      // Not yet published, don't count as off
+      continue;
     } else if (child->last_state_) {
       // Pad is currently in touched state - check for release timeout
       // Using subtraction handles 32-bit rollover correctly
@@ -369,9 +359,7 @@ void ESP32TouchComponent::loop() {
 
   // Disable the loop when all pads are off and not in setup mode (like v1)
   // We need to keep checking for timeouts, so only disable when all pads are confirmed off
-  if (pads_off == this->children_.size() && !this->setup_mode_) {
-    this->disable_loop();
-  }
+  this->check_and_disable_loop_if_all_released_(pads_off);
 }
 
 void ESP32TouchComponent::on_shutdown() {

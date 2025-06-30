@@ -10,8 +10,6 @@
 
 // Include HAL for ISR-safe touch reading
 #include "hal/touch_sensor_ll.h"
-// Include for RTC clock frequency
-#include "soc/rtc.h"
 
 namespace esphome {
 namespace esp32_touch {
@@ -59,20 +57,7 @@ void ESP32TouchComponent::setup() {
   }
 
   // Calculate release timeout based on sleep cycle
-  // Design note: ESP32 v1 hardware limitation - interrupts only fire on touch (not release)
-  // We must use timeout-based detection for release events
-  // Formula: 3 sleep cycles converted to ms, with MINIMUM_RELEASE_TIME_MS minimum
-  // The division by 2 accounts for the fact that sleep_cycle is in half-cycles
-  uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
-  this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
-  if (this->release_timeout_ms_ < MINIMUM_RELEASE_TIME_MS) {
-    this->release_timeout_ms_ = MINIMUM_RELEASE_TIME_MS;
-  }
-  // Check for releases at 1/4 the timeout interval
-  // Since the ESP32 v1 hardware doesn't generate release interrupts, we must poll
-  // for releases in the main loop. Checking at 1/4 the timeout interval provides
-  // a good balance between responsiveness and efficiency.
-  this->release_check_interval_ms_ = this->release_timeout_ms_ / 4;
+  this->calculate_release_timeout_();
 
   // Enable touch pad interrupt
   touch_pad_intr_enable();
@@ -98,13 +83,7 @@ void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
   // Print debug info for all pads in setup mode
-  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
-    for (auto *child : this->children_) {
-      ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
-               (uint32_t) child->get_touch_pad(), child->value_);
-    }
-    this->setup_mode_last_log_print_ = now;
-  }
+  this->process_setup_mode_logging_(now);
 
   // Process any queued touch events from interrupts
   // Note: Events are only sent by ISR for pads that were measured in that cycle (value != 0)
@@ -142,25 +121,20 @@ void ESP32TouchComponent::loop() {
   }
 
   // Check for released pads periodically
-  static uint32_t last_release_check = 0;
-  if (now - last_release_check < this->release_check_interval_ms_) {
+  if (!this->should_check_for_releases_(now)) {
     return;
   }
-  last_release_check = now;
 
   size_t pads_off = 0;
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
 
     // Handle initial state publication after startup
+    this->publish_initial_state_if_needed_(child, now);
+
     if (!this->initial_state_published_[pad]) {
-      // Check if enough time has passed since startup
-      if (now > this->release_timeout_ms_) {
-        child->publish_initial_state(false);
-        this->initial_state_published_[pad] = true;
-        ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
-        pads_off++;
-      }
+      // Not yet published, don't count as off
+      continue;
     } else if (child->last_state_) {
       // Pad is currently in touched state - check for release timeout
       // Using subtraction handles 32-bit rollover correctly
@@ -186,9 +160,7 @@ void ESP32TouchComponent::loop() {
   // - v1 only generates interrupts on touch events (not releases)
   // - We must poll for release timeouts in the main loop
   // - We can only safely disable when no pads need timeout monitoring
-  if (pads_off == this->children_.size() && !this->setup_mode_) {
-    this->disable_loop();
-  }
+  this->check_and_disable_loop_if_all_released_(pads_off);
 }
 
 void ESP32TouchComponent::on_shutdown() {

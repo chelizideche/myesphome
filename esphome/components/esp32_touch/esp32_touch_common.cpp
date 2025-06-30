@@ -4,6 +4,8 @@
 #include "esphome/core/log.h"
 #include <cinttypes>
 
+#include "soc/rtc.h"
+
 namespace esphome {
 namespace esp32_touch {
 
@@ -83,6 +85,72 @@ void ESP32TouchComponent::configure_wakeup_pads_() {
     // If no pad is configured for wakeup, deinitialize touch pad
     touch_pad_deinit();
   }
+}
+
+void ESP32TouchComponent::process_setup_mode_logging_(uint32_t now) {
+  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
+    for (auto *child : this->children_) {
+#ifdef USE_ESP32_VARIANT_ESP32
+      ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
+               (uint32_t) child->get_touch_pad(), child->value_);
+#else
+      // Read the value being used for touch detection
+      uint32_t value = this->read_touch_value(child->get_touch_pad());
+      ESP_LOGD(TAG, "Touch Pad '%s' (T%d): %d", child->get_name().c_str(), child->get_touch_pad(), value);
+#endif
+    }
+    this->setup_mode_last_log_print_ = now;
+  }
+}
+
+bool ESP32TouchComponent::should_check_for_releases_(uint32_t now) {
+  if (now - this->last_release_check_ < this->release_check_interval_ms_) {
+    return false;
+  }
+  this->last_release_check_ = now;
+  return true;
+}
+
+void ESP32TouchComponent::publish_initial_state_if_needed_(ESP32TouchBinarySensor *child, uint32_t now) {
+  touch_pad_t pad = child->get_touch_pad();
+  if (!this->initial_state_published_[pad]) {
+    // Check if enough time has passed since startup
+    if (now > this->release_timeout_ms_) {
+      child->publish_initial_state(false);
+      this->initial_state_published_[pad] = true;
+      ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
+    }
+  }
+}
+
+void ESP32TouchComponent::check_and_disable_loop_if_all_released_(size_t pads_off) {
+  // Disable the loop to save CPU cycles when all pads are off and not in setup mode.
+  if (pads_off == this->children_.size() && !this->setup_mode_) {
+    this->disable_loop();
+  }
+}
+
+void ESP32TouchComponent::calculate_release_timeout_() {
+  // Calculate release timeout based on sleep cycle
+  // Design note: Hardware limitation - interrupts only fire reliably on touch (not release)
+  // We must use timeout-based detection for release events
+  // Formula: 3 sleep cycles converted to ms, with MINIMUM_RELEASE_TIME_MS minimum
+  // Per ESP-IDF docs: t_sleep = sleep_cycle / SOC_CLK_RC_SLOW_FREQ_APPROX
+
+  uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
+
+  // Calculate timeout as 3 sleep cycles
+  this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / rtc_freq;
+
+  if (this->release_timeout_ms_ < MINIMUM_RELEASE_TIME_MS) {
+    this->release_timeout_ms_ = MINIMUM_RELEASE_TIME_MS;
+  }
+
+  // Check for releases at 1/4 the timeout interval
+  // Since hardware doesn't generate reliable release interrupts, we must poll
+  // for releases in the main loop. Checking at 1/4 the timeout interval provides
+  // a good balance between responsiveness and efficiency.
+  this->release_check_interval_ms_ = this->release_timeout_ms_ / 4;
 }
 
 }  // namespace esp32_touch

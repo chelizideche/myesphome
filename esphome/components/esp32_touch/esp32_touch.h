@@ -79,10 +79,21 @@ class ESP32TouchComponent : public Component {
   void cleanup_touch_queue_();
   void configure_wakeup_pads_();
 
+  // Helper methods for loop() logic
+  void process_setup_mode_logging_(uint32_t now);
+  bool should_check_for_releases_(uint32_t now);
+  void publish_initial_state_if_needed_(ESP32TouchBinarySensor *child, uint32_t now);
+  void check_and_disable_loop_if_all_released_(size_t pads_off);
+  void calculate_release_timeout_();
+
   // Common members
   std::vector<ESP32TouchBinarySensor *> children_;
   bool setup_mode_{false};
   uint32_t setup_mode_last_log_print_{0};
+  uint32_t last_release_check_{0};
+  uint32_t release_timeout_ms_{1500};
+  uint32_t release_check_interval_ms_{50};
+  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
 
   // Common configuration parameters
   uint16_t sleep_cycle_{4095};
@@ -117,9 +128,6 @@ class ESP32TouchComponent : public Component {
   // 4. Queue operations provide implicit memory barriers
   // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
-  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
-  uint32_t release_timeout_ms_{1500};
-  uint32_t release_check_interval_ms_{50};
   uint32_t iir_filter_{0};
 
   bool iir_filter_enabled_() const { return this->iir_filter_ > 0; }
@@ -129,10 +137,6 @@ class ESP32TouchComponent : public Component {
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
 
-  // Timeout-based release detection (like v1)
-  uint32_t release_timeout_ms_{1500};
-  uint32_t release_check_interval_ms_{50};
-
  private:
   // Touch event structure for ESP32 v2 (S2/S3)
   // Contains touch pad and interrupt mask for queue communication
@@ -141,9 +145,8 @@ class ESP32TouchComponent : public Component {
     uint32_t intr_mask;
   };
 
-  // Track last touch time and initial state for timeout-based release detection
+  // Track last touch time for timeout-based release detection
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
-  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
 
  protected:
   // Filter configuration
