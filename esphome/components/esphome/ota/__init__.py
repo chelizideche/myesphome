@@ -1,7 +1,8 @@
 import logging
 
 import esphome.codegen as cg
-from esphome.components.ota import BASE_OTA_SCHEMA, OTAComponent, ota_to_code
+from esphome.components.ota import BASE_OTA_SCHEMA, ota_to_code
+from esphome.components.ota_base import OTAComponent
 from esphome.config_helpers import merge_config
 import esphome.config_validation as cv
 from esphome.const import (
