@@ -154,11 +154,7 @@ esp_err_t AsyncWebServer::request_handler_(AsyncWebServerRequest *request) const
     this->on_not_found_(request);
     return ESP_OK;
   }
-  // No handler found - send 404 response
-  // This prevents "uri handler execution failed" warnings
-  ESP_LOGD(TAG, "No handler found for URL: %s (method: %d)", request->url().c_str(), request->method());
-  request->send(404, "text/plain", "Not Found");
-  return ESP_OK;
+  return ESP_ERR_NOT_FOUND;
 }
 
 AsyncWebServerRequest::~AsyncWebServerRequest() {
