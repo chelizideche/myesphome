@@ -316,10 +316,7 @@ void ESP32TouchComponent::loop() {
     // Handle initial state publication after startup
     this->publish_initial_state_if_needed_(child, now);
 
-    if (!this->initial_state_published_[pad]) {
-      // Not yet published, don't count as off
-      continue;
-    } else if (child->last_state_) {
+    if (child->last_state_) {
       // Pad is currently in touched state - check for release timeout
       // Using subtraction handles 32-bit rollover correctly
       uint32_t time_diff = now - this->last_touch_time_[pad];
