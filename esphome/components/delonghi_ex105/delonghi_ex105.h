@@ -57,7 +57,11 @@ class DelonghiClimate : public climate_ir::ClimateIR {
   float last_target_temperature_{20.0f};
   int current_fan_index_{0};
   int current_swing_index_{0};
+  int steps_left_{0};
+  uint16_t step_command_{0};
+  std::function<void()> step_complete_callback_;
 
+  void do_step_(); 
   void control(const climate::ClimateCall &call) override;
   void transmit_state() override;
   void setup() override;

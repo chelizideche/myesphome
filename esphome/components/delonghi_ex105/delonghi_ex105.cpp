@@ -39,6 +39,22 @@ static int swing_mode_to_index(climate::ClimateSwingMode s) {
   }
 }
 
+void DelonghiClimate::do_step_() {
+  if (this->steps_left_ <= 0) {
+    if (this->step_complete_callback_) {
+      this->step_complete_callback_();
+      this->step_complete_callback_ = nullptr;
+    }
+    return;
+  }
+
+  this->pending_command_ = this->step_command_;
+  this->transmit_state();
+
+  this->steps_left_--;
+  this->set_timeout("delonghi_step", 200, [this]() { this->do_step_(); });
+}
+
 
 void DelonghiClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value()) {
@@ -65,17 +81,17 @@ void DelonghiClimate::control(const climate::ClimateCall &call) {
     return;
   }
   int delta = (target_i - this->current_mode_index_ + 3) % 3;
-  for (int i = 0; i < delta; ++i) {
-    this->pending_command_ = DELONGHI_MODE;
-    this->transmit_state();
-    delay(200);
-  }
+  this->steps_left_          = delta;
+  this->step_command_        = DELONGHI_MODE;
+  this->step_complete_callback_ = [this, target_i, new_mode]() {
   this->current_mode_index_ = target_i;
   this->mode   = new_mode;
   this->action = (new_mode == climate::CLIMATE_MODE_COOL
                     ? climate::CLIMATE_ACTION_COOLING
                     : climate::CLIMATE_ACTION_IDLE);
-  this->publish_state();
+    this->publish_state();
+  };
+  this->do_step_();
   return;
 }
 else if (call.get_target_temperature().has_value()) {
