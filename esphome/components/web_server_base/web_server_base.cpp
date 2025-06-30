@@ -162,7 +162,6 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 }
 
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
-  ESP_LOGV(TAG, "OTA handleRequest called");
   AsyncWebServerResponse *response;
 #ifdef USE_ARDUINO
   if (!Update.hasError()) {
@@ -182,9 +181,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   response->addHeader("Connection", "close");
   request->send(response);
 }
-#endif  // USE_WEBSERVER_OTA
 
-#ifdef USE_WEBSERVER_OTA
 void WebServerBase::add_ota_handler() {
   this->add_handler(new OTARequestHandler(this));  // NOLINT
 }
