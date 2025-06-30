@@ -51,7 +51,7 @@ void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
 
 void OTARequestHandler::schedule_ota_reboot_() {
   ESP_LOGI(TAG, "OTA update successful!");
-  this->parent_->set_timeout(100, [this]() {
+  this->parent_->set_timeout(100, []() {
     ESP_LOGI(TAG, "Performing OTA reboot now");
     App.safe_reboot();
   });
