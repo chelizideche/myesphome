@@ -102,11 +102,13 @@ class ESP32TouchComponent : public Component {
   touch_high_volt_t high_voltage_reference_{TOUCH_HVOLT_2V7};
   touch_volt_atten_t voltage_attenuation_{TOUCH_HVOLT_ATTEN_0V};
 
+  // Common constants
+  static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
+
   // ==================== PLATFORM SPECIFIC ====================
 
 #ifdef USE_ESP32_VARIANT_ESP32
   // ESP32 v1 specific
-  static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
 
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
