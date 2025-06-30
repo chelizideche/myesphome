@@ -187,8 +187,17 @@ def entity_duplicate_validator(platform: str) -> Callable[[ConfigType], ConfigTy
         # Get the entity name
         entity_name = config[CONF_NAME]
 
-        # For duplicate detection, just use the sanitized name
-        name_key = sanitize(snake_case(entity_name))
+        # Get device name if entity is on a sub-device
+        device_name = None
+        if CONF_DEVICE_ID in config:
+            device_id_obj = config[CONF_DEVICE_ID]
+            device_name = device_id_obj.id
+
+        # Calculate what object_id will actually be used
+        # This handles empty names correctly by using device/friendly names
+        name_key = get_base_entity_object_id(
+            entity_name, CORE.friendly_name, device_name
+        )
 
         # Check for duplicates
         unique_key = (platform, name_key)

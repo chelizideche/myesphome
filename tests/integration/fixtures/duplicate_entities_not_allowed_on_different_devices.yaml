@@ -133,7 +133,35 @@ button:
     name: "Reset Main"
     on_press: []  # Main device
 
-# Scenario 6: Special characters in names - now with unique names
+# Scenario 6: Empty names (should use device names)
+select:
+  - platform: template
+    name: ""
+    device_id: controller_1
+    options:
+      - "Option 1"
+      - "Option 2"
+    lambda: return {"Option 1"};
+    set_action: []
+
+  - platform: template
+    name: ""
+    device_id: controller_2
+    options:
+      - "Option 1"
+      - "Option 2"
+    lambda: return {"Option 1"};
+    set_action: []
+
+  - platform: template
+    name: ""  # Main device
+    options:
+      - "Option 1"
+      - "Option 2"
+    lambda: return {"Option 1"};
+    set_action: []
+
+# Scenario 7: Special characters in names - now with unique names
 number:
   - platform: template
     name: "Temperature Setpoint! Controller 1"

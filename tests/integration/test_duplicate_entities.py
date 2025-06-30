@@ -52,6 +52,7 @@ async def test_duplicate_entities_not_allowed_on_different_devices(
         switches = [e for e in all_entities if e.__class__.__name__ == "SwitchInfo"]
         buttons = [e for e in all_entities if e.__class__.__name__ == "ButtonInfo"]
         numbers = [e for e in all_entities if e.__class__.__name__ == "NumberInfo"]
+        selects = [e for e in all_entities if e.__class__.__name__ == "SelectInfo"]
 
         # Scenario 1: Check that temperature sensors have unique names per device
         temp_sensors = [s for s in sensors if "Temperature" in s.name]
@@ -144,7 +145,28 @@ async def test_duplicate_entities_not_allowed_on_different_devices(
             f"Reset buttons should have unique names, got {reset_names}"
         )
 
-        # Scenario 7: Check special characters in number names - now unique
+        # Scenario 7: Check empty name selects (should use device names)
+        empty_selects = [s for s in selects if s.name == ""]
+        assert len(empty_selects) == 3, (
+            f"Expected exactly 3 empty name selects, got {len(empty_selects)}"
+        )
+
+        # Group by device
+        c1_selects = [s for s in empty_selects if s.device_id == controller_1.device_id]
+        c2_selects = [s for s in empty_selects if s.device_id == controller_2.device_id]
+
+        # For main device, device_id is 0
+        main_selects = [s for s in empty_selects if s.device_id == 0]
+
+        # Check object IDs for empty name entities - they should use device names
+        assert len(c1_selects) == 1 and c1_selects[0].object_id == "controller_1"
+        assert len(c2_selects) == 1 and c2_selects[0].object_id == "controller_2"
+        assert (
+            len(main_selects) == 1
+            and main_selects[0].object_id == "duplicate-entities-test"
+        )
+
+        # Scenario 8: Check special characters in number names - now unique
         temp_numbers = [n for n in numbers if "Temperature Setpoint!" in n.name]
         assert len(temp_numbers) == 2, (
             f"Expected exactly 2 temperature setpoint numbers, got {len(temp_numbers)}"
@@ -170,6 +192,7 @@ async def test_duplicate_entities_not_allowed_on_different_devices(
             + len(switches)
             + len(buttons)
             + len(numbers)
+            + len(selects)
         )
 
         def on_state(state) -> None:

@@ -555,6 +555,17 @@ def test_entity_duplicate_validator_with_devices() -> None:
     assert validated3 == config3
     assert ("sensor", "humidity") in CORE.unique_ids
 
+    # Empty names should use device names and be allowed
+    config4 = {CONF_NAME: "", CONF_DEVICE_ID: device1}
+    validated4 = validator(config4)
+    assert validated4 == config4
+    assert ("sensor", "device1") in CORE.unique_ids
+
+    config5 = {CONF_NAME: "", CONF_DEVICE_ID: device2}
+    validated5 = validator(config5)
+    assert validated5 == config5
+    assert ("sensor", "device2") in CORE.unique_ids
+
 
 def test_duplicate_entity_yaml_validation(
     yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
