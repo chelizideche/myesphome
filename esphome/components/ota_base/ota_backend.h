@@ -69,29 +69,28 @@ class OTAComponent : public Component {
   }
 
  protected:
-  /** Thread-safe callback manager that automatically defers to main loop.
+  /** Extended callback manager with deferred call support.
    *
-   * This ensures all OTA callbacks are executed in the main loop task,
-   * making them safe to call from any context (including web_server's OTA task).
-   * Existing code doesn't need changes - callbacks are automatically deferred.
+   * This adds a call_deferred() method for thread-safe execution from other tasks.
    */
-  class DeferredCallbackManager : public CallbackManager<void(OTAState, float, uint8_t)> {
+  class StateCallbackManager : public CallbackManager<void(OTAState, float, uint8_t)> {
    public:
-    DeferredCallbackManager(OTAComponent *component) : component_(component) {}
+    StateCallbackManager(OTAComponent *component) : component_(component) {}
 
-    /// Override call to automatically defer to main loop
-    void call(OTAState state, float progress, uint8_t error) {
-      // Always defer to main loop for thread safety
-      component_->defer([this, state, progress, error]() {
-        CallbackManager<void(OTAState, float, uint8_t)>::call(state, progress, error);
-      });
+    /** Call callbacks with deferral to main loop (for thread safety).
+     *
+     * This should be used by OTA implementations that run in separate tasks
+     * (like web_server OTA) to ensure callbacks execute in the main loop.
+     */
+    void call_deferred(OTAState state, float progress, uint8_t error) {
+      component_->defer([this, state, progress, error]() { this->call(state, progress, error); });
     }
 
    private:
     OTAComponent *component_;
   };
 
-  DeferredCallbackManager state_callback_{this};
+  StateCallbackManager state_callback_{this};
 #endif
 };
 
@@ -114,10 +113,10 @@ class OTAGlobalCallback {
 OTAGlobalCallback *get_global_ota_callback();
 void register_ota_platform(OTAComponent *ota_caller);
 
-// Thread-safe callback execution is automatically provided by DeferredCallbackManager
-// which overrides call() to use Component::defer(). This ensures all OTA callbacks
-// run in the main loop task, making them safe to call from any context including
-// web_server's separate OTA task. No code changes needed.
+// OTA implementations should use:
+// - state_callback_.call() when already in main loop (e.g., esphome OTA)
+// - state_callback_.call_deferred() when in separate task (e.g., web_server OTA)
+// This ensures proper callback execution in all contexts.
 #endif
 
 }  // namespace ota_base
