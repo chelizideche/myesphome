@@ -16,7 +16,8 @@
 #include "web_server_idf.h"
 
 #ifdef USE_WEBSERVER_OTA
-#include "multipart.h"
+#include <multipart_parser.h>
+#include "multipart.h"  // For parse_multipart_boundary and other utils
 #endif
 
 #ifdef USE_WEBSERVER
