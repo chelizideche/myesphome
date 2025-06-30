@@ -303,6 +303,15 @@ void ESP32TouchComponent::loop() {
       break;
     }
   }
+  if (!this->setup_mode_) {
+    // Disable the loop to save CPU cycles when not in setup mode.
+    // The loop will be re-enabled by the ISR when any touch event occurs.
+    // Unlike v1, we don't need to check if all pads are off because:
+    // - v2 hardware generates interrupts for both touch AND release events
+    // - We don't need to poll for timeouts or releases
+    // - All state changes are interrupt-driven
+    this->disable_loop();
+  }
 }
 
 void ESP32TouchComponent::on_shutdown() {
@@ -327,6 +336,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
 
   // Send event to queue for processing in main loop
   xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
+  component->enable_loop_soon_any_context();
 
   if (x_higher_priority_task_woken) {
     portYIELD_FROM_ISR();

@@ -148,6 +148,7 @@ void ESP32TouchComponent::loop() {
   }
   last_release_check = now;
 
+  size_t pads_off = 0;
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
 
@@ -158,6 +159,7 @@ void ESP32TouchComponent::loop() {
         child->publish_initial_state(false);
         this->initial_state_published_[pad] = true;
         ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
+        pads_off++;
       }
     } else if (child->last_state_) {
       // Pad is currently in touched state - check for release timeout
@@ -170,8 +172,22 @@ void ESP32TouchComponent::loop() {
         child->last_state_ = false;
         child->publish_state(false);
         ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (timeout)", child->get_name().c_str());
+        pads_off++;
       }
+    } else {
+      // Pad is already off
+      pads_off++;
     }
+  }
+
+  // Disable the loop to save CPU cycles when all pads are off and not in setup mode.
+  // The loop will be re-enabled by the ISR when any touch pad is touched.
+  // v1 hardware limitations require us to check all pads are off because:
+  // - v1 only generates interrupts on touch events (not releases)
+  // - We must poll for release timeouts in the main loop
+  // - We can only safely disable when no pads need timeout monitoring
+  if (pads_off == this->children_.size() && !this->setup_mode_) {
+    this->disable_loop();
   }
 }
 
@@ -242,6 +258,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     // Send to queue from ISR - non-blocking, drops if queue full
     BaseType_t x_higher_priority_task_woken = pdFALSE;
     xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
+    component->enable_loop_soon_any_context();
     if (x_higher_priority_task_woken) {
       portYIELD_FROM_ISR();
     }
