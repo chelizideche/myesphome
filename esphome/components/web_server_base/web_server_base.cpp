@@ -23,6 +23,18 @@ namespace web_server_base {
 
 static const char *const TAG = "web_server_base";
 
+void WebServerBase::add_handler(AsyncWebHandler *handler) {
+  // remove all handlers
+
+  if (!credentials_.username.empty()) {
+    handler = new internal::AuthMiddlewareHandler(handler, &credentials_);
+  }
+  this->handlers_.push_back(handler);
+  if (this->server_ != nullptr) {
+    this->server_->addHandler(handler);
+  }
+}
+
 #ifdef USE_WEBSERVER_OTA
 void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
   const uint32_t now = millis();
@@ -49,21 +61,7 @@ void OTARequestHandler::ota_init_(const char *filename) {
   ESP_LOGI(TAG, "OTA Update Start: %s", filename);
   this->ota_read_length_ = 0;
 }
-#endif
 
-void WebServerBase::add_handler(AsyncWebHandler *handler) {
-  // remove all handlers
-
-  if (!credentials_.username.empty()) {
-    handler = new internal::AuthMiddlewareHandler(handler, &credentials_);
-  }
-  this->handlers_.push_back(handler);
-  if (this->server_ != nullptr) {
-    this->server_->addHandler(handler);
-  }
-}
-
-#ifdef USE_WEBSERVER_OTA
 void report_ota_error() {
 #ifdef USE_ARDUINO
   StreamString ss;
@@ -71,6 +69,7 @@ void report_ota_error() {
   ESP_LOGW(TAG, "OTA Update failed! Error: %s", ss.c_str());
 #endif
 }
+
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
                                      uint8_t *data, size_t len, bool final) {
 #ifdef USE_ARDUINO
