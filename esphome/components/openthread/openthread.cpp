@@ -194,17 +194,15 @@ void OpenThreadSrpComponent::set_mdns(esphome::mdns::MDNSComponent *mdns) { this
 bool OpenThreadComponent::teardown() {
   if (!this->teardown_started_) {
     this->teardown_started_ = true;
-    if (!this->factory_reset_ready) {
-      ESP_LOGD(TAG, "Clear Srp");
-      auto lock = InstanceLock::try_acquire(100);
-      if (!lock) {
-        ESP_LOGW(TAG, "Failed to acquire OpenThread lock during teardown, leaking memory");
-        return true;
-      }
-      otInstance *instance = lock->get_instance();
-      otSrpClientClearHostAndServices(instance);
-      otSrpClientBuffersFreeAllServices(instance);
+    ESP_LOGD(TAG, "Clear Srp");
+    auto lock = InstanceLock::try_acquire(100);
+    if (!lock) {
+      ESP_LOGW(TAG, "Failed to acquire OpenThread lock during teardown, leaking memory");
+      return true;
     }
+    otInstance *instance = lock->get_instance();
+    otSrpClientClearHostAndServices(instance);
+    otSrpClientBuffersFreeAllServices(instance);
     global_openthread_component = nullptr;
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
     ESP_LOGD(TAG, "Exit main loop ");
