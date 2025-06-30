@@ -174,8 +174,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #endif  // USE_ARDUINO
 #ifdef USE_ESP_IDF
   // Send response based on the OTA result
-  request->send(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
-  return;
+  response = request->beginResponse(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);
