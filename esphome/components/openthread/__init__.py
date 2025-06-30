@@ -36,7 +36,6 @@ DEPENDENCIES = ["esp32"]
 CONF_DEVICE_TYPES = {
     "FTD": "FTD",
     "MTD": "MTD",
-#    "RADIO": "RADIO",
 }
 
 def set_sdkconfig_options(config):
@@ -87,12 +86,14 @@ def set_sdkconfig_options(config):
 
     # TODO: Add suport for sleepy end devices
     if dev_type := config.get(CONF_DEVICE_TYPE):
-        if dev_type == "FTD":
-            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_FTD", True)  # Full Thread Device
-        elif dev_type == "MTD":
-            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_MTD", True)  # Minimum Thread Device
-        elif dev_type == "RADIO":
-            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_RADIO", True)  # Radio Only Device
+        if dev_type == "MTD":
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_MTD", True
+            )  # Minimum Thread Device
+        else:
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_FTD", True
+            )  # Full Thread Device
     else:
         add_idf_sdkconfig_option("CONFIG_OPENTHREAD_FTD", True)  # Full Thread Device
 
@@ -120,8 +121,8 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_SRP_ID): cv.declare_id(OpenThreadSrpComponent),
             cv.GenerateID(CONF_MDNS_ID): cv.use_id(MDNSComponent),
             cv.Optional(CONF_DEVICE_TYPE, default="FTD"): cv.one_of(
-                        *CONF_DEVICE_TYPES, upper=True
-                    ),
+                *CONF_DEVICE_TYPES, upper=True
+            ),
             cv.Optional(CONF_FORCE_DATASET): cv.boolean,
             cv.Optional(CONF_TLV): cv.string_strict,
         }
