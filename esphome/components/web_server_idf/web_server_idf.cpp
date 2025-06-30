@@ -579,7 +579,6 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
   // Create reader on heap to reduce stack usage
   auto reader = std::make_unique<MultipartReader>("--" + std::string(boundary_start, boundary_len));
 
-  // Find handler - keep request on stack since constructor is protected
   AsyncWebServerRequest req(r);
   AsyncWebHandler *handler = nullptr;
   for (auto *h : this->handlers_) {
