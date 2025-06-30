@@ -581,13 +581,14 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     return ESP_FAIL;
   }
 
-  MultipartReader reader("--" + std::string(boundary_start, boundary_len));
+  // Create reader on heap to reduce stack usage
+  auto reader = std::make_unique<MultipartReader>("--" + std::string(boundary_start, boundary_len));
 
-  // Find handler
-  AsyncWebServerRequest req(r);
+  // Find handler - create request on heap to reduce stack usage
+  auto req = std::make_unique<AsyncWebServerRequest>(r);
   AsyncWebHandler *handler = nullptr;
   for (auto *h : this->handlers_) {
-    if (h->canHandle(&req)) {
+    if (h->canHandle(req.get())) {
       handler = h;
       break;
     }
@@ -604,23 +605,23 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
   size_t index = 0;
 
   // Configure callbacks
-  reader.set_data_callback([&](const uint8_t *data, size_t len) {
-    if (!reader.has_file() || !len)
+  reader->set_data_callback([&](const uint8_t *data, size_t len) {
+    if (!reader->has_file() || !len)
       return;
 
     if (filename.empty()) {
-      filename = reader.get_current_part().filename;
+      filename = reader->get_current_part().filename;
       ESP_LOGV(TAG, "Processing file: '%s'", filename.c_str());
-      handler->handleUpload(&req, filename, 0, nullptr, 0, false);  // Start
+      handler->handleUpload(req.get(), filename, 0, nullptr, 0, false);  // Start
     }
 
-    handler->handleUpload(&req, filename, index, const_cast<uint8_t *>(data), len, false);
+    handler->handleUpload(req.get(), filename, index, const_cast<uint8_t *>(data), len, false);
     index += len;
   });
 
-  reader.set_part_complete_callback([&]() {
+  reader->set_part_complete_callback([&]() {
     if (index > 0) {
-      handler->handleUpload(&req, filename, index, nullptr, 0, true);  // End
+      handler->handleUpload(req.get(), filename, index, nullptr, 0, true);  // End
       filename.clear();
       index = 0;
     }
@@ -639,7 +640,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
       return recv_len == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
     }
 
-    if (reader.parse(buffer.get(), recv_len) != static_cast<size_t>(recv_len)) {
+    if (reader->parse(buffer.get(), recv_len) != static_cast<size_t>(recv_len)) {
       ESP_LOGW(TAG, "Multipart parser error");
       httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
       return ESP_FAIL;
@@ -654,7 +655,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     }
   }
 
-  handler->handleRequest(&req);
+  handler->handleRequest(req.get());
   return ESP_OK;
 }
 #endif  // USE_WEBSERVER_OTA
