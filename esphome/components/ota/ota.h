@@ -1,51 +1,40 @@
 #pragma once
 
-#include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/components/ota_base/ota_backend.h"
-
-#ifdef USE_OTA_STATE_CALLBACK
-#include "esphome/core/automation.h"
-#endif
 
 namespace esphome {
 namespace ota {
 
 // Import types from ota_base namespace for backward compatibility
 using ota_base::OTABackend;
+using ota_base::OTAComponent;
 using ota_base::OTAResponseTypes;
 using ota_base::OTAState;
 
-class OTAComponent : public Component {
-#ifdef USE_OTA_STATE_CALLBACK
- public:
-  void add_on_state_callback(std::function<void(ota_base::OTAState, float, uint8_t)> &&callback) {
-    this->state_callback_.add(std::move(callback));
-  }
-
- protected:
-  CallbackManager<void(ota_base::OTAState, float, uint8_t)> state_callback_{};
-#endif
-};
+// Re-export specific enum values for backward compatibility
+// (in case external components use ota::OTA_STARTED, etc.)
+static constexpr auto OTA_COMPLETED = ota_base::OTA_COMPLETED;
+static constexpr auto OTA_STARTED = ota_base::OTA_STARTED;
+static constexpr auto OTA_IN_PROGRESS = ota_base::OTA_IN_PROGRESS;
+static constexpr auto OTA_ABORT = ota_base::OTA_ABORT;
+static constexpr auto OTA_ERROR = ota_base::OTA_ERROR;
 
 #ifdef USE_OTA_STATE_CALLBACK
-class OTAGlobalCallback {
- public:
-  void register_ota(OTAComponent *ota_caller) {
-    ota_caller->add_on_state_callback([this, ota_caller](ota_base::OTAState state, float progress, uint8_t error) {
-      this->state_callback_.call(state, progress, error, ota_caller);
-    });
-  }
-  void add_on_state_callback(std::function<void(ota_base::OTAState, float, uint8_t, OTAComponent *)> &&callback) {
-    this->state_callback_.add(std::move(callback));
-  }
+using ota_base::OTAGlobalCallback;
 
- protected:
-  CallbackManager<void(ota_base::OTAState, float, uint8_t, OTAComponent *)> state_callback_{};
-};
+// Deprecated: Use ota_base::get_global_ota_callback() instead
+// Will be removed after 2025-12-30 (6 months from 2025-06-30)
+[[deprecated("Use ota_base::get_global_ota_callback() instead")]] inline OTAGlobalCallback *get_global_ota_callback() {
+  return ota_base::get_global_ota_callback();
+}
 
-OTAGlobalCallback *get_global_ota_callback();
-void register_ota_platform(OTAComponent *ota_caller);
+// Deprecated: Use ota_base::register_ota_platform() instead
+// Will be removed after 2025-12-30 (6 months from 2025-06-30)
+[[deprecated("Use ota_base::register_ota_platform() instead")]] inline void register_ota_platform(
+    OTAComponent *ota_caller) {
+  ota_base::register_ota_platform(ota_caller);
+}
 #endif
 
 }  // namespace ota

@@ -6,7 +6,7 @@
 
 #include "esphome/components/audio/audio.h"
 #ifdef USE_OTA
-#include "esphome/components/ota/ota.h"
+#include "esphome/components/ota_base/ota_backend.h"
 #endif
 
 namespace esphome {
@@ -67,16 +67,16 @@ void SpeakerMediaPlayer::setup() {
   }
 
 #ifdef USE_OTA
-  ota::get_global_ota_callback()->add_on_state_callback(
-      [this](ota::OTAState state, float progress, uint8_t error, ota::OTAComponent *comp) {
-        if (state == ota::OTA_STARTED) {
+  ota_base::get_global_ota_callback()->add_on_state_callback(
+      [this](ota_base::OTAState state, float progress, uint8_t error, ota_base::OTAComponent *comp) {
+        if (state == ota_base::OTA_STARTED) {
           if (this->media_pipeline_ != nullptr) {
             this->media_pipeline_->suspend_tasks();
           }
           if (this->announcement_pipeline_ != nullptr) {
             this->announcement_pipeline_->suspend_tasks();
           }
-        } else if (state == ota::OTA_ERROR) {
+        } else if (state == ota_base::OTA_ERROR) {
           if (this->media_pipeline_ != nullptr) {
             this->media_pipeline_->resume_tasks();
           }

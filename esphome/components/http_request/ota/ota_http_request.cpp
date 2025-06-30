@@ -20,7 +20,7 @@ static const char *const TAG = "http_request.ota";
 
 void OtaHttpRequestComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
-  ota::register_ota_platform(this);
+  ota_base::register_ota_platform(this);
 #endif
 }
 

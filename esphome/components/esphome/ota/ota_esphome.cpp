@@ -24,7 +24,7 @@ static constexpr u_int16_t OTA_BLOCK_SIZE = 8192;
 
 void ESPHomeOTAComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
-  ota::register_ota_platform(this);
+  ota_base::register_ota_platform(this);
 #endif
 
   this->server_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0);  // monitored for incoming connections

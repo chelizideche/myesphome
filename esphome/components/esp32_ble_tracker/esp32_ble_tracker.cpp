@@ -18,7 +18,7 @@
 #include <cinttypes>
 
 #ifdef USE_OTA
-#include "esphome/components/ota/ota.h"
+#include "esphome/components/ota_base/ota_backend.h"
 #endif
 
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
@@ -61,9 +61,9 @@ void ESP32BLETracker::setup() {
   global_esp32_ble_tracker = this;
 
 #ifdef USE_OTA
-  ota::get_global_ota_callback()->add_on_state_callback(
-      [this](ota::OTAState state, float progress, uint8_t error, ota::OTAComponent *comp) {
-        if (state == ota::OTA_STARTED) {
+  ota_base::get_global_ota_callback()->add_on_state_callback(
+      [this](ota_base::OTAState state, float progress, uint8_t error, ota_base::OTAComponent *comp) {
+        if (state == ota_base::OTA_STARTED) {
           this->stop_scan();
           for (auto *client : this->clients_) {
             client->disconnect();
