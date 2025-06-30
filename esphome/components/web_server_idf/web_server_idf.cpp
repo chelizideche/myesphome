@@ -569,6 +569,14 @@ void AsyncEventSourceResponse::deferrable_send_state(void *source, const char *e
 
 #ifdef USE_WEBSERVER_OTA
 esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *content_type) {
+  // Constants for upload handling
+  static constexpr size_t MULTIPART_CHUNK_SIZE = 1460;       // Match Arduino AsyncWebServer buffer size
+  static constexpr size_t YIELD_INTERVAL_BYTES = 16 * 1024;  // Yield every 16KB to prevent watchdog
+
+  // Upload indices for handleUpload callbacks
+  static constexpr size_t UPLOAD_INDEX_BEGIN = 0;
+  static constexpr size_t UPLOAD_INDEX_WRITE = 1;
+  static constexpr size_t UPLOAD_INDEX_END = 2;
   // Parse boundary from content type
   const char *boundary_start = nullptr;
   size_t boundary_len = 0;
@@ -617,29 +625,28 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     }
 
     if (!ctx.started) {
-      ctx.handler->handleUpload(ctx.req, ctx.filename, 0, nullptr, 0, false);
+      ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_BEGIN, nullptr, 0, false);
       ctx.started = true;
     }
 
-    ctx.handler->handleUpload(ctx.req, ctx.filename, 1, const_cast<uint8_t *>(data), len, false);
+    ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_WRITE, const_cast<uint8_t *>(data), len, false);
   });
 
   reader.set_part_complete_callback([&ctx]() {
     if (ctx.started) {
-      ctx.handler->handleUpload(ctx.req, ctx.filename, 2, nullptr, 0, true);
+      ctx.handler->handleUpload(ctx.req, ctx.filename, UPLOAD_INDEX_END, nullptr, 0, true);
       ctx.filename.clear();
       ctx.started = false;
     }
   });
 
   // Process chunks
-  static constexpr size_t CHUNK_SIZE = 1460;
-  std::unique_ptr<char[]> buffer(new char[CHUNK_SIZE]);
+  std::unique_ptr<char[]> buffer(new char[MULTIPART_CHUNK_SIZE]);
   size_t remaining = r->content_len;
   size_t bytes_since_yield = 0;
 
   while (remaining > 0) {
-    size_t to_read = std::min(remaining, CHUNK_SIZE);
+    size_t to_read = std::min(remaining, MULTIPART_CHUNK_SIZE);
     int recv_len = httpd_req_recv(r, buffer.get(), to_read);
 
     if (recv_len <= 0) {
@@ -659,7 +666,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     bytes_since_yield += recv_len;
 
     // Yield periodically to let main loop run
-    if (bytes_since_yield > 16 * 1024) {
+    if (bytes_since_yield > YIELD_INTERVAL_BYTES) {
       vTaskDelay(1);
       bytes_since_yield = 0;
     }
