@@ -48,15 +48,6 @@ size_t MultipartReader::parse(const char *data, size_t len) {
 
   if (parsed != len) {
     ESP_LOGW(TAG, "Parser consumed %zu of %zu bytes - possible error", parsed, len);
-    // Log the data around the error point
-    if (parsed < len && parsed < 32) {
-      ESP_LOGV(TAG, "Data at error point (offset %zu): %02x %02x %02x %02x", parsed,
-               parsed > 0 ? (uint8_t) data[parsed - 1] : 0, (uint8_t) data[parsed],
-               parsed + 1 < len ? (uint8_t) data[parsed + 1] : 0, parsed + 2 < len ? (uint8_t) data[parsed + 2] : 0);
-
-      // Log what we have vs what parser expects
-      ESP_LOGV(TAG, "Parser error at position %zu: got '%c' (0x%02x)", parsed, data[parsed], (uint8_t) data[parsed]);
-    }
   }
 
   return parsed;
