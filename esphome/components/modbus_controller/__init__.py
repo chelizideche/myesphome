@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_OFFSET,
     CONF_TRIGGER_ID,
 )
+from esphome.core import CORE
 from esphome.cpp_helpers import logging
 
 from .const import (
@@ -34,13 +35,16 @@ from .const import (
     CONF_VALUE_TYPE,
 )
 
-CODEOWNERS = ["@martgras"]
+DOMAIN = "modbus_controller"
+CODEOWNERS = ["@martgras", "@gotnone"]
 
 AUTO_LOAD = ["modbus"]
 
 CONF_READ_LAMBDA = "read_lambda"
 CONF_SERVER_REGISTERS = "server_registers"
 MULTI_CONF = True
+
+KEY_SERVER_REGISTERS = "server_registers"
 
 modbus_controller_ns = cg.esphome_ns.namespace("modbus_controller")
 ModbusController = modbus_controller_ns.class_(
@@ -142,13 +146,43 @@ ModbusOfflineTrigger = modbus_controller_ns.class_(
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def validate_address(register_set_key: str):
+    def validator(register: dict):
+        register_set = CORE.data.setdefault(DOMAIN, {}).setdefault(
+            register_set_key, set()
+        )
+        address = register[CONF_ADDRESS]
+        register_count = TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
+        last_address = address + register_count - 1
+        try:
+            cv.uint16_t(last_address)
+        except cv.MultipleInvalid as exc:
+            exc.add(
+                cv.Invalid(
+                    f"Address {address} + register_count {register_count} for selected value_type outside of valid range {last_address}."
+                )
+            )
+        check_set = set(range(address, last_address + 1))
+        if not register_set.isdisjoint(check_set):
+            raise cv.Invalid(f"Address range overlap for {address}..{last_address}")
+        register_set.update(check_set)
+
+        return register
+
+    return validator
+
+
 ModbusServerRegisterSchema = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ServerRegister),
-        cv.Required(CONF_ADDRESS): cv.positive_int,
-        cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
-        cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
-    }
+    cv.All(
+        {
+            cv.GenerateID(): cv.declare_id(ServerRegister),
+            cv.Required(CONF_ADDRESS): cv.uint16_t,
+            cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
+            cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
+        },
+        validate_address(KEY_SERVER_REGISTERS),
+    )
 )
 
 
