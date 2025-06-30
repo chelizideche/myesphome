@@ -40,14 +40,7 @@ CONF_SORTING_WEIGHT = "sorting_weight"
 OTA_DEFAULT = True
 
 
-def AUTO_LOAD() -> list[str]:
-    """Return the components that should be automatically loaded."""
-    components = ["json", "web_server_base"]
-    if CORE.using_esp_idf and CORE.config is not None:
-        web_server_conf = CORE.config.get(CONF_WEB_SERVER, {})
-        if web_server_conf.get(CONF_OTA, OTA_DEFAULT):
-            components.append("ota")
-    return components
+AUTO_LOAD = ["json", "web_server_base"]
 
 
 web_server_ns = cg.esphome_ns.namespace("web_server")
@@ -281,7 +274,8 @@ async def to_code(config):
         cg.add(var.set_css_url(config[CONF_CSS_URL]))
         cg.add(var.set_js_url(config[CONF_JS_URL]))
     cg.add(var.set_allow_ota(config[CONF_OTA]))
-    if config[CONF_OTA]:
+    if config[CONF_OTA] and "ota" in CORE.loaded_integrations:
+        # Only define USE_WEBSERVER_OTA if OTA component is actually loaded
         cg.add_define("USE_WEBSERVER_OTA")
     cg.add(var.set_expose_log(config[CONF_LOG]))
     if config[CONF_ENABLE_PRIVATE_NETWORK_ACCESS]:

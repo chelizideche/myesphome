@@ -14,9 +14,8 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     # Increase the maximum supported size of headers section in HTTP request packet to be processed by the server
     add_idf_sdkconfig_option("CONFIG_HTTPD_MAX_REQ_HDR_LEN", 1024)
-
     # Check if web_server component has OTA enabled
     web_server_config = CORE.config.get(CONF_WEB_SERVER, {})
-    if web_server_config and web_server_config[CONF_OTA] and "ota" in CORE.config:
+    if web_server_config.get(CONF_OTA, True) and "ota" in CORE.loaded_integrations:
         # Add multipart parser component for ESP-IDF OTA support
         add_idf_component(name="zorxx/multipart-parser", ref="1.0.1")
