@@ -31,6 +31,9 @@ static const char *const TAG = "web_server_base";
 // that both web_server and ota components can depend on, avoiding code duplication
 // while keeping the components independent. This would allow both ESP-IDF and Arduino
 // implementations to share the base OTA functionality without requiring the full OTA component.
+// The IDFWebServerOTABackend class is intentionally designed with the same interface
+// as OTABackend to make it easy to swap to using OTABackend when the ota component
+// is split into ota and ota_base in the future.
 class IDFWebServerOTABackend {
  public:
   bool begin() {
