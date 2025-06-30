@@ -274,8 +274,9 @@ async def to_code(config):
         cg.add(var.set_css_url(config[CONF_CSS_URL]))
         cg.add(var.set_js_url(config[CONF_JS_URL]))
     cg.add(var.set_allow_ota(config[CONF_OTA]))
-    if config[CONF_OTA] and "ota" in CORE.loaded_integrations:
-        # Only define USE_WEBSERVER_OTA if OTA component is actually loaded
+    if config[CONF_OTA]:
+        # Define USE_WEBSERVER_OTA based only on web_server OTA config
+        # This allows web server OTA to work without loading the OTA component
         cg.add_define("USE_WEBSERVER_OTA")
     cg.add(var.set_expose_log(config[CONF_LOG]))
     if config[CONF_ENABLE_PRIVATE_NETWORK_ACCESS]:
