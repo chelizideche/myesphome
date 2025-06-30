@@ -184,6 +184,7 @@ void DeferredUpdateEventSourceList::on_client_connect_(WebServer *ws, DeferredUp
   std::string message = ws->get_config_json();
   source->try_send_nodefer(message.c_str(), "ping", millis(), 30000);
 
+#ifdef USE_WEBSERVER_SORTING
   for (auto &group : ws->sorting_groups_) {
     message = json::build_json([group](JsonObject root) {
       root["name"] = group.second.name;
@@ -193,6 +194,7 @@ void DeferredUpdateEventSourceList::on_client_connect_(WebServer *ws, DeferredUp
     // up to 31 groups should be able to be queued initially without defer
     source->try_send_nodefer(message.c_str(), "sorting_group");
   }
+#endif
 
   source->entities_iterator_.begin(ws->include_internal_);
 
@@ -370,6 +372,12 @@ void WebServer::handle_js_request(AsyncWebServerRequest *request) {
   set_json_value(root, obj, sensor, value, start_config); \
   (root)["state"] = state;
 
+// Helper to get request detail parameter
+static JsonDetail get_request_detail(AsyncWebServerRequest *request) {
+  auto *param = request->getParam("detail");
+  return (param && param->value() == "all") ? DETAIL_ALL : DETAIL_STATE;
+}
+
 #ifdef USE_SENSOR
 void WebServer::on_sensor_update(sensor::Sensor *obj, float state) {
   if (this->events_.empty())
@@ -381,11 +389,7 @@ void WebServer::handle_sensor_request(AsyncWebServerRequest *request, const UrlM
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -411,12 +415,7 @@ std::string WebServer::sensor_json(sensor::Sensor *obj, float value, JsonDetail 
     }
     set_json_icon_state_value(root, obj, "sensor-" + obj->get_object_id(), state, value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
       if (!obj->get_unit_of_measurement().empty())
         root["uom"] = obj->get_unit_of_measurement();
     }
@@ -435,11 +434,7 @@ void WebServer::handle_text_sensor_request(AsyncWebServerRequest *request, const
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->text_sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -460,12 +455,7 @@ std::string WebServer::text_sensor_json(text_sensor::TextSensor *obj, const std:
   return json::build_json([this, obj, value, start_config](JsonObject root) {
     set_json_icon_state_value(root, obj, "text_sensor-" + obj->get_object_id(), value, value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -483,11 +473,7 @@ void WebServer::handle_switch_request(AsyncWebServerRequest *request, const UrlM
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->switch_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
     } else if (match.method == "toggle") {
@@ -517,12 +503,7 @@ std::string WebServer::switch_json(switch_::Switch *obj, bool value, JsonDetail 
     set_json_icon_state_value(root, obj, "switch-" + obj->get_object_id(), value ? "ON" : "OFF", value, start_config);
     if (start_config == DETAIL_ALL) {
       root["assumed_state"] = obj->assumed_state();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -534,11 +515,7 @@ void WebServer::handle_button_request(AsyncWebServerRequest *request, const UrlM
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->button_json(obj, detail);
       request->send(200, "application/json", data.c_str());
     } else if (match.method == "press") {
@@ -562,12 +539,7 @@ std::string WebServer::button_json(button::Button *obj, JsonDetail start_config)
   return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "button-" + obj->get_object_id(), start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -584,11 +556,7 @@ void WebServer::handle_binary_sensor_request(AsyncWebServerRequest *request, con
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->binary_sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -609,12 +577,7 @@ std::string WebServer::binary_sensor_json(binary_sensor::BinarySensor *obj, bool
     set_json_icon_state_value(root, obj, "binary_sensor-" + obj->get_object_id(), value ? "ON" : "OFF", value,
                               start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -632,11 +595,7 @@ void WebServer::handle_fan_request(AsyncWebServerRequest *request, const UrlMatc
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->fan_json(obj, detail);
       request->send(200, "application/json", data.c_str());
     } else if (match.method == "toggle") {
@@ -699,12 +658,7 @@ std::string WebServer::fan_json(fan::Fan *obj, JsonDetail start_config) {
     if (obj->get_traits().supports_oscillation())
       root["oscillation"] = obj->oscillating;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -722,11 +676,7 @@ void WebServer::handle_light_request(AsyncWebServerRequest *request, const UrlMa
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->light_json(obj, detail);
       request->send(200, "application/json", data.c_str());
     } else if (match.method == "toggle") {
@@ -824,12 +774,7 @@ std::string WebServer::light_json(light::LightState *obj, JsonDetail start_confi
       for (auto const &option : obj->get_effects()) {
         opt.add(option->get_name());
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -847,11 +792,7 @@ void WebServer::handle_cover_request(AsyncWebServerRequest *request, const UrlMa
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->cover_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -914,12 +855,7 @@ std::string WebServer::cover_json(cover::Cover *obj, JsonDetail start_config) {
     if (obj->get_traits().get_supports_tilt())
       root["tilt"] = obj->tilt;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -937,11 +873,7 @@ void WebServer::handle_number_request(AsyncWebServerRequest *request, const UrlM
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->number_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -984,12 +916,7 @@ std::string WebServer::number_json(number::Number *obj, float value, JsonDetail 
       root["mode"] = (int) obj->traits.get_mode();
       if (!obj->traits.get_unit_of_measurement().empty())
         root["uom"] = obj->traits.get_unit_of_measurement();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
     if (std::isnan(value)) {
       root["value"] = "\"NaN\"";
@@ -1016,11 +943,7 @@ void WebServer::handle_date_request(AsyncWebServerRequest *request, const UrlMat
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->date_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1062,12 +985,7 @@ std::string WebServer::date_json(datetime::DateEntity *obj, JsonDetail start_con
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1084,11 +1002,7 @@ void WebServer::handle_time_request(AsyncWebServerRequest *request, const UrlMat
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->time_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1129,12 +1043,7 @@ std::string WebServer::time_json(datetime::TimeEntity *obj, JsonDetail start_con
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1151,11 +1060,7 @@ void WebServer::handle_datetime_request(AsyncWebServerRequest *request, const Ur
     if (obj->get_object_id() != match.id)
       continue;
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->datetime_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1197,12 +1102,7 @@ std::string WebServer::datetime_json(datetime::DateTimeEntity *obj, JsonDetail s
     root["value"] = value;
     root["state"] = value;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1220,11 +1120,7 @@ void WebServer::handle_text_request(AsyncWebServerRequest *request, const UrlMat
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->text_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1267,12 +1163,7 @@ std::string WebServer::text_json(text::Text *obj, const std::string &value, Json
     root["value"] = value;
     if (start_config == DETAIL_ALL) {
       root["mode"] = (int) obj->traits.get_mode();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1290,11 +1181,7 @@ void WebServer::handle_select_request(AsyncWebServerRequest *request, const UrlM
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->select_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1332,12 +1219,7 @@ std::string WebServer::select_json(select::Select *obj, const std::string &value
       for (auto &option : obj->traits.get_options()) {
         opt.add(option);
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1358,11 +1240,7 @@ void WebServer::handle_climate_request(AsyncWebServerRequest *request, const Url
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->climate_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1458,12 +1336,7 @@ std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_conf
         for (auto const &custom_preset : traits.get_supported_custom_presets())
           opt.add(custom_preset);
       }
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
 
     bool has_state = false;
@@ -1526,11 +1399,7 @@ void WebServer::handle_lock_request(AsyncWebServerRequest *request, const UrlMat
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->lock_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
     } else if (match.method == "lock") {
@@ -1560,12 +1429,7 @@ std::string WebServer::lock_json(lock::Lock *obj, lock::LockState value, JsonDet
     set_json_icon_state_value(root, obj, "lock-" + obj->get_object_id(), lock::lock_state_to_string(value), value,
                               start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1583,11 +1447,7 @@ void WebServer::handle_valve_request(AsyncWebServerRequest *request, const UrlMa
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->valve_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1641,12 +1501,7 @@ std::string WebServer::valve_json(valve::Valve *obj, JsonDetail start_config) {
     if (obj->get_traits().get_supports_position())
       root["position"] = obj->position;
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1664,11 +1519,7 @@ void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *reques
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->alarm_control_panel_json(obj, obj->get_state(), detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1718,12 +1569,7 @@ std::string WebServer::alarm_control_panel_json(alarm_control_panel::AlarmContro
     set_json_icon_state_value(root, obj, "alarm-control-panel-" + obj->get_object_id(),
                               PSTR_LOCAL(alarm_control_panel_state_to_string(value)), value, start_config);
     if (start_config == DETAIL_ALL) {
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1740,11 +1586,7 @@ void WebServer::handle_event_request(AsyncWebServerRequest *request, const UrlMa
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->event_json(obj, "", detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1753,12 +1595,15 @@ void WebServer::handle_event_request(AsyncWebServerRequest *request, const UrlMa
   request->send(404);
 }
 
+static std::string get_event_type(event::Event *event) { return event->last_event_type ? *event->last_event_type : ""; }
+
 std::string WebServer::event_state_json_generator(WebServer *web_server, void *source) {
-  return web_server->event_json((event::Event *) (source), *(((event::Event *) (source))->last_event_type),
-                                DETAIL_STATE);
+  auto *event = static_cast<event::Event *>(source);
+  return web_server->event_json(event, get_event_type(event), DETAIL_STATE);
 }
 std::string WebServer::event_all_json_generator(WebServer *web_server, void *source) {
-  return web_server->event_json((event::Event *) (source), *(((event::Event *) (source))->last_event_type), DETAIL_ALL);
+  auto *event = static_cast<event::Event *>(source);
+  return web_server->event_json(event, get_event_type(event), DETAIL_ALL);
 }
 std::string WebServer::event_json(event::Event *obj, const std::string &event_type, JsonDetail start_config) {
   return json::build_json([this, obj, event_type, start_config](JsonObject root) {
@@ -1772,12 +1617,7 @@ std::string WebServer::event_json(event::Event *obj, const std::string &event_ty
         event_types.add(event_type);
       }
       root["device_class"] = obj->get_device_class();
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -1795,11 +1635,7 @@ void WebServer::handle_update_request(AsyncWebServerRequest *request, const UrlM
       continue;
 
     if (request->method() == HTTP_GET && match.method.empty()) {
-      auto detail = DETAIL_STATE;
-      auto *param = request->getParam("detail");
-      if (param && param->value() == "all") {
-        detail = DETAIL_ALL;
-      }
+      auto detail = get_request_detail(request);
       std::string data = this->update_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -1845,12 +1681,7 @@ std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_c
       root["title"] = obj->update_info.title;
       root["summary"] = obj->update_info.summary;
       root["release_url"] = obj->update_info.release_url;
-      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-        }
-      }
+      this->add_sorting_info_(root, obj);
     }
   });
 }
@@ -2160,6 +1991,18 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
 bool WebServer::isRequestHandlerTrivial() const { return false; }
 
+void WebServer::add_sorting_info_(JsonObject &root, EntityBase *entity) {
+#ifdef USE_WEBSERVER_SORTING
+  if (this->sorting_entitys_.find(entity) != this->sorting_entitys_.end()) {
+    root["sorting_weight"] = this->sorting_entitys_[entity].weight;
+    if (this->sorting_groups_.find(this->sorting_entitys_[entity].group_id) != this->sorting_groups_.end()) {
+      root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[entity].group_id].name;
+    }
+  }
+#endif
+}
+
+#ifdef USE_WEBSERVER_SORTING
 void WebServer::add_entity_config(EntityBase *entity, float weight, uint64_t group) {
   this->sorting_entitys_[entity] = SortingComponents{weight, group};
 }
@@ -2167,6 +2010,7 @@ void WebServer::add_entity_config(EntityBase *entity, float weight, uint64_t gro
 void WebServer::add_sorting_group(uint64_t group_id, const std::string &group_name, float weight) {
   this->sorting_groups_[group_id] = SortingGroup{group_name, weight};
 }
+#endif
 
 void WebServer::schedule_(std::function<void()> &&f) {
 #ifdef USE_ESP32
