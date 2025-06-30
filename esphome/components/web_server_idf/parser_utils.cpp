@@ -19,7 +19,7 @@ bool str_ncmp_ci(const char *s1, const char *s2, size_t n) {
 
 // Case-insensitive string search (like strstr but case-insensitive)
 const char *stristr(const char *haystack, const char *needle) {
-  if (!haystack || !needle) {
+  if (!haystack) {
     return nullptr;
   }
 
