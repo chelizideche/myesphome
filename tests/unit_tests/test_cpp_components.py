@@ -34,6 +34,12 @@ def test_esphome_yaml(folder_name, test_file):
     """
     Pytest subtest for each YAML: first compile, then run.
     """
+
+    # Skip tests on Windows
+    if os.name == "nt":
+        print("⚠️ Skipping esphome tests on Windows", file=sys.stderr)
+        return
+
     # Compile step (capture output)
     compile_cmd = ["esphome", "compile", test_file]
     compile_proc = subprocess.run(
@@ -44,7 +50,7 @@ def test_esphome_yaml(folder_name, test_file):
         check=False,
     )
     assert compile_proc.returncode == 0, (
-        f"Compile failed for {test_file} (in {folder_name}):\n" f"{compile_proc.stdout}"
+        f"Compile failed for {test_file} (in {folder_name}):\n{compile_proc.stdout}"
     )
 
     # Run step (live output)

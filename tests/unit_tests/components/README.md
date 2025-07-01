@@ -18,4 +18,4 @@ The process will return `0` for succcess or nonzero for failure. In case of fail
 
 ## Running all the tests
 
-To run all the C++ tests, simply run `test_cpp_components.py` in the `unit_tests` parent folder.  
+To run all the C++ tests, simply run `test_cpp_components.py` in the `unit_tests` parent folder.
