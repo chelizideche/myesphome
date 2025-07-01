@@ -1,0 +1,10 @@
+# Test that ota_base compiles correctly as a dependency
+# This component is typically auto-loaded by other components
+
+wifi:
+  ssid: MySSID
+  password: password1
+
+ota:
+  - platform: esphome
+    password: "test1234"
