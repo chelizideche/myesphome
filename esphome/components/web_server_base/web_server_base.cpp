@@ -37,12 +37,17 @@ void WebServerBase::add_handler(AsyncWebHandler *handler) {
 void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
   const uint32_t now = millis();
   if (now - this->last_ota_progress_ > 1000) {
+    float percentage = 0.0f;
     if (request->contentLength() != 0) {
-      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
+      percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
       ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
     } else {
       ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
     }
+#ifdef USE_OTA_STATE_CALLBACK
+    // Report progress - use call_deferred since we're in web server task
+    this->parent_->state_callback_.call_deferred(ota_base::OTA_IN_PROGRESS, percentage, 0);
+#endif
     this->last_ota_progress_ = now;
   }
 }
@@ -68,6 +73,11 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     // Initialize OTA on first call
     this->ota_init_(filename.c_str());
 
+#ifdef USE_OTA_STATE_CALLBACK
+    // Notify OTA started - use call_deferred since we're in web server task
+    this->parent_->state_callback_.call_deferred(ota_base::OTA_STARTED, 0.0f, 0);
+#endif
+
     // Platform-specific pre-initialization
 #ifdef USE_ARDUINO
 #ifdef USE_ESP8266
@@ -83,6 +93,10 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     this->ota_backend_ = ota_base::make_ota_backend();
     if (!this->ota_backend_) {
       ESP_LOGE(TAG, "Failed to create OTA backend");
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f,
+                                                   static_cast<uint8_t>(ota_base::OTA_RESPONSE_ERROR_UNKNOWN));
+#endif
       return;
     }
 
@@ -96,6 +110,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     if (error_code != ota_base::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", error_code);
       this->ota_backend_.reset();
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
       return;
     }
   }
@@ -111,6 +128,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       ESP_LOGE(TAG, "OTA write failed: %d", error_code);
       this->ota_backend_->abort();
       this->ota_backend_.reset();
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
       return;
     }
     this->ota_read_length_ += len;
@@ -121,9 +141,16 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   if (final) {
     error_code = this->ota_backend_->end();
     if (error_code == ota_base::OTA_RESPONSE_OK) {
+#ifdef USE_OTA_STATE_CALLBACK
+      // Report completion before reboot - use call_deferred since we're in web server task
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_COMPLETED, 100.0f, 0);
+#endif
       this->schedule_ota_reboot_();
     } else {
       ESP_LOGE(TAG, "OTA end failed: %d", error_code);
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
     }
     this->ota_backend_.reset();
   }
@@ -139,6 +166,10 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 
 void WebServerBase::add_ota_handler() {
   this->add_handler(new OTARequestHandler(this));  // NOLINT
+#ifdef USE_OTA_STATE_CALLBACK
+  // Register with global OTA callback system
+  ota_base::register_ota_platform(this);
+#endif
 }
 #endif
 

@@ -83,7 +83,7 @@ class AuthMiddlewareHandler : public MiddlewareHandler {
 
 }  // namespace internal
 
-class WebServerBase : public Component {
+class WebServerBase : public Component, public ota_base::OTAComponent {
  public:
   void init() {
     if (this->initialized_) {
