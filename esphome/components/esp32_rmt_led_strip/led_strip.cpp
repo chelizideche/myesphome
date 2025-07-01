@@ -27,8 +27,9 @@ static size_t IRAM_ATTR HOT encoder_callback(const void *data, size_t size, size
   LedParams *params = (LedParams *) arg;
   uint8_t *bytes = (uint8_t *) data;
   size_t index = symbols_written / 8;
+
+  // convert byte to symbols
   if (index < size) {
-    // convert byte to symbols
     if (symbols_free < 8) {
       return 0;
     }
@@ -43,15 +44,15 @@ static size_t IRAM_ATTR HOT encoder_callback(const void *data, size_t size, size
       *done = true;
     }
     return 8;
-  } else {
-    // send reset
-    if (symbols_free < 1) {
-      return 0;
-    }
-    symbols[0] = params->reset;
-    *done = true;
-    return 1;
   }
+
+  // send reset
+  if (symbols_free < 1) {
+    return 0;
+  }
+  symbols[0] = params->reset;
+  *done = true;
+  return 1;
 }
 #endif
 
