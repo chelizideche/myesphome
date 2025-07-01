@@ -107,6 +107,13 @@ void IDFUARTComponent::setup() {
     return;
   }
 
+  if (this->rx_pin_) {
+    this->rx_pin_->setup();
+  }
+  if (this->tx_pin_ && this->rx_pin_ != this->tx_pin_) {
+    this->tx_pin_->setup();
+  }
+
   int8_t tx = this->tx_pin_ != nullptr ? this->tx_pin_->get_pin() : -1;
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
 
@@ -121,24 +128,6 @@ void IDFUARTComponent::setup() {
     ESP_LOGW(TAG, "uart_set_line_inverse failed: %s", esp_err_to_name(err));
     this->mark_failed();
     return;
-  }
-
-  if (rx >= 0) {
-    if (this->rx_pin_->get_flags() & gpio::FLAG_PULLUP) {
-      err = gpio_pullup_en(static_cast<gpio_num_t>(rx));
-      if (err != ESP_OK) {
-        ESP_LOGE(TAG, "failed to pull up rx pin %d: %s", rx, esp_err_to_name(err));
-        this->mark_failed();
-        return;
-      }
-    } else if (this->rx_pin_->get_flags() & gpio::FLAG_PULLDOWN) {
-      err = gpio_pulldown_en(static_cast<gpio_num_t>(rx));
-      if (err != ESP_OK) {
-        ESP_LOGE(TAG, "failed to pull down rx pin %d: %s", rx, esp_err_to_name(err));
-        this->mark_failed();
-        return;
-      }
-    }
   }
 
   err = uart_set_pin(this->uart_num_, tx, rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
