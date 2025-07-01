@@ -17,10 +17,16 @@ static const char *const TAG = "ota.arduino_rp2040";
 std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoRP2040OTABackend>(); }
 
 OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
-  // Handle UPDATE_SIZE_UNKNOWN (0) which is used by web server OTA
-  // where the exact firmware size is unknown due to multipart encoding
+  // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
   if (image_size == 0) {
-    image_size = UPDATE_SIZE_UNKNOWN;
+    // Similar to ESP8266, calculate available space from flash layout
+    extern uint8_t _FS_start;
+    extern uint8_t _FS_end;
+    // Calculate the size of the filesystem area which will be used for OTA
+    size_t fs_size = &_FS_end - &_FS_start;
+    // Reserve some space for filesystem overhead
+    image_size = (fs_size - 0x1000) & 0xFFFFF000;
+    ESP_LOGD(TAG, "OTA size unknown, using filesystem size: %u bytes", image_size);
   }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
