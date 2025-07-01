@@ -5,6 +5,14 @@
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
+#include <Updater.h>
+#elif defined(USE_ESP32) || defined(USE_LIBRETINY)
+#include <Update.h>
+#endif
+#endif  // USE_ARDUINO
+
 namespace esphome {
 namespace web_server {
 
@@ -91,7 +99,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 #ifdef USE_ESP8266
     Update.runAsync(true);
 #endif
-#if defined(USE_ESP32_FRAMEWORK_ARDUINO) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
     if (Update.isRunning()) {
       Update.abort();
     }
