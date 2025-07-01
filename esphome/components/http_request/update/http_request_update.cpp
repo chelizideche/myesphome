@@ -5,7 +5,6 @@
 
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/ota/ota_backend.h"
 
 namespace esphome {
 namespace http_request {
