@@ -192,12 +192,10 @@ void WebServerOTAComponent::setup() {
   // Register with global OTA callback system
   ota::register_ota_platform(this);
 #endif
-  ESP_LOGCONFIG(TAG, "Web Server OTA initialized");
 }
 
 void WebServerOTAComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "Web Server OTA:");
-  ESP_LOGCONFIG(TAG, "  Available at /update");
+  ESP_LOGCONFIG(TAG, "Web Server OTA");
 }
 
 }  // namespace web_server
