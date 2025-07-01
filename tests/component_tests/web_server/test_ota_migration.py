@@ -3,14 +3,15 @@
 import pytest
 
 from esphome import config_validation as cv
+from esphome.types import ConfigType
 
 
-def test_web_server_ota_true_fails_validation():
+def test_web_server_ota_true_fails_validation() -> None:
     """Test that web_server with ota: true fails validation with helpful message."""
     from esphome.components.web_server import validate_ota_removed
 
     # Config with ota: true should fail
-    config = {"ota": True}
+    config: ConfigType = {"ota": True}
 
     with pytest.raises(cv.Invalid) as exc_info:
         validate_ota_removed(config)
@@ -22,16 +23,16 @@ def test_web_server_ota_true_fails_validation():
     assert "ota:" in error_msg
 
 
-def test_web_server_ota_false_passes_validation():
+def test_web_server_ota_false_passes_validation() -> None:
     """Test that web_server with ota: false passes validation."""
     from esphome.components.web_server import validate_ota_removed
 
     # Config with ota: false should pass
-    config = {"ota": False}
+    config: ConfigType = {"ota": False}
     result = validate_ota_removed(config)
     assert result == config
 
     # Config without ota should also pass
-    config = {}
+    config: ConfigType = {}
     result = validate_ota_removed(config)
     assert result == config

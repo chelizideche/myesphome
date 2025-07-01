@@ -1,7 +1,9 @@
 """Tests for the web_server OTA platform."""
 
+from collections.abc import Callable
 
-def test_web_server_ota_generated(generate_main):
+
+def test_web_server_ota_generated(generate_main: Callable[[str], str]) -> None:
     """Test that web_server OTA platform generates correct code."""
     main_cpp = generate_main("tests/component_tests/ota/test_web_server_ota.yaml")
 
@@ -16,7 +18,7 @@ def test_web_server_ota_generated(generate_main):
     assert "App.register_component(web_server_webserverotacomponent_id)" in main_cpp
 
 
-def test_web_server_ota_with_callbacks(generate_main):
+def test_web_server_ota_with_callbacks(generate_main: Callable[[str], str]) -> None:
     """Test web_server OTA with state callbacks."""
     main_cpp = generate_main(
         "tests/component_tests/ota/test_web_server_ota_callbacks.yaml"
@@ -34,7 +36,7 @@ def test_web_server_ota_with_callbacks(generate_main):
     assert "OTA error" in main_cpp
 
 
-def test_web_server_ota_idf_multipart(generate_main):
+def test_web_server_ota_idf_multipart(generate_main: Callable[[str], str]) -> None:
     """Test that ESP-IDF builds include multipart parser dependency."""
     main_cpp = generate_main("tests/component_tests/ota/test_web_server_ota_idf.yaml")
 
@@ -46,7 +48,9 @@ def test_web_server_ota_idf_multipart(generate_main):
     assert "web_server::WebServerOTAComponent" in main_cpp
 
 
-def test_web_server_ota_without_web_server_fails(generate_main):
+def test_web_server_ota_without_web_server_fails(
+    generate_main: Callable[[str], str],
+) -> None:
     """Test that web_server OTA requires web_server component."""
     # This should fail during validation since web_server_base is required
     # but we can't test validation failures with generate_main
@@ -58,7 +62,7 @@ def test_web_server_ota_without_web_server_fails(generate_main):
     assert "WebServerOTAComponent" in main_cpp
 
 
-def test_multiple_ota_platforms(generate_main):
+def test_multiple_ota_platforms(generate_main: Callable[[str], str]) -> None:
     """Test multiple OTA platforms can coexist."""
     main_cpp = generate_main("tests/component_tests/ota/test_web_server_ota_multi.yaml")
 
@@ -73,7 +77,7 @@ def test_multiple_ota_platforms(generate_main):
     assert "http_request::OtaHttpRequestComponent" in main_cpp
 
 
-def test_web_server_ota_arduino_with_auth(generate_main):
+def test_web_server_ota_arduino_with_auth(generate_main: Callable[[str], str]) -> None:
     """Test web_server OTA with Arduino framework and authentication."""
     main_cpp = generate_main(
         "tests/component_tests/ota/test_web_server_ota_arduino.yaml"
@@ -87,7 +91,7 @@ def test_web_server_ota_arduino_with_auth(generate_main):
     assert "set_auth_password" in main_cpp
 
 
-def test_web_server_ota_esp8266(generate_main):
+def test_web_server_ota_esp8266(generate_main: Callable[[str], str]) -> None:
     """Test web_server OTA on ESP8266 platform."""
     main_cpp = generate_main(
         "tests/component_tests/ota/test_web_server_ota_esp8266.yaml"
