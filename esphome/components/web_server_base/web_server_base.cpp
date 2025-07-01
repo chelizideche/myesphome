@@ -100,9 +100,10 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       return;
     }
 
-    // 0 means unknown size for ota_base backends (chunked encoding)
-    size_t ota_size = request->contentLength();
-    error_code = this->ota_backend_->begin(ota_size);
+    // Web server OTA uses multipart uploads where the actual firmware size
+    // is unknown (contentLength includes multipart overhead)
+    // Pass 0 to indicate unknown size
+    error_code = this->ota_backend_->begin(0);
     if (error_code != ota_base::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", error_code);
       this->ota_backend_.reset();
