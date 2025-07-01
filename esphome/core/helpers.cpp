@@ -405,7 +405,7 @@ std::string format_hex_pretty(const std::string &data) {
       ret[3 * i + 2] = '.';
   }
   if (data.length() > 4)
-    return ret + " (" + to_string(data.length()) + ")";
+    return ret + " (" + std::to_string(data.length()) + ")";
   return ret;
 }
 
