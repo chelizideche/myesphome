@@ -4,6 +4,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
@@ -21,6 +22,10 @@ static const char *const TAG = "component";
 
 // Component error messages - only stores messages for failed components
 // Lazy allocated since most configs have zero failures
+// Note: We don't clear this vector because:
+// 1. Components are never destroyed in ESPHome
+// 2. Failed components remain failed (no recovery mechanism)
+// 3. Memory usage is minimal (only failures with custom messages are stored)
 static std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> g_component_error_messages;
 
 // Setup priority overrides - freed after setup completes
