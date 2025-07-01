@@ -59,12 +59,10 @@ class OTABackend {
   virtual bool supports_compression() = 0;
 };
 
-std::unique_ptr<OTABackend> make_ota_backend();
-
 class OTAComponent : public Component {
 #ifdef USE_OTA_STATE_CALLBACK
  public:
-  void add_on_state_callback(std::function<void(OTAState, float, uint8_t)> &&callback) {
+  void add_on_state_callback(std::function<void(ota::OTAState, float, uint8_t)> &&callback) {
     this->state_callback_.add(std::move(callback));
   }
 
@@ -82,7 +80,7 @@ class OTAComponent : public Component {
      * This should be used by OTA implementations that run in separate tasks
      * (like web_server OTA) to ensure callbacks execute in the main loop.
      */
-    void call_deferred(OTAState state, float progress, uint8_t error) {
+    void call_deferred(ota::OTAState state, float progress, uint8_t error) {
       component_->defer([this, state, progress, error]() { this->call(state, progress, error); });
     }
 
@@ -118,6 +116,7 @@ void register_ota_platform(OTAComponent *ota_caller);
 // - state_callback_.call_deferred() when in separate task (e.g., web_server OTA)
 // This ensures proper callback execution in all contexts.
 #endif
+std::unique_ptr<ota::OTABackend> make_ota_backend();
 
 }  // namespace ota
 }  // namespace esphome
