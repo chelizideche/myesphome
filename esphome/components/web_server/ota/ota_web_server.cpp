@@ -186,6 +186,7 @@ void WebServerOTAComponent::setup() {
     return;
   }
 
+  // AsyncWebServer takes ownership of the handler and will delete it when the server is destroyed
   base->add_handler(new OTARequestHandler(this));  // NOLINT
 #ifdef USE_OTA_STATE_CALLBACK
   // Register with global OTA callback system
