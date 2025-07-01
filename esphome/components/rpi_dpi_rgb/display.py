@@ -1,7 +1,7 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display
-from esphome.components.esp32 import const, only_on_variant
+from esphome.components.esp32 import add_idf_sdkconfig_option, const, only_on_variant
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BLUE,
@@ -25,7 +25,7 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
-DEPENDENCIES = ["esp32"]
+DEPENDENCIES = ["esp32", "psram"]
 
 CONF_DE_PIN = "de_pin"
 CONF_PCLK_PIN = "pclk_pin"
@@ -127,6 +127,12 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
+    # ESP32S3 specific options, required for DPI display performance
+    add_idf_sdkconfig_option("CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240", True)
+    add_idf_sdkconfig_option("CONFIG_ESP32S3_DATA_CACHE_64KB", True)
+    add_idf_sdkconfig_option("CONFIG_SPIRAM_FETCH_INSTRUCTIONS", True)
+    add_idf_sdkconfig_option("CONFIG_SPIRAM_RODATA", True)
+
     var = cg.new_Pvariable(config[CONF_ID])
     await display.register_display(var, config)
 

@@ -1,7 +1,7 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
-from esphome.components.esp32 import const, only_on_variant
+from esphome.components.esp32 import add_idf_sdkconfig_option, const, only_on_variant
 from esphome.components.rpi_dpi_rgb.display import (
     CONF_PCLK_FREQUENCY,
     CONF_PCLK_INVERTED,
@@ -46,7 +46,7 @@ CONF_VSYNC_PULSE_WIDTH = "vsync_pulse_width"
 CONF_VSYNC_BACK_PORCH = "vsync_back_porch"
 CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
 
-DEPENDENCIES = ["spi", "esp32"]
+DEPENDENCIES = ["spi", "esp32", "psram"]
 
 st7701s_ns = cg.esphome_ns.namespace("st7701s")
 ST7701S = st7701s_ns.class_("ST7701S", display.Display, cg.Component, spi.SPIDevice)
@@ -173,6 +173,12 @@ FINAL_VALIDATE_SCHEMA = spi.final_validate_device_schema(
 
 
 async def to_code(config):
+    # ESP32S3 specific options, required for DPI display performance
+    add_idf_sdkconfig_option("CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240", True)
+    add_idf_sdkconfig_option("CONFIG_ESP32S3_DATA_CACHE_64KB", True)
+    add_idf_sdkconfig_option("CONFIG_SPIRAM_FETCH_INSTRUCTIONS", True)
+    add_idf_sdkconfig_option("CONFIG_SPIRAM_RODATA", True)
+
     var = cg.new_Pvariable(config[CONF_ID])
     await display.register_display(var, config)
     await spi.register_spi_device(var, config)
