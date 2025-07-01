@@ -205,7 +205,6 @@ void srp_callback_on_factory_reset(otError err, const otSrpClientHostInfo *host_
   obj->factory_reset_ready = true;
 }
 
-// this is called again and again till it returns true.
 void OpenThreadComponent::on_factory_reset() {
   ESP_LOGD(TAG, "Start Removal SRP Host and Services");
   otError error;
