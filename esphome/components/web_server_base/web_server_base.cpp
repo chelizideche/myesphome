@@ -39,6 +39,10 @@ void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
   if (now - this->last_ota_progress_ > 1000) {
     float percentage = 0.0f;
     if (request->contentLength() != 0) {
+      // Note: Using contentLength() for progress calculation is technically wrong as it includes
+      // multipart headers/boundaries, but it's only off by a small amount and we don't have
+      // access to the actual firmware size until the upload is complete. This is intentional
+      // as it still gives the user a reasonable progress indication.
       percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
       ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
     } else {
