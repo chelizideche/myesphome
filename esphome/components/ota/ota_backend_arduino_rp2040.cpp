@@ -20,8 +20,8 @@ OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
   if (image_size == 0) {
     // Similar to ESP8266, calculate available space from flash layout
-    extern uint8_t _FS_start;
-    extern uint8_t _FS_end;
+    extern "C" uint8_t _FS_start;
+    extern "C" uint8_t _FS_end;
     // Calculate the size of the filesystem area which will be used for OTA
     size_t fs_size = &_FS_end - &_FS_start;
     // Reserve some space for filesystem overhead
