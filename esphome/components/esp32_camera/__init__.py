@@ -283,6 +283,7 @@ SETTERS = {
 
 
 async def to_code(config):
+    cg.add_define("USE_CAMERA")
     var = cg.new_Pvariable(config[CONF_ID])
     await setup_entity(var, config, "camera")
     await cg.register_component(var, config)
