@@ -11,7 +11,7 @@
 namespace esphome {
 namespace ota {
 
-std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<IDFOTABackend>(); }
+std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::IDFOTABackend>(); }
 
 OTAResponseTypes IDFOTABackend::begin(size_t image_size) {
   this->partition_ = esp_ota_get_next_update_partition(nullptr);

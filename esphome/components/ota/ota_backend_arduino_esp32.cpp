@@ -12,7 +12,7 @@ namespace ota {
 
 static const char *const TAG = "ota.arduino_esp32";
 
-std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP32OTABackend>(); }
+std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoESP32OTABackend>(); }
 
 OTAResponseTypes ArduinoESP32OTABackend::begin(size_t image_size) {
   // Handle UPDATE_SIZE_UNKNOWN (0) which is used by web server OTA

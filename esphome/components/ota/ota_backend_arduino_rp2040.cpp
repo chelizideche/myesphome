@@ -14,7 +14,7 @@ namespace ota {
 
 static const char *const TAG = "ota.arduino_rp2040";
 
-std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoRP2040OTABackend>(); }
+std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoRP2040OTABackend>(); }
 
 OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
@@ -26,7 +26,6 @@ OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
     size_t fs_size = &_FS_end - &_FS_start;
     // Reserve some space for filesystem overhead
     image_size = (fs_size - 0x1000) & 0xFFFFF000;
-    ESP_LOGD(TAG, "OTA size unknown, using filesystem size: %u bytes", image_size);
   }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
