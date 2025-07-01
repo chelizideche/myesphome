@@ -2,7 +2,6 @@
 #ifdef USE_WEBSERVER_OTA
 
 #include "esphome/components/ota/ota_backend.h"
-#include "esphome/components/web_server_base/web_server_base.h"
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
@@ -194,9 +193,7 @@ void WebServerOTAComponent::setup() {
 #endif
 }
 
-void WebServerOTAComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "Web Server OTA");
-}
+void WebServerOTAComponent::dump_config() { ESP_LOGCONFIG(TAG, "Web Server OTA"); }
 
 }  // namespace web_server
 }  // namespace esphome
