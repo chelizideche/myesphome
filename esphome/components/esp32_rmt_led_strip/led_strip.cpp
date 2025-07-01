@@ -21,19 +21,21 @@ static const uint32_t RMT_CLK_FREQ = 80000000;
 static const uint8_t RMT_CLK_DIV = 2;
 #endif
 
+static const size_t RMT_SYMBOLS_PER_BYTE = 8;
+
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
 static size_t IRAM_ATTR HOT encoder_callback(const void *data, size_t size, size_t symbols_written, size_t symbols_free,
                                              rmt_symbol_word_t *symbols, bool *done, void *arg) {
-  LedParams *params = (LedParams *) arg;
-  uint8_t *bytes = (uint8_t *) data;
-  size_t index = symbols_written / 8;
+  auto *params = static_cast<LedParams *>(arg);
+  const auto *bytes = static_cast<const uint8_t *>(data);
+  size_t index = symbols_written / RMT_SYMBOLS_PER_BYTE;
 
   // convert byte to symbols
   if (index < size) {
-    if (symbols_free < 8) {
+    if (symbols_free < RMT_SYMBOLS_PER_BYTE) {
       return 0;
     }
-    for (int32_t i = 0; i < 8; i++) {
+    for (int32_t i = 0; i < RMT_SYMBOLS_PER_BYTE; i++) {
       if (bytes[index] & (1 << (7 - i))) {
         symbols[i] = params->bit1;
       } else {
@@ -43,7 +45,7 @@ static size_t IRAM_ATTR HOT encoder_callback(const void *data, size_t size, size
     if ((index + 1) >= size && params->reset.duration0 == 0 && params->reset.duration1 == 0) {
       *done = true;
     }
-    return 8;
+    return RMT_SYMBOLS_PER_BYTE;
   }
 
   // send reset
