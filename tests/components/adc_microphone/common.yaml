@@ -1,0 +1,4 @@
+microphone:
+  - platform: adc_microphone
+    id: mic_id
+    adc_pin: ${adc_pin}

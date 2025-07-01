@@ -1,0 +1,4 @@
+substitutions:
+  adc_pin: GPIO33
+
+<<: !include common.yaml
