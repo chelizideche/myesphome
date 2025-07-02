@@ -324,6 +324,50 @@ class ProtoWriteBuffer {
   std::vector<uint8_t> *buffer_;
 };
 
+// Union type that can hold any field value for the single decode method
+class ProtoFieldValue {
+ public:
+  ProtoFieldValue() {}
+  explicit ProtoFieldValue(ProtoVarInt value) : varint_(value), type_(TYPE_VARINT) {}
+  explicit ProtoFieldValue(ProtoLengthDelimited value) : length_(value), type_(TYPE_LENGTH) {}
+  explicit ProtoFieldValue(Proto32Bit value) : fixed32_(value), type_(TYPE_FIXED32) {}
+  explicit ProtoFieldValue(Proto64Bit value) : fixed64_(value), type_(TYPE_FIXED64) {}
+
+  // Varint accessors
+  uint32_t as_uint32() const { return varint_.as_uint32(); }
+  int32_t as_int32() const { return varint_.as_int32(); }
+  uint64_t as_uint64() const { return varint_.as_uint64(); }
+  int64_t as_int64() const { return varint_.as_int64(); }
+  bool as_bool() const { return varint_.as_bool(); }
+  int32_t as_sint32() const { return varint_.as_sint32(); }
+  int64_t as_sint64() const { return varint_.as_sint64(); }
+  template<typename T> T as_enum() const { return varint_.as_enum<T>(); }
+
+  // Length delimited accessors
+  std::string as_string() const { return length_.as_string(); }
+  template<class C> C as_message() const { return length_.as_message<C>(); }
+
+  // 32-bit accessors
+  uint32_t as_fixed32() const { return fixed32_.as_fixed32(); }
+  int32_t as_sfixed32() const { return fixed32_.as_sfixed32(); }
+  float as_float() const { return fixed32_.as_float(); }
+
+  // 64-bit accessors
+  uint64_t as_fixed64() const { return fixed64_.as_fixed64(); }
+  int64_t as_sfixed64() const { return fixed64_.as_sfixed64(); }
+  double as_double() const { return fixed64_.as_double(); }
+
+ private:
+  enum Type : uint8_t { TYPE_VARINT, TYPE_LENGTH, TYPE_FIXED32, TYPE_FIXED64 };
+  union {
+    ProtoVarInt varint_;
+    ProtoLengthDelimited length_;
+    Proto32Bit fixed32_;
+    Proto64Bit fixed64_;
+  };
+  Type type_;
+};
+
 class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
@@ -339,10 +383,8 @@ class ProtoMessage {
 #endif
 
  protected:
-  virtual bool decode_varint(uint32_t field_id, ProtoVarInt value) { return false; }
-  virtual bool decode_length(uint32_t field_id, ProtoLengthDelimited value) { return false; }
-  virtual bool decode_32bit(uint32_t field_id, Proto32Bit value) { return false; }
-  virtual bool decode_64bit(uint32_t field_id, Proto64Bit value) { return false; }
+  // Single decode method that handles all field types
+  virtual bool decode_field(uint32_t field_id, ProtoFieldValue value) { return false; }
 };
 
 template<typename T> const char *proto_enum_to_string(T value);

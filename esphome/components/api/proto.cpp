@@ -31,7 +31,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           error = true;
           break;
         }
-        if (!this->decode_varint(field_id, *res)) {
+        if (!this->decode_field(field_id, ProtoFieldValue(*res))) {
           ESP_LOGV(TAG, "Cannot decode VarInt field %" PRIu32 " with value %" PRIu32 "!", field_id, res->as_uint32());
         }
         i += consumed;
@@ -51,7 +51,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           error = true;
           break;
         }
-        if (!this->decode_length(field_id, ProtoLengthDelimited(&buffer[i], field_length))) {
+        if (!this->decode_field(field_id, ProtoFieldValue(ProtoLengthDelimited(&buffer[i], field_length)))) {
           ESP_LOGV(TAG, "Cannot decode Length Delimited field %" PRIu32 "!", field_id);
         }
         i += field_length;
@@ -64,10 +64,24 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           break;
         }
         uint32_t val = encode_uint32(buffer[i + 3], buffer[i + 2], buffer[i + 1], buffer[i]);
-        if (!this->decode_32bit(field_id, Proto32Bit(val))) {
+        if (!this->decode_field(field_id, ProtoFieldValue(Proto32Bit(val)))) {
           ESP_LOGV(TAG, "Cannot decode 32-bit field %" PRIu32 " with value %" PRIu32 "!", field_id, val);
         }
         i += 4;
+        break;
+      }
+      case 1: {  // 64-bit
+        if (length - i < 8) {
+          ESP_LOGV(TAG, "Out-of-bounds Fixed64-bit at %" PRIu32, i);
+          error = true;
+          break;
+        }
+        uint64_t val = encode_uint64(buffer[i + 7], buffer[i + 6], buffer[i + 5], buffer[i + 4], buffer[i + 3],
+                                     buffer[i + 2], buffer[i + 1], buffer[i]);
+        if (!this->decode_field(field_id, ProtoFieldValue(Proto64Bit(val)))) {
+          ESP_LOGV(TAG, "Cannot decode 64-bit field %" PRIu32 " with value %" PRIu64 "!", field_id, val);
+        }
+        i += 8;
         break;
       }
       default:

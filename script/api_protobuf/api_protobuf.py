@@ -266,6 +266,11 @@ class TypeInfo(ABC):
             Estimated size in bytes including field ID and typical data
         """
 
+    @property
+    @abstractmethod
+    def decode_field_accessor(self) -> str:
+        """Get the accessor method name for ProtoFieldValue to decode this type."""
+
 
 TYPE_INFO: dict[int, TypeInfo] = {}
 
@@ -288,6 +293,7 @@ class DoubleType(TypeInfo):
     decode_64bit = "value.as_double()"
     encode_func = "encode_double"
     wire_type = WireType.FIXED64  # Uses wire type 1 according to protobuf spec
+    decode_field_accessor = "as_double"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
@@ -310,6 +316,7 @@ class FloatType(TypeInfo):
     decode_32bit = "value.as_float()"
     encode_func = "encode_float"
     wire_type = WireType.FIXED32  # Uses wire type 5
+    decode_field_accessor = "as_float"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
@@ -332,6 +339,7 @@ class Int64Type(TypeInfo):
     decode_varint = "value.as_int64()"
     encode_func = "encode_int64"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_int64"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -354,6 +362,7 @@ class UInt64Type(TypeInfo):
     decode_varint = "value.as_uint64()"
     encode_func = "encode_uint64"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_uint64"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
@@ -376,6 +385,7 @@ class Int32Type(TypeInfo):
     decode_varint = "value.as_int32()"
     encode_func = "encode_int32"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_int32"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -398,6 +408,7 @@ class Fixed64Type(TypeInfo):
     decode_64bit = "value.as_fixed64()"
     encode_func = "encode_fixed64"
     wire_type = WireType.FIXED64  # Uses wire type 1
+    decode_field_accessor = "as_fixed64"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
@@ -420,6 +431,7 @@ class Fixed32Type(TypeInfo):
     decode_32bit = "value.as_fixed32()"
     encode_func = "encode_fixed32"
     wire_type = WireType.FIXED32  # Uses wire type 5
+    decode_field_accessor = "as_fixed32"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
@@ -442,6 +454,7 @@ class BoolType(TypeInfo):
     decode_varint = "value.as_bool()"
     encode_func = "encode_bool"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_bool"
 
     def dump(self, name: str) -> str:
         o = f"out.append(YESNO({name}));"
@@ -465,6 +478,7 @@ class StringType(TypeInfo):
     decode_length = "value.as_string()"
     encode_func = "encode_string"
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
+    decode_field_accessor = "as_string"
 
     def dump(self, name):
         o = f'out.append("\'").append({name}).append("\'");'
@@ -504,6 +518,10 @@ class MessageType(TypeInfo):
     def decode_length(self) -> str:
         return f"value.as_message<{self.cpp_type}>()"
 
+    @property
+    def decode_field_accessor(self) -> str:
+        return f"as_message<{self.cpp_type}>"
+
     def dump(self, name: str) -> str:
         o = f"{name}.dump_to(out);"
         return o
@@ -528,6 +546,7 @@ class BytesType(TypeInfo):
     decode_length = "value.as_string()"
     encode_func = "encode_string"
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
+    decode_field_accessor = "as_string"
 
     def dump(self, name: str) -> str:
         o = f'out.append("\'").append({name}).append("\'");'
@@ -549,6 +568,7 @@ class UInt32Type(TypeInfo):
     decode_varint = "value.as_uint32()"
     encode_func = "encode_uint32"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_uint32"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
@@ -581,6 +601,10 @@ class EnumType(TypeInfo):
     def encode_func(self) -> str:
         return f"encode_enum<{self.cpp_type}>"
 
+    @property
+    def decode_field_accessor(self) -> str:
+        return f"as_enum<{self.cpp_type}>"
+
     def dump(self, name: str) -> str:
         o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
         return o
@@ -601,6 +625,7 @@ class SFixed32Type(TypeInfo):
     decode_32bit = "value.as_sfixed32()"
     encode_func = "encode_sfixed32"
     wire_type = WireType.FIXED32  # Uses wire type 5
+    decode_field_accessor = "as_sfixed32"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -623,6 +648,7 @@ class SFixed64Type(TypeInfo):
     decode_64bit = "value.as_sfixed64()"
     encode_func = "encode_sfixed64"
     wire_type = WireType.FIXED64  # Uses wire type 1
+    decode_field_accessor = "as_sfixed64"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -645,6 +671,7 @@ class SInt32Type(TypeInfo):
     decode_varint = "value.as_sint32()"
     encode_func = "encode_sint32"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_sint32"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -667,6 +694,7 @@ class SInt64Type(TypeInfo):
     decode_varint = "value.as_sint64()"
     encode_func = "encode_sint64"
     wire_type = WireType.VARINT  # Uses wire type 0
+    decode_field_accessor = "as_sint64"
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -808,6 +836,11 @@ class RepeatedTypeInfo(TypeInfo):
         )
         return underlying_size * 2
 
+    @property
+    def decode_field_accessor(self) -> str:
+        # This is handled specially in the decode case generation
+        return self._ti.decode_field_accessor
+
 
 def build_enum_type(desc) -> tuple[str, str]:
     """Builds the enum type."""
@@ -854,10 +887,7 @@ def build_message_type(
 ) -> tuple[str, str]:
     public_content: list[str] = []
     protected_content: list[str] = []
-    decode_varint: list[str] = []
-    decode_length: list[str] = []
-    decode_32bit: list[str] = []
-    decode_64bit: list[str] = []
+    decode_field_cases: list[str] = []
     encode: list[str] = []
     dump: list[str] = []
     size_calc: list[str] = []
@@ -906,57 +936,29 @@ def build_message_type(
         encode.append(ti.encode_content)
         size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
 
-        if ti.decode_varint_content:
-            decode_varint.append(ti.decode_varint_content)
-        if ti.decode_length_content:
-            decode_length.append(ti.decode_length_content)
-        if ti.decode_32bit_content:
-            decode_32bit.append(ti.decode_32bit_content)
-        if ti.decode_64bit_content:
-            decode_64bit.append(ti.decode_64bit_content)
+        # Generate decode_field case
+        if field.label == 3:  # repeated field
+            # For repeated fields, we push_back instead of assign
+            decode_case = f"case {ti.number}: this->{ti.field_name}.push_back(value.{ti._ti.decode_field_accessor}()); return true;"
+        else:
+            decode_case = f"case {ti.number}: this->{ti.field_name} = value.{ti.decode_field_accessor}(); return true;"
+        decode_field_cases.append(decode_case)
+
         if ti.dump_content:
             dump.append(ti.dump_content)
 
     cpp = ""
-    if decode_varint:
-        decode_varint.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
+
+    # Generate single decode_field method
+    if decode_field_cases:
+        decode_field_cases.append("default:\n  return false;")
+        o = f"bool {desc.name}::decode_field(uint32_t field_id, ProtoFieldValue value) {{\n"
         o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_varint), "    ") + "\n"
+        o += indent("\n".join(decode_field_cases), "    ") + "\n"
         o += "  }\n"
         o += "}\n"
         cpp += o
-        prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
-        protected_content.insert(0, prot)
-    if decode_length:
-        decode_length.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_length), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
-        protected_content.insert(0, prot)
-    if decode_32bit:
-        decode_32bit.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_32bit), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
-        protected_content.insert(0, prot)
-    if decode_64bit:
-        decode_64bit.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_64bit), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
+        prot = "bool decode_field(uint32_t field_id, ProtoFieldValue value) override;"
         protected_content.insert(0, prot)
 
     # Only generate encode method if there are fields to encode
@@ -1255,6 +1257,7 @@ def main() -> None:
     #include "api_pb2.h"
     #include "api_pb2_size.h"
     #include "esphome/core/log.h"
+    #include "esphome/core/helpers.h"
 
     #include <cinttypes>
 

@@ -128,6 +128,14 @@ constexpr uint32_t encode_uint32(uint8_t byte1, uint8_t byte2, uint8_t byte3, ui
   return (static_cast<uint32_t>(byte1) << 24) | (static_cast<uint32_t>(byte2) << 16) |
          (static_cast<uint32_t>(byte3) << 8) | (static_cast<uint32_t>(byte4));
 }
+/// Encode value from 8 bytes (big-endian).
+constexpr uint64_t encode_uint64(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4, uint8_t byte5,
+                                 uint8_t byte6, uint8_t byte7, uint8_t byte8) {
+  return (static_cast<uint64_t>(byte1) << 56) | (static_cast<uint64_t>(byte2) << 48) |
+         (static_cast<uint64_t>(byte3) << 40) | (static_cast<uint64_t>(byte4) << 32) |
+         (static_cast<uint64_t>(byte5) << 24) | (static_cast<uint64_t>(byte6) << 16) |
+         (static_cast<uint64_t>(byte7) << 8) | (static_cast<uint64_t>(byte8));
+}
 
 /// Encode a value from its constituent bytes (from most to least significant) in an array with length sizeof(T).
 template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> constexpr T encode_value(const uint8_t *bytes) {
