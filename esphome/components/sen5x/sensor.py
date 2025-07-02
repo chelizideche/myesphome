@@ -311,7 +311,7 @@ async def to_code(config):
 
 SEN5X_ACTION_SCHEMA = maybe_simple_id(
     {
-        cv.Required(CONF_ID): cv.use_id(SEN5XComponent),
+        cv.GenerateID(): cv.use_id(SEN5XComponent),
     }
 )
 
@@ -320,19 +320,21 @@ SEN5X_ACTION_SCHEMA = maybe_simple_id(
     "sen5x.start_fan_autoclean", StartFanAction, SEN5X_ACTION_SCHEMA
 )
 async def sen5x_fan_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(action_id, template_arg, paren)
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    return var
 
 
 @automation.register_action(
     "sen5x.activate_heater", ActivateHeaterAction, SEN5X_ACTION_SCHEMA
 )
 async def sen5x_ah_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(action_id, template_arg, paren)
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    return var
 
 
-SEN5X_CALIBRATE_ACTION_SCHEMA = maybe_simple_id(
+SEN5X_VALUE_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.GenerateID(): cv.use_id(SEN5XComponent),
         cv.Required(CONF_VALUE): cv.templatable(cv.positive_int),
@@ -343,7 +345,7 @@ SEN5X_CALIBRATE_ACTION_SCHEMA = maybe_simple_id(
 @automation.register_action(
     "sen5x.perform_forced_co2_calibration",
     PerformForcedCo2CalibrationAction,
-    SEN5X_CALIBRATE_ACTION_SCHEMA,
+    SEN5X_VALUE_ACTION_SCHEMA,
 )
 async def sen5x_pfcc_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
@@ -364,7 +366,7 @@ SEN5X_PRESSURE_ACTION_SCHEMA = maybe_simple_id(
 @automation.register_action(
     "sen5x.set_ambient_pressure_hpa",
     SetAmbientPressurehPa,
-    SEN5X_PRESSURE_ACTION_SCHEMA,
+    SEN5X_VALUE_ACTION_SCHEMA,
 )
 async def sen5x_saph_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
