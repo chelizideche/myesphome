@@ -300,13 +300,16 @@ class APIConnection : public APIServerConnection {
   // Helper method to process multiple entities from an iterator in a batch
   template<typename Iterator> void process_iterator_batch(Iterator &iterator) {
     const uint32_t start_time = millis();
-    const uint32_t max_time_ms = 5;  // Max 5ms per loop iteration
     size_t batch_size = this->deferred_batch_.size();
-    const size_t max_batch_size = 20;  // Reasonable batch size
 
-    while (!iterator.completed() && (millis() - start_time) < max_time_ms &&
-           (this->deferred_batch_.size() - batch_size) < max_batch_size) {
+    while (!iterator.completed() && (millis() - start_time) < MAX_INITIAL_ENTITY_PROCESSING_TIME_MS &&
+           (this->deferred_batch_.size() - batch_size) < MAX_INITIAL_ENTITIES_PER_BATCH) {
       iterator.advance();
+    }
+
+    // If we've filled the batch, process it immediately
+    if ((this->deferred_batch_.size() - batch_size) >= MAX_INITIAL_ENTITIES_PER_BATCH) {
+      this->process_batch_();
     }
   }
 
