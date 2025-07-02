@@ -307,6 +307,7 @@ TIME_SCHEMA = cv.Schema(
 async def setup_time_core_(time_var, config):
     if timezone := config.get(CONF_TIMEZONE):
         cg.add(time_var.set_timezone(timezone))
+        cg.add_define("USE_TIME_TIMEZONE")
 
     for conf in config.get(CONF_ON_TIME, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], time_var)

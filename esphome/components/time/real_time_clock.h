@@ -19,7 +19,7 @@ namespace time {
 class RealTimeClock : public PollingComponent {
  public:
   explicit RealTimeClock();
-#ifndef USE_ZEPHYR
+#ifdef USE_TIME_TIMEZONE
   /// Set the time zone.
   void set_timezone(const std::string &tz) {
     this->timezone_ = tz;
@@ -45,7 +45,7 @@ class RealTimeClock : public PollingComponent {
  protected:
   /// Report a unix epoch as current time.
   void synchronize_epoch_(uint32_t epoch);
-#ifndef USE_ZEPHYR
+#ifdef USE_TIME_TIMEZONE
   std::string timezone_{};
   void apply_timezone_();
 #endif
