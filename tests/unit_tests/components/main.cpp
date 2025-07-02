@@ -9,7 +9,6 @@ void original_setup() {
 
   // ========== AUTO GENERATED CODE BEGIN ===========
   // =========== AUTO GENERATED CODE END ============
-  App.setup();
 }
 
 void setup() {

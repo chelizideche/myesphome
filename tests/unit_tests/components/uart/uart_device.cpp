@@ -90,8 +90,6 @@ TEST(UARTDeviceTest, WriteStrForwardsToWriteArray) {
   MockUARTComponent mock;
   UARTDevice dev(&mock);
   const char *str = "ESPHome";
-  const uint8_t *captured_data = nullptr;
-  size_t captured_len = 0;
   dev.write_str(str);
   EXPECT_EQ(mock.written_data.size(), strlen(str));
   EXPECT_EQ(0, strncmp(str, (const char *) mock.written_data.data(), mock.written_data.size()));
