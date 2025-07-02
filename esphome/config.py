@@ -468,7 +468,7 @@ class AutoLoadValidationStep(ConfigValidationStep):
             result[component_name] = []
 
         # Check if platform already exists
-        for i, conf in enumerate(result[component_name]):
+        for conf in result[component_name]:
             if isinstance(conf, dict) and conf.get(CONF_PLATFORM) == platform_name:
                 # Platform already exists
                 return
