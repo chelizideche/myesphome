@@ -47,8 +47,7 @@ void PIDClimate::control(const climate::ClimateCall &call) {
     this->target_temperature = *call.get_target_temperature();
 
   // If switching to off mode, set output immediately
-  if (this->mode == climate::CLIMATE_MODE_OFF)
-    this->write_output_(0.0f);
+  this->write_output_();
 
   this->publish_state();
 }
@@ -93,8 +92,20 @@ void PIDClimate::dump_config() {
     this->autotuner_->dump_config();
   }
 }
-void PIDClimate::write_output_(float value) {
-  this->output_value_ = value;
+float PIDClimate::clamp_value_by_mode_(float value) const {
+  switch (this->mode) {
+    case climate::CLIMATE_MODE_OFF:
+      return 0.0f;
+    case climate::CLIMATE_MODE_HEAT:
+      return std::max(0.0f, value);
+    case climate::CLIMATE_MODE_COOL:
+      return std::min(0.0f, value);
+    default:
+      return value;
+  }
+}
+void PIDClimate::write_output_() {
+  const float value = this->clamp_value_by_mode_(this->output_value_);
 
   // first ensure outputs are off (both outputs not active at the same time)
   if (this->supports_cool_() && value >= 0)
@@ -150,11 +161,8 @@ void PIDClimate::update_pid_() {
     }
   }
 
-  if (this->mode == climate::CLIMATE_MODE_OFF) {
-    this->write_output_(0.0);
-  } else {
-    this->write_output_(value);
-  }
+  this->output_value_ = value;
+  this->write_output_();
 
   if (this->do_publish_)
     this->publish_state();

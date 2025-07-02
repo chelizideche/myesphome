@@ -84,7 +84,10 @@ class PIDClimate : public climate::Climate, public Component {
   bool supports_cool_() const { return this->cool_output_ != nullptr; }
   bool supports_heat_() const { return this->heat_output_ != nullptr; }
 
-  void write_output_(float value);
+  /// Return cloest possible output value with respect to mode
+  float clamp_value_by_mode_(float value) const;
+
+  void write_output_();
 
   /// The sensor used for getting the current temperature
   sensor::Sensor *sensor_;
