@@ -1,0 +1,35 @@
+one_wire:
+  - platform: gpio
+    pin: GPIO0
+    id: OnWireBus1
+
+dallas_pio:
+  - name: DS2413 IC1
+    id: ds2413_ic1
+    reference: DS2413
+    address: 0xfe10055073e122ba
+    one_wire_id: OnWireBus1
+
+binary_sensor:
+  - platform: dallas_pio
+    name: DS2413 Binary Sensor
+    dallas_pio_id: ds2413_ic1
+    id: ds2413_binary_sensor
+    pin:
+      number: PIOA
+      mode:
+        input: true
+      inverted: true
+    update_interval: 1s
+
+switch:
+  - platform: dallas_pio
+    name: DS2413 Switch
+    dallas_pio_id: ds2413_ic1
+    id: ds2413_switch
+    pin:
+      number: PIOB
+      mode:
+        output: true
+      inverted: false
+    inverted: false
