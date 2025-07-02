@@ -84,7 +84,7 @@ void ZephyrGPIOPin::pin_mode(gpio::Flags flags) {
 
 std::string ZephyrGPIOPin::dump_summary() const {
   char buffer[32];
-  snprintf(buffer, sizeof(buffer), "GPIO%u", this->pin_);
+  snprintf(buffer, sizeof(buffer), "GPIO%u, P%u.%u", this->pin_, this->pin_ / 32, this->pin_ % 32);
   return buffer;
 }
 
