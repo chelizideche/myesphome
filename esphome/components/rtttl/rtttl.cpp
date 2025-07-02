@@ -142,8 +142,10 @@ void Rtttl::stop() {
 }
 
 void Rtttl::loop() {
-  if (this->note_duration_ == 0 || this->state_ == State::STATE_STOPPED)
+  if (this->note_duration_ == 0 || this->state_ == State::STATE_STOPPED) {
+    this->disable_loop();
     return;
+  }
 
 #ifdef USE_SPEAKER
   if (this->speaker_ != nullptr) {
@@ -369,6 +371,7 @@ void Rtttl::finish_() {
   ESP_LOGD(TAG, "Playback finished");
 }
 
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
 static const LogString *state_to_string(State state) {
   switch (state) {
     case STATE_STOPPED:
@@ -385,12 +388,18 @@ static const LogString *state_to_string(State state) {
       return LOG_STR("UNKNOWN");
   }
 };
+#endif
 
 void Rtttl::set_state_(State state) {
   State old_state = this->state_;
   this->state_ = state;
   ESP_LOGV(TAG, "State changed from %s to %s", LOG_STR_ARG(state_to_string(old_state)),
            LOG_STR_ARG(state_to_string(state)));
+
+  // Clear loop_done when transitioning from STOPPED to any other state
+  if (old_state == State::STATE_STOPPED && state != State::STATE_STOPPED) {
+    this->enable_loop();
+  }
 }
 
 }  // namespace rtttl
