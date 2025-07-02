@@ -544,12 +544,16 @@ class BytesType(TypeInfo):
     reference_type = "std::string &"
     const_reference_type = "const std::string &"
     decode_length = "value.as_string()"
-    encode_func = "encode_string"
+    encode_func = "encode_bytes"
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
     decode_field_accessor = "as_string"
 
+    @property
+    def encode_content(self) -> str:
+        return f"buffer.encode_bytes({self.number}, reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size());"
+
     def dump(self, name: str) -> str:
-        o = f'out.append("\'").append({name}).append("\'");'
+        o = f"out.append(format_hex_pretty({name}));"
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
@@ -1349,8 +1353,10 @@ namespace api {
 
     cpp = FILE_HEADER
     cpp += """\
-#include "api_pb2.h"
-#include "api_pb2_size.h"
+    #include "api_pb2.h"
+    #include "api_pb2_size.h"
+    #include "esphome/core/log.h"
+    #include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace api {
@@ -1611,7 +1617,7 @@ static const char *const TAG = "api.service";
         needs_conn = get_opt(m, pb.needs_setup_connection, True)
         needs_auth = get_opt(m, pb.needs_authentication, True)
 
-        ifdef = ifdefs.get(inp, None)
+        ifdef = message_ifdef_map.get(inp, ifdefs.get(inp, None))
 
         if ifdef is not None:
             hpp += f"#ifdef {ifdef}\n"
