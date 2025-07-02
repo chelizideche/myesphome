@@ -71,13 +71,13 @@ bool Nextion::check_connect_() {
     }
     this->send_command_("connect");
 
-    this->comok_sent_ = millis();
+    this->comok_sent_ = App.get_loop_component_start_time();
     this->ignore_is_setup_ = false;
 
     return false;
   }
 
-  if (millis() - this->comok_sent_ <= 500)  // Wait 500 ms
+  if (App.get_loop_component_start_time() - this->comok_sent_ <= 500)  // Wait 500 ms
     return false;
 
   std::string response;
@@ -318,14 +318,37 @@ void Nextion::loop() {
 
   if (!this->nextion_reports_is_setup_) {
     if (this->started_ms_ == 0)
-      this->started_ms_ = millis();
+      this->started_ms_ = App.get_loop_component_start_time();
 
-    if (this->started_ms_ + this->startup_override_ms_ < millis()) {
+    if (this->started_ms_ + this->startup_override_ms_ < App.get_loop_component_start_time()) {
       ESP_LOGD(TAG, "Manual ready set");
       this->nextion_reports_is_setup_ = true;
     }
   }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+  // Try to send any pending commands if spacing allows
+  this->process_pending_in_queue_();
+#endif  // USE_NEXTION_COMMAND_SPACING
 }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+void Nextion::process_pending_in_queue_() {
+  if (this->nextion_queue_.empty() || !this->command_pacer_.can_send()) {
+    return;
+  }
+
+  // Check if first item in queue has a pending command
+  auto *front_item = this->nextion_queue_.front();
+  if (front_item && !front_item->pending_command.empty()) {
+    if (this->send_command_(front_item->pending_command)) {
+      // Command sent successfully, clear the pending command
+      front_item->pending_command.clear();
+      ESP_LOGVV(TAG, "Pending command sent: %s", front_item->component->get_variable_name().c_str());
+    }
+  }
+}
+#endif  // USE_NEXTION_COMMAND_SPACING
 
 bool Nextion::remove_from_q_(bool report_empty) {
   if (this->nextion_queue_.empty()) {
@@ -409,7 +432,7 @@ void Nextion::process_nextion_commands_() {
       case 0x01:  // instruction sent by user was successful
 
         ESP_LOGVV(TAG, "Cmd OK");
-        ESP_LOGN(TAG, "this->nextion_queue_.empty() %s", this->nextion_queue_.empty() ? "True" : "False");
+        ESP_LOGN(TAG, "this->nextion_queue_.empty() %s", YESNO(this->nextion_queue_.empty()));
 
         this->remove_from_q_();
         if (!this->is_setup_) {
@@ -421,7 +444,7 @@ void Nextion::process_nextion_commands_() {
         }
 #ifdef USE_NEXTION_COMMAND_SPACING
         this->command_pacer_.mark_sent();  // Here is where we should mark the command as sent
-        ESP_LOGN(TAG, "Command spacing: marked command sent at %u ms", millis());
+        ESP_LOGN(TAG, "Command spacing: marked command sent");
 #endif
         break;
       case 0x02:  // invalid Component ID or name was used
@@ -805,7 +828,7 @@ void Nextion::process_nextion_commands_() {
     this->command_data_.erase(0, to_process_length + COMMAND_DELIMITER.length() + 1);
   }
 
-  uint32_t ms = millis();
+  uint32_t ms = App.get_loop_component_start_time();
 
   if (!this->nextion_queue_.empty() && this->nextion_queue_.front()->queue_time + this->max_q_age_ms_ < ms) {
     for (size_t i = 0; i < this->nextion_queue_.size(); i++) {
@@ -940,11 +963,10 @@ uint16_t Nextion::recv_ret_string_(std::string &response, uint32_t timeout, bool
   uint16_t ret = 0;
   uint8_t c = 0;
   uint8_t nr_of_ff_bytes = 0;
-  uint64_t start;
   bool exit_flag = false;
   bool ff_flag = false;
 
-  start = millis();
+  const uint32_t start = millis();
 
   while ((timeout == 0 && this->available()) || millis() - start <= timeout) {
     if (!this->available()) {
@@ -1034,8 +1056,41 @@ void Nextion::add_no_result_to_queue_with_command_(const std::string &variable_n
 
   if (this->send_command_(command)) {
     this->add_no_result_to_queue_(variable_name);
+#ifdef USE_NEXTION_COMMAND_SPACING
+  } else {
+    // Command blocked by spacing, add to queue WITH the command for retry
+    this->add_no_result_to_queue_with_pending_command_(variable_name, command);
+#endif  // USE_NEXTION_COMMAND_SPACING
   }
 }
+
+#ifdef USE_NEXTION_COMMAND_SPACING
+void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &variable_name,
+                                                           const std::string &command) {
+#ifdef USE_NEXTION_MAX_QUEUE_SIZE
+  if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
+    ESP_LOGW(TAG, "Queue full (%zu), drop: %s", this->nextion_queue_.size(), variable_name.c_str());
+    return;
+  }
+#endif
+
+  RAMAllocator<nextion::NextionQueue> allocator;
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Queue alloc failed");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
+
+  nextion_queue->component = new nextion::NextionComponentBase;
+  nextion_queue->component->set_variable_name(variable_name);
+  nextion_queue->queue_time = App.get_loop_component_start_time();
+  nextion_queue->pending_command = command;  // Store command for retry
+
+  this->nextion_queue_.push_back(nextion_queue);
+  ESP_LOGVV(TAG, "Queue with pending command: %s", variable_name.c_str());
+}
+#endif  // USE_NEXTION_COMMAND_SPACING
 
 bool Nextion::add_no_result_to_queue_with_ignore_sleep_printf_(const std::string &variable_name, const char *format,
                                                                ...) {
@@ -1168,7 +1223,7 @@ void Nextion::add_to_get_queue(NextionComponentBase *component) {
   new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
-  nextion_queue->queue_time = millis();
+  nextion_queue->queue_time = App.get_loop_component_start_time();
 
   ESP_LOGN(TAG, "Queue %s: %s", component->get_queue_type_string().c_str(), component->get_variable_name().c_str());
 
@@ -1200,7 +1255,7 @@ void Nextion::add_addt_command_to_queue(NextionComponentBase *component) {
   new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
-  nextion_queue->queue_time = millis();
+  nextion_queue->queue_time = App.get_loop_component_start_time();
 
   this->waveform_queue_.push_back(nextion_queue);
   if (this->waveform_queue_.size() == 1)

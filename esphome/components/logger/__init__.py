@@ -16,7 +16,11 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S3,
 )
 from esphome.components.libretiny import get_libretiny_component, get_libretiny_family
-from esphome.components.libretiny.const import COMPONENT_BK72XX, COMPONENT_RTL87XX
+from esphome.components.libretiny.const import (
+    COMPONENT_BK72XX,
+    COMPONENT_LN882X,
+    COMPONENT_RTL87XX,
+)
 from esphome.components.zephyr import (
     zephyr_add_cdc_acm,
     zephyr_add_overlay,
@@ -41,6 +45,7 @@ from esphome.const import (
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
+    PLATFORM_LN882X,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
 )
@@ -106,6 +111,7 @@ UART_SELECTION_ESP8266 = [UART0, UART0_SWAP, UART1]
 
 UART_SELECTION_LIBRETINY = {
     COMPONENT_BK72XX: [DEFAULT, UART1, UART2],
+    COMPONENT_LN882X: [DEFAULT, UART0, UART1, UART2],
     COMPONENT_RTL87XX: [DEFAULT, UART0, UART1, UART2],
 }
 
@@ -196,7 +202,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(Logger),
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
-            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
+            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.All(
+                cv.validate_bytes, cv.int_range(min=160, max=65535)
+            ),
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             cv.SplitDefault(
                 CONF_TASK_LOG_BUFFER_SIZE,
@@ -227,6 +235,7 @@ CONFIG_SCHEMA = cv.All(
                 esp32_p4_idf=USB_SERIAL_JTAG,
                 rp2040=USB_CDC,
                 bk72xx=DEFAULT,
+                ln882x=DEFAULT,
                 rtl87xx=DEFAULT,
                 nrf52=USB_CDC,
             ): cv.All(
@@ -236,6 +245,7 @@ CONFIG_SCHEMA = cv.All(
                         PLATFORM_ESP32,
                         PLATFORM_RP2040,
                         PLATFORM_BK72XX,
+                        PLATFORM_LN882X,
                         PLATFORM_RTL87XX,
                         PLATFORM_NRF52,
                     ]
