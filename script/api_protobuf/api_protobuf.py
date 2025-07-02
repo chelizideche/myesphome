@@ -850,78 +850,65 @@ def build_type_usage_map(
     Returns:
         tuple: (enum_ifdef_map, message_ifdef_map)
     """
-    enum_ifdef_map = {}
-    message_ifdef_map = {}
+    enum_ifdef_map: dict[str, str | None] = {}
+    message_ifdef_map: dict[str, str | None] = {}
 
-    # First, build maps of which types are used by which messages
-    enum_usage = {}  # enum_name -> set of message names that use it
-    message_usage = {}  # message_name -> set of message names that use it
+    # Build maps of which types are used by which messages
+    enum_usage: dict[
+        str, set[str]
+    ] = {}  # enum_name -> set of message names that use it
+    message_usage: dict[
+        str, set[str]
+    ] = {}  # message_name -> set of message names that use it
 
+    # Build message name to ifdef mapping for quick lookup
+    message_to_ifdef: dict[str, str | None] = {
+        msg.name: get_opt(msg, pb.ifdef) for msg in file_desc.message_type
+    }
+
+    # Analyze field usage
     for message in file_desc.message_type:
         for field in message.field:
-            # Check if this field is an enum type
+            type_name = field.type_name.split(".")[-1] if field.type_name else None
+            if not type_name:
+                continue
+
+            # Track enum usage
             if field.type == 14:  # TYPE_ENUM
-                enum_name = field.type_name.split(".")[-1]  # Remove package prefix
-                if enum_name not in enum_usage:
-                    enum_usage[enum_name] = set()
-                enum_usage[enum_name].add(message.name)
-            # Check if this field is a message type
+                enum_usage.setdefault(type_name, set()).add(message.name)
+            # Track message usage
             elif field.type == 11:  # TYPE_MESSAGE
-                msg_name = field.type_name.split(".")[-1]  # Remove package prefix
-                if msg_name not in message_usage:
-                    message_usage[msg_name] = set()
-                message_usage[msg_name].add(message.name)
+                message_usage.setdefault(type_name, set()).add(message.name)
 
-    # Helper function to get ifdef for a message
-    def get_message_ifdef(msg_name):
-        for msg in file_desc.message_type:
-            if msg.name == msg_name:
-                return get_opt(msg, pb.ifdef)
-        return None
+    # Helper to get unique ifdef from a set of messages
+    def get_unique_ifdef(message_names: set[str]) -> str | None:
+        ifdefs = {
+            message_to_ifdef[name]
+            for name in message_names
+            if message_to_ifdef.get(name)
+        }
+        return ifdefs.pop() if len(ifdefs) == 1 else None
 
-    # Determine ifdef for each enum based on messages that use it
+    # Build enum ifdef map
     for enum in file_desc.enum_type:
-        enum_name = enum.name
-
-        if enum_name in enum_usage:
-            # Find all unique ifdefs from messages that use this enum
-            ifdefs = set()
-            for msg_name in enum_usage[enum_name]:
-                ifdef = get_message_ifdef(msg_name)
-                if ifdef:
-                    ifdefs.add(ifdef)
-
-            # If all messages that use this enum have the same ifdef, use it
-            if len(ifdefs) == 1:
-                enum_ifdef_map[enum_name] = ifdefs.pop()
-            else:
-                enum_ifdef_map[enum_name] = None
+        if enum.name in enum_usage:
+            enum_ifdef_map[enum.name] = get_unique_ifdef(enum_usage[enum.name])
         else:
-            enum_ifdef_map[enum_name] = None
+            enum_ifdef_map[enum.name] = None
 
-    # Determine ifdef for each message
+    # Build message ifdef map
     for message in file_desc.message_type:
-        msg_name = message.name
-
-        # First check if message has explicit ifdef
-        explicit_ifdef = get_opt(message, pb.ifdef)
+        # Explicit ifdef takes precedence
+        explicit_ifdef = message_to_ifdef.get(message.name)
         if explicit_ifdef:
-            message_ifdef_map[msg_name] = explicit_ifdef
-        elif msg_name in message_usage:
-            # Message doesn't have explicit ifdef, check parent messages
-            ifdefs = set()
-            for parent_msg_name in message_usage[msg_name]:
-                ifdef = get_message_ifdef(parent_msg_name)
-                if ifdef:
-                    ifdefs.add(ifdef)
-
-            # If all parent messages have the same ifdef, inherit it
-            if len(ifdefs) == 1:
-                message_ifdef_map[msg_name] = ifdefs.pop()
-            else:
-                message_ifdef_map[msg_name] = None
+            message_ifdef_map[message.name] = explicit_ifdef
+        elif message.name in message_usage:
+            # Inherit ifdef if all parent messages have the same one
+            message_ifdef_map[message.name] = get_unique_ifdef(
+                message_usage[message.name]
+            )
         else:
-            message_ifdef_map[msg_name] = None
+            message_ifdef_map[message.name] = None
 
     return enum_ifdef_map, message_ifdef_map
 
