@@ -142,9 +142,7 @@ void APIConnection::loop() {
   }
 
   // Process deferred batch if scheduled
-  // Skip timer-based processing if we're sending initial states to allow proper batching
-  if (this->flags_.batch_scheduled && !this->flags_.sending_initial_states &&
-      now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
+  if (this->flags_.batch_scheduled && now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
     this->process_batch_();
   }
 
