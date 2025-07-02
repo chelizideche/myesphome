@@ -159,14 +159,16 @@ void APIConnection::loop() {
     this->process_batch_();
   }
 
-  if (!this->list_entities_iterator_.completed()) {
-    this->process_iterator_batch(this->list_entities_iterator_);
-  } else if (!this->initial_state_iterator_.completed()) {
-    this->process_iterator_batch(this->initial_state_iterator_);
+  if (this->flags_.sending_initial_states) {
+    if (!this->list_entities_iterator_.completed()) {
+      this->process_iterator_batch(this->list_entities_iterator_);
+    } else if (!this->initial_state_iterator_.completed()) {
+      this->process_iterator_batch(this->initial_state_iterator_);
 
-    // If we've completed initial states, clear the flag to enable immediate sending
-    if (this->initial_state_iterator_.completed()) {
-      this->flags_.sending_initial_states = false;
+      // If we've completed initial states, clear the flag to enable immediate sending
+      if (this->initial_state_iterator_.completed()) {
+        this->flags_.sending_initial_states = false;
+      }
     }
   }
 
