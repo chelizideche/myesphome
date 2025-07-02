@@ -593,7 +593,7 @@ class MemoryAnalyzer:
         self._categorize_symbols()
         return dict(self.components)
 
-    def _parse_sections(self):
+    def _parse_sections(self) -> None:
         """Parse section headers from ELF file."""
         try:
             result = subprocess.run(
@@ -637,8 +637,59 @@ class MemoryAnalyzer:
             _LOGGER.error(f"Failed to parse sections: {e}")
             raise
 
-    def _parse_symbols(self):
+    def _parse_symbols(self) -> None:
         """Parse symbols from ELF file."""
+        # Section mapping - centralizes the logic
+        SECTION_MAPPING = {
+            ".text": [".text", ".iram"],
+            ".rodata": [".rodata"],
+            ".data": [".data", ".dram"],
+            ".bss": [".bss"],
+        }
+
+        def map_section_name(raw_section: str) -> str | None:
+            """Map raw section name to standard section."""
+            for standard_section, patterns in SECTION_MAPPING.items():
+                if any(pattern in raw_section for pattern in patterns):
+                    return standard_section
+            return None
+
+        def parse_symbol_line(line: str) -> tuple[str, str, int] | None:
+            """Parse a single symbol line from objdump output.
+
+            Returns (section, name, size) or None if not a valid symbol.
+            Format: address l/g w/d F/O section size name
+            Example: 40084870 l     F .iram0.text    00000000 _xt_user_exc
+            """
+            parts = line.split()
+            if len(parts) < 5:
+                return None
+
+            try:
+                # Validate address
+                int(parts[0], 16)
+            except ValueError:
+                return None
+
+            # Look for F (function) or O (object) flag
+            if "F" not in parts and "O" not in parts:
+                return None
+
+            # Find section, size, and name
+            for i, part in enumerate(parts):
+                if part.startswith("."):
+                    section = map_section_name(part)
+                    if section and i + 1 < len(parts):
+                        try:
+                            size = int(parts[i + 1], 16)
+                            if i + 2 < len(parts) and size > 0:
+                                name = " ".join(parts[i + 2 :])
+                                return (section, name, size)
+                        except ValueError:
+                            pass
+                    break
+            return None
+
         try:
             result = subprocess.run(
                 [self.objdump_path, "-t", str(self.elf_path)],
@@ -648,60 +699,17 @@ class MemoryAnalyzer:
             )
 
             for line in result.stdout.splitlines():
-                # Parse symbol table entries
-                # Format: address l/g w/d F/O section size name
-                # Example: 40084870 l     F .iram0.text	00000000 _xt_user_exc
-                parts = line.split()
-                if len(parts) >= 5:
-                    try:
-                        # Check if this looks like a symbol entry
-                        int(parts[0], 16)
-
-                        # Look for F (function) or O (object) flag
-                        if "F" in parts or "O" in parts:
-                            # Find the section name
-                            section = None
-                            size = 0
-                            name = None
-
-                            for i, part in enumerate(parts):
-                                if part.startswith("."):
-                                    # Map section names
-                                    if ".text" in part or ".iram" in part:
-                                        section = ".text"
-                                    elif ".rodata" in part:
-                                        section = ".rodata"
-                                    elif ".data" in part or ".dram" in part:
-                                        section = ".data"
-                                    elif ".bss" in part:
-                                        section = ".bss"
-
-                                    if section and i + 1 < len(parts):
-                                        try:
-                                            # Next field should be size
-                                            size = int(parts[i + 1], 16)
-                                            # Rest is the symbol name
-                                            if i + 2 < len(parts):
-                                                name = " ".join(parts[i + 2 :])
-                                        except ValueError:
-                                            pass
-                                    break
-
-                            if section and name and size > 0:
-                                if section in self.sections:
-                                    self.sections[section].symbols.append(
-                                        (name, size, "")
-                                    )
-
-                    except ValueError:
-                        # Not a valid address, skip
-                        continue
+                symbol_info = parse_symbol_line(line)
+                if symbol_info:
+                    section, name, size = symbol_info
+                    if section in self.sections:
+                        self.sections[section].symbols.append((name, size, ""))
 
         except subprocess.CalledProcessError as e:
             _LOGGER.error(f"Failed to parse symbols: {e}")
             raise
 
-    def _categorize_symbols(self):
+    def _categorize_symbols(self) -> None:
         """Categorize symbols by component."""
         # First, collect all unique symbol names for batch demangling
         all_symbols = set()
