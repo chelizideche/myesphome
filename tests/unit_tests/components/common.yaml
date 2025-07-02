@@ -12,7 +12,7 @@ esphome:
       - "-g3"  # max debug info
       - "-ggdb3"
   includes:
-    - ../main.cpp
+    - main.cpp
 
 host:
 
