@@ -10,7 +10,7 @@ time:
     id: sntp_time
 
 display:
-  - platform: addressable_light_digital_display
+  - platform: addressable_light_digital
     id: digital_clock
     name: Digital Clock
     light_id: digital_display_light

@@ -8,7 +8,7 @@
 #include "printable.h"
 
 namespace esphome {
-namespace addressable_light_digital_display {
+namespace addressable_light_digital {
 using namespace esphome::light;
 
 class DigitalDisplay;
@@ -48,5 +48,5 @@ class DigitalDisplay : public PollingComponent, public LightOutput, public Print
   LightState *external_light_state_;
   AddressableLight *internal_light_output_;
 };
-}  // namespace addressable_light_digital_display
+}  // namespace addressable_light_digital
 }  // namespace esphome

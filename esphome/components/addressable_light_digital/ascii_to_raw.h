@@ -3,7 +3,7 @@
 #include "esphome/core/hal.h"
 
 namespace esphome {
-namespace addressable_light_digital_display {
+namespace addressable_light_digital {
 
 const uint8_t UNKNOWN_CHAR = 0b11111111;
 
@@ -114,5 +114,5 @@ const uint8_t ASCII_TO_RAW[] PROGMEM = {
     0b01100011,    // '~', ord 0x7E (degree symbol)
 };
 
-}  // namespace addressable_light_digital_display
+}  // namespace addressable_light_digital
 }  // namespace esphome

@@ -5,9 +5,9 @@
 #include <cstring>
 
 namespace esphome {
-namespace addressable_light_digital_display {
+namespace addressable_light_digital {
 
-static const char *const TAG = "addressable_light_digital_display.digital_display";
+static const char *const TAG = "addressable_light_digital.display";
 
 light::LightTraits DigitalDisplay::get_traits() { return this->internal_light_output_->get_traits(); }
 
@@ -23,17 +23,20 @@ void DigitalDisplay::write_state(light::LightState *state) {
 }
 
 void DigitalDisplay::dump_config() {
-  ESP_LOGCONFIG(TAG, "Light display");
-  ESP_LOGCONFIG(TAG, "  Update interval (ms): %d", this->get_update_interval());
-  ESP_LOGCONFIG(TAG, "  Number of LEDs: %d", this->num_leds_);
-  ESP_LOGCONFIG(TAG, "  LED MAP: %s", (this->led_map_).c_str());
-  ESP_LOGCONFIG(TAG, "  Max characters: %d", this->max_characters_);
-  ESP_LOGCONFIG(TAG, "  Reverse: %s", this->reverse_ ? "True" : "False");
+  ESP_LOGCONFIG(TAG,
+                "Addressable Light Digital:\n"
+                "  Update interval (ms): %d\n"
+                "  Number of LEDs: %d\n"
+                "  LED MAP: %s\n"
+                "  Max number of characters: %d\n"
+                "  Reverse: %s",
+                this->get_update_interval(), this->num_leds_, (this->led_map_).c_str(), this->max_characters_,
+                this->reverse_ ? "True" : "False");
   LOG_UPDATE_INTERVAL(this);
 }
 
 void DigitalDisplay::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up light display ...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->num_leds_ = this->internal_light_output_->size();
   this->led_buffer_ = new bool[this->num_leds_];
 }
@@ -45,7 +48,6 @@ void DigitalDisplay::update() {
 }
 
 void DigitalDisplay::display_() {
-  ESP_LOGV(TAG, "display_()");
   auto val = this->external_light_state_->current_values;
   auto color = color_from_light_color_values(val);
 
@@ -139,7 +141,7 @@ uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
     skip_led = false;
   }
 
-  return 0;
+  return char_index + 1;
 }
 
 void DigitalDisplay::set_writer(writer_t &&writer) { this->writer_ = writer; }
@@ -154,5 +156,5 @@ void DigitalDisplay::set_internal_light(light::LightState *state) {
 
 void DigitalDisplay::set_external_light(light::LightState *state) { this->external_light_state_ = state; }
 
-}  // namespace addressable_light_digital_display
+}  // namespace addressable_light_digital
 }  // namespace esphome

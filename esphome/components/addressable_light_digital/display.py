@@ -15,23 +15,23 @@ CODEOWNERS = ["@daweizhangau"]
 
 CONF_LED_MAP = "led_map"
 CONF_REVERSE = "reverse"
+VALID_MAPPING_CHARS = "XABCDEFG.: "
 
-addressable_light_ns = cg.esphome_ns.namespace("addressable_light_digital_display")
-AddressableLightDisplay = addressable_light_ns.class_(
+addressable_light_digital_ns = cg.esphome_ns.namespace("addressable_light_digital")
+DigitalDisplay = addressable_light_digital_ns.class_(
     "DigitalDisplay", cg.PollingComponent
 )
-AddressableLightDisplayRef = AddressableLightDisplay.operator("ref")
+AddressableLightDisplayRef = DigitalDisplay.operator("ref")
 
 
 def led_map(value):
     value = cv.string(value)
     if not value:
         raise cv.Invalid("Value must not be empty")
-    valid_chars = "XABCDEFG.: "
     for char in value:
-        if char not in valid_chars:
+        if char not in VALID_MAPPING_CHARS:
             raise cv.Invalid(
-                f"led_map must only consist of '{valid_chars}'. The character '{char}' cannot be used"
+                f"led_map must only consist of '{VALID_MAPPING_CHARS}'. The character '{char}' cannot be used"
             )
     return value
 
@@ -39,7 +39,7 @@ def led_map(value):
 CONFIG_SCHEMA = cv.All(
     display.BASIC_DISPLAY_SCHEMA.extend(light.RGB_LIGHT_SCHEMA).extend(
         {
-            cv.GenerateID(): cv.declare_id(AddressableLightDisplay),
+            cv.GenerateID(): cv.declare_id(DigitalDisplay),
             cv.Required(CONF_ADDRESSABLE_LIGHT_ID): cv.use_id(
                 light.AddressableLightState
             ),

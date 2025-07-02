@@ -8,7 +8,7 @@
 #include "esphome/core/time.h"
 
 namespace esphome {
-namespace addressable_light_digital_display {
+namespace addressable_light_digital {
 
 class Printable {
  public:
@@ -32,5 +32,5 @@ class Printable {
   virtual uint8_t print_core(uint8_t pos, const char *str) = 0;
 };
 
-}  // namespace addressable_light_digital_display
+}  // namespace addressable_light_digital
 }  // namespace esphome

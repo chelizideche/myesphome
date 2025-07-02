@@ -4,7 +4,7 @@
 #include "esphome/core/hal.h"
 
 namespace esphome {
-namespace addressable_light_digital_display {
+namespace addressable_light_digital {
 static const char *const TAG = "text_display";
 
 uint8_t Printable::print(uint8_t pos, const char *str) { return this->print_core(pos, str); }
@@ -74,5 +74,5 @@ uint8_t Printable::strftime(uint8_t pos, const char *format, ESPTime time) {
 
 uint8_t Printable::strftime(const char *format, ESPTime time) { return this->strftime(0, format, time); }
 
-}  // namespace addressable_light_digital_display
+}  // namespace addressable_light_digital
 }  // namespace esphome
