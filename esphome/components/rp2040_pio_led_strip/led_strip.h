@@ -67,13 +67,18 @@ class RP2040PIOLEDStripLightOutput : public light::AddressableLight {
   int32_t size() const override { return this->num_leds_; }
   light::LightTraits get_traits() override {
     auto traits = light::LightTraits();
-    this->is_rgbw_ ? traits.set_supported_color_modes({light::ColorMode::RGB_WHITE, light::ColorMode::WHITE})
-                   : traits.set_supported_color_modes({light::ColorMode::RGB});
+
+    if (this->is_rgbw_ || this->is_wrgb_) {
+      traits.set_supported_color_modes({light::ColorMode::RGB_WHITE, light::ColorMode::WHITE});
+    } else {
+      traits.set_supported_color_modes({light::ColorMode::RGB});
+    }
     return traits;
   }
   void set_pin(uint8_t pin) { this->pin_ = pin; }
   void set_num_leds(uint32_t num_leds) { this->num_leds_ = num_leds; }
   void set_is_rgbw(bool is_rgbw) { this->is_rgbw_ = is_rgbw; }
+  void set_is_wrgb(bool is_wrgb) { this->is_wrgb_ = is_wrgb; }
 
   void set_max_refresh_rate(float interval_us) { this->max_refresh_rate_ = interval_us; }
 
@@ -94,7 +99,7 @@ class RP2040PIOLEDStripLightOutput : public light::AddressableLight {
  protected:
   light::ESPColorView get_view_internal(int32_t index) const override;
 
-  size_t get_buffer_size_() const { return this->num_leds_ * (3 + this->is_rgbw_); }
+  size_t get_buffer_size_() const { return this->num_leds_ * (this->is_rgbw_ || this->is_wrgb_ ? 4 : 3); }
 
   static void dma_write_complete_handler_();
 
@@ -104,6 +109,7 @@ class RP2040PIOLEDStripLightOutput : public light::AddressableLight {
   uint8_t pin_;
   uint32_t num_leds_;
   bool is_rgbw_;
+  bool is_wrgb_;
 
   pio_hw_t *pio_;
   uint sm_;

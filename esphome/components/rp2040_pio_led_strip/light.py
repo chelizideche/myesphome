@@ -177,6 +177,7 @@ CHIPSET_TIMINGS = {
     "SM16703": LEDStripTimings(17, 52, 52, 17),
 }
 
+CONF_IS_WRGB = "is_wrgb"
 CONF_BIT0_HIGH = "bit0_high"
 CONF_BIT0_LOW = "bit0_low"
 CONF_BIT1_HIGH = "bit1_high"
@@ -205,6 +206,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_PIO): cv.one_of(0, 1, int=True),
             cv.Optional(CONF_CHIPSET): cv.enum(CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
+            cv.Optional(CONF_IS_WRGB, default=False): cv.boolean,
             cv.Inclusive(
                 CONF_BIT0_HIGH,
                 "custom",
@@ -238,6 +240,7 @@ async def to_code(config):
 
     cg.add(var.set_rgb_order(config[CONF_RGB_ORDER]))
     cg.add(var.set_is_rgbw(config[CONF_IS_RGBW]))
+    cg.add(var.set_is_wrgb(config[CONF_IS_WRGB]))
 
     cg.add(var.set_pio(config[CONF_PIO]))
     cg.add(var.set_program(cg.RawExpression(f"&rp2040_pio_led_strip_{id}_program")))
