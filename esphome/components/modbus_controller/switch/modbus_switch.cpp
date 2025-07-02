@@ -99,6 +99,13 @@ void ModbusSwitch::write_state(bool state) {
                                                              state ? 0xFFFF & this->bitmask : 0u);
       }
     }
+    // publish new value
+    cmd.on_data_func = [this, cmd, state](ModbusRegisterType register_type, uint16_t start_address,
+                                          const std::vector<uint8_t> &data) {
+      // gets called when the write command is ack'd from the device
+      this->parent_->on_write_register_response(cmd.register_type, start_address, data);
+      this->publish_state(state);
+    };
   }
   this->parent_->queue_command(cmd);
   this->publish_state(state);

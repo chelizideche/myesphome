@@ -80,6 +80,14 @@ void ModbusSelect::control(const std::string &value) {
         ModbusCommandItem::create_write_multiple_command(this->parent_, write_address, this->register_count, data);
   }
 
+  // publish new value
+  write_cmd.on_data_func = [this, write_cmd, value](ModbusRegisterType register_type, uint16_t start_address,
+                                                    const std::vector<uint8_t> &data) {
+    // gets called when the write command is ack'd from the device
+    this->parent_->on_write_register_response(write_cmd.register_type, start_address, data);
+    this->publish_state(value);
+  };
+
   this->parent_->queue_command(write_cmd);
 
   if (this->optimistic_)
