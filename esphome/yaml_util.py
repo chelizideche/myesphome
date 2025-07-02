@@ -7,7 +7,6 @@ import inspect
 from io import BytesIO, TextIOBase, TextIOWrapper
 from ipaddress import _BaseAddress, _BaseNetwork
 import logging
-import math
 import os
 from typing import Any
 import uuid
@@ -501,7 +500,11 @@ def dump(dict_, show_secrets=False):
         _SECRET_VALUES.clear()
         _SECRET_CACHE.clear()
     return yaml.dump(
-        dict_, default_flow_style=False, allow_unicode=True, Dumper=ESPHomeDumper
+        dict_,
+        default_flow_style=False,
+        allow_unicode=True,
+        Dumper=ESPHomeDumper,
+        sort_keys=False,
     )
 
 
@@ -528,69 +531,25 @@ def is_secret(value):
 
 
 class ESPHomeDumper(yaml.SafeDumper):
-    def represent_mapping(self, tag, mapping, flow_style=None):
-        value = []
-        node = yaml.MappingNode(tag, value, flow_style=flow_style)
-        if self.alias_key is not None:
-            self.represented_objects[self.alias_key] = node
-        best_style = True
-        if hasattr(mapping, "items"):
-            mapping = list(mapping.items())
-        for item_key, item_value in mapping:
-            node_key = self.represent_data(item_key)
-            node_value = self.represent_data(item_value)
-            if not (isinstance(node_key, yaml.ScalarNode) and not node_key.style):
-                best_style = False
-            if not (isinstance(node_value, yaml.ScalarNode) and not node_value.style):
-                best_style = False
-            value.append((node_key, node_value))
-        if flow_style is None:
-            if self.default_flow_style is not None:
-                node.flow_style = self.default_flow_style
-            else:
-                node.flow_style = best_style
-        return node
-
     def represent_secret(self, value):
         return self.represent_scalar(tag="!secret", value=_SECRET_VALUES[str(value)])
 
     def represent_stringify(self, value):
         if is_secret(value):
             return self.represent_secret(value)
-        return self.represent_scalar(tag="tag:yaml.org,2002:str", value=str(value))
-
-    # pylint: disable=arguments-renamed
-    def represent_bool(self, value):
-        return self.represent_scalar(
-            "tag:yaml.org,2002:bool", "true" if value else "false"
-        )
+        return super().represent_str(str(value))
 
     # pylint: disable=arguments-renamed
     def represent_int(self, value):
         if is_secret(value):
             return self.represent_secret(value)
-        return self.represent_scalar(tag="tag:yaml.org,2002:int", value=str(value))
+        return super().represent_int(value)
 
     # pylint: disable=arguments-renamed
     def represent_float(self, value):
         if is_secret(value):
             return self.represent_secret(value)
-        if math.isnan(value):
-            value = ".nan"
-        elif math.isinf(value):
-            value = ".inf" if value > 0 else "-.inf"
-        else:
-            value = str(repr(value)).lower()
-            # Note that in some cases `repr(data)` represents a float number
-            # without the decimal parts.  For instance:
-            #   >>> repr(1e17)
-            #   '1e17'
-            # Unfortunately, this is not a valid float representation according
-            # to the definition of the `!!float` tag.  We fix this by adding
-            # '.0' before the 'e' symbol.
-            if "." not in value and "e" in value:
-                value = value.replace("e", ".0e", 1)
-        return self.represent_scalar(tag="tag:yaml.org,2002:float", value=value)
+        return super().represent_float(value)
 
     def represent_lambda(self, value):
         if is_secret(value.value):
