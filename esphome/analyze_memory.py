@@ -51,11 +51,36 @@ SYMBOL_PATTERNS = {
         "eTaskGetState",
         "main_task",
         "do_system_init_fn",
+        "xSemaphoreCreateGenericWithCaps",
+        "vListInsert",
+        "uxListRemove",
+        "vRingbufferReturnItem",
+        "vRingbufferReturnItemFromISR",
+        "prvCheckItemFitsByteBuffer",
+        "prvGetCurMaxSizeAllowSplit",
+        "tick_hook",
+        "sys_sem_new",
+        "sys_arch_mbox_fetch",
+        "sys_arch_sem_wait",
+        "prvDeleteTCB",
+        "vQueueDeleteWithCaps",
+        "vRingbufferDeleteWithCaps",
+        "vSemaphoreDeleteWithCaps",
+        "prvCheckItemAvail",
+        "prvCheckTaskCanBeScheduledSMP",
+        "prvGetCurMaxSizeNoSplit",
+        "prvResetNextTaskUnblockTime",
+        "prvReturnItemByteBuf",
+        "vApplicationStackOverflowHook",
+        "vApplicationGetIdleTaskMemory",
+        "sys_init",
+        "sys_mbox_new",
+        "sys_arch_mbox_tryfetch",
     ],
     "xtensa": ["xt_", "_xt_", "xPortEnterCriticalTimeout"],
     "heap": ["heap_", "multi_heap"],
     "spi_flash": ["spi_flash"],
-    "rtc": ["rtc_"],
+    "rtc": ["rtc_", "rtcio_ll_"],
     "gpio_driver": ["gpio_", "pins"],
     "uart_driver": ["uart", "_uart", "UART"],
     "timer": ["timer_", "esp_timer"],
@@ -86,6 +111,11 @@ SYMBOL_PATTERNS = {
         "alloc_socket",
         "done_socket",
         "set_global_fd_sets",
+        "inet_chksum_pbuf",
+        "tryget_socket_unconn_locked",
+        "tryget_socket_unconn",
+        "cs_create_ctrl_sock",
+        "netbuf_alloc",
     ],
     "ipv6_stack": ["nd6_", "ip6_", "mld6_", "icmp6_", "icmp6_input"],
     "wifi_stack": [
@@ -155,6 +185,16 @@ SYMBOL_PATTERNS = {
         "parse_read_local_version_info_response",
         "should_request_high",
         "btdm_wakeup_request",
+        "BTA_SetAttributeValue",
+        "BTA_EnableBluetooth",
+        "transmit_command_futured",
+        "transmit_command",
+        "get_waiting_command",
+        "make_command",
+        "transmit_downward",
+        "host_recv_adv_packet",
+        "copy_extra_byte_in_db",
+        "parse_read_local_supported_commands_response",
     ],
     "crypto_math": [
         "ecp_",
@@ -226,6 +266,45 @@ SYMBOL_PATTERNS = {
         "_link_r",
         "_unsetenv_r",
         "_rename_r",
+        "__month_lengths",
+        "tzinfo",
+        "__ratio",
+        "__hi0bits",
+        "__ulp",
+        "__any_on",
+        "__copybits",
+        "L_shift",
+        "_fcntl_r",
+        "_lseek_r",
+        "_read_r",
+        "_write_r",
+        "_unlink_r",
+        "_fstat_r",
+        "access",
+        "fsync",
+        "tcsetattr",
+        "tcgetattr",
+        "tcflush",
+        "tcdrain",
+        "__ssrefill_r",
+        "_stat_r",
+        "__hexdig_fun",
+        "__mcmp",
+        "_fwalk_sglue",
+        "__fpclassifyf",
+        "_setlocale_r",
+        "_mbrtowc_r",
+        "fcntl",
+        "__match",
+        "_lock_close",
+        "__c$",
+        "__func__$",
+        "__FUNCTION__$",
+        "DAYS_IN_MONTH",
+        "_DAYS_BEFORE_MONTH",
+        "CSWTCH$",
+        "dst$",
+        "sulp",
     ],
     "string_ops": ["strcmp", "strncmp", "strchr", "strstr", "strtok", "strdup"],
     "memory_alloc": ["malloc", "calloc", "realloc", "free", "_sbrk"],
@@ -298,6 +377,12 @@ SYMBOL_PATTERNS = {
         "rxdc_est_min",
         "i2cmst_reg_init",
         "temprature_sens_read",
+        "ram_restart_cal",
+        "ram_write_gain_mem",
+        "ram_wait_rfpll_cal_end",
+        "txcal_debuge_mode",
+        "ant_wifitx_cfg",
+        "reg_init_begin",
     ],
     "wifi_phy_pp": ["pp_", "ppT", "ppR", "ppP", "ppInstall", "ppCalTxAMPDULength"],
     "wifi_lmac": ["lmac"],
@@ -592,6 +677,40 @@ SYMBOL_PATTERNS = {
         "is_vect_desc_usable",
         "io_mode_str",
         "__c$20233",
+        "interface",
+        "read_id_core",
+        "subscribe_idle",
+        "unsubscribe_idle",
+        "s_clkout_handle",
+        "lock_release_generic",
+        "config_set_int",
+        "config_get_int",
+        "config_get_string",
+        "config_has_key",
+        "config_remove_section",
+        "osi_alarm_init",
+        "osi_alarm_deinit",
+        "fixed_queue_enqueue",
+        "fixed_queue_dequeue",
+        "fixed_queue_new",
+        "fixed_pkt_queue_enqueue",
+        "fixed_pkt_queue_new",
+        "list_append",
+        "list_prepend",
+        "list_insert_after",
+        "list_contains",
+        "list_get_node",
+        "hash_function_blob",
+        "cb_no_body",
+        "cb_on_body",
+        "profile_tab",
+        "get_arg",
+        "trim",
+        "buf$",
+        "process_appended_hash_and_sig$constprop$0",
+        "uuidType",
+        "allocate_svc_db_buf",
+        "_hostname_is_ours",
     ],
     "bluetooth_ll": [
         "lld_pdu_",
@@ -603,6 +722,14 @@ SYMBOL_PATTERNS = {
         "config_llm_funcs_reset",
         "llm_set_long_adv_data",
         "lld_retry_tx_prog",
+        "llc_link_sup_to_ind_handler",
+        "config_llc_funcs_reset",
+        "lld_evt_rxwin_compute",
+        "config_btdm_funcs_reset",
+        "config_ea_funcs_reset",
+        "llc_defalut_state_tab_reset",
+        "config_rwip_funcs_reset",
+        "ke_lmp_rx_flooding_detect",
     ],
 }
 
@@ -655,7 +782,7 @@ DEMANGLED_PATTERNS = {
     "libgcc": ["libgcc"],
     "esp_system": ["esp_", "ESP"],
     "arduino": ["arduino"],
-    "nvs": ["nvs_"],
+    "nvs": ["nvs_", "_ZTVN3nvs", "nvs::"],
     "filesystem": ["spiffs", "vfs"],
     "libc": ["newlib"],
 }
@@ -1002,8 +1129,32 @@ class MemoryAnalyzer:
         # Build report
         lines = []
 
+        # Column width constants
+        COL_COMPONENT = 29
+        COL_FLASH_TEXT = 14
+        COL_FLASH_DATA = 14
+        COL_RAM_DATA = 12
+        COL_RAM_BSS = 12
+        COL_TOTAL_FLASH = 15
+        COL_TOTAL_RAM = 12
+        COL_SEPARATOR = 3  # " | "
+
         # Calculate the exact table width
-        table_width = 29 + 3 + 13 + 3 + 13 + 3 + 11 + 3 + 11 + 3 + 14 + 3 + 11
+        table_width = (
+            COL_COMPONENT
+            + COL_SEPARATOR
+            + COL_FLASH_TEXT
+            + COL_SEPARATOR
+            + COL_FLASH_DATA
+            + COL_SEPARATOR
+            + COL_RAM_DATA
+            + COL_SEPARATOR
+            + COL_RAM_BSS
+            + COL_SEPARATOR
+            + COL_TOTAL_FLASH
+            + COL_SEPARATOR
+            + COL_TOTAL_RAM
+        )
 
         lines.append("=" * table_width)
         lines.append("Component Memory Analysis".center(table_width))
@@ -1012,52 +1163,52 @@ class MemoryAnalyzer:
 
         # Main table - fixed column widths
         lines.append(
-            f"{'Component':<29} | {'Flash (text)':>13} | {'Flash (data)':>13} | {'RAM (data)':>11} | {'RAM (bss)':>11} | {'Total Flash':>14} | {'Total RAM':>11}"
+            f"{'Component':<{COL_COMPONENT}} | {'Flash (text)':>{COL_FLASH_TEXT}} | {'Flash (data)':>{COL_FLASH_DATA}} | {'RAM (data)':>{COL_RAM_DATA}} | {'RAM (bss)':>{COL_RAM_BSS}} | {'Total Flash':>{COL_TOTAL_FLASH}} | {'Total RAM':>{COL_TOTAL_RAM}}"
         )
         lines.append(
-            "-" * 29
+            "-" * COL_COMPONENT
             + "-+-"
-            + "-" * 13
+            + "-" * COL_FLASH_TEXT
             + "-+-"
-            + "-" * 13
+            + "-" * COL_FLASH_DATA
             + "-+-"
-            + "-" * 11
+            + "-" * COL_RAM_DATA
             + "-+-"
-            + "-" * 11
+            + "-" * COL_RAM_BSS
             + "-+-"
-            + "-" * 14
+            + "-" * COL_TOTAL_FLASH
             + "-+-"
-            + "-" * 11
+            + "-" * COL_TOTAL_RAM
         )
 
         for name, mem in components:
             if mem.flash_total > 0 or mem.ram_total > 0:
                 flash_rodata = mem.rodata_size + mem.data_size
                 lines.append(
-                    f"{name:<29} | {mem.text_size:>12,} B | {flash_rodata:>12,} B | "
-                    f"{mem.data_size:>10,} B | {mem.bss_size:>10,} B | "
-                    f"{mem.flash_total:>13,} B | {mem.ram_total:>10,} B"
+                    f"{name:<{COL_COMPONENT}} | {mem.text_size:>{COL_FLASH_TEXT - 2},} B | {flash_rodata:>{COL_FLASH_DATA - 2},} B | "
+                    f"{mem.data_size:>{COL_RAM_DATA - 2},} B | {mem.bss_size:>{COL_RAM_BSS - 2},} B | "
+                    f"{mem.flash_total:>{COL_TOTAL_FLASH - 2},} B | {mem.ram_total:>{COL_TOTAL_RAM - 2},} B"
                 )
 
         lines.append(
-            "-" * 29
+            "-" * COL_COMPONENT
             + "-+-"
-            + "-" * 13
+            + "-" * COL_FLASH_TEXT
             + "-+-"
-            + "-" * 13
+            + "-" * COL_FLASH_DATA
             + "-+-"
-            + "-" * 11
+            + "-" * COL_RAM_DATA
             + "-+-"
-            + "-" * 11
+            + "-" * COL_RAM_BSS
             + "-+-"
-            + "-" * 14
+            + "-" * COL_TOTAL_FLASH
             + "-+-"
-            + "-" * 11
+            + "-" * COL_TOTAL_RAM
         )
         lines.append(
-            f"{'TOTAL':<29} | {' ':>12} | {' ':>12} | "
-            f"{' ':>10} | {' ':>10} | "
-            f"{total_flash:>13,} B | {total_ram:>10,} B"
+            f"{'TOTAL':<{COL_COMPONENT}} | {' ':>{COL_FLASH_TEXT}} | {' ':>{COL_FLASH_DATA}} | "
+            f"{' ':>{COL_RAM_DATA}} | {' ':>{COL_RAM_BSS}} | "
+            f"{total_flash:>{COL_TOTAL_FLASH - 2},} B | {total_ram:>{COL_TOTAL_RAM - 2},} B"
         )
 
         # Top consumers
