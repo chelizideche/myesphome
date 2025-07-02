@@ -1194,7 +1194,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
   /**
    * Sets which page Nextion loads when exiting sleep mode. Note this can be set even when Nextion is in sleep mode.
-   * @param wake_up_page The page id, from 0 to the lage page in Nextion. Set -1 (not set to any existing page) to
+   * @param wake_up_page The page id, from 0 to the last page in Nextion. Set -1 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
@@ -1208,7 +1208,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
   /**
    * Sets which page Nextion loads when connecting to ESPHome.
-   * @param start_up_page The page id, from 0 to the lage page in Nextion. Set -1 (not set to any existing page) to
+   * @param start_up_page The page id, from 0 to the last page in Nextion. Set -1 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
