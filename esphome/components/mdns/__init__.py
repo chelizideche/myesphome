@@ -8,8 +8,6 @@ from esphome.const import (
     CONF_PROTOCOL,
     CONF_SERVICE,
     CONF_SERVICES,
-    KEY_CORE,
-    KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
 
@@ -35,8 +33,8 @@ SERVICE_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_SERVICE): cv.string,
         cv.Required(CONF_PROTOCOL): cv.string,
-        cv.Optional(CONF_PORT, default=0): cv.Any(0, cv.port),
-        cv.Optional(CONF_TXT, default={}): {cv.string: cv.string},
+        cv.Optional(CONF_PORT, default=0): cv.templatable(cv.Any(0, cv.port)),
+        cv.Optional(CONF_TXT, default={}): {cv.string: cv.templatable(cv.string)},
     }
 )
 
@@ -85,15 +83,8 @@ async def to_code(config):
         elif CORE.is_rp2040:
             cg.add_library("LEAmDNS", None)
 
-    if CORE.using_esp_idf and CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] >= cv.Version(
-        5, 0, 0
-    ):
-        add_idf_component(
-            name="mdns",
-            repo="https://github.com/espressif/esp-protocols.git",
-            ref="mdns-v1.3.2",
-            path="components/mdns",
-        )
+    if CORE.using_esp_idf:
+        add_idf_component(name="espressif/mdns", ref="1.8.2")
 
     cg.add_define("USE_MDNS")
 
@@ -102,12 +93,18 @@ async def to_code(config):
 
     for service in config[CONF_SERVICES]:
         txt = [
-            mdns_txt_record(txt_key, txt_value)
+            cg.StructInitializer(
+                MDNSTXTRecord,
+                ("key", txt_key),
+                ("value", await cg.templatable(txt_value, [], cg.std_string)),
+            )
             for txt_key, txt_value in service[CONF_TXT].items()
         ]
-
         exp = mdns_service(
-            service[CONF_SERVICE], service[CONF_PROTOCOL], service[CONF_PORT], txt
+            service[CONF_SERVICE],
+            service[CONF_PROTOCOL],
+            await cg.templatable(service[CONF_PORT], [], cg.uint16),
+            txt,
         )
 
         cg.add(var.add_extra_service(exp))
