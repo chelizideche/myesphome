@@ -104,7 +104,7 @@ void ESP32TouchComponent::loop() {
 
       // Track when we last saw this pad as touched
       if (new_state) {
-        this->last_touch_time_[event.pad] = now;
+        child->last_touch_time_ = now;
       }
 
       // Only publish if state changed - this filters out repeated events
@@ -135,7 +135,7 @@ void ESP32TouchComponent::loop() {
     if (child->last_state_) {
       // Pad is currently in touched state - check for release timeout
       // Using subtraction handles 32-bit rollover correctly
-      uint32_t time_diff = now - this->last_touch_time_[pad];
+      uint32_t time_diff = now - child->last_touch_time_;
 
       // Check if we haven't seen this pad recently
       if (time_diff > this->release_timeout_ms_) {

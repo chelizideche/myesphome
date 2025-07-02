@@ -18,16 +18,12 @@ void ESP32TouchComponent::update_touch_state_(ESP32TouchBinarySensor *child, boo
   }
 
   if (child->last_state_ != is_touched) {
-    // Read value for logging
-    uint32_t value = this->read_touch_value(child->touch_pad_);
-
     child->last_state_ = is_touched;
     child->publish_state(is_touched);
     if (is_touched) {
-      touch_pad_read_benchmark(child->touch_pad_, &child->benchmark_);
       // ESP32-S2/S3 v2: touched when value > threshold
       ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " > threshold: %" PRIu32 ")", child->get_name().c_str(),
-               value, child->threshold_ + child->benchmark_);
+               this->read_touch_value(child->touch_pad_), child->threshold_ + child->benchmark_);
     } else {
       ESP_LOGV(TAG, "Touch Pad '%s' state: OFF", child->get_name().c_str());
     }
@@ -39,9 +35,10 @@ bool ESP32TouchComponent::check_and_update_touch_state_(ESP32TouchBinarySensor *
   // Read current touch value
   uint32_t value = this->read_touch_value(child->touch_pad_);
 
-  // ESP32-S2/S3 v2: Touch is detected when value > threshold
-  ESP_LOGD(TAG, "Checking touch state for '%s' (T%d): value = %" PRIu32 ", threshold = %" PRIu32,
-           child->get_name().c_str(), child->touch_pad_, value, child->threshold_);
+  // ESP32-S2/S3 v2: Touch is detected when value > threshold + benchmark
+  ESP_LOGV(TAG,
+           "Checking touch state for '%s' (T%d): value = %" PRIu32 ", threshold = %" PRIu32 ", benchmark = %" PRIu32,
+           child->get_name().c_str(), child->touch_pad_, value, child->threshold_, child->benchmark_);
   bool is_touched = value > child->benchmark_ + child->threshold_;
 
   this->update_touch_state_(child, is_touched);
@@ -313,6 +310,8 @@ void ESP32TouchComponent::loop() {
 
   size_t pads_off = 0;
   for (auto *child : this->children_) {
+    if (child->benchmark_ == 0)
+      touch_pad_read_benchmark(child->touch_pad_, &child->benchmark_);
     // Handle initial state publication after startup
     this->publish_initial_state_if_needed_(child, now);
 
