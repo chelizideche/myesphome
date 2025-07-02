@@ -4,6 +4,7 @@ wifi:
 
 text_sensor:
   - platform: wifi_info
+    id: wifi_info_id
     scan_results:
       name: Scan Results
     ip_address:

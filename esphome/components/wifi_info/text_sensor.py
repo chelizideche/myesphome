@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BSSID,
     CONF_DNS_ADDRESS,
+    CONF_ID,
     CONF_IP_ADDRESS,
     CONF_MAC_ADDRESS,
     CONF_SCAN_RESULTS,
@@ -35,6 +36,7 @@ DNSAddressWifiInfo = wifi_info_ns.class_(
 
 CONFIG_SCHEMA = cv.Schema(
     {
+        cv.Optional(CONF_ID): cv.string_strict,
         cv.Optional(CONF_IP_ADDRESS): text_sensor.text_sensor_schema(
             IPAddressWiFiInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         )
