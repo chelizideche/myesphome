@@ -180,7 +180,6 @@ class APIConnection : public APIServerConnection {
   void list_entities(const ListEntitiesRequest &msg) override { this->list_entities_iterator_.begin(); }
   void subscribe_states(const SubscribeStatesRequest &msg) override {
     this->flags_.state_subscription = true;
-    this->flags_.sending_initial_states = true;
     this->initial_state_iterator_.begin();
   }
   void subscribe_logs(const SubscribeLogsRequest &msg) override {
@@ -599,8 +598,8 @@ class APIConnection : public APIServerConnection {
     uint8_t service_call_subscription : 1;
     uint8_t next_close : 1;
     uint8_t batch_scheduled : 1;
-    uint8_t batch_first_message : 1;     // For batch buffer allocation
-    uint8_t sending_initial_states : 1;  // True while sending initial states
+    uint8_t batch_first_message : 1;          // For batch buffer allocation
+    uint8_t should_try_send_immediately : 1;  // True after initial states are sent
 #ifdef HAS_PROTO_MESSAGE_DUMP
     uint8_t log_only_mode : 1;
 #endif
@@ -649,9 +648,9 @@ class APIConnection : public APIServerConnection {
   // Helper method to send a message either immediately or via batching
   bool send_message_smart_(EntityBase *entity, MessageCreatorPtr creator, uint16_t message_type) {
     // Try to send immediately if:
-    // 1. We're not sending initial states (sending_initial_states = false)
+    // 1. We should try to send immediately (should_try_send_immediately = true)
     // 2. Buffer has space available
-    if (!this->flags_.sending_initial_states && this->helper_->can_write_without_blocking()) {
+    if (this->flags_.should_try_send_immediately && this->helper_->can_write_without_blocking()) {
       // Now actually encode and send
       if (creator(entity, this, MAX_PACKET_SIZE, true) &&
           this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
