@@ -113,13 +113,14 @@ PIDAutotuner::PIDAutotuneResult PIDAutotuner::update(float setpoint, float proce
 
     if (this->enough_data_phase_ == 0) {
       this->enough_data_phase_ = phase;
-    } else if (phase - this->enough_data_phase_ <= 6) {
+    } 
+    // 
+    if (phase - this->enough_data_phase_ <= 6) {
       // keep trying for at least 6 more phases
       return res;
-    } else {
+    } 
       // proceed to calculating PID parameters
       // warning will be shown in "Checks" section
-    }
   }
 
   ESP_LOGI(TAG, "%s: PID Autotune finished!", this->id_.c_str());
