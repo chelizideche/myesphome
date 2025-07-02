@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include "esphome/core/component.h"
 #include "esphome/components/tuya/tuya.h"
 #include "esphome/components/fan/fan.h"
@@ -16,8 +18,8 @@ class TuyaFan : public Component, public fan::Fan {
   void set_switch_id(uint8_t switch_id) { this->switch_id_ = switch_id; }
   void set_oscillation_id(uint8_t oscillation_id) { this->oscillation_id_ = oscillation_id; }
   void set_direction_id(uint8_t direction_id) { this->direction_id_ = direction_id; }
-
-  fan::FanTraits get_traits() override;
+  void set_preset_modes(const std::set<std::string> &presets) { this->preset_modes_ = presets; }
+  fan::FanTraits get_traits() override { return this->traits_; }
 
  protected:
   void control(const fan::FanCall &call) override;
@@ -30,6 +32,8 @@ class TuyaFan : public Component, public fan::Fan {
   int speed_count_{};
   TuyaDatapointType speed_type_{};
   TuyaDatapointType oscillation_type_{};
+  fan::FanTraits traits_;
+  std::set<std::string> preset_modes_{};
 };
 
 }  // namespace tuya

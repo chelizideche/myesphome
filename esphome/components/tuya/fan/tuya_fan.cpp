@@ -51,6 +51,12 @@ void TuyaFan::setup() {
     });
   }
 
+  // Construct traits
+  this->traits_ = fan::FanTraits(this->oscillation_id_.has_value(), this->speed_id_.has_value(),
+                                 this->direction_id_.has_value(), this->speed_count_);
+  this->traits_.set_supported_preset_modes(this->preset_modes_);
+  this->publish_state();
+
   this->parent_->add_on_initialized_callback([this]() {
     auto restored = this->restore_state_();
     if (restored)
@@ -74,16 +80,13 @@ void TuyaFan::dump_config() {
   }
 }
 
-fan::FanTraits TuyaFan::get_traits() {
-  return fan::FanTraits(this->oscillation_id_.has_value(), this->speed_id_.has_value(), this->direction_id_.has_value(),
-                        this->speed_count_);
-}
-
 void TuyaFan::control(const fan::FanCall &call) {
   if (this->switch_id_.has_value() && call.get_state().has_value()) {
+    this->state = *call.get_state();
     this->parent_->set_boolean_datapoint_value(*this->switch_id_, *call.get_state());
   }
   if (this->oscillation_id_.has_value() && call.get_oscillating().has_value()) {
+    this->oscillating = *call.get_oscillating();
     if (this->oscillation_type_ == TuyaDatapointType::ENUM) {
       this->parent_->set_enum_datapoint_value(*this->oscillation_id_, *call.get_oscillating());
     } else if (this->oscillation_type_ == TuyaDatapointType::BOOLEAN) {
@@ -91,16 +94,21 @@ void TuyaFan::control(const fan::FanCall &call) {
     }
   }
   if (this->direction_id_.has_value() && call.get_direction().has_value()) {
+    this->direction = *call.get_direction();
     bool enable = *call.get_direction() == fan::FanDirection::REVERSE;
     this->parent_->set_enum_datapoint_value(*this->direction_id_, enable);
   }
   if (this->speed_id_.has_value() && call.get_speed().has_value()) {
+    this->speed = *call.get_speed();
     if (this->speed_type_ == TuyaDatapointType::ENUM) {
       this->parent_->set_enum_datapoint_value(*this->speed_id_, *call.get_speed() - 1);
     } else if (this->speed_type_ == TuyaDatapointType::INTEGER) {
       this->parent_->set_integer_datapoint_value(*this->speed_id_, *call.get_speed());
     }
   }
+  this->preset_mode = call.get_preset_mode();
+  // publish_state() is required for callbacks for preset events.
+  this->publish_state();
 }
 
 }  // namespace tuya
