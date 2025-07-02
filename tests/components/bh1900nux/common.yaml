@@ -1,0 +1,10 @@
+i2c:
+  - id: i2c_bh1900nux
+    scl: ${scl_pin}
+    sda: ${sda_pin}
+
+sensor:
+  - platform: bh1900nux
+    name: Temperature Living Room
+    address: 0x48
+    update_interval: 30s
