@@ -219,6 +219,10 @@ void WiFiComponent::set_fast_connect(bool fast_connect) { this->fast_connect_ = 
 void WiFiComponent::set_btm(bool btm) { this->btm_ = btm; }
 void WiFiComponent::set_rrm(bool rrm) { this->rrm_ = rrm; }
 #endif
+
+void WiFiComponent::set_custom_mac_address(mac_address_t mac) { this->custom_mac_address = mac; }
+void WiFiComponent::set_custom_mac_address(optional<mac_address_t> mac) { this->custom_mac_address = mac; }
+
 network::IPAddresses WiFiComponent::get_ip_addresses() {
   if (this->has_sta())
     return this->wifi_sta_ip_addresses();

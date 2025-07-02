@@ -23,6 +23,7 @@ from esphome.const import (
     CONF_ID,
     CONF_IDENTITY,
     CONF_KEY,
+    CONF_MAC_ADDRESS,
     CONF_MANUAL_IP,
     CONF_NETWORKS,
     CONF_ON_CONNECT,
@@ -312,6 +313,7 @@ CONFIG_SCHEMA = cv.All(
                 ln882x="light",
             ): cv.enum(WIFI_POWER_SAVE_MODES, upper=True),
             cv.Optional(CONF_FAST_CONNECT, default=False): cv.boolean,
+            cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Optional(CONF_USE_ADDRESS): cv.string_strict,
             cv.SplitDefault(CONF_OUTPUT_POWER, esp8266=20.0): cv.All(
                 cv.decibel, cv.float_range(min=8.5, max=20.5)
@@ -406,6 +408,12 @@ def wifi_network(config, ap, static_ip):
 @coroutine_with_priority(60.0)
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
+    if CONF_MAC_ADDRESS in config:
+        cg.add(
+            var.set_custom_mac_address(
+                [HexInt(i) for i in config[CONF_MAC_ADDRESS].parts]
+            )
+        )
     cg.add(var.set_use_address(config[CONF_USE_ADDRESS]))
 
     def add_sta(ap, network):

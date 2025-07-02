@@ -44,7 +44,10 @@ static bool s_sta_connecting = false;  // NOLINT(cppcoreguidelines-avoid-non-con
 
 void WiFiComponent::wifi_pre_setup_() {
   uint8_t mac[6];
-  if (has_custom_mac_address()) {
+  if (this->custom_mac_address.has_value()) {
+    memcpy(mac, this->custom_mac_address->data(), 6);
+    set_mac_address(mac);
+  } else if (has_custom_mac_address()) {
     get_mac_address_raw(mac);
     set_mac_address(mac);
   }

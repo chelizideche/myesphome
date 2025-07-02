@@ -119,6 +119,7 @@ struct EAPAuth {
 #endif  // USE_WIFI_WPA2_EAP
 
 using bssid_t = std::array<uint8_t, 6>;
+using mac_address_t = std::array<uint8_t, 6>;
 
 class WiFiAP {
  public:
@@ -270,6 +271,10 @@ class WiFiComponent : public Component {
   void set_btm(bool btm);
   void set_rrm(bool rrm);
 #endif
+
+  optional<mac_address_t> custom_mac_address;
+  void set_custom_mac_address(mac_address_t mac);
+  void set_custom_mac_address(optional<mac_address_t> mac);
 
   network::IPAddress get_dns_address(int num);
   network::IPAddresses get_ip_addresses();
