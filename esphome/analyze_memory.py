@@ -12,6 +12,397 @@ _LOGGER = logging.getLogger(__name__)
 # Pattern to extract ESPHome component namespaces dynamically
 ESPHOME_COMPONENT_PATTERN = re.compile(r"esphome::([a-zA-Z0-9_]+)::")
 
+# Component identification rules
+# Symbol patterns: patterns found in raw symbol names
+SYMBOL_PATTERNS = {
+    "freertos": [
+        "vTask",
+        "xTask",
+        "xQueue",
+        "pvPort",
+        "vPort",
+        "uxTask",
+        "pcTask",
+        "prvTimerTask",
+        "prvAddNewTaskToReadyList",
+        "pxReadyTasksLists",
+    ],
+    "xtensa": ["xt_", "_xt_"],
+    "heap": ["heap_", "multi_heap"],
+    "spi_flash": ["spi_flash"],
+    "rtc": ["rtc_"],
+    "gpio_driver": ["gpio_", "pins"],
+    "uart_driver": ["uart", "_uart", "UART"],
+    "timer": ["timer_", "esp_timer"],
+    "peripherals": ["periph_", "periman"],
+    "network_stack": [
+        "vj_compress",
+        "raw_sendto",
+        "raw_input",
+        "etharp_",
+        "icmp_input",
+        "socket_ipv6",
+        "ip_napt",
+    ],
+    "ipv6_stack": ["nd6_", "ip6_", "mld6_"],
+    "wifi_stack": [
+        "ieee80211",
+        "hostap",
+        "sta_",
+        "ap_",
+        "scan_",
+        "wifi_",
+        "wpa_",
+        "wps_",
+        "esp_wifi",
+        "cnx_",
+        "wpa3_",
+        "sae_",
+        "wDev_",
+        "ic_",
+        "mac_",
+        "esf_buf",
+        "gWpaSm",
+        "sm_WPA",
+        "eapol_",
+        "owe_",
+    ],
+    "bluetooth": ["bt_", "ble_", "l2c_", "gatt_", "gap_", "hci_", "BT_init"],
+    "wifi_bt_coex": ["coex"],
+    "bluetooth_rom": ["r_ble", "r_lld", "r_llc", "r_llm"],
+    "bluedroid_bt": ["bluedroid", "btc_", "bta_", "btm_", "btu_"],
+    "crypto_math": [
+        "ecp_",
+        "bignum_",
+        "mpi_",
+        "sswu",
+        "modp",
+        "dragonfly_",
+        "gcm_mult",
+        "__multiply",
+    ],
+    "hw_crypto": ["esp_aes", "esp_sha", "esp_rsa", "esp_bignum", "esp_mpi"],
+    "libc": [
+        "printf",
+        "scanf",
+        "malloc",
+        "free",
+        "memcpy",
+        "memset",
+        "strcpy",
+        "strlen",
+        "_dtoa",
+        "_fopen",
+        "__sfvwrite_r",
+        "qsort",
+    ],
+    "string_ops": ["strcmp", "strncmp", "strchr", "strstr", "strtok", "strdup"],
+    "memory_alloc": ["malloc", "calloc", "realloc", "free", "_sbrk"],
+    "file_io": ["fread", "fwrite", "fopen", "fclose", "fseek", "ftell", "fflush"],
+    "string_formatting": [
+        "snprintf",
+        "vsnprintf",
+        "sprintf",
+        "vsprintf",
+        "sscanf",
+        "vsscanf",
+    ],
+    "cpp_anonymous": ["_GLOBAL__N_"],
+    "cpp_runtime": ["__cxx", "_ZN", "_ZL", "_ZSt", "__gxx_personality"],
+    "exception_handling": ["__cxa_", "_Unwind_", "__gcc_personality", "uw_frame_state"],
+    "static_init": ["_GLOBAL__sub_I_"],
+    "mdns_lib": ["mdns"],
+    "phy_radio": [
+        "phy_",
+        "rf_",
+        "chip_",
+        "register_chipv7",
+        "pbus_",
+        "bb_",
+        "fe_",
+        "rfcal_",
+        "ram_rfcal",
+        "tx_pwctrl",
+        "rx_chan",
+        "set_rx_gain",
+        "set_chan",
+        "agc_reg",
+        "ram_txiq",
+        "ram_txdc",
+        "ram_gen_rx_gain",
+    ],
+    "wifi_phy_pp": ["pp_", "ppT", "ppR", "ppP", "ppInstall", "ppCalTxAMPDULength"],
+    "wifi_lmac": ["lmac"],
+    "wifi_device": ["wdev", "wDev_"],
+    "power_mgmt": [
+        "pm_",
+        "sleep",
+        "rtc_sleep",
+        "light_sleep",
+        "deep_sleep",
+        "power_down",
+        "g_pm",
+    ],
+    "memory_mgmt": ["mem_", "memory_", "tlsf_", "memp_"],
+    "hal_layer": ["hal_"],
+    "clock_mgmt": [
+        "clk_",
+        "clock_",
+        "rtc_clk",
+        "apb_",
+        "cpu_freq",
+        "setCpuFrequencyMhz",
+    ],
+    "cache_mgmt": ["cache"],
+    "flash_ops": ["flash", "image_load"],
+    "interrupt_handlers": [
+        "isr",
+        "interrupt",
+        "intr_",
+        "exc_",
+        "exception",
+        "port_IntStack",
+    ],
+    "wrapper_functions": ["_wrapper"],
+    "error_handling": ["panic", "abort", "assert", "error_", "fault"],
+    "authentication": ["auth"],
+    "ppp_protocol": ["ppp", "ipcp_", "lcp_", "chap_"],
+    "dhcp": ["dhcp", "handle_dhcp"],
+    "ethernet_phy": [
+        "emac_",
+        "eth_phy_",
+        "phy_tlk110",
+        "phy_lan87",
+        "phy_ip101",
+        "phy_rtl",
+        "phy_dp83",
+        "phy_ksz",
+    ],
+    "threading": ["pthread_", "thread_", "_task_"],
+    "pthread": ["pthread"],
+    "synchronization": ["mutex", "semaphore", "spinlock", "portMUX"],
+    "math_lib": [
+        "sin",
+        "cos",
+        "tan",
+        "sqrt",
+        "pow",
+        "exp",
+        "log",
+        "atan",
+        "asin",
+        "acos",
+        "floor",
+        "ceil",
+        "fabs",
+        "round",
+    ],
+    "random": ["rand", "random", "rng_", "prng"],
+    "time_lib": [
+        "time",
+        "clock",
+        "gettimeofday",
+        "settimeofday",
+        "localtime",
+        "gmtime",
+        "mktime",
+        "strftime",
+    ],
+    "console_io": ["console_", "uart_tx", "uart_rx", "puts", "putchar", "getchar"],
+    "rom_functions": ["r_", "rom_"],
+    "compiler_runtime": [
+        "__divdi3",
+        "__udivdi3",
+        "__moddi3",
+        "__muldi3",
+        "__ashldi3",
+        "__ashrdi3",
+        "__lshrdi3",
+        "__cmpdi2",
+        "__fixdfdi",
+        "__floatdidf",
+    ],
+    "libgcc": ["libgcc", "_divdi3", "_udivdi3"],
+    "boot_startup": ["boot", "start_cpu", "call_start", "startup", "bootloader"],
+    "bootloader": ["bootloader_", "esp_bootloader"],
+    "app_framework": ["app_", "initArduino", "setup", "loop"],
+    "weak_symbols": ["__weak_"],
+    "compiler_builtins": ["__builtin_"],
+    "vfs": ["vfs_", "VFS"],
+    "esp32_sdk": ["esp32_", "esp32c", "esp32s"],
+    "usb": ["usb_", "USB", "cdc_", "CDC"],
+    "i2c_driver": ["i2c_", "I2C"],
+    "i2s_driver": ["i2s_", "I2S"],
+    "spi_driver": ["spi_", "SPI"],
+    "adc_driver": ["adc_", "ADC"],
+    "dac_driver": ["dac_", "DAC"],
+    "touch_driver": ["touch_", "TOUCH"],
+    "pwm_driver": ["pwm_", "PWM", "ledc_", "LEDC"],
+    "rmt_driver": ["rmt_", "RMT"],
+    "pcnt_driver": ["pcnt_", "PCNT"],
+    "can_driver": ["can_", "CAN", "twai_", "TWAI"],
+    "sdmmc_driver": ["sdmmc_", "SDMMC", "sdcard", "sd_card"],
+    "temp_sensor": ["temp_sensor", "tsens_"],
+    "watchdog": ["wdt_", "WDT", "watchdog"],
+    "brownout": ["brownout", "bod_"],
+    "ulp": ["ulp_", "ULP"],
+    "psram": ["psram", "PSRAM", "spiram", "SPIRAM"],
+    "efuse": ["efuse", "EFUSE"],
+    "partition": ["partition", "esp_partition"],
+    "esp_event": ["esp_event", "event_loop", "event_callback"],
+    "esp_console": ["esp_console", "console_"],
+    "chip_specific": ["chip_", "esp_chip"],
+    "esp_system_utils": ["esp_system", "esp_hw", "esp_clk", "esp_sleep"],
+    "ipc": ["esp_ipc", "ipc_"],
+    "wifi_config": [
+        "g_cnxMgr",
+        "gChmCxt",
+        "g_ic",
+        "TxRxCxt",
+        "s_dp",
+        "s_ni",
+        "s_reg_dump",
+        "packet$",
+        "d_mult_table",
+        "K",
+        "fcstab",
+    ],
+    "smartconfig": ["sc_ack_send"],
+    "rc_calibration": ["rc_cal", "rcUpdate"],
+    "noise_floor": ["noise_check"],
+    "rf_calibration": [
+        "set_rx_sense",
+        "set_rx_gain_cal",
+        "set_chan_dig_gain",
+        "tx_pwctrl_init_cal",
+        "rfcal_txiq",
+        "set_tx_gain_table",
+        "correct_rfpll_offset",
+        "pll_correct_dcap",
+        "txiq_cal_init",
+        "pwdet_sar",
+        "rx_11b_opt",
+    ],
+    "wifi_crypto": [
+        "pk_use_ecparams",
+        "process_segments",
+        "ccmp_",
+        "rc4_",
+        "aria_",
+        "mgf_mask",
+        "dh_group",
+    ],
+    "radio_control": ["fsm_input", "fsm_sconfreq"],
+    "pbuf": [
+        "pbuf_",
+        "ppSearchTxframe",
+        "ppMapWaitTxq",
+        "ppFillAMPDUBar",
+        "ppCheckTxConnTrafficIdle",
+    ],
+    "ppTask": ["ppCalTkipMic"],
+    "event_group": ["xEventGroup"],
+    "ringbuffer": ["xRingbuffer", "prvSend", "prvReceive", "prvCopy"],
+    "provisioning": ["prov_"],
+    "scan": ["gScanStruct"],
+    "port": ["xPort"],
+    "elf_loader": ["elf_add", "process_image", "read_encoded"],
+    "socket_api": [
+        "sockets",
+        "netconn_",
+        "accept_function",
+        "recv_raw",
+        "socket_ipv4_multicast",
+        "socket_ipv6_multicast",
+    ],
+    "igmp": ["igmp_"],
+    "icmp6": ["icmp6_"],
+    "arp": ["arp_table"],
+    "ampdu": ["ampdu_", "rcAmpdu", "trc_onAmpduOp"],
+    "ieee802_11": ["ieee802_11_"],
+    "rate_control": ["rssi_margin", "rcGetSched", "get_rate_fcc_index"],
+    "nan": ["nan_dp_"],
+    "channel_mgmt": ["chm_init", "chm_set_current_channel"],
+    "trace": ["trc_init"],
+    "country_code": ["country_info"],
+    "multicore": ["do_multicore_settings"],
+    "Update_lib": ["Update"],
+    "stdio": [
+        "__sf",
+        "__sflush_r",
+        "__srefill_r",
+        "_impure_data",
+        "_reclaim_reent",
+        "_open_r",
+    ],
+    "strncpy_ops": ["strncpy"],
+    "math_internal": ["__mdiff", "__lshift", "__mprec_tens", "quorem"],
+    "character_class": ["__chclass"],
+    "camellia": ["camellia_"],
+    "crypto_tables": ["FSb", "FSb2", "FSb3", "FSb4"],
+    "event_buffer": ["g_eb_list_desc", "eb_space"],
+    "base_node": ["base_node_"],
+    "file_descriptor": ["s_fd_table"],
+    "tx_delay": ["tx_delay_cfg"],
+    "deinit": ["deinit_functions"],
+    "lcp_echo": ["LcpEchoCheck"],
+    "raw_api": ["raw_bind", "raw_connect"],
+}
+
+# Demangled patterns: patterns found in demangled C++ names
+DEMANGLED_PATTERNS = {
+    "gpio_driver": ["GPIO"],
+    "uart_driver": ["UART"],
+    "network_stack": [
+        "lwip",
+        "tcp",
+        "udp",
+        "ip4",
+        "ip6",
+        "dhcp",
+        "dns",
+        "netif",
+        "ethernet",
+        "ppp",
+        "slip",
+    ],
+    "wifi_stack": ["NetworkInterface"],
+    "nimble_bt": [
+        "nimble",
+        "NimBLE",
+        "ble_hs",
+        "ble_gap",
+        "ble_gatt",
+        "ble_att",
+        "ble_l2cap",
+        "ble_sm",
+    ],
+    "crypto": ["mbedtls", "crypto", "sha", "aes", "rsa", "ecc", "tls", "ssl"],
+    "cpp_stdlib": ["std::", "__gnu_cxx::", "__cxxabiv"],
+    "static_init": ["__static_initialization"],
+    "rtti": ["__type_info", "__class_type_info"],
+    "web_server_lib": ["AsyncWebServer", "AsyncWebHandler", "WebServer"],
+    "async_tcp": ["AsyncClient", "AsyncServer"],
+    "mdns_lib": ["mdns"],
+    "json_lib": [
+        "ArduinoJson",
+        "JsonDocument",
+        "JsonArray",
+        "JsonObject",
+        "deserialize",
+        "serialize",
+    ],
+    "http_lib": ["HTTP", "http_", "Request", "Response", "Uri", "WebSocket"],
+    "logging": ["log", "Log", "print", "Print", "diag_"],
+    "authentication": ["checkDigestAuthentication"],
+    "libgcc": ["libgcc"],
+    "esp_system": ["esp_", "ESP"],
+    "arduino": ["arduino"],
+    "nvs": ["nvs_"],
+    "filesystem": ["spiffs", "vfs"],
+    "libc": ["newlib"],
+}
+
 
 # Get the list of actual ESPHome components by scanning the components directory
 def get_esphome_components():
@@ -88,6 +479,7 @@ class MemoryAnalyzer:
             lambda: ComponentMemory("")
         )
         self._demangle_cache: dict[str, str] = {}
+        self._uncategorized_symbols: list[tuple[str, str, int]] = []
 
     def analyze(self) -> dict[str, ComponentMemory]:
         """Analyze the ELF file and return component memory usage."""
@@ -235,13 +627,17 @@ class MemoryAnalyzer:
                 elif section_name == ".bss":
                     comp_mem.bss_size += size
 
+                # Track uncategorized symbols
+                if component == "other" and size > 0:
+                    demangled = self._demangle_symbol(symbol_name)
+                    self._uncategorized_symbols.append((symbol_name, demangled, size))
+
     def _identify_component(self, symbol_name: str) -> str:
         """Identify which component a symbol belongs to."""
         # Demangle C++ names if needed
         demangled = self._demangle_symbol(symbol_name)
 
-        # Check for ESPHome component namespaces dynamically
-        # Pattern: esphome::component_name:: (with trailing ::)
+        # Check for ESPHome component namespaces first
         match = ESPHOME_COMPONENT_PATTERN.search(demangled)
         if match:
             component_name = match.group(1)
@@ -255,448 +651,64 @@ class MemoryAnalyzer:
                 return "[esphome]core"
 
         # Check for esphome core namespace (no component namespace)
-        # This catches esphome::ClassName or esphome::function_name
         if "esphome::" in demangled:
             return "[esphome]core"
 
-        # Check for web server related code
+        # Check against symbol patterns
+        for component, patterns in SYMBOL_PATTERNS.items():
+            if any(pattern in symbol_name for pattern in patterns):
+                return component
+
+        # Check against demangled patterns
+        for component, patterns in DEMANGLED_PATTERNS.items():
+            if any(pattern in demangled for pattern in patterns):
+                return component
+
+        # Special cases that need more complex logic
+
+        # ROM functions starting with r_ or rom_
+        if symbol_name.startswith("r_") or symbol_name.startswith("rom_"):
+            return "rom_functions"
+
+        # Math functions with short names
+        if len(symbol_name) < 20 and symbol_name in [
+            "sin",
+            "cos",
+            "tan",
+            "sqrt",
+            "pow",
+            "exp",
+            "log",
+            "atan",
+            "asin",
+            "acos",
+            "floor",
+            "ceil",
+            "fabs",
+            "round",
+        ]:
+            return "math_lib"
+
+        # Check if spi_flash vs spi_driver
+        if "spi_" in symbol_name or "SPI" in symbol_name:
+            if "spi_flash" in symbol_name:
+                return "spi_flash"
+            else:
+                return "spi_driver"
+
+        # ESP OTA framework (exclude esphome OTA)
         if (
-            "AsyncWebServer" in demangled
-            or "AsyncWebHandler" in demangled
-            or "WebServer" in demangled
-        ):
-            return "web_server_lib"
-        elif "AsyncClient" in demangled or "AsyncServer" in demangled:
-            return "async_tcp"
-
-        # Check for FreeRTOS/ESP-IDF components
-        if any(
-            prefix in symbol_name
-            for prefix in [
-                "vTask",
-                "xTask",
-                "xQueue",
-                "pvPort",
-                "vPort",
-                "uxTask",
-                "pcTask",
-            ]
-        ):
-            return "freertos"
-        elif "xt_" in symbol_name or "_xt_" in symbol_name:
-            return "xtensa"
-        elif "heap_" in symbol_name or "multi_heap" in demangled:
-            return "heap"
-        elif "spi_flash" in symbol_name:
-            return "spi_flash"
-        elif "rtc_" in symbol_name:
-            return "rtc"
-        elif "gpio_" in symbol_name or "GPIO" in demangled:
-            return "gpio_driver"
-        elif "uart_" in symbol_name or "UART" in demangled:
-            return "uart_driver"
-        elif "timer_" in symbol_name or "esp_timer" in symbol_name:
-            return "timer"
-        elif "periph_" in symbol_name:
-            return "peripherals"
-
-        # C++ standard library
-        if any(ns in demangled for ns in ["std::", "__gnu_cxx::", "__cxxabiv"]):
-            return "cpp_stdlib"
-        elif "_GLOBAL__N_" in symbol_name:
-            return "cpp_anonymous"
-
-        # Platform/system code
-        if "esp_" in demangled or "ESP" in demangled:
-            return "esp_system"
-        elif "app_" in symbol_name:
-            return "app_framework"
-        elif "arduino" in demangled.lower():
-            return "arduino"
-
-        # Network stack components
-        if any(
-            net in demangled
-            for net in [
-                "lwip",
-                "tcp",
-                "udp",
-                "ip4",
-                "ip6",
-                "dhcp",
-                "dns",
-                "netif",
-                "ethernet",
-                "ppp",
-                "slip",
-            ]
-        ):
-            return "network_stack"
-        elif "vj_compress" in symbol_name:  # Van Jacobson TCP compression
-            return "network_stack"
-
-        # WiFi/802.11 stack
-        if any(
-            wifi in symbol_name
-            for wifi in [
-                "ieee80211",
-                "hostap",
-                "sta_",
-                "ap_",
-                "scan_",
-                "wifi_",
-                "wpa_",
-                "wps_",
-                "esp_wifi",
-            ]
-        ):
-            return "wifi_stack"
-        elif "NetworkInterface" in demangled:
-            return "wifi_stack"
-
-        # mDNS specific
-        if (
-            "mdns" in symbol_name or "mdns" in demangled
+            "esp_ota" in symbol_name or "ota_" in symbol_name
         ) and "esphome" not in demangled:
-            return "mdns_lib"
+            return "esp_ota"
 
-        # Cryptography
-        if any(
-            crypto in demangled
-            for crypto in [
-                "mbedtls",
-                "crypto",
-                "sha",
-                "aes",
-                "rsa",
-                "ecc",
-                "tls",
-                "ssl",
-            ]
-        ):
-            return "crypto"
-
-        # C library functions
-        if any(
-            libc in symbol_name
-            for libc in [
-                "printf",
-                "scanf",
-                "malloc",
-                "free",
-                "memcpy",
-                "memset",
-                "strcpy",
-                "strlen",
-                "_dtoa",
-                "_fopen",
-            ]
-        ):
-            return "libc"
-        elif symbol_name.startswith("_") and symbol_name[1:].replace("_r", "").replace(
+        # libc special printf variants
+        if symbol_name.startswith("_") and symbol_name[1:].replace("_r", "").replace(
             "v", ""
         ).replace("s", "") in ["printf", "fprintf", "sprintf", "scanf"]:
             return "libc"
 
-        # IPv6 specific
-        if "nd6_" in symbol_name or "ip6_" in symbol_name:
-            return "ipv6_stack"
-
-        # Other system libraries
-        if "nvs_" in demangled:
-            return "nvs"
-        elif "spiffs" in demangled or "vfs" in demangled:
-            return "filesystem"
-        elif "newlib" in demangled:
-            return "libc"
-        elif (
-            "libgcc" in demangled
-            or "_divdi3" in symbol_name
-            or "_udivdi3" in symbol_name
-        ):
-            return "libgcc"
-
-        # Boot and startup
-        if any(
-            boot in symbol_name
-            for boot in ["boot", "start_cpu", "call_start", "startup", "bootloader"]
-        ):
-            return "boot_startup"
-
-        # PHY/Radio layer
-        if any(
-            phy in symbol_name
-            for phy in [
-                "phy_",
-                "rf_",
-                "chip_",
-                "register_chipv7",
-                "pbus_",
-                "bb_",
-                "fe_",
-            ]
-        ):
-            return "phy_radio"
-        elif any(pp in symbol_name for pp in ["pp_", "ppT", "ppR", "ppP", "ppInstall"]):
-            return "wifi_phy_pp"
-        elif "lmac" in symbol_name:
-            return "wifi_lmac"
-        elif "wdev" in symbol_name:
-            return "wifi_device"
-
-        # Bluetooth/BLE
-        if any(
-            bt in symbol_name for bt in ["bt_", "ble_", "l2c_", "gatt_", "gap_", "hci_"]
-        ):
-            return "bluetooth"
-        elif "coex" in symbol_name:
-            return "wifi_bt_coex"
-        elif "r_" in symbol_name and any(
-            bt in symbol_name for bt in ["ble", "lld", "llc", "llm"]
-        ):
-            # ROM bluetooth functions
-            return "bluetooth_rom"
-
-        # Power management
-        if any(
-            pm in symbol_name
-            for pm in [
-                "pm_",
-                "sleep",
-                "rtc_sleep",
-                "light_sleep",
-                "deep_sleep",
-                "power_down",
-            ]
-        ):
-            return "power_mgmt"
-
-        # Logging and diagnostics
-        if any(log in demangled for log in ["log", "Log", "print", "Print", "diag_"]):
-            return "logging"
-
-        # Memory management
-        if any(mem in symbol_name for mem in ["mem_", "memory_", "tlsf_", "memp_"]):
-            return "memory_mgmt"
-
-        # HAL (Hardware Abstraction Layer)
-        if "hal_" in symbol_name:
-            return "hal_layer"
-
-        # Clock management
-        if any(
-            clk in symbol_name
-            for clk in ["clk_", "clock_", "rtc_clk", "apb_", "cpu_freq"]
-        ):
-            return "clock_mgmt"
-
-        # Cache management
-        if "cache" in symbol_name:
-            return "cache_mgmt"
-
-        # Flash operations
-        if "flash" in symbol_name and "spi" not in symbol_name:
-            return "flash_ops"
-
-        # Interrupt/Exception handling
-        if any(
-            isr in symbol_name
-            for isr in ["isr", "interrupt", "intr_", "exc_", "exception"]
-        ):
-            return "interrupt_handlers"
-        elif "_wrapper" in symbol_name:
-            return "wrapper_functions"
-
-        # Error handling
-        if any(
-            err in symbol_name
-            for err in ["panic", "abort", "assert", "error_", "fault"]
-        ):
-            return "error_handling"
-
-        # ECC/Crypto math
-        if any(
-            ecc in symbol_name for ecc in ["ecp_", "bignum_", "mpi_", "sswu", "modp"]
-        ):
-            return "crypto_math"
-
-        # Authentication
-        if "checkDigestAuthentication" in demangled or "auth" in symbol_name.lower():
-            return "authentication"
-
-        # PPP protocol
-        if any(ppp in symbol_name for ppp in ["ppp", "ipcp_", "lcp_", "chap_"]):
-            return "ppp_protocol"
-
-        # DHCP
-        if "dhcp" in symbol_name or "handle_dhcp" in symbol_name:
-            return "dhcp"
-
-        # JSON parsing
-        if any(
-            json in demangled
-            for json in [
-                "ArduinoJson",
-                "JsonDocument",
-                "JsonArray",
-                "JsonObject",
-                "deserialize",
-                "serialize",
-            ]
-        ):
-            return "json_lib"
-
-        # HTTP/Web related
-        if any(
-            http in demangled
-            for http in ["HTTP", "http_", "Request", "Response", "Uri", "WebSocket"]
-        ):
-            return "http_lib"
-
-        # Ethernet PHY drivers
-        if any(
-            eth in symbol_name
-            for eth in [
-                "emac_",
-                "eth_phy_",
-                "phy_tlk110",
-                "phy_lan87",
-                "phy_ip101",
-                "phy_rtl",
-                "phy_dp83",
-                "phy_ksz",
-            ]
-        ):
-            return "ethernet_phy"
-
-        # Task/Thread management
-        if any(task in symbol_name for task in ["pthread_", "thread_", "_task_"]):
-            return "threading"
-
-        # Mutex/Semaphore
-        if any(
-            sync in symbol_name
-            for sync in ["mutex", "semaphore", "spinlock", "portMUX"]
-        ):
-            return "synchronization"
-
-        # String formatting
-        if any(
-            fmt in symbol_name
-            for fmt in [
-                "snprintf",
-                "vsnprintf",
-                "sprintf",
-                "vsprintf",
-                "sscanf",
-                "vsscanf",
-            ]
-        ):
-            return "string_formatting"
-
-        # Math functions
-        if (
-            any(
-                math in symbol_name
-                for math in [
-                    "sin",
-                    "cos",
-                    "tan",
-                    "sqrt",
-                    "pow",
-                    "exp",
-                    "log",
-                    "atan",
-                    "asin",
-                    "acos",
-                    "floor",
-                    "ceil",
-                    "fabs",
-                    "round",
-                ]
-            )
-            and len(symbol_name) < 20
-        ):
-            return "math_lib"
-
-        # Random number generation
-        if any(rng in symbol_name for rng in ["rand", "random", "rng_", "prng"]):
-            return "random"
-
-        # Time functions
-        if any(
-            time in symbol_name
-            for time in [
-                "time",
-                "clock",
-                "gettimeofday",
-                "settimeofday",
-                "localtime",
-                "gmtime",
-                "mktime",
-                "strftime",
-            ]
-        ):
-            return "time_lib"
-
-        # Console/UART output
-        if any(
-            console in symbol_name
-            for console in [
-                "console_",
-                "uart_tx",
-                "uart_rx",
-                "puts",
-                "putchar",
-                "getchar",
-            ]
-        ):
-            return "console_io"
-
-        # ROM functions
-        if symbol_name.startswith("r_") or symbol_name.startswith("rom_"):
-            return "rom_functions"
-
-        # Compiler generated code
-        if any(
-            gen in symbol_name
-            for gen in [
-                "__divdi3",
-                "__udivdi3",
-                "__moddi3",
-                "__muldi3",
-                "__ashldi3",
-                "__ashrdi3",
-                "__lshrdi3",
-                "__cmpdi2",
-                "__fixdfdi",
-                "__floatdidf",
-            ]
-        ):
-            return "compiler_runtime"
-
-        # Exception handling
-        if any(
-            exc in symbol_name for exc in ["__cxa_", "_Unwind_", "__gcc_personality"]
-        ):
-            return "exception_handling"
-
-        # RTTI (Run-Time Type Information)
-        if "__type_info" in demangled or "__class_type_info" in demangled:
-            return "rtti"
-
-        # Static initializers
-        if "_GLOBAL__sub_I_" in symbol_name or "__static_initialization" in demangled:
-            return "static_init"
-
-        # Weak symbols
-        if "__weak_" in symbol_name:
-            return "weak_symbols"
-
-        # Compiler builtins
-        if "__builtin_" in symbol_name:
-            return "compiler_builtins"
-
+        # Track uncategorized symbols for analysis
         return "other"
 
     def _batch_demangle_symbols(self, symbols: list[str]) -> None:
@@ -760,7 +772,7 @@ class MemoryAnalyzer:
 
         # Main table
         lines.append(
-            f"{'Component':<28} | {'Flash (text)':<12} | {'Flash (data)':<12} | {'RAM (data)':<10} | {'RAM (bss)':<10} | {'Total Flash':<12} | {'Total RAM':<10}"
+            f"{'Component':<28} | {'Flash (text)':>12} | {'Flash (data)':>12} | {'RAM (data)':>10} | {'RAM (bss)':>10} | {'Total Flash':>12} | {'Total RAM':>10}"
         )
         lines.append(
             "-" * 28
@@ -859,6 +871,39 @@ class MemoryAnalyzer:
             },
         }
         return json.dumps(data, indent=2)
+
+    def dump_uncategorized_symbols(self, output_file: str | None = None) -> None:
+        """Dump uncategorized symbols for analysis."""
+        # Sort by size descending
+        sorted_symbols = sorted(
+            self._uncategorized_symbols, key=lambda x: x[2], reverse=True
+        )
+
+        lines = ["Uncategorized Symbols Analysis", "=" * 80]
+        lines.append(f"Total uncategorized symbols: {len(sorted_symbols)}")
+        lines.append(
+            f"Total uncategorized size: {sum(s[2] for s in sorted_symbols):,} bytes"
+        )
+        lines.append("")
+        lines.append(f"{'Size':>10} | {'Symbol':<60} | Demangled")
+        lines.append("-" * 10 + "-+-" + "-" * 60 + "-+-" + "-" * 40)
+
+        for symbol, demangled, size in sorted_symbols[:100]:  # Top 100
+            if symbol != demangled:
+                lines.append(f"{size:>10,} | {symbol[:60]:<60} | {demangled[:100]}")
+            else:
+                lines.append(f"{size:>10,} | {symbol[:60]:<60} | [not demangled]")
+
+        if len(sorted_symbols) > 100:
+            lines.append(f"\n... and {len(sorted_symbols) - 100} more symbols")
+
+        content = "\n".join(lines)
+
+        if output_file:
+            with open(output_file, "w") as f:
+                f.write(content)
+        else:
+            print(content)
 
 
 def analyze_elf(
