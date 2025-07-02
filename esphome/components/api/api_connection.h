@@ -18,6 +18,10 @@ namespace api {
 
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
+// Maximum number of entities to process in a single batch during initial state/info sending
+static constexpr size_t MAX_INITIAL_ENTITIES_PER_BATCH = 20;
+// Maximum time to spend processing entities in a single loop iteration during initial sending (in milliseconds)
+static constexpr uint32_t MAX_INITIAL_ENTITY_PROCESSING_TIME_MS = 10;
 
 class APIConnection : public APIServerConnection {
  public:
