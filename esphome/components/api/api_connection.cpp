@@ -1718,6 +1718,11 @@ bool APIConnection::schedule_batch_() {
   return true;
 }
 
+void APIConnection::clear_batch_() {
+  this->deferred_batch_.clear();
+  this->flags_.batch_scheduled = false;
+}
+
 ProtoWriteBuffer APIConnection::allocate_single_message_buffer(uint16_t size) { return this->create_buffer(size); }
 
 ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint16_t size) {
@@ -1755,11 +1760,11 @@ void APIConnection::process_batch_() {
       // It's safe to use the buffer for logging at this point regardless of send result
       this->log_batch_item_(item);
 #endif
-      this->deferred_batch_.clear();
+      this->clear_batch_();
     } else if (payload_size == 0) {
       // Message too large
       ESP_LOGW(TAG, "Message too large to send: type=%u", item.message_type);
-      this->deferred_batch_.clear();
+      this->clear_batch_();
     }
     return;
   }
@@ -1868,7 +1873,7 @@ void APIConnection::process_batch_() {
     this->schedule_batch_();
   } else {
     // All items processed
-    this->deferred_batch_.clear();
+    this->clear_batch_();
   }
 }
 
