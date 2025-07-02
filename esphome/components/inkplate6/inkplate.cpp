@@ -63,6 +63,13 @@ void Inkplate6::initialize_() {
   if (buffer_size == 0)
     return;
 
+  // check if we came out of deep sleep
+  int resetInfo = esp_sleep_get_wakeup_cause();
+  if (resetInfo >= 1) {
+    ESP_LOGD(TAG, "Woke up from deep sleep, disabling full refresh by turning off partial update blocking by default");
+    this->block_partial_ = false;
+  }
+
   if (this->partial_buffer_ != nullptr)
     allocator.deallocate(this->partial_buffer_, buffer_size);
   if (this->partial_buffer_2_ != nullptr)
