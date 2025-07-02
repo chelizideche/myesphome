@@ -1283,7 +1283,7 @@ message ListEntitiesMediaPlayerResponse {
   repeated MediaPlayerSupportedFormat supported_formats = 9;
 
   uint32 device_id = 10;
-  
+
   bool supports_turn_off_on = 11;
 }
 message MediaPlayerStateResponse {

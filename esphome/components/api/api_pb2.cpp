@@ -6573,6 +6573,8 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("  device_id: ");
   sprintf(buffer, "%" PRIu32, this->device_id);
   out.append(buffer);
+  out.append("\n");
+
   out.append("  supports_turn_off_on: ");
   out.append(YESNO(this->supports_turn_off_on));
   out.append("\n");
