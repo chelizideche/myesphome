@@ -1,5 +1,5 @@
-import esphome.config_validation as cv
 import esphome.codegen as cg
+import esphome.config_validation as cv
 
 CODEOWNERS = ["@esphome/core"]
 
@@ -16,6 +16,7 @@ CONFIG_SCHEMA = cv.Schema(
             esp32=IMPLEMENTATION_BSD_SOCKETS,
             rp2040=IMPLEMENTATION_LWIP_TCP,
             bk72xx=IMPLEMENTATION_LWIP_SOCKETS,
+            ln882x=IMPLEMENTATION_LWIP_SOCKETS,
             rtl87xx=IMPLEMENTATION_LWIP_SOCKETS,
             host=IMPLEMENTATION_BSD_SOCKETS,
         ): cv.one_of(
@@ -35,5 +36,7 @@ async def to_code(config):
         cg.add_define("USE_SOCKET_IMPL_LWIP_TCP")
     elif impl == IMPLEMENTATION_LWIP_SOCKETS:
         cg.add_define("USE_SOCKET_IMPL_LWIP_SOCKETS")
+        cg.add_define("USE_SOCKET_SELECT_SUPPORT")
     elif impl == IMPLEMENTATION_BSD_SOCKETS:
         cg.add_define("USE_SOCKET_IMPL_BSD_SOCKETS")
+        cg.add_define("USE_SOCKET_SELECT_SUPPORT")
