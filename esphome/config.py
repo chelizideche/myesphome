@@ -464,22 +464,23 @@ class AutoLoadValidationStep(ConfigValidationStep):
             return
 
         # Ensure the component config is a list
-        if not isinstance(result[component_name], list):
-            result[component_name] = []
+        component_conf = result.get(component_name)
+        if not isinstance(component_conf, list):
+            component_conf = result[component_name] = []
 
         # Check if platform already exists
-        for conf in result[component_name]:
-            if isinstance(conf, dict) and conf.get(CONF_PLATFORM) == platform_name:
-                # Platform already exists
-                return
+        if any(
+            isinstance(conf, dict) and conf.get(CONF_PLATFORM) == platform_name
+            for conf in component_conf
+        ):
+            return
 
-        # Add the platform configuration
+        # Add and process the platform configuration
         platform_conf = core.AutoLoad()
         platform_conf[CONF_PLATFORM] = platform_name
-        result[component_name].append(platform_conf)
+        component_conf.append(platform_conf)
 
-        # Process the platform configuration
-        path = [component_name, len(result[component_name]) - 1]
+        path = [component_name, len(component_conf) - 1]
         _process_platform_config(
             result, component_name, platform_name, platform_conf, path
         )
