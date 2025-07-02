@@ -926,6 +926,7 @@ class MemoryAnalyzer:
         elf_path: str,
         objdump_path: str | None = None,
         readelf_path: str | None = None,
+        external_components: set[str] | None = None,
     ):
         self.elf_path = Path(elf_path)
         if not self.elf_path.exists():
@@ -933,6 +934,7 @@ class MemoryAnalyzer:
 
         self.objdump_path = objdump_path or "objdump"
         self.readelf_path = readelf_path or "readelf"
+        self.external_components = external_components or set()
 
         self.sections: dict[str, MemorySection] = {}
         self.components: dict[str, ComponentMemory] = defaultdict(
@@ -1120,10 +1122,14 @@ class MemoryAnalyzer:
             # Strip trailing underscore if present (e.g., switch_ -> switch)
             component_name = component_name.rstrip("_")
 
-            # Check if this is an actual component or core
+            # Check if this is an actual component in the components directory
             if component_name in ESPHOME_COMPONENTS:
                 return f"[esphome]{component_name}"
+            # Check if this is a known external component from the config
+            elif component_name in self.external_components:
+                return f"[external]{component_name}"
             else:
+                # Everything else in esphome:: namespace is core
                 return "[esphome]core"
 
         # Check for esphome core namespace (no component namespace)
@@ -1501,9 +1507,10 @@ def analyze_elf(
     objdump_path: str | None = None,
     readelf_path: str | None = None,
     detailed: bool = False,
+    external_components: set[str] | None = None,
 ) -> str:
     """Analyze an ELF file and return a memory report."""
-    analyzer = MemoryAnalyzer(elf_path, objdump_path, readelf_path)
+    analyzer = MemoryAnalyzer(elf_path, objdump_path, readelf_path, external_components)
     analyzer.analyze()
     return analyzer.generate_report(detailed)
 

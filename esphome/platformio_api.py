@@ -389,8 +389,33 @@ def analyze_memory_usage(config: dict[str, Any]) -> None:
             _LOGGER.warning("ELF file not found at %s or %s", elf_path, alt_path)
             return
 
+    # Extract external components from config
+    external_components = set()
+
+    # Get the list of built-in ESPHome components
+    from esphome.analyze_memory import get_esphome_components
+
+    builtin_components = get_esphome_components()
+
+    # Special non-component keys that appear in configs
+    NON_COMPONENT_KEYS = {
+        CONF_ESPHOME,
+        "substitutions",
+        "packages",
+        "globals",
+        "<<",
+    }
+
+    # Check all top-level keys in config
+    for key in config:
+        if key not in builtin_components and key not in NON_COMPONENT_KEYS:
+            # This is an external component
+            external_components.add(key)
+
+    _LOGGER.debug("Detected external components: %s", external_components)
+
     # Create analyzer and run analysis
-    analyzer = MemoryAnalyzer(elf_path, objdump_path, readelf_path)
+    analyzer = MemoryAnalyzer(elf_path, objdump_path, readelf_path, external_components)
     analyzer.analyze()
 
     # Generate and print report
