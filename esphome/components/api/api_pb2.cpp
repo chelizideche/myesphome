@@ -367,6 +367,12 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerState>(enums::Medi
       return "MEDIA_PLAYER_STATE_PLAYING";
     case enums::MEDIA_PLAYER_STATE_PAUSED:
       return "MEDIA_PLAYER_STATE_PAUSED";
+    case enums::MEDIA_PLAYER_STATE_ANNOUNCING:
+      return "MEDIA_PLAYER_STATE_ANNOUNCING";
+    case enums::MEDIA_PLAYER_STATE_OFF:
+      return "MEDIA_PLAYER_STATE_OFF";
+    case enums::MEDIA_PLAYER_STATE_ON:
+      return "MEDIA_PLAYER_STATE_ON";
     default:
       return "UNKNOWN";
   }
@@ -385,6 +391,24 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::Me
       return "MEDIA_PLAYER_COMMAND_MUTE";
     case enums::MEDIA_PLAYER_COMMAND_UNMUTE:
       return "MEDIA_PLAYER_COMMAND_UNMUTE";
+    case enums::MEDIA_PLAYER_COMMAND_TOGGLE:
+      return "MEDIA_PLAYER_COMMAND_TOGGLE";
+    case enums::MEDIA_PLAYER_COMMAND_VOLUME_UP:
+      return "MEDIA_PLAYER_COMMAND_VOLUME_UP";
+    case enums::MEDIA_PLAYER_COMMAND_VOLUME_DOWN:
+      return "MEDIA_PLAYER_COMMAND_VOLUME_DOWN";
+    case enums::MEDIA_PLAYER_COMMAND_ENQUEUE:
+      return "MEDIA_PLAYER_COMMAND_ENQUEUE";
+    case enums::MEDIA_PLAYER_COMMAND_REPEAT_ONE:
+      return "MEDIA_PLAYER_COMMAND_REPEAT_ONE";
+    case enums::MEDIA_PLAYER_COMMAND_REPEAT_OFF:
+      return "MEDIA_PLAYER_COMMAND_REPEAT_OFF";
+    case enums::MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST:
+      return "MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_ON:
+      return "MEDIA_PLAYER_COMMAND_TURN_ON";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_OFF:
+      return "MEDIA_PLAYER_COMMAND_TURN_OFF";
     default:
       return "UNKNOWN";
   }
@@ -6431,6 +6455,10 @@ bool ListEntitiesMediaPlayerResponse::decode_varint(uint32_t field_id, ProtoVarI
       this->device_id = value.as_uint32();
       return true;
     }
+    case 11: {
+      this->supports_turn_off_on = value.as_bool();
+      return true;
+    }
     default:
       return false;
   }
@@ -6484,6 +6512,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
     buffer.encode_message<MediaPlayerSupportedFormat>(9, it, true);
   }
   buffer.encode_uint32(10, this->device_id);
+  buffer.encode_bool(11, this->supports_turn_off_on);
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id, false);
@@ -6496,6 +6525,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   ProtoSize::add_bool_field(total_size, 1, this->supports_pause, false);
   ProtoSize::add_repeated_message(total_size, 1, this->supported_formats);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id, false);
+  ProtoSize::add_bool_field(total_size, 1, this->supports_turn_off_on, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
@@ -6543,6 +6573,10 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("  device_id: ");
   sprintf(buffer, "%" PRIu32, this->device_id);
   out.append(buffer);
+  out.append("\n");
+
+  out.append("  supports_turn_off_on: ");
+  out.append(YESNO(this->supports_turn_off_on));
   out.append("\n");
   out.append("}");
 }

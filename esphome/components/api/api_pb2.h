@@ -150,6 +150,9 @@ enum MediaPlayerState : uint32_t {
   MEDIA_PLAYER_STATE_IDLE = 1,
   MEDIA_PLAYER_STATE_PLAYING = 2,
   MEDIA_PLAYER_STATE_PAUSED = 3,
+  MEDIA_PLAYER_STATE_ANNOUNCING = 4,
+  MEDIA_PLAYER_STATE_OFF = 5,
+  MEDIA_PLAYER_STATE_ON = 6,
 };
 enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_PLAY = 0,
@@ -157,6 +160,15 @@ enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_STOP = 2,
   MEDIA_PLAYER_COMMAND_MUTE = 3,
   MEDIA_PLAYER_COMMAND_UNMUTE = 4,
+  MEDIA_PLAYER_COMMAND_TOGGLE = 5,
+  MEDIA_PLAYER_COMMAND_VOLUME_UP = 6,
+  MEDIA_PLAYER_COMMAND_VOLUME_DOWN = 7,
+  MEDIA_PLAYER_COMMAND_ENQUEUE = 8,
+  MEDIA_PLAYER_COMMAND_REPEAT_ONE = 9,
+  MEDIA_PLAYER_COMMAND_REPEAT_OFF = 10,
+  MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST = 11,
+  MEDIA_PLAYER_COMMAND_TURN_ON = 12,
+  MEDIA_PLAYER_COMMAND_TURN_OFF = 13,
 };
 enum MediaPlayerFormatPurpose : uint32_t {
   MEDIA_PLAYER_FORMAT_PURPOSE_DEFAULT = 0,
@@ -1695,12 +1707,13 @@ class MediaPlayerSupportedFormat : public ProtoMessage {
 class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 63;
-  static constexpr uint16_t ESTIMATED_SIZE = 85;
+  static constexpr uint16_t ESTIMATED_SIZE = 87;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_media_player_response"; }
 #endif
   bool supports_pause{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats{};
+  bool supports_turn_off_on{false};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
