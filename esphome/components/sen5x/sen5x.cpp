@@ -57,17 +57,17 @@ static const int8_t SEN5X_INDEX_SCALE_FACTOR = 10;                            //
 static const int8_t SEN5X_MIN_INDEX_VALUE = 1 * SEN5X_INDEX_SCALE_FACTOR;     // must be adjusted by the scale factor
 static const int16_t SEN5X_MAX_INDEX_VALUE = 500 * SEN5X_INDEX_SCALE_FACTOR;  // must be adjusted by the scale factor
 
-void SEN5XComponent::setup() { this->internal_setup_(0); }
+void SEN5XComponent::setup() { this->internal_setup_(SM_START_1); }
 
-void SEN5XComponent::internal_setup_(uint8_t state) {
+void SEN5XComponent::internal_setup_(SetupStates state) {
   uint16_t string_number[16] = {0};
   switch (state) {
-    case 0:
+    case SM_START:
       ESP_LOGCONFIG(TAG, "Setting up sen5x...");
       // the sensor needs 1000 ms to enter the idle state
-      this->set_timeout(1000, [this]() { this->internal_setup_(1); });
+      this->set_timeout(1000, [this]() { this->internal_setup_(SM_START_1); });
       break;
-    case 1:
+    case SM_START_1:
       // Check if measurement is ready before reading the value
       if (!this->write_command(CMD_GET_DATA_READY_STATUS)) {
         ESP_LOGE(TAG, "Failed to write data ready status command");
@@ -75,9 +75,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
         this->mark_failed();
         return;
       }
-      this->set_timeout(20, [this]() { this->internal_setup_(2); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_START_2); });
       break;
-    case 2:
+    case SM_START_2:
       uint16_t raw_read_status;
       if (!this->read_data(raw_read_status)) {
         ESP_LOGE(TAG, "Failed to read data ready status");
@@ -103,9 +103,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
       } else {
         stop_measurement_delay = 0;
       }
-      this->set_timeout(stop_measurement_delay, [this]() { this->internal_setup_(3); });
+      this->set_timeout(stop_measurement_delay, [this]() { this->internal_setup_(SM_GET_SN); });
       break;
-    case 3:
+    case SM_GET_SN:
       if (!this->get_register(CMD_GET_SERIAL_NUMBER, string_number, 16, 20)) {
         ESP_LOGE(TAG, "Failed to read serial number");
         this->error_code_ = SERIAL_NUMBER_IDENTIFICATION_FAILED;
@@ -114,9 +114,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
       }
       this->serial_number_ = convert_to_string_(string_number, 16);
       ESP_LOGV(TAG, "Serial number %s", this->serial_number_.c_str());
-      this->set_timeout(20, [this]() { this->internal_setup_(4); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_GET_PN); });
       break;
-    case 4:
+    case SM_GET_PN:
       if (!this->get_register(CMD_GET_PRODUCT_NAME, string_number, 16, 20)) {
         ESP_LOGE(TAG, "Failed to read product name");
         this->error_code_ = PRODUCT_NAME_FAILED;
@@ -156,9 +156,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
         }
       }
       ESP_LOGV(TAG, "Product Name %s", this->product_name_.c_str());
-      this->set_timeout(20, [this]() { this->internal_setup_(5); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_GET_FW); });
       break;
-    case 5:
+    case SM_GET_FW:
       uint16_t firmware;
       if (!this->get_register(CMD_GET_FIRMWARE_VERSION, &firmware, 1, 20)) {
         ESP_LOGE(TAG, "Failed to read firmware version");
@@ -175,9 +175,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
         this->firmware_minor_ = 0xFF;  // not defined
         ESP_LOGD(TAG, "Firmware version %u", this->firmware_major_);
       }
-      this->set_timeout(20, [this]() { this->internal_setup_(6); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_VOCB); });
       break;
-    case 6:
+    case SM_SET_VOCB:
       if (this->voc_sensor_ && this->store_baseline_) {
         // Hash with compilation time and serial number, this ensures the baseline storage is cleared after OTA
         // Serial numbers are unique to each sensor, so multiple sensors can be used without conflict
@@ -207,9 +207,9 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           }
         }
       }
-      this->set_timeout(20, [this]() { this->internal_setup_(7); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_ACI); });
       break;
-    case 7:
+    case SM_SET_ACI:
       if (this->auto_cleaning_interval_.has_value()) {
         if (this->is_sen6x_()) {
           ESP_LOGE(TAG, "Automatic Cleaning Interval is not supported");
@@ -223,11 +223,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_RHTAM); });
       } else {
-        this->internal_setup_(8);
+        this->internal_setup_(SM_SET_RHTAM);
       }
       break;
-    case 8:
+    case SM_SET_RHTAM:
       if (this->acceleration_mode_.has_value()) {
         if (this->is_sen6x_()) {
           ESP_LOGE(TAG, "RH/T Acceleration Mode is not supported");
@@ -241,12 +242,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(9); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_VOCT); });
       } else {
-        this->internal_setup_(9);
+        this->internal_setup_(SM_SET_VOCT);
       }
       break;
-    case 9:
+    case SM_SET_VOCT:
       if (this->voc_tuning_params_.has_value()) {
         if (this->model_ == SEN50 || this->model_ == SEN60 || this->model_ == SEN63C) {
           ESP_LOGE(TAG, "VOC Algorithm Tuning Parameters is not supported");
@@ -260,12 +261,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(10); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_NOXT); });
       } else {
-        this->internal_setup_(10);
+        this->internal_setup_(SM_SET_NOXT);
       }
       break;
-    case 10:
+    case SM_SET_NOXT:
       if (this->nox_tuning_params_.has_value()) {
         if (this->model_ == SEN50 || this->model_ == SEN60 || this->model_ == SEN63C) {
           ESP_LOGE(TAG, "NOx Algorithm Tuning Parameters is not supported");
@@ -279,12 +280,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(11); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_TP); });
       } else {
-        this->internal_setup_(11);
+        this->internal_setup_(SM_SET_TP);
       }
       break;
-    case 11:
+    case SM_SET_TP:
       if (this->temperature_compensation_.has_value()) {
         if (this->model_ == SEN50 || this->is_sen6x_()) {
           ESP_LOGE(TAG, "Temperature Compensation Parameters are not supported");
@@ -298,12 +299,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(12); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_CO2ASC); });
       } else {
-        this->internal_setup_(12);
+        this->internal_setup_(SM_SET_CO2ASC);
       }
       break;
-    case 12:
+    case SM_SET_CO2ASC:
       if (this->co2_auto_calibrate_.has_value()) {
         if ((this->model_.value() == SEN50 || this->model_.value() == SEN54 || this->model_.value() == SEN55 ||
              this->model_.value() == SEN60 || this->model_.value() == SEN65 || this->model_.value() == SEN68)) {
@@ -318,12 +319,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(13); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SET_CO2AC); });
       } else {
-        this->internal_setup_(13);
+        this->internal_setup_(SM_SET_CO2AC);
       }
       break;
-    case 13:
+    case SM_SET_CO2AC:
       if (this->co2_altitude_compensation_.has_value()) {
         if ((this->model_.value() == SEN50 || this->model_.value() == SEN54 || this->model_.value() == SEN55 ||
              this->model_.value() == SEN60 || this->model_.value() == SEN65 || this->model_.value() == SEN68)) {
@@ -338,12 +339,12 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        this->set_timeout(20, [this]() { this->internal_setup_(14); });
+        this->set_timeout(20, [this]() { this->internal_setup_(SM_SENSOR_CHECK); });
       } else {
-        this->internal_setup_(14);
+        this->internal_setup_(SM_SENSOR_CHECK);
       }
       break;
-    case 14:
+    case SM_SENSOR_CHECK:
       if (this->humidity_sensor_ && (this->model_.value() == SEN50 || this->model_.value() == SEN60)) {
         ESP_LOGE(TAG, "Humidity Sensor is not supported");
         this->humidity_sensor_ = nullptr;  // mark as not used
@@ -391,18 +392,18 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
       if (this->co2_ambient_pressure_source_ && (this->co2_ambient_pressure_ != 0)) {
         this->update_co2_ambient_pressure_compensation_(this->co2_ambient_pressure_);
       }
-      this->set_timeout(2000, [this]() { this->internal_setup_(15); });
+      this->set_timeout(2000, [this]() { this->internal_setup_(SM_START_MEAS); });
       break;
-    case 15:
+    case SM_START_MEAS:
       // Finally start sensor measurements
       if (!this->start_measurements_()) {
         this->error_code_ = MEASUREMENT_INIT_FAILED;
         this->mark_failed();
         return;
       }
-      this->set_timeout(20, [this]() { this->internal_setup_(16); });
+      this->set_timeout(20, [this]() { this->internal_setup_(SM_DONE); });
       break;
-    case 16:
+    case SM_DONE:
       this->initialized_ = true;
       ESP_LOGD(TAG, "Sensor initialized");
       break;

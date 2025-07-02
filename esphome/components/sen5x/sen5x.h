@@ -32,6 +32,25 @@ struct Sen5xBaselines {
 
 enum Sen5xType { SEN50, SEN54, SEN55, SEN60, SEN63C, SEN65, SEN66, SEN68, UNKNOWN_MODEL };
 enum RhtAccelerationMode : uint16_t { LOW_ACCELERATION = 0, MEDIUM_ACCELERATION = 1, HIGH_ACCELERATION = 2 };
+enum SetupStates {
+  SM_START,
+  SM_START_1,
+  SM_START_2,
+  SM_GET_SN,
+  SM_GET_PN,
+  SM_GET_FW,
+  SM_SET_VOCB,
+  SM_SET_ACI,
+  SM_SET_RHTAM,
+  SM_SET_VOCT,
+  SM_SET_NOXT,
+  SM_SET_TP,
+  SM_SET_CO2ASC,
+  SM_SET_CO2AC,
+  SM_SENSOR_CHECK,
+  SM_START_MEAS,
+  SM_DONE
+};
 
 struct GasTuning {
   uint16_t index_offset;
@@ -110,7 +129,7 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
 
  protected:
   bool is_sen6x_();
-  void internal_setup_(uint8_t state);
+  void internal_setup_(SetupStates state);
   bool start_measurements_();
   bool stop_measurements_();
   std::string convert_to_string_(const uint16_t array[], uint8_t length);
