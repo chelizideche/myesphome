@@ -278,9 +278,9 @@ void SX127x::transmit_packet(const std::vector<uint8_t> &packet) {
     this->write_fifo_(packet);
     this->set_mode_tx();
   }
+  // wait until transmit completes, typically the delay will be less than 100 ms
   uint32_t start = millis();
   while (!this->dio0_pin_->digital_read()) {
-    // wait until transmit completes, typically the delay will be less than 100 ms
     if (millis() - start > 4000) {
       ESP_LOGE(TAG, "Transmit packet failure");
       break;
