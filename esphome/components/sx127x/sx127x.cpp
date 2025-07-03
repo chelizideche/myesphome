@@ -17,6 +17,8 @@ static const uint8_t BW_FSK_OOK[22] = {RX_BW_2_6,   RX_BW_3_1,   RX_BW_3_9,   RX
                                        RX_BW_10_4,  RX_BW_12_5,  RX_BW_15_6,  RX_BW_20_8, RX_BW_25_0,  RX_BW_31_3,
                                        RX_BW_41_7,  RX_BW_50_0,  RX_BW_62_5,  RX_BW_83_3, RX_BW_100_0, RX_BW_125_0,
                                        RX_BW_166_7, RX_BW_200_0, RX_BW_250_0, RX_BW_250_0};
+static const int32_t RSSI_OFFSET_HF = 157;
+static const int32_t RSSI_OFFSET_LF = 164;
 
 uint8_t SX127x::read_register_(uint8_t reg) {
   this->enable();
@@ -278,6 +280,7 @@ void SX127x::transmit_packet(const std::vector<uint8_t> &packet) {
   }
   uint32_t start = millis();
   while (!this->dio0_pin_->digital_read()) {
+    // wait until transmit completes, typically the delay will be less than 100 ms
     if (millis() - start > 4000) {
       ESP_LOGE(TAG, "Transmit packet failure");
       break;
@@ -298,26 +301,28 @@ void SX127x::call_listeners_(const std::vector<uint8_t> &packet, float rssi, flo
 }
 
 void SX127x::loop() {
+  if (this->dio0_pin_ == nullptr || !this->dio0_pin_->digital_read()) {
+    return;
+  }
+
   if (this->modulation_ == MOD_LORA) {
-    if (this->dio0_pin_->digital_read()) {
-      uint8_t status = this->read_register_(REG_IRQ_FLAGS);
-      this->write_register_(REG_IRQ_FLAGS, 0xFF);
-      if ((status & PAYLOAD_CRC_ERROR) == 0) {
-        uint8_t bytes = this->read_register_(REG_NB_RX_BYTES);
-        uint8_t addr = this->read_register_(REG_FIFO_RX_CURR_ADDR);
-        uint8_t rssi = this->read_register_(REG_PKT_RSSI_VALUE);
-        int8_t snr = (int8_t) this->read_register_(REG_PKT_SNR_VALUE);
-        std::vector<uint8_t> packet(bytes);
-        this->write_register_(REG_FIFO_ADDR_PTR, addr);
-        this->read_fifo_(packet);
-        if (this->frequency_ > 700000000) {
-          this->call_listeners_(packet, (float) rssi - 157, (float) snr / 4);
-        } else {
-          this->call_listeners_(packet, (float) rssi - 164, (float) snr / 4);
-        }
+    uint8_t status = this->read_register_(REG_IRQ_FLAGS);
+    this->write_register_(REG_IRQ_FLAGS, 0xFF);
+    if ((status & PAYLOAD_CRC_ERROR) == 0) {
+      uint8_t bytes = this->read_register_(REG_NB_RX_BYTES);
+      uint8_t addr = this->read_register_(REG_FIFO_RX_CURR_ADDR);
+      uint8_t rssi = this->read_register_(REG_PKT_RSSI_VALUE);
+      int8_t snr = (int8_t) this->read_register_(REG_PKT_SNR_VALUE);
+      std::vector<uint8_t> packet(bytes);
+      this->write_register_(REG_FIFO_ADDR_PTR, addr);
+      this->read_fifo_(packet);
+      if (this->frequency_ > 700000000) {
+        this->call_listeners_(packet, (float) rssi - RSSI_OFFSET_HF, (float) snr / 4);
+      } else {
+        this->call_listeners_(packet, (float) rssi - RSSI_OFFSET_LF, (float) snr / 4);
       }
     }
-  } else if (this->packet_mode_ && this->dio0_pin_->digital_read()) {
+  } else if (this->packet_mode_) {
     std::vector<uint8_t> packet;
     uint8_t payload_length = this->payload_length_;
     if (payload_length == 0) {

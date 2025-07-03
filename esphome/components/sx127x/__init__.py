@@ -139,8 +139,6 @@ SetModeStandbyAction = sx127x_ns.class_(
 def validate_raw_data(value):
     if isinstance(value, str):
         return value.encode("utf-8")
-    if isinstance(value, str):
-        return value
     if isinstance(value, list):
         return cv.Schema([cv.hex_uint8_t])(value)
     raise cv.Invalid(
@@ -150,23 +148,25 @@ def validate_raw_data(value):
 
 def validate_config(config):
     if config[CONF_MODULATION] == "LORA":
-        bws = [
-            "7_8kHz",
-            "10_4kHz",
-            "15_6kHz",
-            "20_8kHz",
-            "31_3kHz",
-            "41_7kHz",
-            "62_5kHz",
-            "125_0kHz",
-            "250_0kHz",
-            "500_0kHz",
-        ]
+        bws = frozenset(
+            [
+                "7_8kHz",
+                "10_4kHz",
+                "15_6kHz",
+                "20_8kHz",
+                "31_3kHz",
+                "41_7kHz",
+                "62_5kHz",
+                "125_0kHz",
+                "250_0kHz",
+                "500_0kHz",
+            ]
+        )
         if config[CONF_BANDWIDTH] not in bws:
             raise cv.Invalid(f"{config[CONF_BANDWIDTH]} is not available with LORA")
         if CONF_DIO0_PIN not in config:
             raise cv.Invalid("Cannot use LoRa without dio0_pin")
-        if config[CONF_PREAMBLE_SIZE] > 0 and config[CONF_PREAMBLE_SIZE] < 6:
+        if 0 < config[CONF_PREAMBLE_SIZE] < 6:
             raise cv.Invalid("Minimum preamble size is 6 with LORA")
         if config[CONF_SPREADING_FACTOR] == 6 and config[CONF_PAYLOAD_LENGTH] == 0:
             raise cv.Invalid("Payload length must be set when spreading factor is 6")
@@ -180,7 +180,7 @@ def validate_config(config):
         if config[CONF_PACKET_MODE] and CONF_DIO0_PIN not in config:
             raise cv.Invalid("Config 'dio0_pin' required in packet mode")
         if config[CONF_PAYLOAD_LENGTH] > 64:
-            raise cv.Invalid("Payload length must be >= 64 with FSK/OOK")
+            raise cv.Invalid("Payload length must be <= 64 with FSK/OOK")
     if config[CONF_PA_PIN] == "RFO" and config[CONF_PA_POWER] > 15:
         raise cv.Invalid("PA power must be <= 15 dbm when using the RFO pin")
     if config[CONF_PA_PIN] == "BOOST" and config[CONF_PA_POWER] < 2:
