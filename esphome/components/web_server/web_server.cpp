@@ -48,93 +48,63 @@ static const char *const HEADER_CORS_ALLOW_PNA = "Access-Control-Allow-Private-N
 
 // Helper function to handle the actual URL parsing logic
 static UrlMatch parse_url(const char *url_ptr, size_t url_len, bool only_domain) {
-  UrlMatch match;
-  match.valid = false;
-  match.domain = nullptr;
-  match.id = nullptr;
-  match.method = nullptr;
-  match.domain_len = 0;
-  match.id_len = 0;
-  match.method_len = 0;
+  UrlMatch match{};
 
   // URL must start with '/'
   if (url_len < 2 || url_ptr[0] != '/') {
     return match;
   }
 
-  // Find domain
-  size_t domain_start = 1;
-  size_t domain_end = domain_start;
+  // Skip leading '/'
+  const char *start = url_ptr + 1;
+  const char *end = url_ptr + url_len;
 
-  // Find the next '/' after domain
-  while (domain_end < url_len && url_ptr[domain_end] != '/') {
-    domain_end++;
-  }
-
-  if (domain_end == url_len) {
-    // URL is just "/domain"
-    match.domain = url_ptr + domain_start;
-    match.domain_len = url_len - domain_start;
+  // Find domain (everything up to next '/' or end)
+  const char *domain_end = (const char *) memchr(start, '/', end - start);
+  if (!domain_end) {
+    // No more slashes, entire remaining string is domain
+    match.domain = start;
+    match.domain_len = end - start;
     match.valid = true;
     return match;
   }
 
   // Set domain
-  match.domain = url_ptr + domain_start;
-  match.domain_len = domain_end - domain_start;
-
-  if (only_domain) {
-    match.valid = true;
-    return match;
-  }
-
-  // Check if there's anything after domain
-  if (url_len == domain_end + 1)
-    return match;
-
-  // Find ID
-  size_t id_begin = domain_end + 1;
-  size_t id_end = id_begin;
-
-  // Find the next '/' after id
-  while (id_end < url_len && url_ptr[id_end] != '/') {
-    id_end++;
-  }
-
+  match.domain = start;
+  match.domain_len = domain_end - start;
   match.valid = true;
 
-  if (id_end == url_len) {
-    // URL is "/domain/id" with no method
-    match.id = url_ptr + id_begin;
-    match.id_len = url_len - id_begin;
+  if (only_domain) {
+    return match;
+  }
+
+  // Parse ID if present
+  if (domain_end + 1 >= end) {
+    return match;  // Nothing after domain slash
+  }
+
+  const char *id_start = domain_end + 1;
+  const char *id_end = (const char *) memchr(id_start, '/', end - id_start);
+
+  if (!id_end) {
+    // No more slashes, entire remaining string is ID
+    match.id = id_start;
+    match.id_len = end - id_start;
     return match;
   }
 
   // Set ID
-  match.id = url_ptr + id_begin;
-  match.id_len = id_end - id_begin;
+  match.id = id_start;
+  match.id_len = id_end - id_start;
 
-  // Set method if present
-  size_t method_begin = id_end + 1;
-  if (method_begin < url_len) {
-    match.method = url_ptr + method_begin;
-    match.method_len = url_len - method_begin;
+  // Parse method if present
+  if (id_end + 1 < end) {
+    match.method = id_end + 1;
+    match.method_len = end - (id_end + 1);
   }
 
   return match;
 }
-
-// Overload for std::string - stores the string to ensure pointers remain valid
-UrlMatch match_url(const std::string &url, bool only_domain = false) {
-  return parse_url(url.c_str(), url.length(), only_domain);
-}
-
-#ifdef USE_ARDUINO
-// Overload for Arduino String - stores the string to ensure pointers remain valid
-UrlMatch match_url(const String &url, bool only_domain = false) {
-  return parse_url(url.c_str(), url.length(), only_domain);
-}
-#endif
 
 #ifdef USE_ARDUINO
 // helper for allowing only unique entries in the queue
@@ -1786,10 +1756,9 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
 
   // Store the URL to prevent temporary string destruction
   // request->url() returns a reference to a String (on Arduino) or std::string (on ESP-IDF)
-  // If we pass it directly to match_url(), it could create a temporary std::string from Arduino String
-  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives match_url()
+  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives parse_url()
   const auto &url = request->url();
-  UrlMatch match = match_url(url, true);  // NOLINT
+  UrlMatch match = parse_url(url.c_str(), url.length(), true);
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1930,7 +1899,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
   // See comment in canHandle() for why we store the URL reference
   const auto &url = request->url();
-  UrlMatch match = match_url(url);  // NOLINT
+  UrlMatch match = parse_url(url.c_str(), url.length(), false);
 
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
