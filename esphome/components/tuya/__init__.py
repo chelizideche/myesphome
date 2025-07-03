@@ -80,6 +80,7 @@ def assign_declare_id(value):
     return value
 
 
+CONF_LOW_ENERGY = "low_energy"
 CONF_TUYA_ID = "tuya_id"
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -102,6 +103,7 @@ CONFIG_SCHEMA = (
                 },
                 extra_validators=assign_declare_id,
             ),
+            cv.Optional(CONF_LOW_ENERGY, default=False): cv.boolean,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -113,6 +115,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+    if config[CONF_LOW_ENERGY]:
+        cg.add_define("TUYA_LOW_ENERGY")
     if CONF_TIME_ID in config:
         time_ = await cg.get_variable(config[CONF_TIME_ID])
         cg.add(var.set_time_id(time_))

@@ -48,6 +48,7 @@ struct TuyaDatapointListener {
 enum class TuyaCommandType : uint8_t {
   HEARTBEAT = 0x00,
   PRODUCT_QUERY = 0x01,
+#ifndef TUYA_LOW_ENERGY
   CONF_QUERY = 0x02,
   WIFI_STATE = 0x03,
   WIFI_RESET = 0x04,
@@ -63,6 +64,18 @@ enum class TuyaCommandType : uint8_t {
   VACUUM_MAP_UPLOAD = 0x28,
   GET_NETWORK_STATUS = 0x2B,
   EXTENDED_SERVICES = 0x34,
+#else
+  WIFI_STATE = 0x02,
+  WIFI_RESET = 0x03,  // factory mode, same as below, since not yet implemented as ap mode
+  WIFI_PAIR = 0x04,   // pairing mode, will made the device available for 2 minutes
+  DATAPOINT_REPORT_SYNC = 0x05,
+  LOCAL_TIME_QUERY = 0x06,
+  WIFI_TEST = 0x07,
+  DATAPOINT_REPORT_ASYNC = 0x08,
+  DATAPOINT_DELIVER = 0x09,
+  DATAPOINT_CACHE_DELIVER = 0x10,
+  WIFI_RSSI = 0x0B,
+#endif
 };
 
 enum class TuyaExtendedServicesCommandType : uint8_t {
@@ -160,6 +173,7 @@ class Tuya : public Component, public uart::UARTDevice {
   optional<TuyaCommandType> expected_response_{};
   uint8_t wifi_status_ = -1;
   CallbackManager<void()> initialized_callback_{};
+  bool cut_cloud_mode_ = false;
 };
 
 }  // namespace tuya
