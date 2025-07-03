@@ -770,6 +770,55 @@ class ListDevicesHandler(BaseHandler):
         )
 
 
+class ResolveDeviceIPsHandler(BaseHandler):
+    @authenticated
+    async def get(self) -> None:
+        """Resolve IP addresses of all devices using mDNS."""
+        dashboard = DASHBOARD
+        await dashboard.entries.async_request_update_entries()
+        entries = dashboard.entries.async_all()
+
+        # Get device names to resolve
+        device_names = []
+        for entry in entries:
+            if not entry.no_mdns and entry.name:
+                device_names.append(entry.name)
+
+        # Resolve IP addresses concurrently
+        resolved_ips = {}
+        if device_names and dashboard.mdns_status and dashboard.mdns_status.aiozc:
+            # Use asyncio.gather to resolve all IPs concurrently
+            results = await asyncio.gather(
+                *(
+                    dashboard.mdns_status.async_resolve_host(name)
+                    for name in device_names
+                ),
+                return_exceptions=True,
+            )
+
+            for name, result in zip(device_names, results):
+                if isinstance(result, list) and result:
+                    # Take the first resolved IP address
+                    resolved_ips[name] = sort_ip_addresses(result)[0]
+                elif result is None or isinstance(result, Exception):
+                    resolved_ips[name] = None
+
+        # Also check configured addresses and resolve via DNS cache
+        for entry in entries:
+            if entry.name not in resolved_ips and entry.address:
+                try:
+                    address_list = await dashboard.dns_cache.async_resolve(
+                        entry.address, time.monotonic()
+                    )
+                    if not isinstance(address_list, Exception) and address_list:
+                        resolved_ips[entry.name] = sort_ip_addresses(address_list)[0]
+                except Exception:  # pylint: disable=broad-except
+                    pass
+
+        self.set_header("content-type", "application/json")
+        self.write(json.dumps({"device_ips": resolved_ips}))
+
+
 class MainRequestHandler(BaseHandler):
     @authenticated
     def get(self) -> None:
@@ -1228,6 +1277,7 @@ def make_app(debug=get_bool_env(ENV_DEV)) -> tornado.web.Application:
             (f"{rel}wizard", WizardRequestHandler),
             (f"{rel}static/(.*)", StaticFileHandler, {"path": get_static_path()}),
             (f"{rel}devices", ListDevicesHandler),
+            (f"{rel}resolve-device-ips", ResolveDeviceIPsHandler),
             (f"{rel}import", ImportRequestHandler),
             (f"{rel}secret_keys", SecretKeysRequestHandler),
             (f"{rel}json-config", JsonConfigRequestHandler),

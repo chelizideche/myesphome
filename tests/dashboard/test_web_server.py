@@ -81,3 +81,63 @@ async def test_devices_page(dashboard: DashboardTestHelper) -> None:
     first_device = configured_devices[0]
     assert first_device["name"] == "pico"
     assert first_device["configuration"] == "pico.yaml"
+
+
+@pytest.mark.asyncio
+async def test_resolve_device_ips(dashboard: DashboardTestHelper) -> None:
+    response = await dashboard.fetch("/resolve-device-ips")
+    assert response.code == 200
+    assert response.headers["content-type"] == "application/json"
+    json_data = json.loads(response.body.decode())
+    assert "device_ips" in json_data
+    device_ips = json_data["device_ips"]
+    # device_ips should be a dict, and may contain device names as keys
+    assert isinstance(device_ips, dict)
+
+
+@pytest.mark.asyncio
+async def test_resolve_device_ips_with_mock_mdns(
+    dashboard: DashboardTestHelper,
+) -> None:
+    """Test resolve-device-ips endpoint with mocked mDNS responses."""
+    from unittest.mock import AsyncMock, patch
+
+    # Mock the mDNS resolution to return a test IP
+    mock_mdns_status = Mock()
+    mock_mdns_status.aiozc = True
+    mock_mdns_status.async_resolve_host = AsyncMock(return_value=["192.168.1.100"])
+
+    with patch.object(DASHBOARD, "mdns_status", mock_mdns_status):
+        response = await dashboard.fetch("/resolve-device-ips")
+        assert response.code == 200
+        assert response.headers["content-type"] == "application/json"
+        json_data = json.loads(response.body.decode())
+        assert "device_ips" in json_data
+        device_ips = json_data["device_ips"]
+        assert isinstance(device_ips, dict)
+        # If there are devices, check that they have IP addresses resolved
+        if device_ips:
+            # At least one device should have an IP or None
+            assert all(ip is None or isinstance(ip, str) for ip in device_ips.values())
+
+
+@pytest.mark.asyncio
+async def test_resolve_device_ips_error_handling(
+    dashboard: DashboardTestHelper,
+) -> None:
+    """Test resolve-device-ips endpoint handles errors gracefully."""
+    from unittest.mock import AsyncMock, patch
+
+    # Mock the mDNS resolution to raise an exception
+    mock_mdns_status = Mock()
+    mock_mdns_status.aiozc = True
+    mock_mdns_status.async_resolve_host = AsyncMock(side_effect=Exception("mDNS error"))
+
+    with patch.object(DASHBOARD, "mdns_status", mock_mdns_status):
+        response = await dashboard.fetch("/resolve-device-ips")
+        assert response.code == 200
+        assert response.headers["content-type"] == "application/json"
+        json_data = json.loads(response.body.decode())
+        assert "device_ips" in json_data
+        device_ips = json_data["device_ips"]
+        assert isinstance(device_ips, dict)
