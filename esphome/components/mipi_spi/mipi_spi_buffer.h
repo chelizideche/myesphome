@@ -15,8 +15,8 @@ namespace mipi_spi {
  * @tparam ROTATION The rotation of the display
  */
 template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE, int WIDTH, int HEIGHT,
-         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION>
-class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT, BUS_TYPE> {
+         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRAC>
+class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT, BUS_TYPE, FRAC> {
  public:
   MipiSpiBuffer() {
     switch (BUFFERPIXEL) {
@@ -155,7 +155,7 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
     const auto *ptr_cast = static_cast<const BUFFERTYPE *>(ptr) + y_offset * (x_offset + w + x_pad) + x_offset;
     if constexpr (BUFFERPIXEL == DISPLAYPIXEL) {
-      this->write_display_data_(ptr_cast, w * sizeof(BUFFERTYPE), h, x_pad);
+      this->write_display_data_(reinterpret_cast<const uint8_t *>(ptr_cast), w * sizeof(BUFFERTYPE), h, x_pad);
     } else {
       uint8_t dbuffer[6 * 4 * WIDTH];
       uint8_t *dptr = dbuffer;
@@ -190,14 +190,14 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
       std::swap(x, y);
       y = HEIGHT - y - 1;
     }
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
+    if (x < 0 || x >= WIDTH || y < this->start_line_ || y >= this->end_line_)
       return;
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
-      this->buffer_[y * WIDTH + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
+      this->buffer_[(y - this->start_line_) * WIDTH + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
     } else if constexpr (BUFFERPIXEL == PIXEL_MODE_16) {
       uint16_t new_color = color.r >> 3 << 11 | color.g >> 2 << 5 | color.b >> 3;
       new_color = (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
-      this->buffer_[y * WIDTH + x] = new_color;
+      this->buffer_[(y - this->start_line_) * WIDTH + x] = new_color;
     }
     if (x < this->x_low_) {
       this->x_low_ = x;

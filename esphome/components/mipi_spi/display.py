@@ -3,11 +3,14 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
+from esphome.components.const import CONF_COLOR_DEPTH, CONF_DRAW_ROUNDING
+from esphome.components.display import CONF_SHOW_TEST_CARD, DISPLAY_ROTATIONS
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
 from esphome.config_validation import ALLOW_EXTRA
 from esphome.const import (
     CONF_BRIGHTNESS,
+    CONF_BUFFER_SIZE,
     CONF_COLOR_ORDER,
     CONF_CS_PIN,
     CONF_DATA_RATE,
@@ -32,11 +35,9 @@ from esphome.const import (
     CONF_WIDTH,
 )
 from esphome.core import TimePeriod
+from esphome.cpp_generator import TemplateArguments
+from esphome.final_validate import full_config
 
-from ...cpp_generator import TemplateArguments
-from ..const import CONF_DRAW_ROUNDING
-from ..display import CONF_SHOW_TEST_CARD, DISPLAY_ROTATIONS
-from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
     CONF_NATIVE_HEIGHT,
@@ -123,6 +124,65 @@ DISPLAY_PIXEL_MODES = {
     DISPLAY_16BIT: (0x55, PixelMode.PIXEL_MODE_16),
     DISPLAY_18BIT: (0x66, PixelMode.PIXEL_MODE_18),
 }
+
+
+def get_dimensions(config):
+    if CONF_DIMENSIONS in config:
+        # Explicit dimensions, just use as is
+        dimensions = config[CONF_DIMENSIONS]
+        if isinstance(dimensions, dict):
+            width = dimensions[CONF_WIDTH]
+            height = dimensions[CONF_HEIGHT]
+            offset_width = dimensions[CONF_OFFSET_WIDTH]
+            offset_height = dimensions[CONF_OFFSET_HEIGHT]
+            return width, height, offset_width, offset_height
+        (width, height) = dimensions
+        return width, height, 0, 0
+
+    # Default dimensions, use model defaults
+    model = MODELS[config[CONF_MODEL]]
+    transform = get_transform(model, config)
+
+    width = model.get_default(CONF_WIDTH)
+    height = model.get_default(CONF_HEIGHT)
+    offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
+    offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
+
+    # if mirroring axes and there are offsets, also mirror the offsets to cater for situations where
+    # the offset is asymmetric
+    if transform[CONF_MIRROR_X]:
+        native_width = model.get_default(CONF_NATIVE_WIDTH, width + offset_width * 2)
+        offset_width = native_width - width - offset_width
+    if transform[CONF_MIRROR_Y]:
+        native_height = model.get_default(
+            CONF_NATIVE_HEIGHT, height + offset_height * 2
+        )
+        offset_height = native_height - height - offset_height
+    # Swap default dimensions if swap_xy is set
+    if transform[CONF_SWAP_XY] is True:
+        width, height = height, width
+        offset_height, offset_width = offset_width, offset_height
+    return width, height, offset_width, offset_height
+
+
+def denominator(config):
+    """
+    Calculate the best denominator for a buffer size fraction.
+    The denominator must be a number between 2 and 16 that divides the display height evenly,
+    and the fraction represented by the denominator must be less than or equal to the given fraction.
+    :config: The configuration dictionary containing the buffer size fraction and display dimensions
+    :return: The denominator to use for the buffer size fraction
+    """
+    frac = config.get(CONF_BUFFER_SIZE)
+    if frac is None or frac > 0.75:
+        return 1
+    height, width, _offset_width, _offset_height = get_dimensions(config)
+    try:
+        return next(x for x in range(2, 17) if frac >= 1 / x and height % x == 0)
+    except StopIteration:
+        raise cv.Invalid(
+            f"Buffer size fraction {frac} is not compatible with display height {height}"
+        )
 
 
 def validate_dimension(rounding):
@@ -256,6 +316,9 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 ),
                 cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
                 iseqconf: cv.ensure_list(map_sequence),
+                cv.Optional(CONF_BUFFER_SIZE): cv.All(
+                    cv.percentage, cv.Range(0.12, 1.0)
+                ),
             }
         )
         .extend({model.option(x): cv.boolean for x in other_options})
@@ -322,10 +385,38 @@ def config_schema(config):
         raise cv.Invalid("18-bit pixel mode is not supported on a quad or octal bus")
     if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
         raise cv.Invalid(f"DC pin is required in {bus_mode} mode")
+    denominator(config)
     return config
 
 
 CONFIG_SCHEMA = config_schema
+
+
+def _final_validate(config):
+    global_config = full_config.get()
+    if "psram" not in global_config and CONF_BUFFER_SIZE not in config:
+        # If PSRAM is not enabled, choose a small buffer size by default
+        buffer_size = get_buffer_size(config)
+        # Target a buffer size of 20kB
+        fraction = 20000.0 / buffer_size
+        height, width, _offset_width, _offset_height = get_dimensions(config)
+        config[CONF_BUFFER_SIZE] = 1.0 / next(
+            x for x in range(2, 17) if fraction >= 1 / x and height % x == 0
+        )
+
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
+
+
+def get_buffer_size(config):
+    if not any(key in config for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)):
+        return 0
+    color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
+    frac = denominator(config)
+    height, width, _offset_width, _offset_height = get_dimensions(config)
+    return color_depth // 8 * width * height // frac
 
 
 def get_transform(model, config):
@@ -414,47 +505,9 @@ def get_sequence(model, config):
 
 async def to_code(config):
     model = MODELS[config[CONF_MODEL]]
-    transform = get_transform(model, config)
-    if CONF_DIMENSIONS in config:
-        # Explicit dimensions, just use as is
-        dimensions = config[CONF_DIMENSIONS]
-        if isinstance(dimensions, dict):
-            width = dimensions[CONF_WIDTH]
-            height = dimensions[CONF_HEIGHT]
-            offset_width = dimensions[CONF_OFFSET_WIDTH]
-            offset_height = dimensions[CONF_OFFSET_HEIGHT]
-        else:
-            (width, height) = dimensions
-            offset_width = 0
-            offset_height = 0
-    else:
-        # Default dimensions, use model defaults and transform if needed
-        width = model.get_default(CONF_WIDTH)
-        height = model.get_default(CONF_HEIGHT)
-        offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
-        offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
+    width, height, offset_width, offset_height = get_dimensions(config)
 
-        # if mirroring axes and there are offsets, also mirror the offsets to cater for situations where
-        # the offset is asymmetric
-        if transform[CONF_MIRROR_X]:
-            native_width = model.get_default(
-                CONF_NATIVE_WIDTH, width + offset_width * 2
-            )
-            offset_width = native_width - width - offset_width
-        if transform[CONF_MIRROR_Y]:
-            native_height = model.get_default(
-                CONF_NATIVE_HEIGHT, height + offset_height * 2
-            )
-            offset_height = native_height - height - offset_height
-        # Swap default dimensions if swap_xy is set
-        if transform[CONF_SWAP_XY] is True:
-            width, height = height, width
-            offset_height, offset_width = offset_width, offset_height
-
-    color_depth = config[CONF_COLOR_DEPTH]
-    if color_depth.endswith("bit"):
-        color_depth = color_depth[:-3]
-    color_depth = int(color_depth)
+    color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
     bufferpixels = COLOR_DEPTHS[color_depth]
 
     display_pixel_mode = DISPLAY_PIXEL_MODES[config[CONF_PIXEL_MODE]][1]
@@ -465,6 +518,7 @@ async def to_code(config):
     else:
         bus_type = BusTypes[bus_type]
     buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
+    frac = denominator(config)
     templateargs = TemplateArguments(
         buffer_type,
         bufferpixels,
@@ -475,13 +529,10 @@ async def to_code(config):
         offset_width,
         offset_height,
         DISPLAY_ROTATIONS[config.get(CONF_ROTATION, 0)],
+        frac,
     )
     var = cg.new_Pvariable(config[CONF_ID], templateargs)
-    buffer_size = (
-        color_depth // 8 * width * height
-        if any(key in config for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD))
-        else 0
-    )
+    buffer_size = get_buffer_size(config)
     if buffer_size != 0:
         cg.add(var.set_buffer_size(buffer_size))
     cg.add(var.set_init_sequence(get_sequence(model, config)))

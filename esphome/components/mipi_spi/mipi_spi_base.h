@@ -60,11 +60,11 @@ enum BusType {
 };
 
 /**
- * Un-templated base class for MIPI SPI displays.
- * This defines methods and properties that don't depend on the pixel mode or bus type.
+ * Base class for MIPI SPI displays.
+ * This defines methods and properties that don't depend on the pixel mode
  */
 
-template<int WIDTH, int HEIGHT, int OFFSET_WIDTH, int OFFSET_HEIGHT, BusType BUS_TYPE>
+template<int WIDTH, int HEIGHT, int OFFSET_WIDTH, int OFFSET_HEIGHT, BusType BUS_TYPE, int FRACTION>
 class MipiSpi : public display::Display,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
@@ -200,39 +200,43 @@ class MipiSpi : public display::Display,
     if (!this->setup_complete_ || this->is_failed()) {
       return;
     }
-    if (this->auto_clear_enabled_) {
-      this->clear();
-    }
-    if (this->show_test_card_) {
-      this->test_card();
-    } else if (this->page_ != nullptr) {
-      this->page_->get_writer()(*this);
-    } else if (this->writer_.has_value()) {
-      (*this->writer_)(*this);
-    } else {
-      return;
-    }
+    for (this->start_line_ = 0; this->start_line_ < HEIGHT; this->start_line_ += HEIGHT / FRACTION) {
+      this->end_line_ = this->start_line_ + HEIGHT / FRACTION;
+      if (this->auto_clear_enabled_) {
+        this->clear();
+      }
+      if (this->show_test_card_) {
+        this->test_card();
+      } else if (this->page_ != nullptr) {
+        this->page_->get_writer()(*this);
+      } else if (this->writer_.has_value()) {
+        (*this->writer_)(*this);
+      } else {
+        return;
+      }
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
-    ESP_LOGV(TAG, "Drawing took %dms", millis() - now);
+      ESP_LOGV(TAG, "Drawing took %dms", millis() - now);
 #endif
-    if (this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
-      return;
-    ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
-    // Some chips require that the drawing window be aligned on certain boundaries
-    auto dr = this->draw_rounding_;
-    this->x_low_ = this->x_low_ / dr * dr;
-    this->y_low_ = this->y_low_ / dr * dr;
-    this->x_high_ = (this->x_high_ + dr) / dr * dr - 1;
-    this->y_high_ = (this->y_high_ + dr) / dr * dr - 1;
-    int w = this->x_high_ - this->x_low_ + 1;
-    int h = this->y_high_ - this->y_low_ + 1;
-    this->write_to_display_(this->x_low_, this->y_low_, w, h, nullptr, this->x_low_, this->y_low_,
-                            WIDTH - w - this->x_low_);
-    // invalidate watermarks
-    this->x_low_ = WIDTH;
-    this->y_low_ = HEIGHT;
-    this->x_high_ = 0;
-    this->y_high_ = 0;
+      if (this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
+        return;
+      ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_,
+               this->y_high_);
+      // Some chips require that the drawing window be aligned on certain boundaries
+      auto dr = this->draw_rounding_;
+      this->x_low_ = this->x_low_ / dr * dr;
+      this->y_low_ = this->y_low_ / dr * dr;
+      this->x_high_ = (this->x_high_ + dr) / dr * dr - 1;
+      this->y_high_ = (this->y_high_ + dr) / dr * dr - 1;
+      int w = this->x_high_ - this->x_low_ + 1;
+      int h = this->y_high_ - this->y_low_ + 1;
+      this->write_to_display_(this->x_low_, this->y_low_, w, h, nullptr, this->x_low_, this->y_low_ - this->start_line_,
+                              WIDTH - w - this->x_low_);
+      // invalidate watermarks
+      this->x_low_ = WIDTH;
+      this->y_low_ = HEIGHT;
+      this->x_high_ = 0;
+      this->y_high_ = 0;
+    }
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
     ESP_LOGV(TAG, "Total update took %dms", millis() - now);
 #endif
@@ -366,11 +370,12 @@ class MipiSpi : public display::Display,
                   "  Color order: %s\n"
                   "  Buffer pixels: %d bits\n"
                   "  Display pixels: %d bits\n"
+                  "  Buffer fraction: 1/%d\n"
                   "  Buffer bytes: %zu",
                   YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
                   YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), this->rotation_, YESNO(this->invert_colors_),
                   this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->get_buffer_bits_(), this->get_display_bits_(),
-                  this->buffer_size_);
+                  FRACTION, this->buffer_size_);
     if (this->brightness_.has_value())
       ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
     ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);
@@ -408,6 +413,8 @@ class MipiSpi : public display::Display,
   bool setup_complete_{};
   size_t buffer_size_{0};  // buffer size in bytes, 0 means no buffer
   uint8_t madctl_{};
+  uint16_t start_line_{};
+  uint16_t end_line_{};
 };
 
 }  // namespace mipi_spi
