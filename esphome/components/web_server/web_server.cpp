@@ -137,7 +137,16 @@ void DeferredUpdateEventSource::process_deferred_queue_() {
     if (this->send(message.c_str(), "state") != DISCARDED) {
       // O(n) but memory efficiency is more important than speed here which is why std::vector was chosen
       deferred_queue_.erase(deferred_queue_.begin());
+      consecutive_send_failures_ = 0;  // Reset failure count on successful send
     } else {
+      consecutive_send_failures_++;
+      if (consecutive_send_failures_ >= MAX_CONSECUTIVE_SEND_FAILURES) {
+        // Too many failures, connection is likely dead
+        ESP_LOGW(TAG, "Closing stuck EventSource connection after %" PRIu16 " failed sends",
+                 consecutive_send_failures_);
+        this->close();
+        deferred_queue_.clear();
+      }
       break;
     }
   }
@@ -176,6 +185,8 @@ void DeferredUpdateEventSource::deferrable_send_state(void *source, const char *
     std::string message = message_generator(web_server_, source);
     if (this->send(message.c_str(), "state") == DISCARDED) {
       deq_push_back_with_dedup_(source, message_generator);
+    } else {
+      consecutive_send_failures_ = 0;  // Reset failure count on successful send
     }
   }
 }
