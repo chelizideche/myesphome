@@ -177,6 +177,7 @@ enum WaveshareEPaperTypeBModel {
   WAVESHARE_EPAPER_2_7_IN_B_V2,
   WAVESHARE_EPAPER_4_2_IN,
   WAVESHARE_EPAPER_4_2_IN_B_V2,
+  WAVESHARE_EPAPER_5_65_IN_F,
   WAVESHARE_EPAPER_7_3_IN_F,
   WAVESHARE_EPAPER_7_5_IN,
   WAVESHARE_EPAPER_7_5_INV2,
@@ -618,6 +619,39 @@ class WaveshareEPaper4P2InBV2BWR : public WaveshareEPaperBWR {
   int get_width_internal() override;
 
   int get_height_internal() override;
+};
+
+class WaveshareEPaper5P65InF : public WaveshareEPaper7C {
+ public:
+  void initialize() override;
+
+  void display() override;
+
+  void dump_config() override;
+
+ protected:
+  int get_width_internal() override;
+
+  int get_height_internal() override;
+
+  uint32_t idle_timeout_() override;
+
+  void deep_sleep() override { ; }
+
+  bool wait_until_idle_();
+
+  bool deep_sleep_between_updates_{true};
+
+  void reset_() {
+    if (this->reset_pin_ != nullptr) {
+      this->reset_pin_->digital_write(true);
+      delay(20);
+      this->reset_pin_->digital_write(false);
+      delay(1);
+      this->reset_pin_->digital_write(true);
+      delay(20);
+    }
+  };
 };
 
 class WaveshareEPaper5P8In : public WaveshareEPaper {
