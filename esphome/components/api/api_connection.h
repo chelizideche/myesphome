@@ -649,8 +649,10 @@ class APIConnection : public APIServerConnection {
   bool send_message_smart_(EntityBase *entity, MessageCreatorPtr creator, uint16_t message_type) {
     // Try to send immediately if:
     // 1. We should try to send immediately (should_try_send_immediately = true)
-    // 2. Buffer has space available
-    if (this->flags_.should_try_send_immediately && this->helper_->can_write_without_blocking()) {
+    // 2. Batch delay is 0 (user has opted in to immediate sending)
+    // 3. Buffer has space available
+    if (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0 &&
+        this->helper_->can_write_without_blocking()) {
       // Now actually encode and send
       if (creator(entity, this, MAX_PACKET_SIZE, true) &&
           this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
