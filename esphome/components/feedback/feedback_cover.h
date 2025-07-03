@@ -39,6 +39,7 @@ class FeedbackCover : public cover::Cover, public Component {
   void set_infer_endstop(bool infer_endstop) { this->infer_endstop_ = infer_endstop; }
   void set_direction_change_waittime(uint32_t waittime) { this->direction_change_waittime_ = waittime; }
   void set_acceleration_wait_time(uint32_t waittime) { this->acceleration_wait_time_ = waittime; }
+  void set_enable_duration_autocalibration(bool value) { this->enable_duration_autocalibration_ = value; }
 
   cover::CoverTraits get_traits() override;
 
@@ -71,9 +72,13 @@ class FeedbackCover : public cover::Cover, public Component {
   optional<uint32_t> direction_change_waittime_{};
   uint32_t acceleration_wait_time_{0};
   bool has_built_in_endstop_{false};
+  bool enable_duration_autocalibration_{false};
   bool assumed_state_{false};
   bool infer_endstop_{false};
   float obstacle_rollback_{0};
+  
+  bool last_stop_at_fully_open_state = false;
+  bool last_stop_at_fully_close_state = false;
 
   cover::CoverOperation last_operation_{cover::COVER_OPERATION_OPENING};
   cover::CoverOperation current_trigger_operation_{cover::COVER_OPERATION_IDLE};

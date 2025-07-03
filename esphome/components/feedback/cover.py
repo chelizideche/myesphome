@@ -20,6 +20,7 @@ CONF_CLOSE_SENSOR = "close_sensor"
 CONF_OPEN_OBSTACLE_SENSOR = "open_obstacle_sensor"
 CONF_CLOSE_OBSTACLE_SENSOR = "close_obstacle_sensor"
 CONF_HAS_BUILT_IN_ENDSTOP = "has_built_in_endstop"
+CONF_ENABLE_DURATION_AUTOCALIBRATION = "enable_duration_autocalibration"
 CONF_INFER_ENDSTOP_FROM_MOVEMENT = "infer_endstop_from_movement"
 CONF_DIRECTION_CHANGE_WAIT_TIME = "direction_change_wait_time"
 CONF_ACCELERATION_WAIT_TIME = "acceleration_wait_time"
@@ -70,6 +71,7 @@ CONFIG_FEEDBACK_COVER_BASE_SCHEMA = (
             ),
             cv.Optional(CONF_MAX_DURATION): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_HAS_BUILT_IN_ENDSTOP, default=False): cv.boolean,
+            cv.Optional(CONF_ENABLE_DURATION_AUTOCALIBRATION, default=False): cv.boolean,
             cv.Optional(CONF_ASSUMED_STATE): cv.boolean,
             cv.Optional(
                 CONF_UPDATE_INTERVAL, "1000ms"
@@ -139,6 +141,7 @@ async def to_code(config):
         cg.add(var.set_max_duration(config[CONF_MAX_DURATION]))
 
     cg.add(var.set_has_built_in_endstop(config[CONF_HAS_BUILT_IN_ENDSTOP]))
+    cg.add(var.set_enable_duration_autocalibration(config[CONF_ENABLE_DURATION_AUTOCALIBRATION]))
 
     if CONF_ASSUMED_STATE in config:
         cg.add(var.set_assumed_state(config[CONF_ASSUMED_STATE]))
