@@ -242,7 +242,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
         this->seconds_since_last_store_ = 0;
 
         if (this->voc_baselines_storage_.state0 > 0 && this->voc_baselines_storage_.state1 > 0) {
-          ESP_LOGD(TAG, "Restoring VOC baseline from save state0: 0x%04" PRIX32 ", state1: 0x%04" PRIX32,
+          ESP_LOGV(TAG, "Restoring VOC baseline from save state0: 0x%04" PRIX32 ", state1: 0x%04" PRIX32,
                    this->voc_baselines_storage_.state0, voc_baselines_storage_.state1);
           uint16_t states[4];
 
