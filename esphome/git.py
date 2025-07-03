@@ -80,6 +80,8 @@ def clone_or_update(
             run_git_command(
                 ["git", "submodule", "update", "--init"] + submodules, str(repo_dir)
             )
+        else:
+            run_git_command(["git", "submodule", "update", "--init"], str(repo_dir))
 
     else:
         # Check refresh needed
