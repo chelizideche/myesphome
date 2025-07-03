@@ -201,6 +201,9 @@ class MipiSpi : public display::Display,
       return;
     }
     for (this->start_line_ = 0; this->start_line_ < HEIGHT; this->start_line_ += HEIGHT / FRACTION) {
+#if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
+      auto lap = millis();
+#endif
       this->end_line_ = this->start_line_ + HEIGHT / FRACTION;
       if (this->auto_clear_enabled_) {
         this->clear();
@@ -215,7 +218,8 @@ class MipiSpi : public display::Display,
         return;
       }
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
-      ESP_LOGV(TAG, "Drawing took %dms", millis() - now);
+      ESP_LOGV(TAG, "Drawing from line %d took %dms", this->start_line_, millis() - lap);
+      lap = millis();
 #endif
       if (this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
         return;
@@ -230,16 +234,18 @@ class MipiSpi : public display::Display,
       int w = this->x_high_ - this->x_low_ + 1;
       int h = this->y_high_ - this->y_low_ + 1;
       this->write_to_display_(this->x_low_, this->y_low_, w, h, nullptr, this->x_low_, this->y_low_ - this->start_line_,
-                              WIDTH - w - this->x_low_);
+                              WIDTH - w);
       // invalidate watermarks
       this->x_low_ = WIDTH;
       this->y_low_ = HEIGHT;
       this->x_high_ = 0;
       this->y_high_ = 0;
-    }
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
-    ESP_LOGV(TAG, "Total update took %dms", millis() - now);
+      ESP_LOGV(TAG, "Write to display took %dms", millis() - lap);
+      lap = millis();
 #endif
+    }
+    ESP_LOGV(TAG, "Total update took %dms", millis() - now);
   }
 
   // Writes a command to the display, with the given bytes.
@@ -413,8 +419,8 @@ class MipiSpi : public display::Display,
   bool setup_complete_{};
   size_t buffer_size_{0};  // buffer size in bytes, 0 means no buffer
   uint8_t madctl_{};
-  uint16_t start_line_{};
-  uint16_t end_line_{};
+  uint16_t start_line_{0};
+  uint16_t end_line_{HEIGHT / FRACTION};
 };
 
 }  // namespace mipi_spi

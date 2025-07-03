@@ -9,16 +9,23 @@ namespace mipi_spi {
  * This class is designed to copy data from the buffer to the display, so must be paraameterized by the pixel mode of
  * the buffer, the pixel mode of the display, the bus type and the display rotation.
  *
+ * @tparam BUFFERTYPE The type of the buffer pixels, e.g. uint8_t or uint16_t
  * @tparam BUFFERPIXEL Color depth of the buffer
  * @tparam DISPLAYPIXEL Color depth of the display
  * @tparam BUS_TYPE The type of the interface bus (single, quad, octal)
  * @tparam ROTATION The rotation of the display
+ * @tparam WIDTH Width of the display in pixels
+ * @tparam HEIGHT Height of the display in pixels
+ * @tparam OFFSET_WIDTH The x-offset of the display in pixels
+ * @tparam OFFSET_HEIGHT The y-offset of the display in pixels
+ * @tparam FRACTION The fraction of the display size to use for the buffer (e.g. 4 means a 1/4 buffer)
  */
 template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE, int WIDTH, int HEIGHT,
-         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRAC>
-class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT, BUS_TYPE, FRAC> {
+         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRACTION>
+class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT, BUS_TYPE, FRACTION> {
  public:
   MipiSpiBuffer() {
+    // set color_depth for others to use
     switch (BUFFERPIXEL) {
       case PIXEL_MODE_8:
         this->color_depth_ = display::COLOR_BITNESS_332;
@@ -31,6 +38,7 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     }
   }
 
+  // Allocate a buffer if required.
   bool buffer_setup_() override {
     if (this->buffer_size_ != 0) {
       RAMAllocator<BUFFERTYPE> allocator{};
@@ -39,7 +47,6 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
         this->mark_failed("Buffer allocation failed");
         return false;
       }
-      this->clear();
     }
     return true;
   }
@@ -130,6 +137,12 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     this->disable();
   }
 
+  /**
+   * Writes a buffer to the display.
+   * @param w Width of each line in bytes
+   * @param h Height of the buffer in rows
+   * @param pad Padding in bytes after each line
+   */
   template<BusType M = BUS_TYPE>
   std::enable_if_t<M == BUS_TYPE_SINGLE || M == BUS_TYPE_SINGLE_16, void> write_display_data_(const uint8_t *ptr,
                                                                                               size_t w, size_t h,
@@ -138,16 +151,20 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     ESP_LOGV(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
     this->enable();
     if (pad == 0) {
-      this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h);
+      this->write_array(ptr, w * h);
     } else {
       for (int y = 0; y != h; y++) {
-        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w);
+        this->write_array(ptr, w);
         ptr += w + pad;
       }
     }
     this->disable();
   }
 
+  /**
+   * Writes a buffer to the display.
+   *
+   */
   void write_to_display_(int x_start, int y_start, int w, int h, const void *ptr, int x_offset, int y_offset,
                          int x_pad) override {
     if (ptr == nullptr)
@@ -155,7 +172,8 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
     const auto *ptr_cast = static_cast<const BUFFERTYPE *>(ptr) + y_offset * (x_offset + w + x_pad) + x_offset;
     if constexpr (BUFFERPIXEL == DISPLAYPIXEL) {
-      this->write_display_data_(reinterpret_cast<const uint8_t *>(ptr_cast), w * sizeof(BUFFERTYPE), h, x_pad);
+      this->write_display_data_(reinterpret_cast<const uint8_t *>(ptr_cast), w * sizeof(BUFFERTYPE), h,
+                                x_pad * sizeof(BUFFERTYPE));
     } else {
       uint8_t dbuffer[6 * 4 * WIDTH];
       uint8_t *dptr = dbuffer;
@@ -174,12 +192,9 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     }
   }
 
-  // write a command for various bus types
+  // Rotate the coordinates for the display rotation
 
-  // methods for drawing pixels with different pixel modes
-  void draw_pixel_at(int x, int y, Color color) override {
-    if (this->buffer_ == nullptr)
-      return;
+  void rotate_coordinates_(int &x, int &y) const {
     if constexpr (ROTATION == display::DISPLAY_ROTATION_180_DEGREES) {
       x = WIDTH - x - 1;
       y = HEIGHT - y - 1;
@@ -190,15 +205,30 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
       std::swap(x, y);
       y = HEIGHT - y - 1;
     }
-    if (x < 0 || x >= WIDTH || y < this->start_line_ || y >= this->end_line_)
-      return;
+  }
+
+  BUFFERTYPE convert_color_(Color &color) const {
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
-      this->buffer_[(y - this->start_line_) * WIDTH + x] = color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
+      return color.red & 0xE0 | (color.g & 0xE0) >> 3 | color.b >> 6;
     } else if constexpr (BUFFERPIXEL == PIXEL_MODE_16) {
       uint16_t new_color = color.r >> 3 << 11 | color.g >> 2 << 5 | color.b >> 3;
-      new_color = (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
-      this->buffer_[(y - this->start_line_) * WIDTH + x] = new_color;
+      return (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
     }
+    return static_cast<BUFFERTYPE>(0);
+  }
+
+  BUFFERTYPE *buffer_{nullptr};
+
+ public:
+  // Drawing operations
+
+  void draw_pixel_at(int x, int y, Color color) override {
+    if (this->buffer_ == nullptr)
+      return;
+    rotate_coordinates_(x, y);
+    if (x < 0 || x >= WIDTH || y < this->start_line_ || y >= this->end_line_)
+      return;
+    this->buffer_[(y - this->start_line_) * WIDTH + x] = convert_color_(color);
     if (x < this->x_low_) {
       this->x_low_ = x;
     }
@@ -213,7 +243,13 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
     }
   }
 
-  BUFFERTYPE *buffer_{nullptr};
+  void fill(Color color) override {
+    this->x_low_ = 0;
+    this->y_low_ = this->start_line_;
+    this->x_high_ = WIDTH - 1;
+    this->y_high_ = this->end_line_ - 1;
+    std::fill_n(this->buffer_, HEIGHT * WIDTH / FRACTION, convert_color_(color));
+  }
 };
 
 }  // namespace mipi_spi
