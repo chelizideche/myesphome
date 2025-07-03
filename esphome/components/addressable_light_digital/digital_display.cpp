@@ -31,7 +31,7 @@ void DigitalDisplay::dump_config() {
                 "  Max number of characters: %d\n"
                 "  Reverse: %s",
                 this->get_update_interval(), this->num_leds_, (this->led_map_).c_str(), this->max_characters_,
-                this->reverse_ ? "True" : "False");
+                TRUEFALSE(this->reverse_));
   LOG_UPDATE_INTERVAL(this);
 }
 

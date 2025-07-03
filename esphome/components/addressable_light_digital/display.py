@@ -21,7 +21,7 @@ addressable_light_digital_ns = cg.esphome_ns.namespace("addressable_light_digita
 DigitalDisplay = addressable_light_digital_ns.class_(
     "DigitalDisplay", cg.PollingComponent
 )
-AddressableLightDisplayRef = DigitalDisplay.operator("ref")
+DigitalDisplayRef = DigitalDisplay.operator("ref")
 
 
 def led_map(value):
@@ -71,7 +71,7 @@ async def register_display(config, internal_light, display_var):
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
             config[CONF_LAMBDA],
-            [(AddressableLightDisplayRef, "it")],
+            [(DigitalDisplayRef, "it")],
             return_type=cg.void,
         )
         cg.add(display_var.set_writer(lambda_))
