@@ -961,7 +961,7 @@ def parse_args(argv):
     )
     parser_dashboard.add_argument(
         "--address",
-        help="The address to bind to.",
+        help="The address to bind to. Defaults to 0.0.0.0",
         type=str,
         default="0.0.0.0",
     )
@@ -978,13 +978,23 @@ def parse_args(argv):
         default="",
     )
     parser_dashboard.add_argument(
-        "--open-ui", help="Open the dashboard UI in a browser.", action="store_true"
+        "--open-ui",
+        help="Open the dashboard UI in a browser.",
+        action="store_true",
+        default=False,
     )
     parser_dashboard.add_argument(
         "--ha-addon", help=argparse.SUPPRESS, action="store_true"
     )
-    parser_dashboard.add_argument(
+
+    socket_group = parser_dashboard.add_mutually_exclusive_group()
+    socket_group.add_argument(
         "--socket", help="Make the dashboard serve under a unix socket", type=str
+    )
+    socket_group.add_argument(
+        "--systemd-socket",
+        help="Serve the dashboard from a socket obtained via systemd's socket activation",
+        action="store_true",
     )
 
     parser_vscode = subparsers.add_parser("vscode")
@@ -1026,7 +1036,13 @@ def parse_args(argv):
     arguments = argv[1:]
 
     argcomplete.autocomplete(parser)
-    return parser.parse_args(arguments)
+    parsed_args = parser.parse_args(arguments)
+    if parsed_args.command == "dashboard" and parsed_args.open_ui:
+        if parsed_args.socket or parsed_args.systemd_socket:
+            parser.error(
+                "The --open-ui option cannot be used with --socket or --systemd-socket."
+            )
+    return parsed_args
 
 
 def run_esphome(argv):
