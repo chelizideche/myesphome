@@ -172,7 +172,8 @@ class WaveshareEPaperTypeA : public WaveshareEPaper {
 };
 
 enum WaveshareEPaperTypeBModel {
-  WAVESHARE_EPAPER_2_7_IN = 0,
+  WAVESHARE_EPAPER_2_66_IN_B = 0,
+  WAVESHARE_EPAPER_2_7_IN,
   WAVESHARE_EPAPER_2_7_IN_B,
   WAVESHARE_EPAPER_2_7_IN_B_V2,
   WAVESHARE_EPAPER_4_2_IN,
@@ -193,6 +194,25 @@ class WaveshareEPaper1P54InBV2 : public WaveshareEPaperBWR {
   void dump_config() override;
 
   void deep_sleep() override {
+    this->command(0x10);
+    this->data(0x01);
+  }
+
+ protected:
+  int get_width_internal() override;
+  int get_height_internal() override;
+};
+
+class WaveshareEPaper2P66InB : public WaveshareEPaperBWR {
+ public:
+  void initialize() override;
+
+  void display() override;
+
+  void dump_config() override;
+
+  void deep_sleep() override {
+    // COMMAND DEEP SLEEP
     this->command(0x10);
     this->data(0x01);
   }
