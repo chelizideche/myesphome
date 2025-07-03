@@ -99,7 +99,8 @@ float HDC2010Component::read_temp() {
 float HDC2010Component::read_humidity() {
   uint8_t byte[2];
 
-  this->read_register(HDC2010_CMD_HUMIDITY_LOW, byte, 2);
+  this->read_register(HDC2010_CMD_HUMIDITY_LOW, &byte[0], 1);
+  this->read_register(HDC2010_CMD_HUMIDITY_HIGH, &byte[1], 1);
 
   uint16_t humidity = encode_uint16(byte[1], byte[0]);
   return (float) humidity * 0.001525879f;
