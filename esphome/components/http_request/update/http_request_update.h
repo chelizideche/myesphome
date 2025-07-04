@@ -18,6 +18,7 @@ class HttpRequestUpdate : public update::UpdateEntity, public PollingComponent {
  public:
   void setup() override;
   void update() override;
+  void loop() override;
 
   void perform(bool force) override;
   void check() override { this->update(); }
@@ -33,6 +34,7 @@ class HttpRequestUpdate : public update::UpdateEntity, public PollingComponent {
   HttpRequestComponent *request_parent_;
   OtaHttpRequestComponent *ota_parent_;
   std::string source_url_;
+  bool trigger_update_available_;
 
   static void update_task(void *params);
 #ifdef USE_ESP32
