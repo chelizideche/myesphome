@@ -58,7 +58,8 @@ async def test_defer_stress(
         # Check FIFO ordering within thread
         if thread_executions[thread_id] and thread_executions[thread_id][-1] >= index:
             fifo_violations.append(
-                f"Thread {thread_id}: index {index} executed after {thread_executions[thread_id][-1]}"
+                f"Thread {thread_id}: index {index} executed after "
+                f"{thread_executions[thread_id][-1]}"
             )
 
         thread_executions[thread_id].append(index)
@@ -99,8 +100,9 @@ async def test_defer_stress(
         except asyncio.TimeoutError:
             # Report how many we got
             pytest.fail(
-                f"Stress test timed out. Only {len(executed_defers)} of 1000 defers executed. "
-                f"Missing IDs: {sorted(set(range(1000)) - executed_defers)[:10]}..."
+                f"Stress test timed out. Only {len(executed_defers)} of "
+                f"1000 defers executed. Missing IDs: "
+                f"{sorted(set(range(1000)) - executed_defers)[:10]}..."
             )
 
         # Verify all defers executed
@@ -130,5 +132,6 @@ async def test_defer_stress(
 
         # If we got here without crashing and with proper ordering, the test passed
         assert True, (
-            "Test completed successfully - all 1000 defers executed with FIFO ordering preserved"
+            "Test completed successfully - all 1000 defers executed with "
+            "FIFO ordering preserved"
         )

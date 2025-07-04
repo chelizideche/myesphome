@@ -58,7 +58,8 @@ async def test_defer_fifo_simple(
         # Get the event loop
         loop = asyncio.get_running_loop()
 
-        # Subscribe to states (events are delivered as EventStates through subscribe_states)
+        # Subscribe to states
+        # (events are delivered as EventStates through subscribe_states)
         test_complete_future: asyncio.Future[bool] = loop.create_future()
         test_result_future: asyncio.Future[bool] = loop.create_future()
 
