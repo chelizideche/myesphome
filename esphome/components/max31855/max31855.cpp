@@ -8,17 +8,6 @@ namespace max31855 {
 
 static const char *const TAG = "max31855";
 
-void MAX31855Sensor::update() {
-  this->enable();
-  delay(1);
-  // conversion initiated by rising edge
-  this->disable();
-
-  // Conversion time typ: 170ms, max: 220ms
-  auto f = std::bind(&MAX31855Sensor::read_data_, this);
-  this->set_timeout("value", 220, f);
-}
-
 void MAX31855Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->name_.c_str());
   this->spi_setup();
@@ -33,9 +22,10 @@ void MAX31855Sensor::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Reference temperature disabled.");
   }
+  ESP_LOGCONFIG(TAG, "  Faults ignored: %s", this->ignore_faults_ ? "YES" : "NO");
 }
 float MAX31855Sensor::get_setup_priority() const { return setup_priority::DATA; }
-void MAX31855Sensor::read_data_() {
+void MAX31855Sensor::update() {
   this->enable();
   delay(1);
   uint8_t data[4];
@@ -43,6 +33,7 @@ void MAX31855Sensor::read_data_() {
   this->disable();
 
   const uint32_t mem = encode_uint32(data[0], data[1], data[2], data[3]);
+  ESP_LOGD(TAG, "Got data from MAX31855: 0x%08" PRIX32, mem);
 
   // Verify we got data
   if (mem != 0xFFFFFFFF) {
@@ -68,6 +59,14 @@ void MAX31855Sensor::read_data_() {
     this->temperature_reference_->publish_state(t_ref);
   }
 
+  // Decode thermocouple temperature because it is usually valid even if there are faults
+  int16_t val = (mem & 0xFFFC0000) >> 18;
+  if (val & 0x2000) {
+    val |= 0xC000;  // Pad out 2's complement
+  }
+  const float t_sense = float(val) * 0.25f;
+  ESP_LOGD(TAG, "Got thermocouple temperature: %.2f°C", t_sense);
+
   // Check thermocouple faults
   if (mem & 0x00000001) {
     ESP_LOGW(TAG, "Thermocouple open circuit (not connected) fault from MAX31855 (0x%08" PRIX32 ")", mem);
@@ -75,32 +74,25 @@ void MAX31855Sensor::read_data_() {
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00000002) {
+  if (!ignore_faults_ && mem & 0x00000002) {
     ESP_LOGW(TAG, "Thermocouple short circuit to ground fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00000004) {
+  if (!ignore_faults_ && mem & 0x00000004) {
     ESP_LOGW(TAG, "Thermocouple short circuit to VCC fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00010000) {
+  if (!ignore_faults_ && mem & 0x00010000) {
     ESP_LOGW(TAG, "Got faulty reading from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
 
-  // Decode thermocouple temperature
-  int16_t val = (mem & 0xFFFC0000) >> 18;
-  if (val & 0x2000) {
-    val |= 0xC000;  // Pad out 2's complement
-  }
-  const float t_sense = float(val) * 0.25f;
-  ESP_LOGD(TAG, "Got thermocouple temperature: %.2f°C", t_sense);
   this->publish_state(t_sense);
   this->status_clear_warning();
 }

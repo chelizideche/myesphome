@@ -20,11 +20,13 @@ class MAX31855Sensor : public sensor::Sensor,
   void dump_config() override;
   float get_setup_priority() const override;
 
+  void set_ignore_faults(bool ignore) { this->ignore_faults_ = ignore; }
+
   void update() override;
 
  protected:
-  void read_data_();
   sensor::Sensor *temperature_reference_{nullptr};
+  bool ignore_faults_{false};
 };
 
 }  // namespace max31855
