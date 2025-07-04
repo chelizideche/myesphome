@@ -9,13 +9,17 @@
 #include <esp_adc_cal.h>
 #include "driver/adc.h"
 #endif  // USE_ESP32
+#ifdef USE_ZEPHYR
+#include <zephyr/drivers/adc.h>
+#endif
 
 namespace esphome {
 namespace adc {
 
 #ifdef USE_ESP32
 // clang-format off
-#if (ESP_IDF_VERSION_MAJOR == 5 && \
+#if (ESP_IDF_VERSION_MAJOR == 4 && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 7)) || \
+    (ESP_IDF_VERSION_MAJOR == 5 && \
      ((ESP_IDF_VERSION_MINOR == 0 && ESP_IDF_VERSION_PATCH >= 5) || \
       (ESP_IDF_VERSION_MINOR == 1 && ESP_IDF_VERSION_PATCH >= 3) || \
       (ESP_IDF_VERSION_MINOR >= 2)) \
@@ -27,24 +31,19 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 #endif
 #endif  // USE_ESP32
 
-enum class SamplingMode : uint8_t {
-  AVG = 0,
-  MIN = 1,
-  MAX = 2,
-};
-
+enum class SamplingMode : uint8_t { AVG = 0, MIN = 1, MAX = 2 };
 const LogString *sampling_mode_to_str(SamplingMode mode);
 
 class Aggregator {
  public:
-  Aggregator(SamplingMode mode);
   void add_sample(uint32_t value);
   uint32_t aggregate();
+  Aggregator(SamplingMode mode);
 
  protected:
+  SamplingMode mode_{SamplingMode::AVG};
   uint32_t aggr_{0};
   uint32_t samples_{0};
-  SamplingMode mode_{SamplingMode::AVG};
 };
 
 class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage_sampler::VoltageSampler {
@@ -70,7 +69,11 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void dump_config() override;
   /// `HARDWARE_LATE` setup priority
   float get_setup_priority() const override;
+#ifndef USE_ZEPHYR
   void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
+#else
+  void set_adc_channel(const adc_dt_spec *adc_channel) { this->adc_channel_ = adc_channel; }
+#endif
   void set_output_raw(bool output_raw) { this->output_raw_ = output_raw; }
   void set_sample_count(uint8_t sample_count);
   void set_sampling_mode(SamplingMode sampling_mode);
@@ -85,9 +88,13 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #endif  // USE_RP2040
 
  protected:
-  uint8_t sample_count_{1};
-  bool output_raw_{false};
+#ifndef USE_ZEPHYR
   InternalGPIOPin *pin_;
+#else
+  const struct adc_dt_spec *adc_channel_ = nullptr;
+#endif
+  bool output_raw_{false};
+  uint8_t sample_count_{1};
   SamplingMode sampling_mode_{SamplingMode::AVG};
 
 #ifdef USE_RP2040
@@ -99,7 +106,11 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   adc1_channel_t channel1_{ADC1_CHANNEL_MAX};
   adc2_channel_t channel2_{ADC2_CHANNEL_MAX};
   bool autorange_{false};
+#if ESP_IDF_VERSION_MAJOR >= 5
   esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
+#else
+  esp_adc_cal_characteristics_t cal_characteristics_[ADC_ATTEN_MAX] = {};
+#endif  // ESP_IDF_VERSION_MAJOR
 #endif  // USE_ESP32
 };
 
