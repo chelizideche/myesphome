@@ -33,38 +33,39 @@ async def test_defer_stress(
     test_complete_future: asyncio.Future[None] = loop.create_future()
 
     # Track executed defers and their order
-    executed_defers = set()
-    thread_executions = {}  # thread_id -> list of indices in execution order
-    fifo_violations = []
+    executed_defers: set[int] = set()
+    thread_executions: dict[
+        int, list[int]
+    ] = {}  # thread_id -> list of indices in execution order
+    fifo_violations: list[str] = []
 
     def on_log_line(line: str) -> None:
         # Track all executed defers with thread and index info
         match = re.search(r"Executed defer (\d+) \(thread (\d+), index (\d+)\)", line)
-        if match:
-            defer_id = int(match.group(1))
-            thread_id = int(match.group(2))
-            index = int(match.group(3))
+        if not match:
+            return
 
-            executed_defers.add(defer_id)
+        defer_id = int(match.group(1))
+        thread_id = int(match.group(2))
+        index = int(match.group(3))
 
-            # Track execution order per thread
-            if thread_id not in thread_executions:
-                thread_executions[thread_id] = []
+        executed_defers.add(defer_id)
 
-            # Check FIFO ordering within thread
-            if (
-                thread_executions[thread_id]
-                and thread_executions[thread_id][-1] >= index
-            ):
-                fifo_violations.append(
-                    f"Thread {thread_id}: index {index} executed after {thread_executions[thread_id][-1]}"
-                )
+        # Track execution order per thread
+        if thread_id not in thread_executions:
+            thread_executions[thread_id] = []
 
-            thread_executions[thread_id].append(index)
+        # Check FIFO ordering within thread
+        if thread_executions[thread_id] and thread_executions[thread_id][-1] >= index:
+            fifo_violations.append(
+                f"Thread {thread_id}: index {index} executed after {thread_executions[thread_id][-1]}"
+            )
 
-            # Check if we've executed all 1000 defers (0-999)
-            if len(executed_defers) == 1000 and not test_complete_future.done():
-                test_complete_future.set_result(None)
+        thread_executions[thread_id].append(index)
+
+        # Check if we've executed all 1000 defers (0-999)
+        if len(executed_defers) == 1000 and not test_complete_future.done():
+            test_complete_future.set_result(None)
 
     async with (
         run_compiled(yaml_config, line_callback=on_log_line),
