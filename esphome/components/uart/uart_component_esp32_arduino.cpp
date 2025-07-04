@@ -134,6 +134,7 @@ void ESP32ArduinoUARTComponent::setup() {
 void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
   int8_t tx = this->tx_pin_ != nullptr ? this->tx_pin_->get_pin() : -1;
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
+  int8_t flow_control = this->flow_control_pin_ != nullptr ? this->flow_control_pin_->get_pin() : -1;
   bool invert = false;
   if (tx_pin_ != nullptr && tx_pin_->is_inverted())
     invert = true;
@@ -141,6 +142,12 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
     invert = true;
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
+  this->hw_serial_->setPins(-1, -1, -1, flow_control);
+  // Use deep level function because hw_serial_->setMode() is only available in Arduino Framework 2.0.8
+  auto mode = this->flow_control_pin_ != nullptr ? UART_MODE_RS485_HALF_DUPLEX : UART_MODE_UART;
+  uart_set_mode(this->number_, mode);
+  this->hw_serial_->setRxFIFOFull(this->rx_full_threshold_);
+  this->hw_serial_->setRxTimeout(this->rx_timeout_);
   if (dump_config) {
     ESP_LOGCONFIG(TAG, "UART %u was reloaded.", this->number_);
     this->dump_config();
@@ -151,8 +158,11 @@ void ESP32ArduinoUARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UART Bus %d:", this->number_);
   LOG_PIN("  TX Pin: ", tx_pin_);
   LOG_PIN("  RX Pin: ", rx_pin_);
+  LOG_PIN("  Flow Control Pin: ", flow_control_pin_);
   if (this->rx_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
+    ESP_LOGCONFIG(TAG, "  RX Full Threshold: %u", this->rx_full_threshold_);
+    ESP_LOGCONFIG(TAG, "  RX Timeout: %u", this->rx_timeout_);
   }
   ESP_LOGCONFIG(TAG,
                 "  Baud Rate: %u baud\n"
@@ -161,6 +171,16 @@ void ESP32ArduinoUARTComponent::dump_config() {
                 "  Stop bits: %u",
                 this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
   this->check_logger_conflict();
+}
+
+void ESP32ArduinoUARTComponent::set_rx_full_threshold(size_t rx_full_threshold) {
+  this->rx_full_threshold_ = rx_full_threshold;
+  this->hw_serial_->setRxTimeout(this->rx_full_threshold_);
+}
+
+void ESP32ArduinoUARTComponent::set_rx_timeout(size_t rx_timeout) {
+  this->rx_timeout_ = rx_timeout;
+  this->hw_serial_->setRxTimeout(this->rx_timeout_);
 }
 
 void ESP32ArduinoUARTComponent::write_array(const uint8_t *data, size_t len) {
