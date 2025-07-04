@@ -5,6 +5,8 @@ from esphome.components.zephyr.const import BOOTLOADER_MCUBOOT, KEY_BOOTLOADER
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, PLATFORM_NRF52
 
+CODEOWNERS = ["@tomaszduda23"]
+
 dfu_ns = cg.esphome_ns.namespace("dfu")
 DeviceFirmwareUpdate = dfu_ns.class_("DeviceFirmwareUpdate", cg.Component)
 
