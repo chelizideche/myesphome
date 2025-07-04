@@ -101,6 +101,11 @@ void ADCSensor::dump_config() {
     }
   }
 
+  ESP_LOGCONFIG(TAG,
+                "  Attenuation: %s\n"
+                "  Samples: %i\n"
+                "  Sampling mode: %s",
+                atten_str, this->sample_count_, LOG_STR_ARG(sampling_mode_to_str(this->sampling_mode_)));
 #ifdef USE_ZEPHYR
   ESP_LOGCONFIG(TAG, "  Name: %s, channel_id: %d, vref_mv: %d, resolution %d, oversampling %d", adc_channel_->dev->name,
                 adc_channel_->channel_id, adc_channel_->vref_mv, adc_channel_->resolution, adc_channel_->oversampling);
@@ -207,9 +212,6 @@ void ADCSensor::dump_config() {
     ESP_LOGCONFIG(TAG, "  Input positive: %s", input(adc_channel_->channel_cfg.input_positive));
   }
 #endif
-
-  ESP_LOGCONFIG(TAG, "  Samples: %i", this->sample_count_);
-  ESP_LOGCONFIG(TAG, "  Sampling mode: %s", LOG_STR_ARG(sampling_mode_to_str(this->sampling_mode_)));
   LOG_UPDATE_INTERVAL(this);
 }
 
