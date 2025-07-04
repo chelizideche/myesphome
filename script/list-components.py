@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import io
 from pathlib import Path
 import sys
 
-import voluptuous as vol
-
-sys.path.append(str(Path(__file__).parents[1]))
 from helpers import changed_files, git_ls_files
 
 from esphome.const import (
-    CONF_EXTERNAL_COMPONENTS,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -19,7 +14,6 @@ from esphome.const import (
 )
 from esphome.core import CORE
 from esphome.loader import get_component, get_platform
-from esphome.yaml_util import parse_yaml
 
 
 def filter_component_files(str):
@@ -45,7 +39,7 @@ def add_item_to_components_graph(components_graph, parent, child):
             components_graph[parent].append(child)
 
 
-def create_components_graph(changed_configs: list[str]):
+def create_components_graph():
     # The root directory of the repo
     root = Path(__file__).parent.parent
     components_dir = root / "esphome" / "components"
@@ -64,9 +58,6 @@ def create_components_graph(changed_configs: list[str]):
     components_graph = {}
     platforms = []
     components = []
-
-    if changed_configs:
-        load_external_components(changed_configs)
 
     for path in components_dir.iterdir():
         if not path.is_dir():
@@ -141,13 +132,11 @@ def find_children_of_component(components_graph, component_name, depth=0):
     return list(set(children))
 
 
-def get_components(
-    files: list[str], get_dependencies: bool = False, changed_configs: list[str] = []
-):
+def get_components(files: list[str], get_dependencies: bool = False):
     components = extract_component_names_array_from_files_array(files)
 
     if get_dependencies:
-        components_graph = create_components_graph(changed_configs)
+        components_graph = create_components_graph()
 
         all_components = components.copy()
         for c in components:
@@ -158,43 +147,6 @@ def get_components(
         return sorted(all_changed_components)
 
     return sorted(components)
-
-
-def load_external_components_from_file(file):
-    inside_external_components = False
-    config = {}
-    buffer = ""
-    with open(file) as f:
-        for line in f:
-            if line.startswith(f"{CONF_EXTERNAL_COMPONENTS}:"):
-                inside_external_components = True
-            if inside_external_components:
-                buffer += line
-                temp_config = parse_yaml("", io.StringIO(buffer))
-                if len(temp_config) > 1:
-                    return config
-                config = temp_config
-    return config
-
-
-def load_external_components(changed_configs):
-    merged_config = None
-    for file in changed_configs:
-        config = load_external_components_from_file(file)
-        if CONF_EXTERNAL_COMPONENTS in config:
-            if merged_config is None:
-                merged_config = config
-            else:
-                merged_config[CONF_EXTERNAL_COMPONENTS] += config[
-                    CONF_EXTERNAL_COMPONENTS
-                ]
-    if CONF_EXTERNAL_COMPONENTS in merged_config:
-        from esphome.components.external_components import do_external_components_pass
-
-        try:
-            do_external_components_pass(merged_config)
-        except vol.Invalid:
-            pass
 
 
 def main():
@@ -216,8 +168,6 @@ def main():
     files = git_ls_files()
     files = filter(filter_component_files, files)
 
-    changed_configs = []
-
     if args.changed:
         if args.branch:
             changed = changed_files(args.branch)
@@ -226,12 +176,8 @@ def main():
         # If any base test file(s) changed, there's no need to filter out components
         if not any("tests/test_build_components" in file for file in changed):
             files = [f for f in files if f in changed]
-        else:
-            for f in changed:
-                if "tests/test_build_components" in f or "tests/components" in f:
-                    changed_configs += [f]
 
-    for c in get_components(files, args.changed, changed_configs):
+    for c in get_components(files, args.changed):
         print(c)
 
 
