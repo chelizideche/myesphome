@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <deque>
 
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
@@ -145,6 +146,18 @@ class Scheduler {
   bool cancel_item_(Component *component, const std::string &name, SchedulerItem::Type type);
   bool cancel_item_(Component *component, const char *name, SchedulerItem::Type type);
 
+  // Helper functions for cancel operations
+  bool matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
+                     SchedulerItem::Type type);
+
+  // Helper to execute a scheduler item
+  void execute_item_(SchedulerItem *item);
+
+  // Helper to check if item should be skipped
+  bool should_skip_item_(const SchedulerItem *item) const {
+    return item->remove || (item->component != nullptr && item->component->is_failed());
+  }
+
   bool empty_() {
     this->cleanup_();
     return this->items_.empty();
@@ -153,6 +166,7 @@ class Scheduler {
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
+  std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
   uint32_t last_millis_{0};
   uint16_t millis_major_{0};
   uint32_t to_remove_{0};
