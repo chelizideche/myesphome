@@ -32,22 +32,38 @@ async def test_defer_stress(
     loop = asyncio.get_event_loop()
     test_complete_future: asyncio.Future[None] = loop.create_future()
 
-    # Track executed defers
+    # Track executed defers and their order
     executed_defers = set()
+    thread_executions = {}  # thread_id -> list of indices in execution order
+    fifo_violations = []
 
     def on_log_line(line: str) -> None:
-        # Track all executed defers
-        match = re.search(r"Executed defer (\d+)", line)
+        # Track all executed defers with thread and index info
+        match = re.search(r"Executed defer (\d+) \(thread (\d+), index (\d+)\)", line)
         if match:
             defer_id = int(match.group(1))
+            thread_id = int(match.group(2))
+            index = int(match.group(3))
+
             executed_defers.add(defer_id)
 
-            # Check if we've executed all 1000 defers (0-999)
+            # Track execution order per thread
+            if thread_id not in thread_executions:
+                thread_executions[thread_id] = []
+
+            # Check FIFO ordering within thread
             if (
-                defer_id == 999
-                and len(executed_defers) == 1000
-                and not test_complete_future.done()
+                thread_executions[thread_id]
+                and thread_executions[thread_id][-1] >= index
             ):
+                fifo_violations.append(
+                    f"Thread {thread_id}: index {index} executed after {thread_executions[thread_id][-1]}"
+                )
+
+            thread_executions[thread_id].append(index)
+
+            # Check if we've executed all 1000 defers (0-999)
+            if len(executed_defers) == 1000 and not test_complete_future.done():
                 test_complete_future.set_result(None)
 
     async with (
@@ -96,5 +112,22 @@ async def test_defer_stress(
         missing_ids = expected_ids - executed_defers
         assert not missing_ids, f"Missing defer IDs: {sorted(missing_ids)}"
 
-        # If we got here without crashing, the test passed
-        assert True, "Test completed successfully - all 1000 defers executed in order"
+        # Verify FIFO ordering was maintained within each thread
+        assert not fifo_violations, "FIFO ordering violations detected:\n" + "\n".join(
+            fifo_violations[:10]
+        )
+
+        # Verify each thread executed all its defers in order
+        for thread_id, indices in thread_executions.items():
+            assert len(indices) == 100, (
+                f"Thread {thread_id} executed {len(indices)} defers, expected 100"
+            )
+            # Indices should be 0-99 in ascending order
+            assert indices == list(range(100)), (
+                f"Thread {thread_id} executed indices out of order: {indices[:10]}..."
+            )
+
+        # If we got here without crashing and with proper ordering, the test passed
+        assert True, (
+            "Test completed successfully - all 1000 defers executed with FIFO ordering preserved"
+        )

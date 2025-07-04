@@ -44,9 +44,9 @@ void DeferStressComponent::run_multi_thread_test() {
         auto *component = this;
 
         // Directly call defer() from this thread - no locking!
-        this->defer([component, defer_id]() {
+        this->defer([component, i, j, defer_id]() {
           component->executed_defers_.fetch_add(1);
-          ESP_LOGV(TAG, "Executed defer %d", defer_id);
+          ESP_LOGV(TAG, "Executed defer %d (thread %d, index %d)", defer_id, i, j);
         });
 
         ESP_LOGV(TAG, "Thread %d called defer for request %d successfully", i, defer_id);
@@ -68,19 +68,7 @@ void DeferStressComponent::run_multi_thread_test() {
   auto end_time = std::chrono::steady_clock::now();
   auto thread_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
   ESP_LOGI(TAG, "All threads finished in %lldms. Created %d defer requests", thread_time, this->total_defers_.load());
-
-  // Store the final values for checking
-  this->expected_total_ = NUM_THREADS * DEFERS_PER_THREAD;
-  this->test_complete_ = true;
 }
-
-int DeferStressComponent::get_total_defers() { return this->total_defers_.load(); }
-
-int DeferStressComponent::get_executed_defers() { return this->executed_defers_.load(); }
-
-bool DeferStressComponent::is_test_complete() { return this->test_complete_; }
-
-int DeferStressComponent::get_expected_total() { return this->expected_total_; }
 
 }  // namespace defer_stress_component
 }  // namespace esphome
