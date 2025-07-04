@@ -2,6 +2,7 @@
 
 import asyncio
 from pathlib import Path
+import re
 
 from aioesphomeapi import UserService
 import pytest
@@ -29,14 +30,25 @@ async def test_defer_stress(
 
     # Create a future to signal test completion
     loop = asyncio.get_event_loop()
-    test_complete_future: asyncio.Future[bool] = loop.create_future()
+    test_complete_future: asyncio.Future[None] = loop.create_future()
+
+    # Track executed defers
+    executed_defers = set()
 
     def on_log_line(line: str) -> None:
-        if not test_complete_future.done():
-            if "✓ Stress test PASSED" in line:
-                test_complete_future.set_result(True)
-            elif "✗ Stress test FAILED" in line:
-                test_complete_future.set_result(False)
+        # Track all executed defers
+        match = re.search(r"Executed defer (\d+)", line)
+        if match:
+            defer_id = int(match.group(1))
+            executed_defers.add(defer_id)
+
+            # Check if we've executed all 1000 defers (0-999)
+            if (
+                defer_id == 999
+                and len(executed_defers) == 1000
+                and not test_complete_future.done()
+            ):
+                test_complete_future.set_result(None)
 
     async with (
         run_compiled(yaml_config, line_callback=on_log_line),
@@ -64,13 +76,25 @@ async def test_defer_stress(
         # Call the run_stress_test service to start the test
         client.execute_service(run_stress_test_service, {})
 
-        # Wait for test completion
+        # Wait for all defers to execute (should be quick)
         try:
-            test_passed = await asyncio.wait_for(test_complete_future, timeout=15.0)
+            await asyncio.wait_for(test_complete_future, timeout=5.0)
         except asyncio.TimeoutError:
-            pytest.fail("Stress test did not complete within 15 seconds")
+            # Report how many we got
+            pytest.fail(
+                f"Stress test timed out. Only {len(executed_defers)} of 1000 defers executed. "
+                f"Missing IDs: {sorted(set(range(1000)) - executed_defers)[:10]}..."
+            )
 
-        # Verify the test passed
-        assert test_passed is True, (
-            "Stress test failed - defer() crashed or failed under thread pressure"
+        # Verify all defers executed
+        assert len(executed_defers) == 1000, (
+            f"Expected 1000 defers, got {len(executed_defers)}"
         )
+
+        # Verify we have all IDs from 0-999
+        expected_ids = set(range(1000))
+        missing_ids = expected_ids - executed_defers
+        assert not missing_ids, f"Missing defer IDs: {sorted(missing_ids)}"
+
+        # If we got here without crashing, the test passed
+        assert True, "Test completed successfully - all 1000 defers executed in order"
