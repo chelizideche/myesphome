@@ -266,6 +266,15 @@ internal_gpio_input_pullup_pin_number = _internal_number_creator(
         CONF_PULLUP: True,
     }
 )
+internal_gpio_input_output_open_drain_pullup_pin_schema = _schema_creator(
+    {
+        CONF_INPUT: True,
+        CONF_OUTPUT: True,
+        CONF_OPEN_DRAIN: True,
+        CONF_PULLUP: True,
+    },
+    internal=True,
+)
 
 
 def check_strapping_pin(conf, strapping_pin_list: set[int], logger: Logger):

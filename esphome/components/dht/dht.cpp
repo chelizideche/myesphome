@@ -74,19 +74,14 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   uint8_t data[5] = {0, 0, 0, 0, 0};
 
   this->pin_->digital_write(false);
-  this->pin_->pin_mode(gpio::FLAG_OUTPUT);
-  this->pin_->digital_write(false);
 
   if (this->model_ == DHT_MODEL_DHT11) {
     delayMicroseconds(18000);
   } else if (this->model_ == DHT_MODEL_SI7021) {
-#ifdef USE_ESP8266
     delayMicroseconds(500);
     this->pin_->digital_write(true);
+#ifdef USE_ESP8266
     delayMicroseconds(40);
-#else
-    delayMicroseconds(400);
-    this->pin_->digital_write(true);
 #endif
   } else if (this->model_ == DHT_MODEL_DHT22_TYPE2) {
     delayMicroseconds(2000);
@@ -95,7 +90,6 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   } else {
     delayMicroseconds(800);
   }
-  this->pin_->pin_mode(this->pin_->get_flags());
 
   {
     InterruptLock lock;
