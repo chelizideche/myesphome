@@ -1,0 +1,21 @@
+output:
+  - platform: gpio
+    pin: ${enable_pin}
+    id: power_relay
+
+uart:
+  - id: uart_lanbon_l8_hd
+    tx_pin:
+      number: ${tx_pin}
+      inverted: false
+    baud_rate: 115200
+    data_bits: 8
+    parity: NONE
+    stop_bits: 1
+
+light:
+  - platform: lanbon_l8_hd
+    id: l8_hd_light
+    name: Lanbon L8 HD Dimmer
+    restore_mode: ALWAYS_OFF
+    enable_pin: power_relay
