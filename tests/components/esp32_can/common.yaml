@@ -18,6 +18,7 @@ canbus:
     tx_pin: ${tx_pin}
     can_id: 4
     bit_rate: 50kbps
+    tx_mode: normal
     on_frame:
       - can_id: 500
         then:
@@ -43,3 +44,47 @@ canbus:
                   break;
                 // to be continued...
               }
+
+sensor:
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: msgs_to_tx
+    name: CAN1 msgs_to_tx
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: msgs_to_rx
+    name: CAN1 msgs_to_rx
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: tx_error_counter
+    name: CAN1 tx_error_counter
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: rx_error_counter
+    name: CAN1 rx_error_counter
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: tx_failed_count
+    name: CAN1 tx_failed_count
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: rx_missed_count
+    name: CAN1 rx_missed_count
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: rx_overrun_count
+    name: CAN1 rx_overrun_count
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: arb_lost_count
+    name: CAN1 arb_lost_count
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    type: bus_error_count
+    name: CAN1 bus_error_count
+
+text_sensor:
+  - platform: esp32_can
+    canbus_id: esp32_internal_can
+    state:
+      name: CAN1 State

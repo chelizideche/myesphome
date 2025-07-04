@@ -3,10 +3,11 @@ import math
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import canbus
-from esphome.components.canbus import CONF_BIT_RATE, CanbusComponent, CanSpeed
+from esphome.components.canbus import CONF_BIT_RATE, CONF_CANBUS, CanSpeed
 from esphome.components.esp32 import get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
+    VARIANT_ESP32C2,
     VARIANT_ESP32C3,
     VARIANT_ESP32C6,
     VARIANT_ESP32H2,
@@ -15,20 +16,29 @@ from esphome.components.esp32.const import (
 )
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_FRAMEWORK,
     CONF_ID,
+    CONF_PLATFORM,
     CONF_RX_PIN,
     CONF_RX_QUEUE_LEN,
     CONF_TX_PIN,
     CONF_TX_QUEUE_LEN,
+    CONF_TYPE,
+    CONF_VERSION,
+    PLATFORM_ESP32,
 )
+import esphome.final_validate as fv
+
+from . import TXMode, esp32_can, esp32_can_ns
 
 CODEOWNERS = ["@Sympatron"]
 DEPENDENCIES = ["esp32"]
 
 CONF_TX_ENQUEUE_TIMEOUT = "tx_enqueue_timeout"
-
-esp32_can_ns = cg.esphome_ns.namespace("esp32_can")
-esp32_can = esp32_can_ns.class_("ESP32Can", CanbusComponent)
+CONF_TX_MODE = "tx_mode"
+CONF_USE_V2 = "use_v2"
+CONF_USE_V2_YES = "use_v2_yes"
+CONF_USE_V2_FIND_OUT = "use_v2_find_out"
 
 # Currently the driver only supports a subset of the bit rates defined in canbus
 # The supported bit rates differ between ESP32 variants.
@@ -69,6 +79,10 @@ CAN_SPEEDS = {
     VARIANT_ESP32H2: CAN_SPEEDS_ESP32_H2,
 }
 
+CAN_TX_MODE_NORMAL = "normal"
+CAN_TX_MODE_NO_ACK = "no_ack"
+CAN_TX_MODE_LISTEN_ONLY = "listen_only"
+
 
 def validate_bit_rate(value):
     variant = get_esp32_variant()
@@ -89,8 +103,67 @@ CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
         cv.Optional(CONF_RX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_ENQUEUE_TIMEOUT): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_TX_MODE, CAN_TX_MODE_NORMAL): cv.enum(
+            {
+                CAN_TX_MODE_LISTEN_ONLY: TXMode.LISTEN_ONLY,
+                CAN_TX_MODE_NO_ACK: TXMode.NO_ACK,
+                CAN_TX_MODE_NORMAL: TXMode.NORMAL,
+            }
+        ),
     }
 )
+
+
+def final_validate_(config):
+    esp32_config = fv.full_config.get().get(PLATFORM_ESP32)
+    if not esp32_config:
+        raise cv.Invalid("Can't find esp32 platform config")
+    framework_conf = esp32_config.get(CONF_FRAMEWORK)
+    if not framework_conf:
+        raise cv.Invalid("Can't find framework config")
+    platform_type = framework_conf[CONF_TYPE]
+    if platform_type == "arduino":
+        config[CONF_USE_V2] = CONF_USE_V2_FIND_OUT
+    elif platform_type == "esp-idf":
+        platform_version = framework_conf.get(CONF_VERSION)
+        if not platform_version:
+            raise cv.Invalid("Can't find esp32 platform version")
+        version = cv.Version.parse(platform_version)
+        if version.major > 5 or (version.major == 5 and version.minor >= 2):
+            config[CONF_USE_V2] = CONF_USE_V2_YES
+    else:
+        raise cv.Invalid(f"Unknown framework type {platform_type}")
+
+    count = 0
+    if cannus_configs := fv.full_config.get().get(CONF_CANBUS):
+        for canbus_conf in cannus_configs:
+            if canbus_conf.get(CONF_PLATFORM) == "esp32_can":
+                count = count + 1
+
+    can_controller_count = {
+        VARIANT_ESP32C3: 1,
+        VARIANT_ESP32: 1,
+        VARIANT_ESP32S2: 1,
+        VARIANT_ESP32S3: 1,
+        VARIANT_ESP32C2: 1,
+        VARIANT_ESP32C6: 2,
+        VARIANT_ESP32H2: 1,
+    }[get_esp32_variant()]
+
+    if can_controller_count < count:
+        raise cv.Invalid(
+            f"Only {can_controller_count} CAN bus controllers available. {count} requested"
+        )
+
+    if count > 1 and not config.get(CONF_USE_V2):
+        raise cv.Invalid(
+            f"Multiple CAN bus controllers available since version 5.2 of platform, but {platform_version} used"
+        )
+
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = final_validate_
 
 
 def get_default_tx_enqueue_timeout(bit_rate):
@@ -106,6 +179,12 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await canbus.register_canbus(var, config)
 
+    conf_use_v2 = config.get(CONF_USE_V2)
+    if conf_use_v2 == CONF_USE_V2_YES:
+        cg.add_define("ESP32_CAN_V2_SUPPORTED")
+    elif conf_use_v2 == CONF_USE_V2_FIND_OUT:
+        cg.add_define("ESP32_CAN_V2_FIND_OUT")
+
     cg.add(var.set_rx(config[CONF_RX_PIN]))
     cg.add(var.set_tx(config[CONF_TX_PIN]))
     if (rx_queue_len := config.get(CONF_RX_QUEUE_LEN)) is not None:
@@ -119,3 +198,4 @@ async def to_code(config):
         tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(config[CONF_BIT_RATE])
 
     cg.add(var.set_tx_enqueue_timeout_ms(tx_enqueue_timeout_ms))
+    cg.add(var.set_tx_mode(config[CONF_TX_MODE]))
