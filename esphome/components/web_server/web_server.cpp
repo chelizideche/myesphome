@@ -843,7 +843,7 @@ void WebServer::handle_cover_request(AsyncWebServerRequest *request, const UrlMa
       }
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -901,7 +901,7 @@ void WebServer::handle_number_request(AsyncWebServerRequest *request, const UrlM
         call.set_value(*value);
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -976,7 +976,7 @@ void WebServer::handle_date_request(AsyncWebServerRequest *request, const UrlMat
       call.set_date(value);
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1035,7 +1035,7 @@ void WebServer::handle_time_request(AsyncWebServerRequest *request, const UrlMat
       call.set_time(value);
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1093,7 +1093,7 @@ void WebServer::handle_datetime_request(AsyncWebServerRequest *request, const Ur
       call.set_datetime(value);
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1210,7 +1210,7 @@ void WebServer::handle_select_request(AsyncWebServerRequest *request, const UrlM
       call.set_option(option.c_str());  // NOLINT
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1297,7 +1297,7 @@ void WebServer::handle_climate_request(AsyncWebServerRequest *request, const Url
         call.set_target_temperature(*target_temperature);
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1491,7 +1491,7 @@ void WebServer::handle_valve_request(AsyncWebServerRequest *request, const UrlMa
       }
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }
@@ -1556,7 +1556,7 @@ void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *reques
       return;
     }
 
-    this->schedule_([call]() mutable { call.perform(); });
+    this->defer([call]() mutable { call.perform(); });
     request->send(200);
     return;
   }

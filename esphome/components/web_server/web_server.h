@@ -496,7 +496,6 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 
  protected:
   void add_sorting_info_(JsonObject &root, EntityBase *entity);
-  void schedule_(std::function<void()> &&f);
   web_server_base::WebServerBase *base_;
 #ifdef USE_ARDUINO
   DeferredUpdateEventSourceList events_;
