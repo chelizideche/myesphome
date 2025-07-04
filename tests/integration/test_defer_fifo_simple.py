@@ -63,19 +63,22 @@ async def test_defer_fifo_simple(
         test_result_future: asyncio.Future[bool] = loop.create_future()
 
         def on_state(state: EntityState) -> None:
-            if isinstance(state, Event):
-                if state.key == test_complete_entity.key:
-                    if (
-                        state.event_type == "test_finished"
-                        and not test_complete_future.done()
-                    ):
-                        test_complete_future.set_result(True)
-                elif state.key == test_result_entity.key:
-                    if not test_result_future.done():
-                        if state.event_type == "passed":
-                            test_result_future.set_result(True)
-                        elif state.event_type == "failed":
-                            test_result_future.set_result(False)
+            if not isinstance(state, Event):
+                return
+
+            if (
+                state.key == test_complete_entity.key
+                and state.event_type == "test_finished"
+                and not test_complete_future.done()
+            ):
+                test_complete_future.set_result(True)
+                return
+
+            if state.key == test_result_entity.key and not test_result_future.done():
+                if state.event_type == "passed":
+                    test_result_future.set_result(True)
+                elif state.event_type == "failed":
+                    test_result_future.set_result(False)
 
         client.subscribe_states(on_state)
 
