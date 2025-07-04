@@ -81,6 +81,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   item->callback = std::move(func);
   item->remove = false;
 
+#ifndef USE_ESP8266
   // Special handling for defer() (delay = 0, type = TIMEOUT)
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
@@ -88,6 +89,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     this->defer_queue_.push_back(std::move(item));
     return;
   }
+#endif
 
   const auto now = this->millis_();
 
@@ -217,6 +219,7 @@ optional<uint32_t> HOT Scheduler::next_schedule_in() {
   return item->next_execution_ - now;
 }
 void HOT Scheduler::call() {
+#ifndef USE_ESP8266
   // Process defer queue first to guarantee FIFO execution order for deferred items.
   // Previously, defer() used the heap which gave undefined order for equal timestamps,
   // causing race conditions on multi-core systems (ESP32, RP2040, BK7200).
@@ -248,6 +251,7 @@ void HOT Scheduler::call() {
       this->execute_item_(item.get());
     }
   }
+#endif
 
   const auto now = this->millis_();
   this->process_to_add();
@@ -432,12 +436,14 @@ bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_str
   bool ret = false;
 
   // Check all containers for matching items
+#ifndef USE_ESP8266
   for (auto &item : this->defer_queue_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
       ret = true;
     }
   }
+#endif
 
   for (auto &item : this->items_) {
     if (this->matches_item_(item, component, name_cstr, type)) {

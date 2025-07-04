@@ -166,7 +166,9 @@ class Scheduler {
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
+#ifndef USE_ESP8266
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
+#endif
   uint32_t last_millis_{0};
   uint16_t millis_major_{0};
   uint32_t to_remove_{0};
