@@ -313,8 +313,6 @@ void HOT Scheduler::call() {
         this->pop_raw_();
         continue;
       }
-      App.set_current_component(item->component);
-
 #ifdef ESPHOME_DEBUG_SCHEDULER
       const char *item_name = item->get_name();
       ESP_LOGV(TAG, "Running %s '%s/%s' with interval=%" PRIu32 " next_execution=%" PRIu64 " (now=%" PRIu64 ")",
