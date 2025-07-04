@@ -46,70 +46,58 @@ static const char *const HEADER_CORS_REQ_PNA = "Access-Control-Request-Private-N
 static const char *const HEADER_CORS_ALLOW_PNA = "Access-Control-Allow-Private-Network";
 #endif
 
-UrlMatch match_url(const std::string &url, bool only_domain = false) {
-  UrlMatch match;
-  match.valid = false;
-  match.domain = nullptr;
-  match.id = nullptr;
-  match.method = nullptr;
-  match.domain_len = 0;
-  match.id_len = 0;
-  match.method_len = 0;
-
-  const char *url_ptr = url.c_str();
-  size_t url_len = url.length();
+// Parse URL and return match info
+static UrlMatch match_url(const char *url_ptr, size_t url_len, bool only_domain) {
+  UrlMatch match{};
 
   // URL must start with '/'
-  if (url_len < 2 || url_ptr[0] != '/')
+  if (url_len < 2 || url_ptr[0] != '/') {
     return match;
+  }
 
-  // Find domain
-  size_t domain_start = 1;
-  size_t domain_end = url.find('/', domain_start);
+  // Skip leading '/'
+  const char *start = url_ptr + 1;
+  const char *end = url_ptr + url_len;
 
-  if (domain_end == std::string::npos) {
-    // URL is just "/domain"
-    match.domain = url_ptr + domain_start;
-    match.domain_len = url_len - domain_start;
-    match.valid = true;
+  // Find domain (everything up to next '/' or end)
+  const char *domain_end = (const char *) memchr(start, '/', end - start);
+  if (!domain_end) {
+    // No second slash found - original behavior returns invalid
     return match;
   }
 
   // Set domain
-  match.domain = url_ptr + domain_start;
-  match.domain_len = domain_end - domain_start;
+  match.domain = start;
+  match.domain_len = domain_end - start;
+  match.valid = true;
 
   if (only_domain) {
-    match.valid = true;
     return match;
   }
 
-  // Check if there's anything after domain
-  if (url_len == domain_end + 1)
-    return match;
+  // Parse ID if present
+  if (domain_end + 1 >= end) {
+    return match;  // Nothing after domain slash
+  }
 
-  // Find ID
-  size_t id_begin = domain_end + 1;
-  size_t id_end = url.find('/', id_begin);
+  const char *id_start = domain_end + 1;
+  const char *id_end = (const char *) memchr(id_start, '/', end - id_start);
 
-  match.valid = true;
-
-  if (id_end == std::string::npos) {
-    // URL is "/domain/id" with no method
-    match.id = url_ptr + id_begin;
-    match.id_len = url_len - id_begin;
+  if (!id_end) {
+    // No more slashes, entire remaining string is ID
+    match.id = id_start;
+    match.id_len = end - id_start;
     return match;
   }
 
   // Set ID
-  match.id = url_ptr + id_begin;
-  match.id_len = id_end - id_begin;
+  match.id = id_start;
+  match.id_len = id_end - id_start;
 
-  // Set method if present
-  size_t method_begin = id_end + 1;
-  if (method_begin < url_len) {
-    match.method = url_ptr + method_begin;
-    match.method_len = url_len - method_begin;
+  // Parse method if present
+  if (id_end + 1 < end) {
+    match.method = id_end + 1;
+    match.method_len = end - (id_end + 1);
   }
 
   return match;
@@ -137,7 +125,16 @@ void DeferredUpdateEventSource::process_deferred_queue_() {
     if (this->send(message.c_str(), "state") != DISCARDED) {
       // O(n) but memory efficiency is more important than speed here which is why std::vector was chosen
       deferred_queue_.erase(deferred_queue_.begin());
+      this->consecutive_send_failures_ = 0;  // Reset failure count on successful send
     } else {
+      this->consecutive_send_failures_++;
+      if (this->consecutive_send_failures_ >= MAX_CONSECUTIVE_SEND_FAILURES) {
+        // Too many failures, connection is likely dead
+        ESP_LOGW(TAG, "Closing stuck EventSource connection after %" PRIu16 " failed sends",
+                 this->consecutive_send_failures_);
+        this->close();
+        this->deferred_queue_.clear();
+      }
       break;
     }
   }
@@ -176,6 +173,8 @@ void DeferredUpdateEventSource::deferrable_send_state(void *source, const char *
     std::string message = message_generator(web_server_, source);
     if (this->send(message.c_str(), "state") == DISCARDED) {
       deq_push_back_with_dedup_(source, message_generator);
+    } else {
+      this->consecutive_send_failures_ = 0;  // Reset failure count on successful send
     }
   }
 }
@@ -273,7 +272,11 @@ std::string WebServer::get_config_json() {
   return json::build_json([this](JsonObject root) {
     root["title"] = App.get_friendly_name().empty() ? App.get_name() : App.get_friendly_name();
     root["comment"] = App.get_comment();
-    root["ota"] = this->allow_ota_;
+#ifdef USE_WEBSERVER_OTA
+    root["ota"] = true;  // web_server OTA platform is configured
+#else
+    root["ota"] = false;
+#endif
     root["log"] = this->expose_log_;
     root["lang"] = "en";
   });
@@ -299,10 +302,7 @@ void WebServer::setup() {
 #endif
   this->base_->add_handler(this);
 
-#ifdef USE_WEBSERVER_OTA
-  if (this->allow_ota_)
-    this->base_->add_ota_handler();
-#endif
+  // OTA is now handled by the web_server OTA platform
 
   // doesn't need defer functionality - if the queue is full, the client JS knows it's alive because it's clearly
   // getting a lot of events
@@ -310,7 +310,8 @@ void WebServer::setup() {
 }
 void WebServer::loop() {
 #ifdef USE_ESP32
-  if (xSemaphoreTake(this->to_schedule_lock_, 0L)) {
+  // Check atomic flag first to avoid taking semaphore when queue is empty
+  if (this->to_schedule_has_items_.load(std::memory_order_relaxed) && xSemaphoreTake(this->to_schedule_lock_, 0L)) {
     std::function<void()> fn;
     if (!to_schedule_.empty()) {
       // scheduler execute things out of order which may lead to incorrect state
@@ -318,6 +319,9 @@ void WebServer::loop() {
       // let's execute it directly from the loop
       fn = std::move(to_schedule_.front());
       to_schedule_.pop_front();
+      if (to_schedule_.empty()) {
+        this->to_schedule_has_items_.store(false, std::memory_order_relaxed);
+      }
     }
     xSemaphoreGive(this->to_schedule_lock_);
     if (fn) {
@@ -1758,7 +1762,11 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str(), true);  // NOLINT
+  // Store the URL to prevent temporary string destruction
+  // request->url() returns a reference to a String (on Arduino) or std::string (on ESP-IDF)
+  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives match_url()
+  const auto &url = request->url();
+  UrlMatch match = match_url(url.c_str(), url.length(), true);
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1897,7 +1905,10 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str());  // NOLINT
+  // See comment in canHandle() for why we store the URL reference
+  const auto &url = request->url();
+  UrlMatch match = match_url(url.c_str(), url.length(), false);
+
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
     this->handle_sensor_request(request, match);
@@ -2065,6 +2076,7 @@ void WebServer::schedule_(std::function<void()> &&f) {
 #ifdef USE_ESP32
   xSemaphoreTake(this->to_schedule_lock_, portMAX_DELAY);
   to_schedule_.push_back(std::move(f));
+  this->to_schedule_has_items_.store(true, std::memory_order_relaxed);
   xSemaphoreGive(this->to_schedule_lock_);
 #else
   this->defer(std::move(f));
