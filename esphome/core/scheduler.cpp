@@ -81,13 +81,16 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   item->callback = std::move(func);
   item->remove = false;
 
+#ifndef USE_ESP8266
   // Special handling for defer() (delay = 0, type = TIMEOUT)
+  // ESP8266 is excluded because it doesn't need thread-safe defer handling
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
     this->defer_queue_.push_back(std::move(item));
     return;
   }
+#endif
 
   const auto now = this->millis_();
 
@@ -217,6 +220,7 @@ optional<uint32_t> HOT Scheduler::next_schedule_in() {
   return item->next_execution_ - now;
 }
 void HOT Scheduler::call() {
+#ifndef USE_ESP8266
   // Process defer queue first to guarantee FIFO execution order for deferred items.
   // Previously, defer() used the heap which gave undefined order for equal timestamps,
   // causing race conditions on multi-core systems (ESP32, RP2040, BK7200).
@@ -224,6 +228,8 @@ void HOT Scheduler::call() {
   // - Deferred items (delay=0) go directly to defer_queue_ in set_timer_common_
   // - Items execute in exact order they were deferred (FIFO guarantee)
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
+  // ESP8266 doesn't use this queue - it falls back to the heap-based approach since
+  // it's single-core and doesn't have thread safety concerns.
   while (!this->defer_queue_.empty()) {
     // IMPORTANT: The double-check pattern is REQUIRED for thread safety:
     // 1. First check: !defer_queue_.empty() without lock (may become stale)
@@ -248,6 +254,7 @@ void HOT Scheduler::call() {
       this->execute_item_(item.get());
     }
   }
+#endif
 
   const auto now = this->millis_();
   this->process_to_add();
@@ -432,12 +439,15 @@ bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_str
   bool ret = false;
 
   // Check all containers for matching items
+#ifndef USE_ESP8266
+  // Only check defer_queue_ on platforms that have it
   for (auto &item : this->defer_queue_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
       ret = true;
     }
   }
+#endif
 
   for (auto &item : this->items_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
