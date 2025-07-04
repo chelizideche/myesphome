@@ -1,0 +1,36 @@
+esphome:
+  name: defer-fifo-simple
+  on_boot:
+    - lambda: |-
+        // Simple test: defer 10 items and verify they execute in order
+        static int execution_order = 0;
+        static bool test_passed = true;
+
+        for (int i = 0; i < 10; i++) {
+          int expected = i;
+          App.scheduler.set_timeout((Component*)nullptr, nullptr, 0, [expected]() {
+            ESP_LOGD("defer_test", "Deferred item %d executed, order %d", expected, execution_order);
+            if (execution_order != expected) {
+              ESP_LOGE("defer_test", "FIFO violation: expected %d but got execution order %d", expected, execution_order);
+              test_passed = false;
+            }
+            execution_order++;
+
+            if (execution_order == 10) {
+              if (test_passed) {
+                ESP_LOGI("defer_test", "✓ FIFO order test PASSED - all 10 items executed in correct order");
+              } else {
+                ESP_LOGE("defer_test", "✗ FIFO order test FAILED - items executed out of order");
+              }
+            }
+          });
+        }
+
+        ESP_LOGD("defer_test", "Deferred 10 items, waiting for execution...");
+
+host:
+
+logger:
+  level: DEBUG
+
+api:
