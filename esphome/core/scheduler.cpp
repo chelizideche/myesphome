@@ -234,10 +234,11 @@ void HOT Scheduler::call() {
     // The outer check is done without a lock for performance. If the queue
     // appears non-empty, we lock and process an item. We don't need to check
     // empty() again inside the lock because only this thread can remove items.
-    this->lock_.lock();
-    auto item = std::move(this->defer_queue_.front());
-    this->defer_queue_.pop_front();
-    this->lock_.unlock();
+    {
+      LockGuard lock(this->lock_);
+      auto item = std::move(this->defer_queue_.front());
+      this->defer_queue_.pop_front();
+    }
 
     // Execute callback without holding lock to prevent deadlocks
     // if the callback tries to call defer() again
