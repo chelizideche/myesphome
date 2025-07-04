@@ -1,81 +1,5 @@
 esphome:
   name: defer-fifo-simple
-  on_boot:
-    - lambda: |-
-        // Test 1: Test set_timeout with 0 delay (direct scheduler call)
-        static int set_timeout_order = 0;
-        static bool set_timeout_passed = true;
-
-        ESP_LOGD("defer_test", "Test 1: Testing set_timeout(0) for FIFO order...");
-        for (int i = 0; i < 10; i++) {
-          int expected = i;
-          App.scheduler.set_timeout((Component*)nullptr, nullptr, 0, [expected]() {
-            ESP_LOGD("defer_test", "set_timeout(0) item %d executed, order %d", expected, set_timeout_order);
-            if (set_timeout_order != expected) {
-              ESP_LOGE("defer_test", "FIFO violation in set_timeout: expected %d but got execution order %d", expected, set_timeout_order);
-              set_timeout_passed = false;
-            }
-            set_timeout_order++;
-
-            if (set_timeout_order == 10) {
-              if (set_timeout_passed) {
-                ESP_LOGI("defer_test", "✓ Test 1 PASSED - set_timeout(0) maintains FIFO order");
-              } else {
-                ESP_LOGE("defer_test", "✗ Test 1 FAILED - set_timeout(0) executed out of order");
-              }
-
-              // Start Test 2 after Test 1 completes
-              App.scheduler.set_timeout((Component*)nullptr, nullptr, 100, []() {
-                // Test 2: Test defer() method (component method)
-                static int defer_order = 0;
-                static bool defer_passed = true;
-
-                ESP_LOGD("defer_test", "Test 2: Testing defer() for FIFO order...");
-
-                // Create a test component class that exposes defer()
-                class TestComponent : public Component {
-                public:
-                  void test_defer() {
-                    for (int i = 0; i < 10; i++) {
-                      int expected = i;
-                      this->defer([expected]() {
-                        ESP_LOGD("defer_test", "defer() item %d executed, order %d", expected, defer_order);
-                        if (defer_order != expected) {
-                          ESP_LOGE("defer_test", "FIFO violation in defer: expected %d but got execution order %d", expected, defer_order);
-                          defer_passed = false;
-                        }
-                        defer_order++;
-
-                        if (defer_order == 10) {
-                          bool all_passed = set_timeout_passed && defer_passed;
-                          if (defer_passed) {
-                            ESP_LOGI("defer_test", "✓ Test 2 PASSED - defer() maintains FIFO order");
-                            if (all_passed) {
-                              ESP_LOGI("defer_test", "✓ ALL TESTS PASSED - Both set_timeout(0) and defer() maintain FIFO order");
-                            }
-                          } else {
-                            ESP_LOGE("defer_test", "✗ Test 2 FAILED - defer() executed out of order");
-                          }
-
-                          // Publish test results
-                          id(test_complete)->publish_state(true);
-                          id(test_passed)->publish_state(all_passed);
-                        }
-                      });
-                    }
-                  }
-                };
-
-                TestComponent test_component;
-                test_component.test_defer();
-
-                ESP_LOGD("defer_test", "Deferred 10 items using defer(), waiting for execution...");
-              });
-            }
-          });
-        }
-
-        ESP_LOGD("defer_test", "Deferred 10 items using set_timeout(0), waiting for execution...");
 
 host:
 
@@ -83,11 +7,100 @@ logger:
   level: DEBUG
 
 api:
+  services:
+    - service: run_defer_test
+      then:
+        - lambda: |-
+            // Test 1: Test set_timeout with 0 delay (direct scheduler call)
+            static int set_timeout_order = 0;
+            static bool set_timeout_passed = true;
 
-binary_sensor:
+            ESP_LOGD("defer_test", "Test 1: Testing set_timeout(0) for FIFO order...");
+            for (int i = 0; i < 10; i++) {
+              int expected = i;
+              App.scheduler.set_timeout((Component*)nullptr, nullptr, 0, [expected]() {
+                ESP_LOGD("defer_test", "set_timeout(0) item %d executed, order %d", expected, set_timeout_order);
+                if (set_timeout_order != expected) {
+                  ESP_LOGE("defer_test", "FIFO violation in set_timeout: expected %d but got execution order %d", expected, set_timeout_order);
+                  set_timeout_passed = false;
+                }
+                set_timeout_order++;
+
+                if (set_timeout_order == 10) {
+                  if (set_timeout_passed) {
+                    ESP_LOGI("defer_test", "✓ Test 1 PASSED - set_timeout(0) maintains FIFO order");
+                  } else {
+                    ESP_LOGE("defer_test", "✗ Test 1 FAILED - set_timeout(0) executed out of order");
+                  }
+
+                  // Start Test 2 after Test 1 completes
+                  App.scheduler.set_timeout((Component*)nullptr, nullptr, 100, []() {
+                    // Test 2: Test defer() method (component method)
+                    static int defer_order = 0;
+                    static bool defer_passed = true;
+
+                    ESP_LOGD("defer_test", "Test 2: Testing defer() for FIFO order...");
+
+                    // Create a test component class that exposes defer()
+                    class TestComponent : public Component {
+                    public:
+                      void test_defer() {
+                        for (int i = 0; i < 10; i++) {
+                          int expected = i;
+                          this->defer([expected]() {
+                            ESP_LOGD("defer_test", "defer() item %d executed, order %d", expected, defer_order);
+                            if (defer_order != expected) {
+                              ESP_LOGE("defer_test", "FIFO violation in defer: expected %d but got execution order %d", expected, defer_order);
+                              defer_passed = false;
+                            }
+                            defer_order++;
+
+                            if (defer_order == 10) {
+                              bool all_passed = set_timeout_passed && defer_passed;
+                              if (defer_passed) {
+                                ESP_LOGI("defer_test", "✓ Test 2 PASSED - defer() maintains FIFO order");
+                                if (all_passed) {
+                                  ESP_LOGI("defer_test", "✓ ALL TESTS PASSED - Both set_timeout(0) and defer() maintain FIFO order");
+                                }
+                              } else {
+                                ESP_LOGE("defer_test", "✗ Test 2 FAILED - defer() executed out of order");
+                              }
+
+                              // Fire test result events
+                              if (all_passed) {
+                                id(test_result)->trigger("passed");
+                              } else {
+                                id(test_result)->trigger("failed");
+                              }
+                              id(test_complete)->trigger("test_finished");
+                            }
+                          });
+                        }
+                      }
+                    };
+
+                    TestComponent test_component;
+                    test_component.test_defer();
+
+                    ESP_LOGD("defer_test", "Deferred 10 items using defer(), waiting for execution...");
+                  });
+                }
+              });
+            }
+
+            ESP_LOGD("defer_test", "Deferred 10 items using set_timeout(0), waiting for execution...");
+
+event:
   - platform: template
     name: "Test Complete"
     id: test_complete
+    device_class: button
+    event_types:
+      - "test_finished"
   - platform: template
-    name: "Test Passed"
-    id: test_passed
+    name: "Test Result"
+    id: test_result
+    device_class: button
+    event_types:
+      - "passed"
+      - "failed"
