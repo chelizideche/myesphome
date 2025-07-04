@@ -47,12 +47,19 @@ esphome:
                         defer_order++;
 
                         if (defer_order == 10) {
+                          bool all_passed = set_timeout_passed && defer_passed;
                           if (defer_passed) {
                             ESP_LOGI("defer_test", "✓ Test 2 PASSED - defer() maintains FIFO order");
-                            ESP_LOGI("defer_test", "✓ ALL TESTS PASSED - Both set_timeout(0) and defer() maintain FIFO order");
+                            if (all_passed) {
+                              ESP_LOGI("defer_test", "✓ ALL TESTS PASSED - Both set_timeout(0) and defer() maintain FIFO order");
+                            }
                           } else {
                             ESP_LOGE("defer_test", "✗ Test 2 FAILED - defer() executed out of order");
                           }
+
+                          // Publish test results
+                          id(test_complete)->publish_state(true);
+                          id(test_passed)->publish_state(all_passed);
                         }
                       });
                     }
@@ -76,3 +83,11 @@ logger:
   level: DEBUG
 
 api:
+
+binary_sensor:
+  - platform: template
+    name: "Test Complete"
+    id: test_complete
+  - platform: template
+    name: "Test Passed"
+    id: test_passed
