@@ -143,6 +143,7 @@ class Scheduler {
   // Common implementation for cancel operations
   bool cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
+ private:
   bool cancel_item_(Component *component, const std::string &name, SchedulerItem::Type type);
   bool cancel_item_(Component *component, const char *name, SchedulerItem::Type type);
 
