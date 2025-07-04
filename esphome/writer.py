@@ -107,6 +107,11 @@ def storage_should_clean(old: StorageJSON, new: StorageJSON) -> bool:
         return True
     if old.build_path != new.build_path:
         return True
+
+    return False
+
+
+def storage_should_update_cmake_cache(old: StorageJSON, new: StorageJSON) -> bool:
     if (
         old.loaded_integrations != new.loaded_integrations
         or old.loaded_platforms != new.loaded_platforms
@@ -126,10 +131,11 @@ def update_storage_json():
         return
 
     if storage_should_clean(old, new):
-        _LOGGER.info(
-            "Core config, version or integrations changed, cleaning build files..."
-        )
+        _LOGGER.info("Core config, version changed, cleaning build files...")
         clean_build()
+    elif storage_should_update_cmake_cache(old, new):
+        _LOGGER.info("Integrations changed, cleaning cmake cache...")
+        clean_cmake_cache()
 
     new.save(path)
 
@@ -152,6 +158,9 @@ def get_ini_content():
     )
     # Sort to avoid changing build flags order
     CORE.add_platformio_option("build_flags", sorted(CORE.build_flags))
+
+    # Sort to avoid changing build unflags order
+    CORE.add_platformio_option("build_unflags", sorted(CORE.build_unflags))
 
     content = "[platformio]\n"
     content += f"description = ESPHome {__version__}\n"
@@ -348,6 +357,15 @@ def write_cpp(code_s):
     )
     full_file += code_format[2]
     write_file_if_changed(path, full_file)
+
+
+def clean_cmake_cache():
+    pioenvs = CORE.relative_pioenvs_path()
+    if os.path.isdir(pioenvs):
+        pioenvs_cmake_path = CORE.relative_pioenvs_path(CORE.name, "CMakeCache.txt")
+        if os.path.isfile(pioenvs_cmake_path):
+            _LOGGER.info("Deleting %s", pioenvs_cmake_path)
+            os.remove(pioenvs_cmake_path)
 
 
 def clean_build():

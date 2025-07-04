@@ -608,6 +608,23 @@ def add_build_flag(build_flag: str):
     CORE.add_build_flag(build_flag)
 
 
+def add_build_unflag(build_unflag: str) -> None:
+    """Add a global build unflag to the compiler flags."""
+    CORE.add_build_unflag(build_unflag)
+
+
+def set_cpp_standard(standard: str) -> None:
+    """Set C++ standard with compiler flag `-std={standard}`."""
+    CORE.add_build_unflag("-std=gnu++11")
+    CORE.add_build_unflag("-std=gnu++14")
+    CORE.add_build_unflag("-std=gnu++17")
+    CORE.add_build_unflag("-std=gnu++23")
+    CORE.add_build_unflag("-std=gnu++2a")
+    CORE.add_build_unflag("-std=gnu++2b")
+    CORE.add_build_unflag("-std=gnu++2c")
+    CORE.add_build_flag(f"-std={standard}")
+
+
 def add_define(name: str, value: SafeExpType = None):
     """Add a global define to the auto-generated defines.h file.
 
