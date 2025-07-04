@@ -26,7 +26,7 @@ static const int ADC_MAX = (1 << SOC_ADC_RTC_MAX_BITWIDTH) - 1;
 static const int ADC_HALF = (1 << SOC_ADC_RTC_MAX_BITWIDTH) >> 1;
 
 void ADCSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
+  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->get_name().c_str());
 
   if (this->channel1_ != ADC1_CHANNEL_MAX) {
     adc1_config_width(ADC_WIDTH_MAX_SOC_BITS);
@@ -72,23 +72,29 @@ void ADCSensor::setup() {
 }
 
 void ADCSensor::dump_config() {
+  static const char *const ATTEN_AUTO_STR = "auto";
+  static const char *const ATTEN_0DB_STR = "0 db";
+  static const char *const ATTEN_2_5DB_STR = "2.5 db";
+  static const char *const ATTEN_6DB_STR = "6 db";
+  static const char *const ATTEN_12DB_STR = "12 db";
+  const char *atten_str = ATTEN_AUTO_STR;
+
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
-  if (this->autorange_) {
-    ESP_LOGCONFIG(TAG, "  Attenuation: auto");
-  } else {
+
+  if (!this->autorange_) {
     switch (this->attenuation_) {
       case ADC_ATTEN_DB_0:
-        ESP_LOGCONFIG(TAG, "  Attenuation: 0db");
+        atten_str = ATTEN_0DB_STR;
         break;
       case ADC_ATTEN_DB_2_5:
-        ESP_LOGCONFIG(TAG, "  Attenuation: 2.5db");
+        atten_str = ATTEN_2_5DB_STR;
         break;
       case ADC_ATTEN_DB_6:
-        ESP_LOGCONFIG(TAG, "  Attenuation: 6db");
+        atten_str = ATTEN_6DB_STR;
         break;
       case ADC_ATTEN_DB_12_COMPAT:
-        ESP_LOGCONFIG(TAG, "  Attenuation: 12db");
+        atten_str = ATTEN_12DB_STR;
         break;
       default:  // This is to satisfy the unused ADC_ATTEN_MAX
         break;
