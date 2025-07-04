@@ -257,7 +257,7 @@ void DebugComponent::get_device_info_(std::string &device_info) {
 
 // #ifdef USE_ADAFRUIT_BOOTLOADER
 #if 1
-  ESP_LOGD(TAG, "bootloader: Adafruit, version %lu.%lu.%lu", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
+  ESP_LOGD(TAG, "bootloader: Adafruit, version %u.%u.%u", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
            (BOOTLOADER_VERSION_REGISTER >> 8) & 0xFF, BOOTLOADER_VERSION_REGISTER & 0xFF);
   ESP_LOGD(TAG, "MBR bootloader addr 0x%08lx, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
            NRF_UICR->NRFFW[0]);
