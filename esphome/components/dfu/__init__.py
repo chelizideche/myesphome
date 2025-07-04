@@ -2,7 +2,7 @@ import esphome.codegen as cg
 from esphome.components import output
 from esphome.components.zephyr import zephyr_add_prj_conf
 import esphome.config_validation as cv
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, PLATFORM_NRF52
 
 dfu_ns = cg.esphome_ns.namespace("dfu")
 DeviceFirmwareUpdate = dfu_ns.class_("DeviceFirmwareUpdate", cg.Component)
@@ -16,7 +16,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_RESET_OUTPUT): cv.use_id(output.BinaryOutput),
         }
     ).extend(cv.COMPONENT_SCHEMA),
-    cv.only_on_nrf52,
+    cv.only_on(PLATFORM_NRF52),
 )
 
 
