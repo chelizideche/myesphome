@@ -603,7 +603,7 @@ void LD2410S::send_command_(CmdFrameT *frame) {
 }
 
 void LD2410S::receive_() {
-  while (this->available()) {
+  while (available()) {
     this->rcv_buffer[this->rcv_end_pos] = this->read();
 
     this->hex_diag_("rcv_buffer <", &this->rcv_buffer[0], this->rcv_end_pos);
