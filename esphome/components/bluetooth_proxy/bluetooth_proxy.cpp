@@ -52,6 +52,11 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
+// Batch size for BLE advertisements to maximize WiFi efficiency
+// Each advertisement is up to 80 bytes when packaged (including protocol overhead)
+// Most advertisements are 20-30 bytes, allowing even more to fit per packet
+// 16 advertisements × 80 bytes (worst case) = 1280 bytes out of ~1320 bytes usable payload
+// This achieves ~97% WiFi MTU utilization while staying under the limit
 static constexpr size_t FLUSH_BATCH_SIZE = 16;
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
   static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
