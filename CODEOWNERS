@@ -520,6 +520,7 @@ esphome/components/wk2212_i2c/* @DrCoolZic
 esphome/components/wk2212_spi/* @DrCoolZic
 esphome/components/wl_134/* @hobbypunk90
 esphome/components/x9c/* @EtienneMD
+esphome/components/xdb401/* @dala318
 esphome/components/xgzp68xx/* @gcormier
 esphome/components/xiaomi_hhccjcy10/* @fariouche
 esphome/components/xiaomi_lywsd02mmc/* @juanluss31
