@@ -246,8 +246,6 @@ class LD2410S : public uart::UARTDevice, public Component {
   void four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len);
   void hex_diag_(const char *msg, const uint8_t *data, size_t length);
   int read_int_(const uint8_t *buffer, size_t pos, size_t len);
-
-  uint32_t four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
 };
 
 }  // namespace ld2410s

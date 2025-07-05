@@ -953,7 +953,7 @@ void LD2410S::process_ack_trigger_snr_read_(uint8_t *data) {
 }
 void LD2410S::process_data_energy_values_read_(uint8_t *data) {
   for (uint8_t i = 0; i < 16; i++) {
-    uint32_t val = this->four_byte_to_int_(data[i * 4], data[i * 4 + 1], data[i * 4 + 2], data[i * 4 + 3]);
+    uint32_t val = this->encode_uint32(data[i * 4] + 3, data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
     this->energy_values_[i] =
         (this->energy_values_[i] * 16 * this->energy_values_count_ + val) / (this->energy_values_count_ + 1) / 16;
     this->energy_values_count_++;
@@ -1023,7 +1023,7 @@ std::string LD2410S::format_int_(uint32_t *in, uint8_t len, uint8_t min_w) {
 
 void LD2410S::four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len) {
   for (uint8_t i = 0; i < out_len; i++) {
-    out[i] = this->four_byte_to_int_(in[i * 4], in[i * 4 + 1], in[i * 4 + 2], in[i * 4 + 3]);
+    out[i] = this->encode_uint32(in[i * 4] + 3, in[i * 4 + 2], in[i * 4 + 1], in[i * 4 + 0]);
   }
 }
 
@@ -1050,10 +1050,6 @@ int LD2410S::read_int_(const uint8_t *buffer, size_t pos, size_t len) {
     shift += 8;
   }
   return ret;
-};
-// int LD2410S::two_byte_to_int_(uint8_t byte1, uint8_t byte2) { return byte1 | (byte2 << 8); };
-uint32_t LD2410S::four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
-  return byte1 | (byte2 << 8) | (byte3 << 16) | (byte4 << 24);
 };
 
 }  // namespace ld2410s
