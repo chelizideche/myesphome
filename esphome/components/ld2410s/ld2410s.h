@@ -24,6 +24,7 @@
 namespace esphome {
 namespace ld2410s {
 
+static const size_t RCV_BUFFER_SIZE = 128;
 static const uint8_t CMD_EXEC_BUFFER_SIZE = 32;
 static const uint16_t NO_SUB_CMD = 0xffff;
 
@@ -164,8 +165,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   uint32_t energy_values_count_ = 0;
   std::string energy_values_str_ = "";
 
-  size_t rcv_buffer_size = 128;
-  uint8_t rcv_buffer[rcv_buffer_size];
+  uint8_t rcv_buffer[RCV_BUFFER_SIZE];
   size_t rcv_end_pos = 0;
 
   uint8_t active_ = 0;
