@@ -66,7 +66,15 @@ bool TeleInfo::read_chars_until_(bool drop, uint8_t c) {
 
   return false;
 }
-void TeleInfo::setup() { state_ = OFF; }
+void TeleInfo::setup() {
+  state_ = OFF;
+  // Log sensors at setup time
+  ESP_LOGCONFIG(TAG, "Currently registered sensors: %u", this->sensors_.size());
+  for (const auto &sensor_pair : this->sensors_) {
+    ESP_LOGCONFIG(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
+  }
+}
+
 void TeleInfo::update() {
   if (state_ == OFF) {
     buf_index_ = 0;
@@ -178,17 +186,38 @@ void TeleInfo::loop() {
       break;
   }
 }
+
 void TeleInfo::publish_value_(const std::string &tag, const std::string &val) {
   for (auto *element : teleinfo_listeners_) {
     if (tag != element->tag)
       continue;
     element->publish_val(val);
   }
+
+  // Publish to sensors in the map
+  auto sensor_it = sensors_.find(tag);
+  if (sensor_it != sensors_.end()) {
+    // Convert string value to float without exceptions
+    float float_val = 0.0f;
+    char *end_ptr = nullptr;
+
+    // Use strtof which doesn't throw exceptions
+    float_val = strtof(val.c_str(), &end_ptr);
+
+    // Check if conversion was successful
+    if (end_ptr != val.c_str() && *end_ptr == '\0') {
+      sensor_it->second->publish_state(float_val);
+    } else {
+      ESP_LOGW(TAG, "Could not parse value '%s' for tag '%s' as number", val.c_str(), tag.c_str());
+    }
+  }
 }
+
 void TeleInfo::dump_config() {
   ESP_LOGCONFIG(TAG, "TeleInfo:");
   this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_EVEN, 7);
 }
+
 TeleInfo::TeleInfo(bool historical_mode) {
   if (historical_mode) {
     /*
@@ -203,7 +232,13 @@ TeleInfo::TeleInfo(bool historical_mode) {
     baud_rate_ = 9600;
   }
 }
+
 void TeleInfo::register_teleinfo_listener(TeleInfoListener *listener) { teleinfo_listeners_.push_back(listener); }
+
+void TeleInfo::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
+  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+  this->sensors_[tag_name] = sensor;
+}
 
 }  // namespace teleinfo
 }  // namespace esphome
