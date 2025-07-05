@@ -115,6 +115,7 @@ static const uint32_t CMD_EXEC_TIMEOUT = 1000;
 static const uint8_t CMD_EXEC_REPEAT = 3;
 
 void LD2410S::setup() {
+  this->status_set_warning("ld2410s setup");
   this->minimal_output_ = true;
   this->schedule_cmd_frame_(CONFIG_MODE_START_CMD);
   this->schedule_cmd_frame_(OUTPUT_MODE_SWITCH_CMD);
