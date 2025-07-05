@@ -9,6 +9,11 @@ namespace light {
 class LightState;
 
 /** This class represents a requested change in a light state.
+ *
+ * Light state changes are tracked using a bitfield flags_ to minimize memory usage.
+ * Each possible light property has a flag indicating whether it has been set.
+ * This design keeps LightCall at ~56 bytes to minimize heap fragmentation on
+ * ESP8266 and other memory-constrained devices.
  */
 class LightCall {
  public:
@@ -182,6 +187,7 @@ class LightCall {
   /// Some color modes also can be set using non-native parameters, transform those calls.
   void transform_parameters_();
 
+  // Bitfield flags - each flag indicates whether a corresponding value has been set.
   enum FieldFlags : uint16_t {
     FLAG_HAS_STATE = 1 << 0,
     FLAG_HAS_TRANSITION = 1 << 1,
@@ -216,6 +222,8 @@ class LightCall {
   }
 
   LightState *parent_;
+
+  // Light state values - use flags_ to check if a value has been set.
   // Group 4-byte aligned members first
   uint32_t transition_length_;
   uint32_t flash_length_;
@@ -229,8 +237,9 @@ class LightCall {
   float color_temperature_;
   float cold_white_;
   float warm_white_;
-  // Group smaller members at the end for better packing
-  uint16_t flags_{FLAG_PUBLISH | FLAG_SAVE};  // Default publish and save to true
+
+  // Smaller members at the end for better packing
+  uint16_t flags_{FLAG_PUBLISH | FLAG_SAVE};  // Tracks which values are set
   ColorMode color_mode_;
   bool state_;
 };
