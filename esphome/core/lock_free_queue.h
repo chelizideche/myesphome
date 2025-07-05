@@ -38,12 +38,13 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
 
   bool push(T *element) {
     bool was_empty;
-    return push_internal_(element, was_empty);
+    uint8_t old_tail;
+    return push_internal_(element, was_empty, old_tail);
   }
 
  protected:
-  // Internal push that reports if queue was empty - for use by derived classes
-  bool push_internal_(T *element, bool &was_empty) {
+  // Internal push that reports queue state - for use by derived classes
+  bool push_internal_(T *element, bool &was_empty, uint8_t &old_tail) {
     if (element == nullptr)
       return false;
 
@@ -60,6 +61,7 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     }
 
     was_empty = (current_tail == head_before);
+    old_tail = current_tail;
 
     buffer_[current_tail] = element;
     tail_.store(next_tail, std::memory_order_release);
@@ -116,7 +118,8 @@ template<class T, uint8_t SIZE> class NotifyingLockFreeQueue : public LockFreeQu
 
   bool push(T *element) {
     bool was_empty;
-    bool result = this->push_internal_(element, was_empty);
+    uint8_t old_tail;
+    bool result = this->push_internal_(element, was_empty, old_tail);
 
     // Notify optimization: only notify if we need to
     if (result && task_to_notify_ != nullptr) {
@@ -125,11 +128,8 @@ template<class T, uint8_t SIZE> class NotifyingLockFreeQueue : public LockFreeQu
         xTaskNotifyGive(task_to_notify_);
       } else {
         // Queue wasn't empty - check if consumer has caught up to previous tail
-        uint8_t current_tail = this->tail_.load(std::memory_order_relaxed);
         uint8_t head_after = this->head_.load(std::memory_order_acquire);
-        // We just pushed, so go back one position to get the old tail
-        uint8_t previous_tail = (current_tail + SIZE - 1) % SIZE;
-        if (head_after == previous_tail) {
+        if (head_after == old_tail) {
           // Consumer just caught up to where tail was - might go to sleep, must notify
           // Note: There's a benign race here - between reading head_after and calling
           // xTaskNotifyGive(), the consumer could advance further. This would result
