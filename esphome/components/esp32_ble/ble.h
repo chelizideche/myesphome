@@ -26,9 +26,9 @@ namespace esp32_ble {
 
 // Maximum number of BLE scan results to buffer
 #ifdef USE_PSRAM
-static constexpr uint8_t SCAN_RESULT_BUFFER_SIZE = 32;
+static constexpr uint8_t SCAN_RESULT_BUFFER_SIZE = 36;
 #else
-static constexpr uint8_t SCAN_RESULT_BUFFER_SIZE = 20;
+static constexpr uint8_t SCAN_RESULT_BUFFER_SIZE = 24;
 #endif
 
 // Maximum size of the BLE event queue - must be power of 2 for lock-free queue

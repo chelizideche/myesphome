@@ -52,7 +52,7 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
-static constexpr size_t FLUSH_BATCH_SIZE = 8;
+static constexpr size_t FLUSH_BATCH_SIZE = 16;
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
   static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
   return batch_buffer;
