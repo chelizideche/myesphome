@@ -16,15 +16,10 @@ display:
 image:
   defaults:
     type: rgb565
-#      transparency: opaque
-#      byte_order: little_endian
-#      resize: 50x50
-#      dither: FloydSteinberg
+    transparency: opaque
+    byte_order: little_endian
+    resize: 50x50
+    dither: FloydSteinberg
   images:
-    - id: binary_image
+    - id: test_image
       file: ../../pnglogo.png
-    #- id: transparent_transparent_image
-      #file: ../../pnglogo.png
-      #type: BINARY
-      #transparency: chroma_key
-      #resize: 100x100
