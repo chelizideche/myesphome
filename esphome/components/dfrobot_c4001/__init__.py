@@ -1,21 +1,16 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import automation
 from esphome.automation import maybe_simple_id
+import esphome.codegen as cg
 from esphome.components import uart
-
-from esphome.const import (
-    CONF_ID,
-    CONF_MODE,
-)
-
+import esphome.config_validation as cv
+from esphome.const import CONF_ID, CONF_MODE
 
 DEPENDENCIES = ["uart"]
 
 CODEOWNERS = ["@mikelawrence"]
 MULTI_CONF = True
 
-CONF_DFROBOT_C4001_HUB_ID = "dfrobot_c4001_hub_id"
+CONF_DFROBOT_C4001_ID = "dfrobot_c4001_id"
 MODE = ""
 
 dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
@@ -38,7 +33,7 @@ DFRobotC4001FactoryResetAction = dfrobot_c4001_ns.class_(
 
 HUB_CHILD_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_DFROBOT_C4001_HUB_ID): cv.use_id(DFRobotC4001Hub),
+        cv.GenerateID(CONF_DFROBOT_C4001_ID): cv.use_id(DFRobotC4001Hub),
     }
 )
 
