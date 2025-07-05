@@ -540,12 +540,12 @@ void LD2410S::loop_send_command_() {
   } else if (cmd->state == CmdState::SENT) {
     if (now >= cmd->time_started + CMD_EXEC_TIMEOUT) {
       if (cmd->retry < CMD_EXEC_REPEAT) {
-        ESP_LOGD(TAG, "loop_exec Send Retry active:%d, last:%d", this->active_, this->last_);
+        ESP_LOGD(TAG, "SendCmd Retry active:%d, last:%d", this->active_, this->last_);
         cmd->retry++;
         cmd->time_started = now;
         this->send_command_(cmd->cmd_frame);
       } else {
-        ESP_LOGD(TAG, "loop_exec Send to Give up active:%d, last:%d", this->active_, this->last_);
+        ESP_LOGD(TAG, "SendCmd GivingUp active:%d, last:%d", this->active_, this->last_);
         cmd->state = CmdState::EMPTY;
         this->cmd_buffer_finished_();
       }
