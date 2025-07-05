@@ -18,6 +18,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <deque>
+#include <atomic>
 #endif
 
 #if USE_WEBSERVER_VERSION >= 2
@@ -126,6 +127,8 @@ class DeferredUpdateEventSource : public AsyncEventSource {
   // footprint is more important than speed here)
   std::vector<DeferredEvent> deferred_queue_;
   WebServer *web_server_;
+  uint16_t consecutive_send_failures_{0};
+  static constexpr uint16_t MAX_CONSECUTIVE_SEND_FAILURES = 2500;  // ~20 seconds at 125Hz loop rate
 
   // helper for allowing only unique entries in the queue
   void deq_push_back_with_dedup_(void *source, message_generator_t *message_generator);
@@ -524,6 +527,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 #ifdef USE_ESP32
   std::deque<std::function<void()>> to_schedule_;
   SemaphoreHandle_t to_schedule_lock_;
+  std::atomic<bool> to_schedule_has_items_{false};
 #endif
 };
 
