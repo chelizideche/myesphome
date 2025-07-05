@@ -227,7 +227,6 @@ void HamulightComponent::set_brightness(float brightness) {
   // Step 5: Send it
   this->transmit_rf_brightness_(rf_value);
 }
-  
 
 void HamulightComponent::start_command_scan() {
   // Called from YAML button: Start command scan
