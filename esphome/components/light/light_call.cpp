@@ -11,11 +11,11 @@ static const char *const TAG = "light";
 
 // Macro to reduce repetitive setter code
 #define IMPLEMENT_LIGHT_CALL_SETTER(name, type, flag) \
-  LightCall &LightCall::set_##name(optional<type> name) { \
-    if (name.has_value()) { \
-      this->name##_ = name.value(); \
+  LightCall &LightCall::set_##name(optional<type>(name)) { \
+    if ((name).has_value()) { \
+      this->name##_ = (name).value(); \
     } \
-    this->set_flag_(flag, name.has_value()); \
+    this->set_flag_(flag, (name).has_value()); \
     return *this; \
   } \
   LightCall &LightCall::set_##name(type name) { \
