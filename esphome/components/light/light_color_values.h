@@ -292,7 +292,6 @@ class LightColorValues {
   void set_warm_white(float warm_white) { this->warm_white_ = clamp(warm_white, 0.0f, 1.0f); }
 
  protected:
-  ColorMode color_mode_;
   float state_;  ///< ON / OFF, float for transition
   float brightness_;
   float color_brightness_;
@@ -303,6 +302,7 @@ class LightColorValues {
   float color_temperature_;  ///< Color Temperature in Mired
   float cold_white_;
   float warm_white_;
+  ColorMode color_mode_;
 };
 
 }  // namespace light
