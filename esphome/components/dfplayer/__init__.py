@@ -53,6 +53,8 @@ PauseAction = dfplayer_ns.class_("PauseAction", automation.Action)
 StopAction = dfplayer_ns.class_("StopAction", automation.Action)
 RandomAction = dfplayer_ns.class_("RandomAction", automation.Action)
 SetDeviceAction = dfplayer_ns.class_("SetDeviceAction", automation.Action)
+EnableLoopAction = dfplayer_ns.class_("EnableLoopAction", automation.Action)
+DisableLoopAction = dfplayer_ns.class_("DisableLoopAction", automation.Action)
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -353,6 +355,36 @@ async def dfplayer_stop_to_code(config, action_id, template_arg, args):
     ),
 )
 async def dfplayer_random_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    return var
+
+
+@automation.register_action(
+    "dfplayer.enable_loop",
+    EnableLoopAction,
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.use_id(DFPlayer),
+        }
+    ),
+)
+async def dfplayer_enable_loop_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    return var
+
+
+@automation.register_action(
+    "dfplayer.disable_loop",
+    DisableLoopAction,
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.use_id(DFPlayer),
+        }
+    ),
+)
+async def dfplayer_disable_loop_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     return var

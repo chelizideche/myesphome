@@ -102,6 +102,16 @@ void DFPlayer::random() {
   this->send_cmd_(0x18);
 }
 
+void DFPlayer::enable_loop() {
+  ESP_LOGD(TAG, "Repeating current file");
+  this->send_cmd_(0x19, 0x00);
+}
+
+void DFPlayer::disable_loop() {
+  ESP_LOGD(TAG, "Disabling repeat of current file");
+  this->send_cmd_(0x19, 0x01);
+}
+
 void DFPlayer::play_folder(uint16_t folder, uint16_t file) {
   ESP_LOGD(TAG, "Playing file %d in folder %d", file, folder);
   if (folder < 100 && file < 256) {

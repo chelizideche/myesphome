@@ -25,6 +25,8 @@ esphome:
       - dfplayer.volume_up
       - dfplayer.volume_down
       - dfplayer.sleep
+      - dfplayer.enable_loop
+      - dfplayer.disable_loop
 
 uart:
   - id: uart_dfplayer

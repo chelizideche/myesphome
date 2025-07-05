@@ -47,6 +47,8 @@ class DFPlayer : public uart::UARTDevice, public Component {
   void pause();
   void stop();
   void random();
+  void enable_loop();
+  void disable_loop();
 
   bool is_playing() { return is_playing_; }
   void dump_config() override;
@@ -165,6 +167,8 @@ DFPLAYER_SIMPLE_ACTION(StopAction, stop)
 DFPLAYER_SIMPLE_ACTION(RandomAction, random)
 DFPLAYER_SIMPLE_ACTION(VolumeUpAction, volume_up)
 DFPLAYER_SIMPLE_ACTION(VolumeDownAction, volume_down)
+DFPLAYER_SIMPLE_ACTION(EnableLoopAction, enable_loop)
+DFPLAYER_SIMPLE_ACTION(DisableLoopAction, disable_loop)
 
 template<typename... Ts> class DFPlayerIsPlayingCondition : public Condition<Ts...>, public Parented<DFPlayer> {
  public:
