@@ -128,7 +128,7 @@ void LD2410S::setup() {
 }
 void LD2410S::loop() {
   if (!this->cmd_active_) {
-    if (available()) {
+    if (this->available()) {
       this->receive_();
     } else {
       this->loop_send_command_();
@@ -603,10 +603,10 @@ void LD2410S::send_command_(CmdFrameT *frame) {
 }
 
 void LD2410S::receive_() {
-  while (available()) {
+  while (this->available()) {
     this->rcv_buffer[this->rcv_end_pos] = this->read();
 
-    this->hex_diag_("rcv_buffer <", &this->rcv_buffer[0], this->rcv_end_pos);
+    // this->hex_diag_("rcv_buffer <", &this->rcv_buffer[0], this->rcv_end_pos);
 
     PackageType type = this->get_frame_type_(this->rcv_buffer, this->rcv_end_pos);
     if (type != PackageType::UNKNOWN) {
