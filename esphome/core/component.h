@@ -380,6 +380,21 @@ class Component {
    */
   void defer(const std::string &name, std::function<void()> &&f);  // NOLINT
 
+  /** Defer a callback to the next loop() call with a const char* name.
+   *
+   * IMPORTANT: The provided name pointer must remain valid for the lifetime of the deferred task.
+   * This means the name should be:
+   *   - A string literal (e.g., "update")
+   *   - A static const char* variable
+   *   - A pointer with lifetime >= the deferred execution
+   *
+   * For dynamic strings, use the std::string overload instead.
+   *
+   * @param name The name of the defer function (must have static lifetime)
+   * @param f The callback
+   */
+  void defer(const char *name, std::function<void()> &&f);  // NOLINT
+
   /// Defer a callback to the next loop() call.
   void defer(std::function<void()> &&f);  // NOLINT
 
@@ -387,9 +402,7 @@ class Component {
   bool cancel_defer(const std::string &name);  // NOLINT
 
   // Ordered for optimal packing on 32-bit systems
-  float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
-  const char *error_message_{nullptr};
   uint16_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};  ///< Warn if blocked for this many ms (max 65.5s)
   /// State of this component - each bit has a purpose:
   /// Bits 0-1: Component state (0x00=CONSTRUCTION, 0x01=SETUP, 0x02=LOOP, 0x03=FAILED)
@@ -458,5 +471,8 @@ class WarnIfComponentBlockingGuard {
   uint32_t started_;
   Component *component_;
 };
+
+// Function to clear setup priority overrides after all components are set up
+void clear_setup_priority_overrides();
 
 }  // namespace esphome
