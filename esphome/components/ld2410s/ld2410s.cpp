@@ -128,9 +128,7 @@ void LD2410S::setup() {
 void LD2410S::loop() {
   if (!this->cmd_active_) {
     if (available()) {
-      uint8_t buffer[128];
-      size_t pos = 0;
-      this->receive_(buffer, sizeof(buffer), pos);
+      this->receive_();
     } else {
       this->loop_send_command_();
     }
@@ -603,7 +601,11 @@ void LD2410S::send_command_(CmdFrameT *frame) {
   this->status_clear_warning();
 }
 
-void LD2410S::receive_(uint8_t *buffer, size_t buffer_size, size_t &end_pos) {
+void LD2410S::receive_() {
+  size_t buffer_size = 128;
+  uint8_t buffer[buffer_size];
+  size_t end_pos = 0;
+
   while (this->available()) {
     buffer[end_pos] = this->read();
 

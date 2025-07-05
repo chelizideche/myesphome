@@ -19,7 +19,6 @@
 #endif
 #include <functional>
 #include <iomanip>
-// #include <map>
 #include <sstream>
 
 namespace esphome {
@@ -201,7 +200,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   select::Select *response_speed_select_{nullptr};
 #endif
 
-  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos);
+  void receive_();
   PackageType get_frame_type_(uint8_t *buffer, size_t pos);
   size_t get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type);
   size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
