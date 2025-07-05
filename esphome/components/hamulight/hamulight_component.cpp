@@ -204,14 +204,30 @@ void HamulightComponent::pair_with_driver() {
 }
 
 void HamulightComponent::set_brightness(float brightness) {
-  // Called from YAML number: Set brightness (0-100%)
-  // Maps 0-100 (float) to RF dimming protocol value, including offset and clamping.
-  uint8_t dim_raw = static_cast<uint8_t>(brightness * (RF_SLIDE_STEPS - 1) / 100.0f);
-  uint8_t rf_value = RF_SLIDE_OFFSET + dim_raw;
-  if (rf_value > RF_SLIDE_RANGE_MAX)
+  // Called from HA number entity defined in YAML: Set brightness (0-100%)
+  // Step 1: Calculate scaling factor (assuming slider is 0-100)
+  float factor = static_cast<float>(RF_SLIDE_STEPS) / 100.0f;
+
+  // Step 2: Apply scaling and round and deduct 1 (1..128 to 0..127 logic)
+  int val = static_cast<int>(brightness * factor);
+  val--;
+
+  // Step 3: Add offset (RF_SLIDE_OFFSET)
+  uint8_t rf_value = RF_SLIDE_OFFSET + val;
+
+  // Step 4: Clamp to min/max range
+  if (rf_value < RF_SLIDE_RANGE_MIN) {
+    rf_value = rf_value + RF_SLIDE_RANGE_MIN;
+  }
+  if (rf_value > RF_SLIDE_RANGE_MAX) {
+    ESP_LOGW(TAG, "ERROR: Slider input value is exceeding the allowed input range!");
     rf_value = RF_SLIDE_RANGE_MAX;
+  }
+
+  // Step 5: Send it
   this->transmit_rf_brightness_(rf_value);
 }
+  
 
 void HamulightComponent::start_command_scan() {
   // Called from YAML button: Start command scan
