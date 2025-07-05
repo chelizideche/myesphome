@@ -365,6 +365,7 @@ void LD2410S::schedule_cmd_frame_(uint16_t command, uint16_t sub_command) {
             this->cmd_frame_append_data_(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
             this->cmd_frame_append_data_(&cmd_frame, &this->resp_speed_, 1);
             break;
+
           default:
 
             this->cmd_frame_append_data_(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
@@ -384,6 +385,7 @@ void LD2410S::schedule_cmd_frame_(uint16_t command, uint16_t sub_command) {
 
             this->cmd_frame_append_data_(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
             this->cmd_frame_append_data_(&cmd_frame, &this->resp_speed_, 1);
+
             break;
         }
         break;
@@ -476,7 +478,7 @@ void LD2410S::cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint32_t *appen
 
 void LD2410S::cmd_buffer_insert_(CmdFrameT *cmd_frame) {
   if (!cmd_frame) {
-    ESP_LOGD(TAG, "cmd_buffer_insert cmd_frame is empty !!! active:%d, last:%d", this->active_, this->last_);
+    // ESP_LOGD(TAG, "cmd_buffer_insert cmd_frame is empty !!! active:%d, last:%d", this->active_, this->last_);
     return;
   }
   // ESP_LOGD(TAG, "cmd_add command:%0x, lengt:%d", cmd_frame->command,
@@ -492,7 +494,7 @@ void LD2410S::cmd_buffer_insert_(CmdFrameT *cmd_frame) {
     uint8_t next = this->last_;
     this->cmd_buffer_inc_(next);
     if (this->commands_[next].state != CmdState::EMPTY) {
-      ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", this->active_, this->last_);
+      // ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", this->active_, this->last_);
       return;
     }
     this->last_ = next;
@@ -610,10 +612,10 @@ void LD2410S::receive_() {
 
     PackageType type = this->get_frame_type_(this->rcv_buffer, this->rcv_end_pos);
     if (type != PackageType::UNKNOWN) {
-      size_t start_pos = get_frame_start_(this->rcv_buffer, this->rcv_end_pos, type);
+      size_t start_pos = this->get_frame_start_(this->rcv_buffer, this->rcv_end_pos, type);
 
       if (start_pos != this->rcv_end_pos) {
-        size_t data_size = get_data_size_(this->rcv_buffer, this->rcv_end_pos, type, start_pos);
+        size_t data_size = this->get_data_size_(this->rcv_buffer, this->rcv_end_pos, type, start_pos);
 
         if (data_size != 0) {
           this->hex_diag_("<", &this->rcv_buffer[0], this->rcv_end_pos + 1 - start_pos);
@@ -701,7 +703,7 @@ size_t LD2410S::get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType ty
   }
 
   for (uint8_t i = end_pos - min_length; i >= 0; i--) {
-    if (header_frame == read_int_(buffer, i, header_frame_len)) {
+    if (header_frame == this->read_int_(buffer, i, header_frame_len)) {
       return i;
     }
   }
@@ -720,7 +722,7 @@ size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type
 
     case PackageType::STD_DATA_FRAME:
     case PackageType::CMD_FRAME:
-      data_size = read_int_(buffer, start_pos + 4, 2);
+      data_size = this->read_int_(buffer, start_pos + 4, 2);
       expected_full_frame_size = 4 + 2 + data_size + 4;
       break;
 
