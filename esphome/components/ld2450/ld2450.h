@@ -6,6 +6,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
 #include <limits>
+#include <cmath>
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -101,7 +102,7 @@ class LD2450Component : public Component, public uart::UARTDevice {
   void dump_config() override;
   void loop() override;
   void set_presence_timeout();
-  void set_throttle(uint16_t value) { this->throttle_ = value; };
+  void set_throttle(uint16_t value) { this->throttle_ = value; }
   void read_all_info();
   void query_zone_info();
   void restart_and_read_all_info();
