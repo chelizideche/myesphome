@@ -43,6 +43,7 @@ void DallasTemperatureSensor::update() {
   this->status_clear_warning();
 
   this->send_command_(DALLAS_COMMAND_START_CONVERSION);
+  this->bus_->strong_pullup();
 
   this->set_timeout(this->get_address_name(), this->millis_to_wait_for_conversion_(), [this] {
     if (!this->read_scratch_pad_() || !this->check_scratch_pad_()) {

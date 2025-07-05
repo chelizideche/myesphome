@@ -18,6 +18,7 @@ class GPIOOneWireBus : public one_wire::OneWireBus, public Component {
     this->pin_ = pin->to_isr();
   }
 
+  void strong_pullup() override;
   void write8(uint8_t val) override;
   void write64(uint64_t val) override;
   uint8_t read8() override;
