@@ -215,10 +215,11 @@ class LightCall {
 
   // Helper to set flag
   void set_flag_(FieldFlags flag, bool value) {
-    if (value)
+    if (value) {
       this->flags_ |= flag;
-    else
+    } else {
       this->flags_ &= ~flag;
+    }
   }
 
   LightState *parent_;
