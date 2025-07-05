@@ -1,0 +1,24 @@
+packages:
+  test_common: !include common.yaml
+
+esphome:
+  # Make sure the configuration name matches the file name so they are unique:
+  name: test001
+
+  # List here the directories with test files handled by this configuration:
+  includes:
+    - example/
+    - uart/
+
+# Include below the simplest valid config for each component you are testing
+# The configuration won't be used nor ran. This is just so the component code
+# is pulled into the build. Keep it to the bare minimum necessary.
+
+# If the component you are adding conflicts with one already here, create a separate
+# file using this one as a template, or find another yaml where your component does not
+# conflict. The idea is to keep the number of testXXX.yaml configuration files to a minimum
+# in order to speed up compilation and tests
+
+uart:
+  port: "/dev/ttyDUMMY"
+  baud_rate: 9600

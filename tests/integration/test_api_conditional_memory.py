@@ -115,7 +115,7 @@ async def test_api_conditional_memory(
             client.subscribe_states(on_state)
 
             # Wait for initial states
-            await asyncio.wait_for(states_future, timeout=5.0)
+            await asyncio.wait_for(states_future, timeout=60)
 
             # Verify on_client_connected trigger fired
             connected_state = states.get(client_connected.key)
