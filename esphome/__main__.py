@@ -37,6 +37,7 @@ from esphome.const import (
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
+    PLATFORM_STM32,
     SECRETS_FILES,
 )
 from esphome.core import CORE, EsphomeError, coroutine
@@ -349,7 +350,7 @@ def upload_program(config, args, host):
             file = getattr(args, "file", None)
             return upload_using_esptool(config, host, file, args.upload_speed)
 
-        if CORE.target_platform in (PLATFORM_RP2040):
+        if CORE.target_platform in (PLATFORM_RP2040, PLATFORM_STM32):
             return upload_using_platformio(config, args.device)
 
         if CORE.is_libretiny:

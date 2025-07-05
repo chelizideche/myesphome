@@ -29,6 +29,10 @@
 #include <driver/uart.h>
 #endif  // USE_ESP_IDF
 
+#ifdef USE_STM32
+#include "esphome/components/uart/uart_component_stm32.h"
+#endif
+
 namespace esphome {
 
 namespace logger {
@@ -69,7 +73,7 @@ enum UARTSelection : uint8_t {
   UART_SELECTION_UART0 = 0,
 #endif
   UART_SELECTION_UART1,
-#if defined(USE_LIBRETINY) || defined(USE_ESP32_VARIANT_ESP32)
+#if defined(USE_LIBRETINY) || defined(USE_ESP32_VARIANT_ESP32) || defined(USE_STM32)
   UART_SELECTION_UART2,
 #endif
 #ifdef USE_LOGGER_USB_CDC
@@ -154,6 +158,10 @@ class Logger : public Component {
 #ifdef USE_STORE_LOG_STR_IN_FLASH
   void log_vprintf_(uint8_t level, const char *tag, int line, const __FlashStringHelper *format,
                     va_list args);  // NOLINT
+#endif
+
+#ifdef USE_STM32
+  void set_uart_parent(esphome::uart::UARTComponent *uart);
 #endif
 
  protected:
@@ -258,6 +266,9 @@ class Logger : public Component {
   uint8_t current_level_{ESPHOME_LOG_LEVEL_VERY_VERBOSE};
 #if defined(USE_ESP32) || defined(USE_ESP8266) || defined(USE_RP2040)
   UARTSelection uart_{UART_SELECTION_UART0};
+#endif
+#ifdef USE_STM32
+  esphome::uart::UARTComponent *hw_uart_;
 #endif
 #ifdef USE_LIBRETINY
   UARTSelection uart_{UART_SELECTION_DEFAULT};

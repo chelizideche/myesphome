@@ -27,6 +27,7 @@ from esphome.const import (
     CONF_TX_PIN,
     CONF_UART_ID,
     PLATFORM_HOST,
+    PLATFORM_STM32,
 )
 from esphome.core import CORE
 import esphome.final_validate as fv
@@ -40,6 +41,7 @@ IDFUARTComponent = uart_ns.class_("IDFUARTComponent", UARTComponent, cg.Componen
 ESP32ArduinoUARTComponent = uart_ns.class_(
     "ESP32ArduinoUARTComponent", UARTComponent, cg.Component
 )
+STM32UARTComponent = uart_ns.class_("STM32UARTComponent", UARTComponent, cg.Component)
 ESP8266UartComponent = uart_ns.class_(
     "ESP8266UartComponent", UARTComponent, cg.Component
 )
@@ -55,6 +57,7 @@ NATIVE_UART_CLASSES = (
     str(ESP8266UartComponent),
     str(RP2040UartComponent),
     str(LibreTinyUARTComponent),
+    str(STM32UARTComponent),
 )
 
 HOST_BAUD_RATES = [
@@ -157,6 +160,8 @@ def _uart_declare_type(value):
         return cv.declare_id(RP2040UartComponent)(value)
     if CORE.is_libretiny:
         return cv.declare_id(LibreTinyUARTComponent)(value)
+    if CORE.is_stm32:
+        return cv.declare_id(STM32UARTComponent)(value)
     if CORE.is_host:
         return cv.declare_id(HostUartComponent)(value)
     raise NotImplementedError
@@ -201,7 +206,29 @@ def maybe_empty_debug(value):
     return DEBUG_SCHEMA(value)
 
 
+STM32_PORTS = [
+    "USART1",
+    "USART2",
+    "USART3",
+    "USART4",
+    "UART1",
+    "UART2",
+    "UART3",
+    "UART4",
+    "UART5",
+    "UART6",
+    "UART7",
+    "UART8",
+    "UART9",
+    "UART10",
+]
+
+
 def validate_port(value):
+    if CORE.is_stm32:
+        if value not in STM32_PORTS:
+            raise cv.Invalid(f"Port must be one of {STM32_PORTS}")
+        return value
     if not re.match(r"^/(?:[^/]+/)[^/]+$", value):
         raise cv.Invalid("Port must be a valid device path")
     return value
@@ -239,7 +266,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_BAUD_RATE): cv.int_range(min=1),
             cv.Optional(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
-            cv.Optional(CONF_PORT): cv.All(validate_port, cv.only_on(PLATFORM_HOST)),
+            cv.Optional(CONF_PORT): cv.All(
+                validate_port, cv.only_on([PLATFORM_HOST, PLATFORM_STM32])
+            ),
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
@@ -298,6 +327,16 @@ async def to_code(config):
         cg.add(var.set_rx_pin(rx_pin))
     if CONF_PORT in config:
         cg.add(var.set_name(config[CONF_PORT]))
+        if CORE.is_stm32:
+            port = config[CONF_PORT]
+            cg.add(var.set_instance(cg.RawExpression(port)))
+            cg.add(
+                var.set_clock_initializer(
+                    cg.RawExpression(
+                        f"[]() -> void{{ __HAL_RCC_{port}_CLK_ENABLE(); }}"
+                    )
+                )
+            )
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
