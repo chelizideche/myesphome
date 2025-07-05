@@ -953,7 +953,7 @@ void LD2410S::process_ack_trigger_snr_read_(uint8_t *data) {
 }
 void LD2410S::process_data_energy_values_read_(uint8_t *data) {
   for (uint8_t i = 0; i < 16; i++) {
-    uint32_t val = encode_uint32(data[i * 4] + 0, data[i * 4 + 21], data[i * 4 + 2], data[i * 4 + 3]);
+    uint32_t val = encode_uint32(data[i * 4 + 3], data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
     this->energy_values_[i] =
         (this->energy_values_[i] * 16 * this->energy_values_count_ + val) / (this->energy_values_count_ + 1) / 16;
     this->energy_values_count_++;
@@ -1023,7 +1023,7 @@ std::string LD2410S::format_int_(uint32_t *in, uint8_t len, uint8_t min_w) {
 
 void LD2410S::four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len) {
   for (uint8_t i = 0; i < out_len; i++) {
-    out[i] = encode_uint32(in[i * 4] + 0, in[i * 4 + 1], in[i * 4 + 2], in[i * 4 + 3]);
+    out[i] = encode_uint32(in[i * 4 + 3], in[i * 4 + 2], in[i * 4 + 1], in[i * 4 + 0]);
   }
 }
 
