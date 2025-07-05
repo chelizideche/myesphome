@@ -93,6 +93,8 @@ class DeepSleepComponent : public Component {
 
   void setup() override;
   void dump_config() override;
+  void loop() override;
+  float get_loop_priority() const override;
   float get_setup_priority() const override;
 
   /// Helper to enter deep sleep mode
@@ -122,16 +124,9 @@ class DeepSleepComponent : public Component {
   optional<bool> touch_wakeup_;
   optional<WakeupCauseToRunDuration> wakeup_cause_to_run_duration_;
 #endif
-  enum SleepState : uint8_t {
-    SLEEP_STATE_IDLE,
-    SLEEP_STATE_BLOCKED_BY_PREVENT,
-    SLEEP_STATE_BLOCKED_BY_WAKEUP_PIN,
-    SLEEP_STATE_ENTERING_SLEEP,
-  };
-
   optional<uint32_t> run_duration_;
+  bool next_enter_deep_sleep_{false};
   bool prevent_{false};
-  SleepState sleep_state_{SLEEP_STATE_IDLE};
 };
 
 extern bool global_has_deep_sleep;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

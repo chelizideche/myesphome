@@ -36,27 +36,26 @@ void DeepSleepComponent::dump_config() {
   this->dump_config_platform_();
 }
 
+void DeepSleepComponent::loop() {
+  if (this->next_enter_deep_sleep_)
+    this->begin_sleep();
+}
+
+float DeepSleepComponent::get_loop_priority() const {
+  return -100.0f;  // run after everything else is ready
+}
+
 void DeepSleepComponent::set_sleep_duration(uint32_t time_ms) { this->sleep_duration_ = uint64_t(time_ms) * 1000; }
 
 void DeepSleepComponent::set_run_duration(uint32_t time_ms) { this->run_duration_ = time_ms; }
 
 void DeepSleepComponent::begin_sleep(bool manual) {
-  if (this->sleep_state_ == SLEEP_STATE_ENTERING_SLEEP) {
-    // Already entering sleep, avoid re-entrance
-    return;
-  }
-
   if (this->prevent_ && !manual) {
-    // Sleep was prevented
-    this->sleep_state_ = SLEEP_STATE_BLOCKED_BY_PREVENT;
-    ESP_LOGD(TAG, "Deep sleep blocked by prevent flag");
+    this->next_enter_deep_sleep_ = true;
     return;
   }
-
-  this->sleep_state_ = SLEEP_STATE_ENTERING_SLEEP;
 
   if (!this->prepare_to_sleep_()) {
-    // prepare_to_sleep_ will set appropriate blocked state
     return;
   }
 
@@ -77,17 +76,7 @@ float DeepSleepComponent::get_setup_priority() const { return setup_priority::LA
 
 void DeepSleepComponent::prevent_deep_sleep() { this->prevent_ = true; }
 
-void DeepSleepComponent::allow_deep_sleep() {
-  this->prevent_ = false;
-  // If sleep was blocked by prevent flag, try to sleep now
-  if (this->sleep_state_ == SLEEP_STATE_BLOCKED_BY_PREVENT) {
-    ESP_LOGD(TAG, "Deep sleep allowed, executing deferred sleep");
-    this->sleep_state_ = SLEEP_STATE_IDLE;
-    // Schedule sleep for next loop iteration to avoid potential issues
-    // with calling begin_sleep during another component's execution
-    this->defer([this]() { this->begin_sleep(false); });  // false = automatic sleep (respects prevent flag)
-  }
-}
+void DeepSleepComponent::allow_deep_sleep() { this->prevent_ = false; }
 
 }  // namespace deep_sleep
 }  // namespace esphome
