@@ -68,13 +68,14 @@ void DisplayMenuComponent::left() {
           case MENU_MODE_JOYSTICK:
             if (this->editing_ || this->get_selected_item_()->get_immediate_edit())
               changed = this->get_selected_item_()->select_prev();
-            if (this->displayed_item_->get_parent() == nullptr) this->hide();
+            if (this->displayed_item_->get_parent() == nullptr) 
+              this->hide();
             break;
           default:
             break;
         }
         break;
-      case MENU_ITEM_MENU:   
+      case MENU_ITEM_MENU:
       case MENU_ITEM_LABEL:
       case MENU_ITEM_BACK:
         changed = this->leave_menu_();
@@ -303,10 +304,10 @@ bool DisplayMenuComponent::leave_menu_() {
     this->displayed_item_->on_enter();
     changed = true;
   } else {
-    this->hide(); 
+    this->hide();
     changed = true;
-  }   
-  
+  }
+
   return changed;
 }
 
