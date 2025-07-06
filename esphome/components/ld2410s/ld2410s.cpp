@@ -10,11 +10,11 @@ static const char *const TAG = "ld2410s";
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
 static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
 
-static const uint32_t STD_DATA_FRAME_HEADER = 0xF1F2F3F4;
-static const uint32_t STD_DATA_FRAME_FOOTER = 0xF5F6F7F8;
+static const uint32_t STD_DATA_FRAME_HEADER = 0xF4F3F2F1;  // 0xF1F2F3F4;
+static const uint32_t STD_DATA_FRAME_FOOTER = 0xF8F7F6F5;  // 0xF5F6F7F8;
 
-static const uint32_t CMD_FRAME_HEADER = 0xFAFBFCFD;
-static const uint32_t CMD_FRAME_FOOTER = 0x01020304;
+static const uint32_t CMD_FRAME_HEADER = 0xFDFCFBFA;  // 0xFAFBFCFD;
+static const uint32_t CMD_FRAME_FOOTER = 0x04030201;  // 0x01020304;
 
 static const uint16_t CONFIG_MODE_START_CMD = 0x00FF;
 static const uint16_t CONFIG_MODE_START_REPLY = 0x01FF;
