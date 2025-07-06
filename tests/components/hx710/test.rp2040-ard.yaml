@@ -1,0 +1,8 @@
+sensor:
+  - platform: hx710
+    name: HX710 Value
+    dout_pin: 4
+    clk_pin: 5
+    mode: 1
+    reference_voltage: 3.3V
+    update_interval: 15s
