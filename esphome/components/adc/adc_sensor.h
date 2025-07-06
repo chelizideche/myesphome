@@ -193,7 +193,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   bool calibration_complete_{false};
   static adc_oneshot_unit_handle_t shared_adc1_handle;
   static adc_oneshot_unit_handle_t shared_adc2_handle;
-  esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
 #endif  // USE_ESP32
 
 #ifdef USE_RP2040
