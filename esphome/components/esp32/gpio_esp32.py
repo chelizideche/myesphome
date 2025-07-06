@@ -2,13 +2,16 @@ import logging
 
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_BOARD,
     CONF_INPUT,
     CONF_MODE,
     CONF_NUMBER,
     CONF_OUTPUT,
     CONF_PULLDOWN,
     CONF_PULLUP,
+    PLATFORM_ESP32,
 )
+from esphome.core import CORE
 from esphome.pins import check_strapping_pin
 
 _ESP_SDIO_PINS = {
@@ -18,14 +21,33 @@ _ESP_SDIO_PINS = {
     11: "Flash Command",
 }
 
+_BOARD_GPIO_PIN_VALIDATION_OVERRIDES = {
+    "adafruit_feather_esp32_v2": [7, 8],
+    "adafruit_qtpy_esp32": [7, 8],
+    "ESP32-Pico-V3-02": [7, 8],
+}
+
 _ESP32_STRAPPING_PINS = {0, 2, 5, 12, 15}
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_board_value():
+    if PLATFORM_ESP32 not in CORE.data:
+        return None
+
+    return CORE.data[PLATFORM_ESP32].get(CONF_BOARD)
+
+
 def esp32_validate_gpio_pin(value):
+    board_value = _get_board_value()
+
     if value < 0 or value > 39:
         raise cv.Invalid(f"Invalid pin number: {value} (must be 0-39)")
-    if value in _ESP_SDIO_PINS:
+    if value in _ESP_SDIO_PINS and not (
+        board_value is not None
+        and board_value in _BOARD_GPIO_PIN_VALIDATION_OVERRIDES
+        and value in _BOARD_GPIO_PIN_VALIDATION_OVERRIDES[board_value]
+    ):
         raise cv.Invalid(
             f"This pin cannot be used on ESP32s and is already used by the flash interface (function: {_ESP_SDIO_PINS[value]})"
         )
