@@ -16,7 +16,7 @@ void Nextion::setup() {
   // Wake up the nextion and ensure clean communication state
   this->send_command_("sleep=0");  // Exit sleep mode if sleeping
   this->send_command_("bkcmd=0");  // Disable return data during init sequence
-  
+
   // Reset device for clean state - critical for reliable communication
   this->send_command_("rest");
 
