@@ -216,10 +216,13 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
 
   int bufsize;
-  int chunk_len = this->content_length;
+  size_t chunk_length = this->content_length;
   if (esp_http_client_is_chunked_response(this->client_)) {
-    esp_http_client_get_chunk_length(this->client_, &chunk_len);
-    bufsize = std::min(max_len, chunk_len - this->chunk_bytes_read_);
+    int signed_chunk_length;
+    esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
+    chunk_length = (size_t) signed_chunk_length;
+
+    bufsize = std::min(max_len, chunk_length - this->chunk_bytes_read_);
   } else {
     bufsize = std::min(max_len, this->content_length - this->bytes_read_);
   }
@@ -234,7 +237,7 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   this->feed_wdt();
   this->bytes_read_ += read_len;
   this->chunk_bytes_read_ += read_len;
-  if (this->chunk_bytes_read_ >= chunk_len) {
+  if (this->chunk_bytes_read_ >= chunk_length) {
     this->chunk_bytes_read_ = 0;
   }
 
