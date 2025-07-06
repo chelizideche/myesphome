@@ -745,7 +745,7 @@ void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
         listener->on_distance(distance);
       }
 
-      this->process_data_energy_values_read_(&data[6]);
+      // this->process_data_energy_values_read_(&data[6]);
       break;
     }
 
