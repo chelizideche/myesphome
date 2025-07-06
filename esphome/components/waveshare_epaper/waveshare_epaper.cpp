@@ -2185,6 +2185,282 @@ void GDEW029T5::dump_config() {
 }
 
 // ========================================================
+//     Good Display 2.13in black/white
+// Datasheet:
+//  - https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_213_T5D.cpp
+//  - https://www.good-display.com/public/html/pdfjs/viewer/viewernew.html?file=https://v4.cecdn.yun300.cn/100001_1909185148/GDEW0213T5D.pdf
+//  - https://www.good-display.com/product/229.html
+// ========================================================
+
+// full screen update LUT
+static const uint8_t LUT_20_VCOMDC_213_5[] = {
+    0x00, 0x08, 0x00, 0x00, 0x00, 0x02, 0x60, 0x28, 0x28, 0x00, 0x00, 0x01, 0x00, 0x14, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x12, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_21_WW_213_5[] = {
+    0x40, 0x08, 0x00, 0x00, 0x00, 0x02, 0x90, 0x28, 0x28, 0x00, 0x00, 0x01, 0x40, 0x14,
+    0x00, 0x00, 0x00, 0x01, 0xA0, 0x12, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_22_BW_213_5[] = {
+    0x40, 0x08, 0x00, 0x00, 0x00, 0x02, 0x90, 0x28, 0x28, 0x00, 0x00, 0x01, 0x40, 0x14,
+    0x00, 0x00, 0x00, 0x01, 0xA0, 0x12, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_23_WB_213_5[] = {
+    0x80, 0x08, 0x00, 0x00, 0x00, 0x02, 0x90, 0x28, 0x28, 0x00, 0x00, 0x01, 0x80, 0x14,
+    0x00, 0x00, 0x00, 0x01, 0x50, 0x12, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_24_BB_213_5[] = {
+    0x80, 0x08, 0x00, 0x00, 0x00, 0x02, 0x90, 0x28, 0x28, 0x00, 0x00, 0x01, 0x80, 0x14,
+    0x00, 0x00, 0x00, 0x01, 0x50, 0x12, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+// partial screen update LUT
+static const uint8_t LUT_20_VCOMDC_PARTIAL_213_5[] = {
+    0x00, 0x20, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_21_WW_PARTIAL_213_5[] = {
+    0x00, 0x20, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_22_BW_PARTIAL_213_5[] = {
+    0x80, 0x20, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_23_WB_PARTIAL_213_5[] = {
+    0x40, 0x20, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_24_BB_PARTIAL_213_5[] = {
+    0x00, 0x20, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+void GDEW0213T5D::power_on_() {
+  if (!this->power_is_on_) {
+    this->command(0x04);
+    this->wait_until_idle_();
+  }
+  this->power_is_on_ = true;
+}
+
+void GDEW0213T5D::power_off_() {
+  this->command(0x02);
+  this->wait_until_idle_();
+  this->power_is_on_ = false;
+}
+
+void GDEW0213T5D::deep_sleep() {
+  this->power_off_();
+  if (this->deep_sleep_between_updates_) {
+    this->command(0x07);  // deep sleep
+    this->data(0xA5);     // check code
+    ESP_LOGD(TAG, "go to deep sleep");
+    this->is_deep_sleep_ = true;
+  }
+}
+
+void GDEW0213T5D::init_display_() {
+  // from https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_213_T5D.cpp
+
+  // Hardware Initialization
+  if (this->deep_sleep_between_updates_ && this->is_deep_sleep_) {
+    ESP_LOGI(TAG, "wake up from deep sleep");
+    this->reset_();
+    this->is_deep_sleep_ = false;
+  }
+
+  // COMMAND POWER SETTINGS
+  this->command(0x01);
+  this->data(0x03);
+  this->data(0x00);
+  this->data(0x2b);
+  this->data(0x2b);
+  this->data(0x03); /* for b/w */
+
+  // COMMAND BOOSTER SOFT START
+  this->command(0x06);
+  this->data(0x17);
+  this->data(0x17);
+  this->data(0x17);
+
+  this->power_on_();
+
+  // COMMAND PANEL SETTING
+  this->command(0x00);
+  // 128x296 resolution:        10
+  // LUT from register:         1
+  // B/W mode (doesn't work):   1
+  // scan-up:                   1
+  // shift-right:               1
+  // booster ON:                1
+  // no soft reset:             1
+  this->data(0b10111111);
+  this->data(0x0d);     // VCOM to 0V fast
+  this->command(0x30);  // PLL setting
+  this->data(0x3a);     // 3a 100HZ   29 150Hz 39 200HZ 31 171HZ
+  this->command(0x61);  // resolution setting
+  this->data(this->get_width_internal());
+  this->data(this->get_height_internal() >> 8);
+  this->data(this->get_height_internal() & 0xFF);
+
+  ESP_LOGD(TAG, "panel setting done");
+}
+
+void GDEW0213T5D::initialize() {
+  if (this->reset_pin_ != nullptr)
+    this->deep_sleep_between_updates_ = true;
+
+  // old buffer for partial update
+  RAMAllocator<uint8_t> allocator;
+  this->old_buffer_ = allocator.allocate(this->get_buffer_length_());
+  if (this->old_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Could not allocate old buffer for display!");
+    return;
+  }
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->old_buffer_[i] = 0xFF;
+  }
+}
+
+// initialize for full(normal) update
+void GDEW0213T5D::init_full_() {
+  this->init_display_();
+  this->command(0x82);  // vcom_DC setting
+  this->data(0x08);
+  this->command(0x50);  // VCOM AND DATA INTERVAL SETTING
+  this->data(0x97);     // WBmode:VBDF 17|D7 VBDW 97 VBDB 57   WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+  this->command(0x20);
+  this->write_lut_(LUT_20_VCOMDC_213_5, sizeof(LUT_20_VCOMDC_213_5));
+  this->command(0x21);
+  this->write_lut_(LUT_21_WW_213_5, sizeof(LUT_21_WW_213_5));
+  this->command(0x22);
+  this->write_lut_(LUT_22_BW_213_5, sizeof(LUT_22_BW_213_5));
+  this->command(0x23);
+  this->write_lut_(LUT_23_WB_213_5, sizeof(LUT_23_WB_213_5));
+  this->command(0x24);
+  this->write_lut_(LUT_24_BB_213_5, sizeof(LUT_24_BB_213_5));
+  ESP_LOGD(TAG, "initialized full update");
+}
+
+// initialzie for partial update
+void GDEW0213T5D::init_partial_() {
+  this->init_display_();
+  this->command(0x82);  // vcom_DC setting
+  this->data(0x08);
+  this->command(0x50);  // VCOM AND DATA INTERVAL SETTING
+  this->data(0x17);     // WBmode:VBDF 17|D7 VBDW 97 VBDB 57   WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+  this->command(0x20);
+  this->write_lut_(LUT_20_VCOMDC_PARTIAL_213_5, sizeof(LUT_20_VCOMDC_PARTIAL_213_5));
+  this->command(0x21);
+  this->write_lut_(LUT_21_WW_PARTIAL_213_5, sizeof(LUT_21_WW_PARTIAL_213_5));
+  this->command(0x22);
+  this->write_lut_(LUT_22_BW_PARTIAL_213_5, sizeof(LUT_22_BW_PARTIAL_213_5));
+  this->command(0x23);
+  this->write_lut_(LUT_23_WB_PARTIAL_213_5, sizeof(LUT_23_WB_PARTIAL_213_5));
+  this->command(0x24);
+  this->write_lut_(LUT_24_BB_PARTIAL_213_5, sizeof(LUT_24_BB_PARTIAL_213_5));
+  ESP_LOGD(TAG, "initialized partial update");
+}
+
+void HOT GDEW0213T5D::display() {
+  bool full_update = this->at_update_ == 0;
+  if (full_update) {
+    this->init_full_();
+  } else {
+    this->init_partial_();
+    this->command(0x91);  // partial in
+    // set partial window
+    this->command(0x90);
+    // this->data(0);
+    this->data(0);
+    // this->data(0);
+    this->data((this->get_width_internal() - 1) % 256);
+    this->data(0);
+    this->data(0);
+    this->data(((this->get_height_internal() - 1)) / 256);
+    this->data(((this->get_height_internal() - 1)) % 256);
+    this->data(0x01);
+  }
+  // input old buffer data
+  this->command(0x10);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->old_buffer_[i]);
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DATA START TRANSMISSION 2 (B/W only)
+  this->command(0x13);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->buffer_[i]);
+    this->old_buffer_[i] = this->buffer_[i];
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DISPLAY REFRESH
+  this->command(0x12);
+  delay(2);
+  this->wait_until_idle_();
+
+  if (full_update) {
+    ESP_LOGD(TAG, "full update done");
+  } else {
+    this->command(0x92);  // partial out
+    ESP_LOGD(TAG, "partial update done");
+  }
+
+  this->at_update_ = (this->at_update_ + 1) % this->full_update_every_;
+  // COMMAND deep sleep
+  this->deep_sleep();
+}
+
+void GDEW0213T5D::write_lut_(const uint8_t *lut, const uint8_t size) {
+  // COMMAND WRITE LUT REGISTER
+  this->start_data_();
+  for (uint8_t i = 0; i < size; i++)
+    this->write_byte(lut[i]);
+  this->end_data_();
+}
+
+void GDEW0213T5D::set_full_update_every(uint32_t full_update_every) { this->full_update_every_ = full_update_every; }
+
+int GDEW0213T5D::get_width_internal() { return 104; }
+int GDEW0213T5D::get_height_internal() { return 212; }
+void GDEW0213T5D::dump_config() {
+  LOG_DISPLAY("", "Waveshare E-Paper (Good Display)", this);
+  ESP_LOGCONFIG(TAG, "  Model: 2.13in Greyscale GDEW0213T5D");
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  ESP_LOGCONFIG(TAG, "  Full Update Every: %" PRIu32, this->full_update_every_);
+  LOG_UPDATE_INTERVAL(this);
+}
+
+// ========================================================
 //     Good Display 1.54in black/white/grey GDEW0154M09
 // As used in M5Stack Core Ink
 // Datasheet:
