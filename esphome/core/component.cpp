@@ -31,18 +31,12 @@ static const char *const TAG = "component";
 // This is safe because ESPHome is single-threaded during initialization
 namespace {
 // Error messages for failed components
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> component_error_messages;
 // Setup priority overrides - freed after setup completes
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 std::unique_ptr<std::vector<std::pair<const Component *, float>>> setup_priority_overrides;
 }  // namespace
-
-static std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> &get_component_error_messages() {
-  return component_error_messages;
-}
-
-static std::unique_ptr<std::vector<std::pair<const Component *, float>>> &get_setup_priority_overrides() {
-  return setup_priority_overrides;
-}
 
 namespace setup_priority {
 
@@ -136,8 +130,8 @@ void Component::call_dump_config() {
   if (this->is_failed()) {
     // Look up error message from global vector
     const char *error_msg = "unspecified";
-    if (get_component_error_messages()) {
-      for (const auto &pair : *get_component_error_messages()) {
+    if (component_error_messages) {
+      for (const auto &pair : *component_error_messages) {
         if (pair.first == this) {
           error_msg = pair.second;
           break;
@@ -291,18 +285,18 @@ void Component::status_set_error(const char *message) {
   ESP_LOGE(TAG, "Component %s set Error flag: %s", this->get_component_source(), message);
   if (strcmp(message, "unspecified") != 0) {
     // Lazy allocate the error messages vector if needed
-    if (!get_component_error_messages()) {
-      get_component_error_messages() = std::make_unique<std::vector<std::pair<const Component *, const char *>>>();
+    if (!component_error_messages) {
+      component_error_messages = std::make_unique<std::vector<std::pair<const Component *, const char *>>>();
     }
     // Check if this component already has an error message
-    for (auto &pair : *get_component_error_messages()) {
+    for (auto &pair : *component_error_messages) {
       if (pair.first == this) {
         pair.second = message;
         return;
       }
     }
     // Add new error message
-    get_component_error_messages()->emplace_back(this, message);
+    component_error_messages->emplace_back(this, message);
   }
 }
 void Component::status_clear_warning() {
@@ -328,9 +322,9 @@ void Component::status_momentary_error(const std::string &name, uint32_t length)
 void Component::dump_config() {}
 float Component::get_actual_setup_priority() const {
   // Check if there's an override in the global vector
-  if (get_setup_priority_overrides()) {
+  if (setup_priority_overrides) {
     // Linear search is fine for small n (typically < 5 overrides)
-    for (const auto &pair : *get_setup_priority_overrides()) {
+    for (const auto &pair : *setup_priority_overrides) {
       if (pair.first == this) {
         return pair.second;
       }
@@ -340,14 +334,14 @@ float Component::get_actual_setup_priority() const {
 }
 void Component::set_setup_priority(float priority) {
   // Lazy allocate the vector if needed
-  if (!get_setup_priority_overrides()) {
-    get_setup_priority_overrides() = std::make_unique<std::vector<std::pair<const Component *, float>>>();
+  if (!setup_priority_overrides) {
+    setup_priority_overrides = std::make_unique<std::vector<std::pair<const Component *, float>>>();
     // Reserve some space to avoid reallocations (most configs have < 10 overrides)
-    get_setup_priority_overrides()->reserve(10);
+    setup_priority_overrides->reserve(10);
   }
 
   // Check if this component already has an override
-  for (auto &pair : *get_setup_priority_overrides()) {
+  for (auto &pair : *setup_priority_overrides) {
     if (pair.first == this) {
       pair.second = priority;
       return;
@@ -355,7 +349,7 @@ void Component::set_setup_priority(float priority) {
   }
 
   // Add new override
-  get_setup_priority_overrides()->emplace_back(this, priority);
+  setup_priority_overrides->emplace_back(this, priority);
 }
 
 bool Component::has_overridden_loop() const {
@@ -420,7 +414,7 @@ WarnIfComponentBlockingGuard::~WarnIfComponentBlockingGuard() {}
 
 void clear_setup_priority_overrides() {
   // Free the setup priority map completely
-  get_setup_priority_overrides().reset();
+  setup_priority_overrides.reset();
 }
 
 }  // namespace esphome
