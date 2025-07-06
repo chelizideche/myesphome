@@ -143,7 +143,8 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
       // Cancel existing items
       this->cancel_item_locked_(component, name_cstr, type);
     }
-    // Add new item directly to to_add_ (not using push_ to avoid double-locking)
+    // Add new item directly to to_add_
+    // since we have the lock held
     this->to_add_.push_back(std::move(item));
   }
 }
@@ -354,6 +355,8 @@ void HOT Scheduler::call() {
 
       if (item->type == SchedulerItem::INTERVAL) {
         item->next_execution_ = now + item->interval;
+        // Add new item directly to to_add_
+        // since we have the lock held
         this->to_add_.push_back(std::move(item));
       }
     }
