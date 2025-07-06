@@ -33,7 +33,7 @@ namespace adc {
 #ifndef ADC1_CHANNEL_MAX
 #ifdef ADC_CHANNEL_MAX
 #define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
-#else  // ADC_CHANNEL_MAX
+#else   // ADC_CHANNEL_MAX
 constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
 #endif  // ADC_CHANNEL_MAX
 #endif  // ADC1_CHANNEL_MAX
@@ -54,7 +54,7 @@ constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
 #ifndef ADC2_CHANNEL_MAX
 #ifdef ADC_CHANNEL_MAX
 #define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
-#else  // ADC_CHANNEL_MAX
+#else   // ADC_CHANNEL_MAX
 constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
 #endif  // ADC_CHANNEL_MAX
 #endif  // ADC2_CHANNEL_MAX
