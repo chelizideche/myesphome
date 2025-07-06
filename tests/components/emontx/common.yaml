@@ -1,0 +1,39 @@
+wifi:
+  ssid: MySSID
+  password: password1
+
+uart:
+  - id: uart_emontx
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+    baud_rate: 115200
+
+button:
+  - platform: template
+    name: Poller component suspend test
+    on_press:
+      - component.suspend: test_emontx
+      - delay: 20s
+      - component.update: test_emontx
+      - delay: 20s
+      - component.resume: test_emontx
+      - delay: 20s
+      - component.resume:
+          id: test_emontx
+          update_interval: 2s
+      - delay: 20s
+      - component.resume:
+          id: test_emontx
+          update_interval: !lambda return 2500;
+
+# EmonTx without EmonCMS configuration
+emontx:
+  id: test_emontx
+  update_interval: 60s
+
+sensor:
+  - platform: emontx
+    name: Power
+    tag_name: P1
+    emontx_id: test_emontx
+    unit_of_measurement: W
