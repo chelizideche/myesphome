@@ -149,8 +149,8 @@ class Scheduler {
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
   // Helper function to check if item matches criteria for cancellation
-  bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
-                         SchedulerItem::Type type) {
+  inline bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
+                                SchedulerItem::Type type) {
     if (item->component != component || item->type != type || item->remove) {
       return false;
     }
