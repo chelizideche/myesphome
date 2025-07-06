@@ -10,11 +10,11 @@ static const char *const TAG = "ld2410s";
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
 static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
 
-static const uint32_t STD_DATA_FRAME_HEADER = 0xF4F3F2F1;  // 0xF1F2F3F4;
-static const uint32_t STD_DATA_FRAME_FOOTER = 0xF8F7F6F5;  // 0xF5F6F7F8;
+static const uint32_t STD_DATA_FRAME_HEADER = 0xF1F2F3F4;  // 0xF4F3F2F1 - 0xF1F2F3F4
+static const uint32_t STD_DATA_FRAME_FOOTER = 0xF5F6F7F8;  // 0xF5F6F7F8 - 0xF8F7F6F5
 
-static const uint32_t CMD_FRAME_HEADER = 0xFDFCFBFA;  // 0xFAFBFCFD;
-static const uint32_t CMD_FRAME_FOOTER = 0x04030201;  // 0x01020304;
+static const uint32_t CMD_FRAME_HEADER = 0xFAFBFCFD;  // 0xFAFBFCFD - 0xFDFCFBFA
+static const uint32_t CMD_FRAME_FOOTER = 0x01020304;  // 0x01020304 - 0x04030201
 
 static const uint16_t CONFIG_MODE_START_CMD = 0x00FF;
 static const uint16_t CONFIG_MODE_START_REPLY = 0x01FF;
@@ -589,40 +589,45 @@ void LD2410S::receive_() {
     this->rcv_buffer_[this->rcv_end_pos_] = this->read();
 
     PackageType type = this->get_frame_type_(this->rcv_buffer_, this->rcv_end_pos_);
-    if (type != PackageType::UNKNOWN) {
-      size_t start_pos = this->get_frame_start_(this->rcv_buffer_, this->rcv_end_pos_, type);
+    // PackageType based on frame footer.
 
-      if (start_pos != this->rcv_end_pos_) {
-        size_t data_size = this->get_data_size_(this->rcv_buffer_, this->rcv_end_pos_, type, start_pos);
+    size_t start_pos = this->get_frame_start_(this->rcv_buffer_, this->rcv_end_pos_, type);
+    // Frame start position based on frame header search, starting from the frame end.
 
-        if (data_size != 0) {
-          this->hex_diag_("<", &this->rcv_buffer_[0], this->rcv_end_pos_ + 1 - start_pos);
+    size_t payload_size = this->get_payload_size_(this->rcv_buffer_, this->rcv_end_pos_, type, start_pos);
+    // Payload size = frame size - header - footer
 
-          switch (type) {
-            case PackageType::SHORT_DATA_FRAME:
-              this->process_short_data_frame_(&this->rcv_buffer_[start_pos + 1]);
-              break;
-            // case PackageType::STD_DATA_FRAME:
-            //   this->process_data_frame_(&this->rcv_buffer_[start_pos + 6], data_size);
-            //   break;
-            case PackageType::CMD_FRAME:
-              this->process_cmd_frame_(this->rcv_buffer_, this->rcv_end_pos_ + 1);
-              this->cmd_buffer_finished_();
-              break;
-            case PackageType::BAD_SIZE:
-              this->hex_diag_("Received BAD sized package <", &this->rcv_buffer_[0],
-                              this->rcv_end_pos_ + 1 - start_pos);
-              break;
-            default:
-              this->hex_diag_("Received Unknown Package <", &this->rcv_buffer_[0], this->rcv_end_pos_ + 1 - start_pos);
-              break;
-          }
-        }
+    if (type != PackageType::UNKNOWN && start_pos != this->rcv_end_pos_ && payload_size > 0) {
+      this->hex_diag_("<", &this->rcv_buffer_[0], this->rcv_end_pos_ + 1 - start_pos);
+
+      switch (type) {
+        case PackageType::SHORT_DATA_FRAME:
+          this->process_short_data_frame_(&this->rcv_buffer_[start_pos + 1]);
+          break;
+
+        case PackageType::STD_DATA_FRAME:
+          this->process_data_frame_(&this->rcv_buffer_[start_pos + 6], payload_size - 2);
+          break;
+
+        case PackageType::CMD_FRAME:
+          this->process_cmd_frame_(this->rcv_buffer_, this->rcv_end_pos_ + 1);
+          this->cmd_buffer_finished_();
+          break;
+
+        case PackageType::BAD_SIZE:
+          ESP_LOGE(TAG, "Received BAD sized package!!!");
+          break;
+
+        default:
+          ESP_LOGE(TAG, "Received Unknown package!!!");
+          break;
       }
 
       this->rcv_end_pos_ = 0;
+
     } else {
       this->rcv_end_pos_++;
+
       if (this->rcv_end_pos_ >= RCV_BUFFER_SIZE - 1) {
         this->rcv_end_pos_ = 0;
       }
@@ -633,10 +638,10 @@ PackageType LD2410S::get_frame_type_(uint8_t *buffer, size_t end_pos) {
   if (end_pos < 4) {
     return PackageType::UNKNOWN;
   }
-  if (buffer[end_pos] == SHORT_DATA_FRAME_FOOTER) {
+  if (buffer[end_pos] == SHORT_DATA_FRAME_FOOTER && buffer[end_pos - 4] == SHORT_DATA_FRAME_HEADER) {
     return PackageType::SHORT_DATA_FRAME;
   }
-  if (end_pos < 10) {
+  if (end_pos < 12) {
     return PackageType::UNKNOWN;
   }
   if (memcmp(&buffer[end_pos - 3], &STD_DATA_FRAME_FOOTER, sizeof(STD_DATA_FRAME_FOOTER)) == 0) {
@@ -648,6 +653,10 @@ PackageType LD2410S::get_frame_type_(uint8_t *buffer, size_t end_pos) {
   return PackageType::UNKNOWN;
 }
 size_t LD2410S::get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type) {
+  if (type == PackageType::UNKNOWN) {
+    return end_pos;
+  }
+
   size_t min_length = 0;
   uint32_t header_frame = 0;
   int header_frame_len = 0;
@@ -688,27 +697,31 @@ size_t LD2410S::get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType ty
 
   return end_pos;
 }
-size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos) {
-  size_t data_size = 0;
+size_t LD2410S::get_payload_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos) {
+  if (type == PackageType::UNKNOWN || end_pos == start_pos) {
+    return 0;
+  }
+
+  size_t payload_size = 0;
   size_t expected_full_frame_size = 0;
 
   switch (type) {
     case PackageType::SHORT_DATA_FRAME:
-      data_size = 3;
-      expected_full_frame_size = 1 + data_size + 1;
+      payload_size = 3;
+      expected_full_frame_size = 1 + payload_size + 1;
       break;
 
     case PackageType::STD_DATA_FRAME:
     case PackageType::CMD_FRAME:
-      data_size = this->read_int_(buffer, start_pos + 4, 2);
-      expected_full_frame_size = 4 + 2 + data_size + 4;
+      payload_size = this->read_int_(buffer, start_pos + 4, 2);
+      expected_full_frame_size = 4 + 2 + payload_size + 4;
       break;
 
     default:
       break;
   }
 
-  if (data_size == 0) {
+  if (payload_size == 0) {
     return 0;
   }
 
@@ -716,7 +729,7 @@ size_t LD2410S::get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type
     return 0;
   }
 
-  return data_size;
+  return payload_size;
 }
 
 void LD2410S::process_short_data_frame_(uint8_t *data) {

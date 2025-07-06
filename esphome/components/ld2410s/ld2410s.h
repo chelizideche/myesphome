@@ -194,7 +194,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void receive_();
   PackageType get_frame_type_(uint8_t *buffer, size_t pos);
   size_t get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type);
-  size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
+  size_t get_payload_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
 
   void process_short_data_frame_(uint8_t *data);
   void process_data_frame_(uint8_t *data, size_t data_size);
