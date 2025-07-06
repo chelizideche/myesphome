@@ -955,8 +955,6 @@ void LD2410S::process_data_energy_values_read_(uint8_t *data) {
     }
     this->energy_values_count_++;
   }
-
-  this->update_ts_energy_values_();
 }
 
 void LD2410S::update_ts_thresholds_() {
