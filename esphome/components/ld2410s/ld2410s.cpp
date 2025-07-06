@@ -969,13 +969,13 @@ void LD2410S::update_ts_snrs_() {
 void LD2410S::update_ts_energy_values_() {
   std::string vals = this->format_int_(this->energy_values_, 16, 3);
 
-  if (energy_values_str_ != vals) {
-    for (auto &listener : this->listeners_) {
-      listener->on_energy_values_ts(vals);
-    }
-
-    energy_values_str_ = vals;
+  // if (energy_values_str_ != vals) {
+  for (auto &listener : this->listeners_) {
+    listener->on_energy_values_ts(vals);
   }
+
+  energy_values_str_ = vals;
+  // }
 
   ESP_LOGD(TAG, "Energy Values: %s", vals.c_str());
 }
