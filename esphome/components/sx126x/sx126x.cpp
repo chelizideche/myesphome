@@ -30,17 +30,6 @@ static constexpr uint8_t OCP_140MA = 0x38;  // 140 mA max current
 // LoRa low data rate optimization threshold
 static constexpr float LOW_DATA_RATE_OPTIMIZE_THRESHOLD = 16.38f;  // 16.38 ms
 
-uint8_t SX126x::wakeup_() {
-  this->wait_busy_();
-  this->enable();
-  this->transfer_byte(RADIO_GET_STATUS);
-  uint8_t status = this->transfer_byte(0x00);
-  this->disable();
-  delayMicroseconds(SWITCHING_DELAY_US);
-  this->wait_busy_();
-  return status;
-}
-
 uint8_t SX126x::read_fifo_(uint8_t offset, std::vector<uint8_t> &packet) {
   this->wait_busy_();
   this->enable();
@@ -142,7 +131,7 @@ void SX126x::configure() {
   delayMicroseconds(RESET_DELAY_HIGH_US);
 
   // wakeup
-  this->wakeup_();
+  this->read_opcode_(RADIO_GET_STATUS, nullptr, 0);
 
   // config tcxo
   if (this->tcxo_voltage_ != TCXO_CTRL_NONE) {
