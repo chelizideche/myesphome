@@ -490,7 +490,7 @@ std::string base64_encode(const uint8_t *buf, size_t buf_len) {
       char_array_4[3] = char_array_3[2] & 0x3f;
 
       for (i = 0; (i < 4); i++)
-        ret += BASE64_CHARS[char_array_4[i]];
+        ret += BASE64_CHARS[static_cast<uint8_t>(char_array_4[i])];
       i = 0;
     }
   }
@@ -505,7 +505,7 @@ std::string base64_encode(const uint8_t *buf, size_t buf_len) {
     char_array_4[3] = char_array_3[2] & 0x3f;
 
     for (j = 0; (j < i + 1); j++)
-      ret += BASE64_CHARS[char_array_4[j]];
+      ret += BASE64_CHARS[static_cast<uint8_t>(char_array_4[j])];
 
     while ((i++ < 3))
       ret += '=';
