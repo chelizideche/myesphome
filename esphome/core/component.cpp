@@ -26,16 +26,22 @@ static const char *const TAG = "component";
 // 1. Components are never destroyed in ESPHome
 // 2. Failed components remain failed (no recovery mechanism)
 // 3. Memory usage is minimal (only failures with custom messages are stored)
+
+// Using namespace-scope static to avoid guard variables (saves 16 bytes total)
+// This is safe because ESPHome is single-threaded during initialization
+namespace {
+// Error messages for failed components
+std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> component_error_messages;
+// Setup priority overrides - freed after setup completes
+std::unique_ptr<std::vector<std::pair<const Component *, float>>> setup_priority_overrides;
+}  // namespace
+
 static std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> &get_component_error_messages() {
-  static std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> instance;
-  return instance;
+  return component_error_messages;
 }
 
-// Setup priority overrides - freed after setup completes
-// Typically < 5 entries, lazy allocated
 static std::unique_ptr<std::vector<std::pair<const Component *, float>>> &get_setup_priority_overrides() {
-  static std::unique_ptr<std::vector<std::pair<const Component *, float>>> instance;
-  return instance;
+  return setup_priority_overrides;
 }
 
 namespace setup_priority {
