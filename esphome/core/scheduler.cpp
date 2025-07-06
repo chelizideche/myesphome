@@ -82,8 +82,6 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   item->callback = std::move(func);
   item->remove = false;
 
-  const auto now = this->millis_();
-
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Special handling for defer() (delay = 0, type = TIMEOUT)
   // ESP8266 and RP2040 are excluded because they don't need thread-safe defer handling
@@ -95,6 +93,8 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     return;
   }
 #endif
+
+  const auto now = this->millis_();
 
   // Type-specific setup
   if (type == SchedulerItem::INTERVAL) {
