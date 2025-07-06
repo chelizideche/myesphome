@@ -465,6 +465,13 @@ static constexpr const char *BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                             "abcdefghijklmnopqrstuvwxyz"
                                             "0123456789+/";
 
+// Helper function to find the index of a base64 character in the lookup table.
+// Returns the character's position (0-63) if found, or 0 if not found.
+// NOTE: This returns 0 for both 'A' (valid base64 char at index 0) and invalid characters.
+// This is safe because is_base64() is ALWAYS checked before calling this function,
+// preventing invalid characters from ever reaching here. The base64_decode function
+// stops processing at the first invalid character due to the is_base64() check in its
+// while loop condition, making this edge case harmless in practice.
 static inline uint8_t base64_find_char(char c) {
   const char *pos = strchr(BASE64_CHARS, c);
   return pos ? (pos - BASE64_CHARS) : 0;
@@ -532,6 +539,9 @@ std::vector<uint8_t> base64_decode(const std::string &encoded_string) {
   uint8_t char_array_4[4], char_array_3[3];
   std::vector<uint8_t> ret;
 
+  // SAFETY: The loop condition checks is_base64() before processing each character.
+  // This ensures base64_find_char() is only called on valid base64 characters,
+  // preventing the edge case where invalid chars would return 0 (same as 'A').
   while (in_len-- && (encoded_string[in] != '=') && is_base64(encoded_string[in])) {
     char_array_4[i++] = encoded_string[in];
     in++;
