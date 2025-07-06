@@ -11,8 +11,16 @@ import tempfile
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from esphome.const import (
+    KEY_CORE,
+    KEY_TARGET_FRAMEWORK,
+    KEY_TARGET_PLATFORM,
+    PlatformFramework,
+)
+from esphome.core import CORE
+
 if TYPE_CHECKING:
-    from esphome.const import PlatformFramework
+    pass  # PlatformFramework is already imported above
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -524,13 +532,7 @@ def filter_source_files_from_platform(
     Returns:
         Function that returns list of files to exclude for current platform
     """
-    from esphome.const import (
-        KEY_CORE,
-        KEY_TARGET_FRAMEWORK,
-        KEY_TARGET_PLATFORM,
-        PlatformFramework,
-    )
-    from esphome.core import CORE
+    from esphome.const import PlatformFramework
 
     # Pre-build lookup map from (platform, framework) tuples to PlatformFramework enum
     _PLATFORM_FRAMEWORK_LOOKUP = {pf.value: pf for pf in PlatformFramework}
