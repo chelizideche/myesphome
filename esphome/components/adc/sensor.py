@@ -64,8 +64,14 @@ def final_validate_config(config):
             # Look for framework version in the data structure
             core_data = CORE.data.get("core", {})
             framework_version = core_data.get("framework_version")
-            if framework_version and hasattr(framework_version, "major") and framework_version.major < 5:
-                raise cv.Invalid(f"ADC requires ESP-IDF v5.0+, got v{framework_version}")
+            if (
+                framework_version
+                and hasattr(framework_version, "major")
+                and framework_version.major < 5
+            ):
+                raise cv.Invalid(
+                    f"ADC requires ESP-IDF v5.0+, got v{framework_version}"
+                )
 
         variant = get_esp32_variant()
         if (
