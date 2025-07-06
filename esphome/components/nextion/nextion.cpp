@@ -55,7 +55,7 @@ bool Nextion::check_connect_() {
   ESP_LOGW(TAG, "Connected (no handshake)");  // Log the connection status without handshake
   this->is_connected_ = true;                 // Set the connection status to true
   return true;                                // Return true indicating the connection is set
-#else   // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
+#else                                         // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
   if (this->comok_sent_ == 0) {
     this->reset_(false);
 
@@ -142,7 +142,7 @@ void Nextion::dump_config() {
   ESP_LOGCONFIG(TAG, "Nextion:");
 #ifdef USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
   ESP_LOGCONFIG(TAG, "  Skip handshake: YES");
-#else   // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
+#else  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
   ESP_LOGCONFIG(TAG,
                 "  Device Model:   %s\n"
                 "  FW Version:     %s\n"

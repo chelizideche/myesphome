@@ -175,7 +175,10 @@ async def to_code(config):
     if CONF_EXIT_REPARSE_ON_START in config and config[CONF_EXIT_REPARSE_ON_START]:
         cg.add_define("USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START")
 
-    if CONF_SKIP_CONNECTION_HANDSHAKE in config and config[CONF_SKIP_CONNECTION_HANDSHAKE]:
+    if (
+        CONF_SKIP_CONNECTION_HANDSHAKE in config
+        and config[CONF_SKIP_CONNECTION_HANDSHAKE]
+    ):
         cg.add_define("USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE")
 
     if max_commands_per_loop := config.get(CONF_MAX_COMMANDS_PER_LOOP):
