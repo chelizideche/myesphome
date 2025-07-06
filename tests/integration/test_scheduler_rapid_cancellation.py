@@ -29,7 +29,7 @@ async def test_scheduler_rapid_cancellation(
     )
 
     # Create a future to signal test completion
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     test_complete_future: asyncio.Future[None] = loop.create_future()
 
     # Track test progress
