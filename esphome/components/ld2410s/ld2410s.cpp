@@ -111,7 +111,7 @@ static const uint16_t ENERGY_VALUES_RESET = 100;  // number of readings to avera
 static const uint8_t CMD_EXEC_REPEAT = 3;
 
 void LD2410S::setup() {
-  feed_wdt();
+  App.feed_wdt();
   this->status_set_warning("setup");
 
   this->minimal_output_ = true;
@@ -128,7 +128,7 @@ void LD2410S::setup() {
 }
 void LD2410S::loop() {
   if (!this->cmd_active_) {
-    feed_wdt();
+    App.feed_wdt();
     if (this->available()) {
       this->receive_();
     } else {
@@ -544,7 +544,7 @@ void LD2410S::loop_send_command_() {
 }
 void LD2410S::send_command_(CmdFrameT *frame) {
   char output[64];
-  feed_wdt();
+  App.feed_wdt();
   sprintf(output, "SendingCommand: %02X", frame->command);
   this->status_set_warning(output);
 
@@ -587,7 +587,7 @@ void LD2410S::send_command_(CmdFrameT *frame) {
 
 void LD2410S::receive_() {
   while (this->available()) {
-    feed_wdt();
+    App.feed_wdt();
     this->rcv_buffer_[this->rcv_end_pos_] = this->read();
 
     PackageType type = this->get_frame_type_(this->rcv_buffer_, this->rcv_end_pos_);
