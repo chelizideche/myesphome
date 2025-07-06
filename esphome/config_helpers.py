@@ -1,4 +1,18 @@
-from esphome.const import CONF_ID
+from collections.abc import Callable
+
+from esphome.const import (
+    CONF_ID,
+    KEY_CORE,
+    KEY_TARGET_FRAMEWORK,
+    KEY_TARGET_PLATFORM,
+    PlatformFramework,
+)
+from esphome.core import CORE
+
+# Pre-build lookup map from (platform, framework) tuples to PlatformFramework enum
+_PLATFORM_FRAMEWORK_LOOKUP = {
+    (pf.value[0].value, pf.value[1].value): pf for pf in PlatformFramework
+}
 
 
 class Extend:
@@ -103,3 +117,43 @@ def merge_config(full_old, full_new):
         return new
 
     return merge(full_old, full_new)
+
+
+def filter_source_files_from_platform(
+    files_map: dict[str, set[PlatformFramework]],
+) -> Callable[[], list[str]]:
+    """Helper to build a FILTER_SOURCE_FILES function from platform mapping.
+
+    Args:
+        files_map: Dict mapping filename to set of PlatformFramework enums
+                  that should compile this file
+
+    Returns:
+        Function that returns list of files to exclude for current platform
+    """
+
+    def filter_source_files() -> list[str]:
+        # Get current platform/framework
+        core_data = CORE.data.get(KEY_CORE, {})
+        target_platform = core_data.get(KEY_TARGET_PLATFORM)
+        target_framework = core_data.get(KEY_TARGET_FRAMEWORK)
+
+        if not target_platform or not target_framework:
+            return []
+
+        # Direct lookup of current PlatformFramework
+        current_platform_framework = _PLATFORM_FRAMEWORK_LOOKUP.get(
+            (target_platform, target_framework)
+        )
+
+        if not current_platform_framework:
+            return []
+
+        # Return files that should be excluded for current platform
+        return [
+            filename
+            for filename, platforms in files_map.items()
+            if current_platform_framework not in platforms
+        ]
+
+    return filter_source_files

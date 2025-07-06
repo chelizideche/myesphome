@@ -23,7 +23,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VARIABLES,
 )
-from esphome.core import coroutine_with_priority
+from esphome.core import CORE, coroutine_with_priority
 
 DEPENDENCIES = ["network"]
 AUTO_LOAD = ["socket"]
@@ -313,3 +313,14 @@ async def homeassistant_tag_scanned_to_code(config, action_id, template_arg, arg
 @automation.register_condition("api.connected", APIConnectedCondition, {})
 async def api_connected_to_code(config, condition_id, template_arg, args):
     return cg.new_Pvariable(condition_id, template_arg)
+
+
+def FILTER_SOURCE_FILES() -> list[str]:
+    """Filter out api_pb2_dump.cpp when proto message dumping is not enabled."""
+    # api_pb2_dump.cpp is only needed when HAS_PROTO_MESSAGE_DUMP is defined
+    # This is a particularly large file that still needs to be opened and read
+    # all the way to the end even when ifdef'd out
+    if "HAS_PROTO_MESSAGE_DUMP" not in CORE.defines:
+        return ["api_pb2_dump.cpp"]
+
+    return []
