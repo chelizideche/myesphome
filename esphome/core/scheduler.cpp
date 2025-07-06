@@ -58,31 +58,6 @@ static void validate_static_string(const char *name) {
 // iterating over them from the loop task is fine; but iterating from any other context requires the lock to be held to
 // avoid the main thread modifying the list while it is being accessed.
 
-// Helper to cancel items by name - must be called with lock held
-bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type) {
-  bool ret = false;
-
-  for (auto &it : this->items_) {
-    const char *item_name = it->get_name();
-    if (it->component == component && item_name != nullptr && strcmp(name, item_name) == 0 && it->type == type &&
-        !it->remove) {
-      this->to_remove_++;
-      it->remove = true;
-      ret = true;
-    }
-  }
-  for (auto &it : this->to_add_) {
-    const char *item_name = it->get_name();
-    if (it->component == component && item_name != nullptr && strcmp(name, item_name) == 0 && it->type == type &&
-        !it->remove) {
-      it->remove = true;
-      ret = true;
-    }
-  }
-
-  return ret;
-}
-
 // Common implementation for both timeout and interval
 void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
                                       const void *name_ptr, uint32_t delay, std::function<void()> func) {
