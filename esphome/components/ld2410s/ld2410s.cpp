@@ -10,11 +10,11 @@ static const char *const TAG = "ld2410s";
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
 static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
 
-static const uint32_t STD_DATA_FRAME_HEADER = 0xF1F2F3F4;  // 0xF4F3F2F1 - 0xF1F2F3F4
-static const uint32_t STD_DATA_FRAME_FOOTER = 0xF5F6F7F8;  // 0xF5F6F7F8 - 0xF8F7F6F5
+static const uint32_t STD_DATA_FRAME_HEADER = 0xF1F2F3F4;
+static const uint32_t STD_DATA_FRAME_FOOTER = 0xF5F6F7F8;
 
-static const uint32_t CMD_FRAME_HEADER = 0xFAFBFCFD;  // 0xFAFBFCFD - 0xFDFCFBFA
-static const uint32_t CMD_FRAME_FOOTER = 0x01020304;  // 0x01020304 - 0x04030201
+static const uint32_t CMD_FRAME_HEADER = 0xFAFBFCFD;
+static const uint32_t CMD_FRAME_FOOTER = 0x01020304;
 
 static const uint16_t CONFIG_MODE_START_CMD = 0x00FF;
 static const uint16_t CONFIG_MODE_START_REPLY = 0x01FF;
@@ -106,7 +106,7 @@ static const uint32_t GATE_SNR_WRITE_DATA[] = {
     // It would be good to get it from virgin ld2410s, before any calibration.
 };
 
-static const uint32_t CMD_EXEC_TIMEOUT = 1000;
+static const uint32_t CMD_EXEC_TIMEOUT = 5000;
 static const uint16_t ENERGY_VALUES_RESET = 100;  // number of readings to average energy values
 static const uint8_t CMD_EXEC_REPEAT = 3;
 
