@@ -42,7 +42,7 @@ def test_filter_source_files_from_platform_esp32() -> None:
     }
 
     with patch("esphome.config_helpers.CORE.data", mock_core_data):
-        excluded = filter_func()
+        excluded: list[str] = filter_func()
         # ESP32 Arduino should exclude ESP8266 and HOST files
         assert "logger_esp8266.cpp" in excluded
         assert "logger_host.cpp" in excluded
@@ -51,10 +51,10 @@ def test_filter_source_files_from_platform_esp32() -> None:
         assert "logger_common.cpp" not in excluded
 
 
-def test_filter_source_files_from_platform_host():
+def test_filter_source_files_from_platform_host() -> None:
     """Test that filter_source_files_from_platform correctly filters files for HOST platform."""
     # Define test file mappings
-    files_map = {
+    files_map: dict[str, set[PlatformFramework]] = {
         "logger_esp32.cpp": {
             PlatformFramework.ESP32_ARDUINO,
             PlatformFramework.ESP32_IDF,
@@ -70,10 +70,10 @@ def test_filter_source_files_from_platform_host():
     }
 
     # Create the filter function
-    filter_func = filter_source_files_from_platform(files_map)
+    filter_func: Callable[[], list[str]] = filter_source_files_from_platform(files_map)
 
     # Test Host platform
-    mock_core_data = {
+    mock_core_data: dict[str, dict[str, str]] = {
         KEY_CORE: {
             KEY_TARGET_PLATFORM: "host",
             KEY_TARGET_FRAMEWORK: "host",  # Framework.NATIVE is "host"
@@ -81,7 +81,7 @@ def test_filter_source_files_from_platform_host():
     }
 
     with patch("esphome.config_helpers.CORE.data", mock_core_data):
-        excluded = filter_func()
+        excluded: list[str] = filter_func()
         # Host should exclude ESP32 and ESP8266 files
         assert "logger_esp32.cpp" in excluded
         assert "logger_esp8266.cpp" in excluded
@@ -90,21 +90,21 @@ def test_filter_source_files_from_platform_host():
         assert "logger_common.cpp" not in excluded
 
 
-def test_filter_source_files_from_platform_handles_missing_data():
+def test_filter_source_files_from_platform_handles_missing_data() -> None:
     """Test that filter_source_files_from_platform returns empty list when platform/framework data is missing."""
     # Define test file mappings
-    files_map = {
+    files_map: dict[str, set[PlatformFramework]] = {
         "logger_esp32.cpp": {PlatformFramework.ESP32_ARDUINO},
         "logger_host.cpp": {PlatformFramework.HOST_NATIVE},
     }
 
     # Create the filter function
-    filter_func = filter_source_files_from_platform(files_map)
+    filter_func: Callable[[], list[str]] = filter_source_files_from_platform(files_map)
 
     # Test case: Missing platform/framework data
-    mock_core_data = {KEY_CORE: {}}
+    mock_core_data: dict[str, dict[str, str]] = {KEY_CORE: {}}
 
     with patch("esphome.config_helpers.CORE.data", mock_core_data):
-        excluded = filter_func()
+        excluded: list[str] = filter_func()
         # Should return empty list when platform/framework not set
         assert excluded == []
