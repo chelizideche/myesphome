@@ -64,6 +64,10 @@ const LogString *climate_fan_mode_to_string(ClimateFanMode fan_mode) {
       return LOG_STR("DIFFUSE");
     case climate::CLIMATE_FAN_QUIET:
       return LOG_STR("QUIET");
+    case climate::CLIMATE_FAN_MINIMUM:
+      return LOG_STR("MINIMUM");
+    case climate::CLIMATE_FAN_MAXIMUM:
+      return LOG_STR("MAXIMUM");
     default:
       return LOG_STR("UNKNOWN");
   }

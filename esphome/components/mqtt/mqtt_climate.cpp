@@ -140,6 +140,11 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
       fan_modes.add("diffuse");
     if (traits.supports_fan_mode(CLIMATE_FAN_QUIET))
       fan_modes.add("quiet");
+    if (traits.supports_fan_mode(CLIMATE_FAN_MINIMUM))
+      fan_modes.add("minimum");
+    if (traits.supports_fan_mode(CLIMATE_FAN_MAXIMUM))
+      fan_modes.add("maximum");
+
     for (const auto &fan_mode : traits.get_supported_custom_fan_modes())
       fan_modes.add(fan_mode);
   }
@@ -416,6 +421,12 @@ bool MQTTClimateComponent::publish_state_() {
           break;
         case CLIMATE_FAN_QUIET:
           payload = "quiet";
+          break;
+        case CLIMATE_FAN_MINIMUM:
+          payload = "minimum";
+          break;
+        case CLIMATE_FAN_MAXIMUM:
+          payload = "maximum";
           break;
         default:
           payload = "unknown";

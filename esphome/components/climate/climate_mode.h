@@ -64,6 +64,10 @@ enum ClimateFanMode : uint8_t {
   CLIMATE_FAN_DIFFUSE = 8,
   /// The fan mode is set to Quiet
   CLIMATE_FAN_QUIET = 9,
+  /// The fan mode is set to minimum
+  CLIMATE_FAN_MINIMUM = 10,
+  /// The fan mode is set to maximum
+  CLIMATE_FAN_MAXIMUM = 11,
 };
 
 /// Enum for all modes a climate swing can be in
