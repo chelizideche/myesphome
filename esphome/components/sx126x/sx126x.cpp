@@ -267,7 +267,7 @@ size_t SX126x::get_max_packet_size() {
   if (this->payload_length_ > 0) {
     return this->payload_length_;
   }
-  return 256;
+  return 255;
 }
 
 void SX126x::set_packet_params_(uint8_t payload_length) {
