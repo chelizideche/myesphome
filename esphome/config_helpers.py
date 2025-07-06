@@ -2,6 +2,8 @@ from collections.abc import Callable
 
 from esphome.const import (
     CONF_ID,
+    CONF_LEVEL,
+    CONF_LOGGER,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -157,3 +159,24 @@ def filter_source_files_from_platform(
         ]
 
     return filter_source_files
+
+
+def is_logger_very_verbose() -> bool:
+    """Check if logger is configured with VERY_VERBOSE level.
+
+    This is used by components like API to determine if they should include
+    debug/dump functionality that's only needed for VERY_VERBOSE logging.
+
+    Returns:
+        True if logger level is VERY_VERBOSE or higher, False otherwise
+    """
+    # Check if logger config exists
+    if CONF_LOGGER not in CORE.config:
+        return False
+
+    logger_config = CORE.config[CONF_LOGGER]
+    log_level = logger_config.get(CONF_LEVEL, "DEBUG")
+
+    # Log levels in order: NONE, ERROR, WARN, INFO, CONFIG, DEBUG, VERBOSE, VERY_VERBOSE
+    # We only care if it's VERY_VERBOSE
+    return log_level == "VERY_VERBOSE"

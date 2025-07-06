@@ -3,8 +3,13 @@
 from collections.abc import Callable
 from unittest.mock import patch
 
-from esphome.config_helpers import filter_source_files_from_platform
+from esphome.config_helpers import (
+    filter_source_files_from_platform,
+    is_logger_very_verbose,
+)
 from esphome.const import (
+    CONF_LEVEL,
+    CONF_LOGGER,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -108,3 +113,26 @@ def test_filter_source_files_from_platform_handles_missing_data() -> None:
         excluded: list[str] = filter_func()
         # Should return empty list when platform/framework not set
         assert excluded == []
+
+
+def test_is_logger_very_verbose() -> None:
+    """Test is_logger_very_verbose helper function."""
+    # Test no logger config
+    mock_config = {}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert is_logger_very_verbose() is False
+
+    # Test with logger but not VERY_VERBOSE
+    mock_config = {CONF_LOGGER: {CONF_LEVEL: "DEBUG"}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert is_logger_very_verbose() is False
+
+    # Test with VERY_VERBOSE
+    mock_config = {CONF_LOGGER: {CONF_LEVEL: "VERY_VERBOSE"}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert is_logger_very_verbose() is True
+
+    # Test with logger missing level (uses default DEBUG)
+    mock_config = {CONF_LOGGER: {}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert is_logger_very_verbose() is False

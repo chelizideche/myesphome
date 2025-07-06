@@ -3,6 +3,7 @@ import base64
 from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
+from esphome.config_helpers import is_logger_very_verbose
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACTION,
@@ -23,7 +24,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VARIABLES,
 )
-from esphome.core import CORE, coroutine_with_priority
+from esphome.core import coroutine_with_priority
 
 DEPENDENCIES = ["network"]
 AUTO_LOAD = ["socket"]
@@ -320,7 +321,10 @@ def FILTER_SOURCE_FILES() -> list[str]:
     # api_pb2_dump.cpp is only needed when HAS_PROTO_MESSAGE_DUMP is defined
     # This is a particularly large file that still needs to be opened and read
     # all the way to the end even when ifdef'd out
-    if "HAS_PROTO_MESSAGE_DUMP" not in CORE.defines:
+    #
+    # HAS_PROTO_MESSAGE_DUMP is defined when ESPHOME_LOG_HAS_VERY_VERBOSE is set,
+    # which happens when the logger level is VERY_VERBOSE
+    if not is_logger_very_verbose():
         return ["api_pb2_dump.cpp"]
 
     return []
