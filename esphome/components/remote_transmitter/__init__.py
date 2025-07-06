@@ -15,6 +15,7 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE
+from esphome.helpers import filter_source_files_from_platform
 
 AUTO_LOAD = ["remote_base"]
 
@@ -98,15 +99,17 @@ async def to_code(config):
         )
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "remote_transmitter_esp32.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP32_IDF,
-    },
-    "remote_transmitter_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "remote_transmitter_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "remote_transmitter_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        "remote_transmitter_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "remote_transmitter_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

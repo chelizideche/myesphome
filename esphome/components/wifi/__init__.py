@@ -43,6 +43,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, HexInt, coroutine_with_priority
 import esphome.final_validate as fv
+from esphome.helpers import filter_source_files_from_platform
 
 from . import wpa2_eap
 
@@ -529,13 +530,15 @@ async def wifi_set_sta_to_code(config, action_id, template_arg, args):
     return var
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "wifi_component_esp32_arduino.cpp": {PlatformFramework.ESP32_ARDUINO},
-    "wifi_component_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
-    "wifi_component_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "wifi_component_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "wifi_component_esp32_arduino.cpp": {PlatformFramework.ESP32_ARDUINO},
+        "wifi_component_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
+        "wifi_component_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "wifi_component_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

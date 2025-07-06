@@ -57,6 +57,7 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.helpers import filter_source_files_from_platform
 
 DEPENDENCIES = ["network"]
 
@@ -599,9 +600,11 @@ async def mqtt_disable_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "mqtt_backend_esp32.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP32_IDF,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "mqtt_backend_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+    }
+)

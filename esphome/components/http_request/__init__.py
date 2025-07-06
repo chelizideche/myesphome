@@ -17,7 +17,7 @@ from esphome.const import (
     __version__,
 )
 from esphome.core import CORE, Lambda
-from esphome.helpers import IS_MACOS
+from esphome.helpers import IS_MACOS, filter_source_files_from_platform
 
 DEPENDENCIES = ["network"]
 AUTO_LOAD = ["json", "watchdog"]
@@ -322,15 +322,17 @@ async def http_request_action_to_code(config, action_id, template_arg, args):
     return var
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "http_request_host.cpp": {PlatformFramework.HOST_NATIVE},
-    "http_request_arduino.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP8266_ARDUINO,
-        PlatformFramework.RP2040_ARDUINO,
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-    "http_request_idf.cpp": {PlatformFramework.ESP32_IDF},
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "http_request_host.cpp": {PlatformFramework.HOST_NATIVE},
+        "http_request_arduino.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP8266_ARDUINO,
+            PlatformFramework.RP2040_ARDUINO,
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+        "http_request_idf.cpp": {PlatformFramework.ESP32_IDF},
+    }
+)

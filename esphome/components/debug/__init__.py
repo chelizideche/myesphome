@@ -9,6 +9,7 @@ from esphome.const import (
     CONF_LOOP_TIME,
     PlatformFramework,
 )
+from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@OttoWinter"]
 DEPENDENCIES = ["logger"]
@@ -47,14 +48,19 @@ async def to_code(config):
     await cg.register_component(var, config)
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "debug_esp32.cpp": {PlatformFramework.ESP32_ARDUINO, PlatformFramework.ESP32_IDF},
-    "debug_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "debug_host.cpp": {PlatformFramework.HOST_NATIVE},
-    "debug_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
-    "debug_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "debug_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        "debug_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "debug_host.cpp": {PlatformFramework.HOST_NATIVE},
+        "debug_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
+        "debug_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

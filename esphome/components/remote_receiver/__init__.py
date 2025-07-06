@@ -18,6 +18,7 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, TimePeriod
+from esphome.helpers import filter_source_files_from_platform
 
 CONF_FILTER_SYMBOLS = "filter_symbols"
 CONF_RECEIVE_SYMBOLS = "receive_symbols"
@@ -173,15 +174,17 @@ async def to_code(config):
     cg.add(var.set_idle_us(config[CONF_IDLE]))
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "remote_receiver_esp32.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP32_IDF,
-    },
-    "remote_receiver_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "remote_receiver_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "remote_receiver_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        "remote_receiver_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "remote_receiver_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

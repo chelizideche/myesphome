@@ -45,6 +45,7 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, Lambda, coroutine_with_priority
+from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core"]
 logger_ns = cg.esphome_ns.namespace("logger")
@@ -447,18 +448,23 @@ async def logger_set_level_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, lambda_)
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "logger_esp32.cpp": {PlatformFramework.ESP32_ARDUINO, PlatformFramework.ESP32_IDF},
-    "logger_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "logger_host.cpp": {PlatformFramework.HOST_NATIVE},
-    "logger_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
-    "logger_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-    "task_log_buffer.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP32_IDF,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "logger_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        "logger_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "logger_host.cpp": {PlatformFramework.HOST_NATIVE},
+        "logger_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
+        "logger_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+        "task_log_buffer.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+    }
+)

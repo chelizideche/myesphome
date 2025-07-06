@@ -24,6 +24,7 @@ from esphome.const import (
     __version__,
 )
 from esphome.core import CORE
+from esphome.helpers import filter_source_files_from_platform
 
 from . import gpio  # noqa
 from .const import (
@@ -343,10 +344,12 @@ async def component_to_code(config):
     await cg.register_component(var, config)
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "gpio_arduino.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "gpio_arduino.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

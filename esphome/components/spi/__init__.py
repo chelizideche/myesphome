@@ -35,6 +35,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
+from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core", "@clydebarrow"]
 spi_ns = cg.esphome_ns.namespace("spi")
@@ -426,14 +427,16 @@ def final_validate_device_schema(name: str, *, require_mosi: bool, require_miso:
     )
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "spi_arduino.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP8266_ARDUINO,
-        PlatformFramework.RP2040_ARDUINO,
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-    "spi_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "spi_arduino.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP8266_ARDUINO,
+            PlatformFramework.RP2040_ARDUINO,
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+        "spi_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
+    }
+)

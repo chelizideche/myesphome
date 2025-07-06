@@ -11,25 +11,12 @@ import sys
 from types import ModuleType
 from typing import Any
 
-from esphome.const import (
-    KEY_CORE,
-    KEY_TARGET_FRAMEWORK,
-    KEY_TARGET_PLATFORM,
-    SOURCE_FILE_EXTENSIONS,
-    Framework,
-    Platform,
-    PlatformFramework,
-)
+from esphome.const import SOURCE_FILE_EXTENSIONS
 from esphome.core import CORE
 import esphome.core.config
 from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
-
-# Build unified lookup table from PlatformFramework enum
-_PLATFORM_FRAMEWORK_LOOKUP: dict[
-    tuple[Platform, Framework | None], PlatformFramework
-] = {pf.value: pf for pf in PlatformFramework}
 
 
 @dataclass(frozen=True, order=True)
@@ -123,28 +110,13 @@ class ComponentManifest:
         """Return a list of all file resources defined in the package of this component."""
         ret: list[FileResource] = []
 
-        # Get current platform-framework combination
-        core_data: dict[str, Any] = CORE.data.get(KEY_CORE, {})
-        target_platform: Platform | None = core_data.get(KEY_TARGET_PLATFORM)
-        target_framework: Framework | None = core_data.get(KEY_TARGET_FRAMEWORK)
+        # Get filter function for source files
+        filter_source_files_func = getattr(self.module, "FILTER_SOURCE_FILES", None)
 
-        # Get platform-specific files mapping
-        platform_source_files: dict[str, set[PlatformFramework]] = getattr(
-            self.module, "PLATFORM_SOURCE_FILES", {}
-        )
-
-        # Get current PlatformFramework
-        lookup_key = (target_platform, target_framework)
-        current_platform_framework: PlatformFramework | None = (
-            _PLATFORM_FRAMEWORK_LOOKUP.get(lookup_key)
-        )
-
-        # Build set of allowed filenames for current platform
-        allowed_filenames: set[str] = set()
-        if current_platform_framework and platform_source_files:
-            for filename, platforms in platform_source_files.items():
-                if current_platform_framework in platforms:
-                    allowed_filenames.add(filename)
+        # Get list of files to exclude
+        excluded_files: set[str] = set()
+        if filter_source_files_func is not None:
+            excluded_files = set(filter_source_files_func())
 
         # Process all resources
         for resource in (
@@ -157,9 +129,8 @@ class ComponentManifest:
             if not importlib.resources.files(self.package).joinpath(resource).is_file():
                 continue
 
-            # Check platform restrictions only if file is platform-specific
-            # Common files (not in platform_source_files) are always included
-            if resource in platform_source_files and resource not in allowed_filenames:
+            # Skip excluded files
+            if resource in excluded_files:
                 continue
 
             ret.append(FileResource(self.package, resource))

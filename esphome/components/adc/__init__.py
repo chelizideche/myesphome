@@ -19,6 +19,7 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE
+from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core"]
 
@@ -237,16 +238,18 @@ def validate_adc_pin(value):
     raise NotImplementedError
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "adc_sensor_esp32.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP32_IDF,
-    },
-    "adc_sensor_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
-    "adc_sensor_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
-    "adc_sensor_libretiny.cpp": {
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "adc_sensor_esp32.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        "adc_sensor_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+        "adc_sensor_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
+        "adc_sensor_libretiny.cpp": {
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+    }
+)

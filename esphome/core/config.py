@@ -41,6 +41,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 from esphome.helpers import (
     copy_file_if_changed,
+    filter_source_files_from_platform,
     fnv1a_32bit_hash,
     get_str_env,
     walk_files,
@@ -555,8 +556,13 @@ async def to_code(config: ConfigType) -> None:
 
 
 # Platform-specific source files for core
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "ring_buffer.cpp": {PlatformFramework.ESP32_ARDUINO, PlatformFramework.ESP32_IDF},
-    # Note: lock_free_queue.h and event_pool.h are header files and don't need to be filtered
-    # as they are only included when needed by the preprocessor
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "ring_buffer.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP32_IDF,
+        },
+        # Note: lock_free_queue.h and event_pool.h are header files and don't need to be filtered
+        # as they are only included when needed by the preprocessor
+    }
+)

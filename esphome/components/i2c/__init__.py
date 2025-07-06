@@ -22,6 +22,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
+from esphome.helpers import filter_source_files_from_platform
 
 LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@esphome/core"]
@@ -208,14 +209,16 @@ def final_validate_device_schema(
     )
 
 
-PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
-    "i2c_bus_arduino.cpp": {
-        PlatformFramework.ESP32_ARDUINO,
-        PlatformFramework.ESP8266_ARDUINO,
-        PlatformFramework.RP2040_ARDUINO,
-        PlatformFramework.BK72XX_ARDUINO,
-        PlatformFramework.RTL87XX_ARDUINO,
-        PlatformFramework.LN882X_ARDUINO,
-    },
-    "i2c_bus_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
-}
+FILTER_SOURCE_FILES = filter_source_files_from_platform(
+    {
+        "i2c_bus_arduino.cpp": {
+            PlatformFramework.ESP32_ARDUINO,
+            PlatformFramework.ESP8266_ARDUINO,
+            PlatformFramework.RP2040_ARDUINO,
+            PlatformFramework.BK72XX_ARDUINO,
+            PlatformFramework.RTL87XX_ARDUINO,
+            PlatformFramework.LN882X_ARDUINO,
+        },
+        "i2c_bus_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
+    }
+)
