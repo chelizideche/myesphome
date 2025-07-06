@@ -65,13 +65,13 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   const char *name_cstr =
       is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
 
-  // Cancel existing timer if name is not empty
-  if (name_cstr != nullptr && name_cstr[0] != '\0') {
-    this->cancel_item_(component, name_cstr, type);
-  }
-
-  if (delay == SCHEDULER_DONT_RUN)
+  if (delay == SCHEDULER_DONT_RUN) {
+    // Cancel existing timer if name is not empty
+    if (name_cstr != nullptr && name_cstr[0] != '\0') {
+      this->cancel_item_(component, name_cstr, type);
+    }
     return;
+  }
 
   const auto now = this->millis_();
 

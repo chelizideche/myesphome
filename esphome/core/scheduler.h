@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <cstring>
 
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
@@ -135,10 +136,12 @@ class Scheduler {
   void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
                          uint32_t delay, std::function<void()> func);
 
+  // Helper to cancel items by name - must be called with lock held
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
+
   uint64_t millis_();
   void cleanup_();
   void pop_raw_();
-  void push_(std::unique_ptr<SchedulerItem> item);
   // Common implementation for cancel operations
   bool cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
