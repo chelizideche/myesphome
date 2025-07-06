@@ -10,6 +10,7 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
 )
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ANALOG,
@@ -19,7 +20,6 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE
-from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core"]
 

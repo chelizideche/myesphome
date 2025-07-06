@@ -1,6 +1,7 @@
 from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import esp32, esp32_rmt, remote_base
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CARRIER_DUTY_PERCENT,
@@ -15,7 +16,6 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE
-from esphome.helpers import filter_source_files_from_platform
 
 AUTO_LOAD = ["remote_base"]
 

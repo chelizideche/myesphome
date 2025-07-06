@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 from esphome.components.esp32 import add_idf_component
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DISABLED,
@@ -11,7 +12,6 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core"]
 DEPENDENCIES = ["network"]

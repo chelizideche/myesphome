@@ -11,6 +11,7 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
 )
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DEFAULT,
@@ -29,7 +30,6 @@ from esphome.const import (
     PLATFORM_ESP8266,
     PlatformFramework,
 )
-from esphome.helpers import filter_source_files_from_platform
 
 WAKEUP_PINS = {
     VARIANT_ESP32: [

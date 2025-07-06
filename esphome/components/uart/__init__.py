@@ -2,6 +2,7 @@ import re
 
 from esphome import automation, pins
 import esphome.codegen as cg
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AFTER,
@@ -31,7 +32,6 @@ from esphome.const import (
 )
 from esphome.core import CORE
 import esphome.final_validate as fv
-from esphome.helpers import filter_source_files_from_platform
 from esphome.yaml_util import make_data_base
 
 CODEOWNERS = ["@esphome/core"]

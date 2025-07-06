@@ -3,6 +3,7 @@ import logging
 from os.path import dirname, isfile, join
 
 import esphome.codegen as cg
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BOARD,
@@ -24,7 +25,6 @@ from esphome.const import (
     __version__,
 )
 from esphome.core import CORE
-from esphome.helpers import filter_source_files_from_platform
 
 from . import gpio  # noqa
 from .const import (

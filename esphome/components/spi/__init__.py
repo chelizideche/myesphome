@@ -13,6 +13,7 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
 )
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CLK_PIN,
@@ -35,7 +36,6 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
-from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core", "@clydebarrow"]
 spi_ns = cg.esphome_ns.namespace("spi")

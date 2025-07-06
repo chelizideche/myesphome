@@ -1,4 +1,5 @@
 import esphome.codegen as cg
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BLOCK,
@@ -9,7 +10,6 @@ from esphome.const import (
     CONF_LOOP_TIME,
     PlatformFramework,
 )
-from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@OttoWinter"]
 DEPENDENCIES = ["logger"]

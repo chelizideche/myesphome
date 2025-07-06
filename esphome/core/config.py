@@ -6,6 +6,7 @@ from pathlib import Path
 
 from esphome import automation, core
 import esphome.codegen as cg
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AREA,
@@ -41,7 +42,6 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 from esphome.helpers import (
     copy_file_if_changed,
-    filter_source_files_from_platform,
     fnv1a_32bit_hash,
     get_str_env,
     walk_files,

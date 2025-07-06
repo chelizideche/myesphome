@@ -3,6 +3,7 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import esp32
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
@@ -22,7 +23,6 @@ from esphome.const import (
 )
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
-from esphome.helpers import filter_source_files_from_platform
 
 LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@esphome/core"]

@@ -21,6 +21,7 @@ from esphome.components.libretiny.const import (
     COMPONENT_LN882X,
     COMPONENT_RTL87XX,
 )
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ARGS,
@@ -45,7 +46,6 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, Lambda, coroutine_with_priority
-from esphome.helpers import filter_source_files_from_platform
 
 CODEOWNERS = ["@esphome/core"]
 logger_ns = cg.esphome_ns.namespace("logger")

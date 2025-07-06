@@ -5,6 +5,7 @@ from esphome.automation import Condition
 import esphome.codegen as cg
 from esphome.components import logger
 from esphome.components.esp32 import add_idf_sdkconfig_option
+from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AVAILABILITY,
@@ -57,7 +58,6 @@ from esphome.const import (
     PlatformFramework,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.helpers import filter_source_files_from_platform
 
 DEPENDENCIES = ["network"]
 
