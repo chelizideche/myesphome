@@ -188,7 +188,7 @@ class MipiSpi : public display::Display,
       return;
     if (w <= 0 || h <= 0)
       return;
-    if (get_pixel_mode_(bitness) != BUFFERPIXEL || big_endian != IS_BIG_ENDIAN) {
+    if (get_pixel_mode(bitness) != BUFFERPIXEL || big_endian != IS_BIG_ENDIAN) {
       // note that the usual logging macros are banned in header files, so use their replacement
       esph_log_e(TAG, "Unsupported color depth or bit order");
       return;
@@ -313,14 +313,12 @@ class MipiSpi : public display::Display,
   }
 
   // map the display color bitness to the pixel mode
-  static PixelMode get_pixel_mode_(display::ColorBitness bitness) {
+  static PixelMode get_pixel_mode(display::ColorBitness bitness) {
     switch (bitness) {
       case display::COLOR_BITNESS_888:
         return PIXEL_MODE_18;  // 18 bits per pixel
       case display::COLOR_BITNESS_565:
         return PIXEL_MODE_16;  // 16 bits per pixel
-      case display::COLOR_BITNESS_332:
-        return PIXEL_MODE_8;  // 8 bits per pixel
       default:
         return PIXEL_MODE_8;  // Default to 8 bits per pixel
     }

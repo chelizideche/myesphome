@@ -392,9 +392,24 @@ def config_schema(config):
 CONFIG_SCHEMA = config_schema
 
 
+def requires_buffer(config):
+    return any(
+        config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
+    )
+
+
 def _final_validate(config):
     global_config = full_config.get()
+
+    from esphome.components.lvgl import DOMAIN as LVGL_DOMAIN
+
+    if not requires_buffer(config) and LVGL_DOMAIN not in global_config:
+        # If no drawing methods are configured, and LVGL is not enabled, show a test card
+        config[CONF_SHOW_TEST_CARD] = True
+
     if "psram" not in global_config and CONF_BUFFER_SIZE not in config:
+        if not requires_buffer(config):
+            return config  # No buffer needed, so no need to set a buffer size
         # If PSRAM is not enabled, choose a small buffer size by default
         buffer_size = get_buffer_size(config)
         if buffer_size == 0:
@@ -420,9 +435,7 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 def get_buffer_size(config):
-    if not any(
-        config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
-    ):
+    if not requires_buffer(config):
         return 0
     color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
     frac = denominator(config)
