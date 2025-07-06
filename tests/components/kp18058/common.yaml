@@ -1,0 +1,21 @@
+output:
+  - platform: kp18058
+    id: output_green
+    max_power: 75%
+    channel: 1
+  - platform: kp18058
+    id: output_blue
+    max_power: 90%
+    channel: 2
+  - platform: kp18058
+    id: output_red
+    max_power: 90%
+    channel: 3
+  - platform: kp18058
+    id: output_warm
+    max_power: 75%
+    channel: 4
+  - platform: kp18058
+    id: output_cold
+    max_power: 75%
+    channel: 5

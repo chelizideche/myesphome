@@ -214,6 +214,7 @@ esphome/components/hydreon_rgxx/* @functionpointer
 esphome/components/hyt271/* @Philippe12
 esphome/components/i2c/* @esphome/core
 esphome/components/i2c_device/* @gabest11
+esphome/components/i2c_soft/* @NewoPL
 esphome/components/i2s_audio/* @jesserockz
 esphome/components/i2s_audio/media_player/* @jesserockz
 esphome/components/i2s_audio/microphone/* @jesserockz
@@ -237,6 +238,7 @@ esphome/components/json/* @OttoWinter
 esphome/components/kamstrup_kmp/* @cfeenstra1024
 esphome/components/key_collector/* @ssieb
 esphome/components/key_provider/* @ssieb
+esphome/components/kp18058/* @NewoPL
 esphome/components/kuntze/* @ssieb
 esphome/components/lc709203f/* @ilikecake
 esphome/components/lcd_menu/* @numo68

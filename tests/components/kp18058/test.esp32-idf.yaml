@@ -1,0 +1,7 @@
+kp18058:
+  data_pin: 16
+  clock_pin: 17
+  cw_current: 8
+  rgb_current: 5
+
+<<: !include common.yaml
