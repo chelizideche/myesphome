@@ -123,17 +123,15 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   }
 #endif
 
-  {
-    LockGuard guard{this->lock_};
-    // If name is provided, do atomic cancel-and-add
-    if (name_cstr != nullptr && name_cstr[0] != '\0') {
-      // Cancel existing items
-      this->cancel_item_locked_(component, name_cstr, type, false);
-    }
-    // Add new item directly to to_add_
-    // since we have the lock held
-    this->to_add_.push_back(std::move(item));
+  LockGuard guard{this->lock_};
+  // If name is provided, do atomic cancel-and-add
+  if (name_cstr != nullptr && name_cstr[0] != '\0') {
+    // Cancel existing items
+    this->cancel_item_locked_(component, name_cstr, type, false);
   }
+  // Add new item directly to to_add_
+  // since we have the lock held
+  this->to_add_.push_back(std::move(item));
 }
 
 void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
