@@ -58,10 +58,6 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 // 16 advertisements × 80 bytes (worst case) = 1280 bytes out of ~1320 bytes usable payload
 // This achieves ~97% WiFi MTU utilization while staying under the limit
 static constexpr size_t FLUSH_BATCH_SIZE = 16;
-static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
-  static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
-  return batch_buffer;
-}
 
 // Global batch buffer to avoid guard variable (saves 8 bytes)
 // This is initialized at program startup before any threads
