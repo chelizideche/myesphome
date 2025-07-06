@@ -7,23 +7,17 @@
 #include "esphome/core/hal.h"
 
 #ifdef USE_ESP32
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "hal/adc_types.h"  // This defines ADC_CHANNEL_MAX
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "driver/adc_types_legacy.h"
-#else
-#include <esp_adc_cal.h>
-#include "driver/adc.h"
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #endif  // USE_ESP32
 
 namespace esphome {
 namespace adc {
 
 #ifdef USE_ESP32
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 // Map old channel names to new ones for compatibility, if needed
 #ifndef ADC1_CHANNEL_0
 #define ADC1_CHANNEL_0 ADC_CHANNEL_0
@@ -39,7 +33,7 @@ namespace adc {
 #ifndef ADC1_CHANNEL_MAX
 #ifdef ADC_CHANNEL_MAX
 #define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
-#else
+#else  // ADC_CHANNEL_MAX
 constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
 #endif  // ADC_CHANNEL_MAX
 #endif  // ADC1_CHANNEL_MAX
@@ -60,24 +54,12 @@ constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
 #ifndef ADC2_CHANNEL_MAX
 #ifdef ADC_CHANNEL_MAX
 #define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
-#else
+#else  // ADC_CHANNEL_MAX
 constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
 #endif  // ADC_CHANNEL_MAX
 #endif  // ADC2_CHANNEL_MAX
 
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-
-// clang-format off
-#if (ESP_IDF_VERSION_MAJOR == 5 && \
-     ((ESP_IDF_VERSION_MINOR == 0 && ESP_IDF_VERSION_PATCH >= 5) || \
-      (ESP_IDF_VERSION_MINOR == 1 && ESP_IDF_VERSION_PATCH >= 3) || \
-      (ESP_IDF_VERSION_MINOR >= 2)) \
-    )
-// clang-format on
 static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_12;
-#else
-static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
-#endif  // ESP_IDF_VERSION check for ADC_ATTEN_DB_12_COMPAT
 #endif  // USE_ESP32
 
 enum class SamplingMode : uint8_t {
@@ -148,7 +130,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   float sample() override;
 
 #ifdef USE_ESP32
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   /// Set the ADC attenuation level to adjust the input voltage range.
   /// This determines how the ADC interprets input voltages, allowing for greater precision
   /// or the ability to measure higher voltages depending on the chosen attenuation level.
@@ -176,30 +157,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
     this->is_adc1_ = false;
     this->do_setup_ = true;
   }
-#else
-  /// Set the ADC attenuation level to adjust the input voltage range.
-  /// This determines how the ADC interprets input voltages, allowing for greater precision
-  /// or the ability to measure higher voltages depending on the chosen attenuation level.
-  /// @param attenuation The desired ADC attenuation level (e.g., ADC_ATTEN_DB_0, ADC_ATTEN_DB_11).
-  void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
 
-  /// Configure the ADC to use a specific channel on ADC1.
-  /// This sets the ADC1 channel for measurement and disables ADC2 channel usage.
-  /// @param channel The ADC1 channel to configure (e.g., ADC1_CHANNEL_0, ADC1_CHANNEL_3).
-  void set_channel1(adc1_channel_t channel) {
-    this->channel1_ = channel;
-    this->channel2_ = ADC2_CHANNEL_MAX;
-  }
-
-  /// Configure the ADC to use a specific channel on ADC2.
-  /// This sets the ADC2 channel for measurement and disables ADC1 channel usage.
-  /// Note: ADC2 may have limitations due to shared resources with Wi-Fi or other peripherals.
-  /// @param channel The ADC2 channel to configure (e.g., ADC2_CHANNEL_0, ADC2_CHANNEL_3).
-  void set_channel2(adc2_channel_t channel) {
-    this->channel2_ = channel;
-    this->channel1_ = ADC1_CHANNEL_MAX;
-  }
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   /// Set whether autoranging should be enabled for the ADC.
   /// Autoranging automatically adjusts the attenuation level to handle a wide range of input voltages.
   /// @param autorange Boolean indicating whether to enable autoranging.
@@ -222,7 +180,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 
 #ifdef USE_ESP32
   bool autorange_{false};
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   adc_oneshot_unit_handle_t adc1_handle_{nullptr};
   adc_oneshot_unit_handle_t adc2_handle_{nullptr};
   adc_cali_handle_t calibration_handle_{nullptr};
@@ -236,16 +193,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   bool calibration_complete_{false};
   static adc_oneshot_unit_handle_t shared_adc1_handle;
   static adc_oneshot_unit_handle_t shared_adc2_handle;
-#else
-  adc_atten_t attenuation_{ADC_ATTEN_DB_0};
-  adc1_channel_t channel1_{ADC1_CHANNEL_MAX};
-  adc2_channel_t channel2_{ADC2_CHANNEL_MAX};
-#if ESP_IDF_VERSION_MAJOR >= 5
   esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
-#else
-  esp_adc_cal_characteristics_t cal_characteristics_[ADC_ATTEN_MAX] = {};
-#endif  // ESP_IDF_VERSION_MAJOR >= 5
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #endif  // USE_ESP32
 
 #ifdef USE_RP2040

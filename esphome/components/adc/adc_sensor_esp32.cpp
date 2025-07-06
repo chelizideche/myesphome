@@ -3,8 +3,6 @@
 #include "adc_sensor.h"
 #include "esphome/core/log.h"
 
-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
-
 namespace esphome {
 namespace adc {
 
@@ -389,5 +387,4 @@ float ADCSensor::sample() {
 }  // namespace adc
 }  // namespace esphome
 
-#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #endif  // USE_ESP32
