@@ -137,16 +137,16 @@ class Scheduler {
   void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
                          uint32_t delay, std::function<void()> func);
 
-  // Helper to cancel items by name - must be called with lock held
-  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
-
   uint64_t millis_();
   void cleanup_();
   void pop_raw_();
-  // Common implementation for cancel operations
-  bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
  private:
+  // Helper to cancel items by name - must be called with lock held
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
+
+  // Common implementation for cancel operations
+  bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);
 
