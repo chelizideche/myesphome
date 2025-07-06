@@ -61,12 +61,12 @@ def final_validate_config(config):
     if CORE.is_esp32:
         # Check ESP-IDF version
         from esphome.core import KEY_CORE, KEY_FRAMEWORK_VERSION
-        try:
+        if (hasattr(CORE, 'data') and CORE.data and 
+            KEY_CORE in CORE.data and 
+            KEY_FRAMEWORK_VERSION in CORE.data[KEY_CORE]):
             version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
-            if version.major < 5:
+            if hasattr(version, 'major') and version.major < 5:
                 raise cv.Invalid(f"ADC requires ESP-IDF v5.0+, got v{version}")
-        except:
-            pass  # If can't check version, just continue
 
         variant = get_esp32_variant()
         if (
