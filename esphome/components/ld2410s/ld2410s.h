@@ -197,7 +197,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
 
   void process_short_data_frame_(uint8_t *data);
-  void process_data_frame_(uint8_t *data);
+  void process_data_frame_(uint8_t *data, size_t data_size);
   void process_cmd_frame_(uint8_t *buffer, size_t len);
 
   CmdAckT parse_cms_frame_(uint8_t *buffer, size_t length);
