@@ -186,7 +186,7 @@ void Logger::loop() {
                                   this->tx_buffer_size_);
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
       this->tx_buffer_[this->tx_buffer_at_] = '\0';
-      size_t msg_len = strlen(this->tx_buffer_);  // Need strlen here since we don't store length in queued messages
+      size_t msg_len = this->tx_buffer_at_;  // We already know the length from tx_buffer_at_
       this->log_callback_.call(message->level, message->tag, this->tx_buffer_, msg_len);
       // At this point all the data we need from message has been transferred to the tx_buffer
       // so we can release the message to allow other tasks to use it as soon as possible.
