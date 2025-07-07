@@ -9,6 +9,9 @@ namespace factory_reset {
 class FactoryResetSwitch : public switch_::Switch, public Component {
  public:
   void dump_config() override;
+#ifdef USE_OPENTHREAD
+  void loop() override;
+#endif
 
  protected:
   void write_state(bool state) override;

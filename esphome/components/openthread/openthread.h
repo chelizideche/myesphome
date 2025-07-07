@@ -6,6 +6,8 @@
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/component.h"
 
+#include <openthread/srp_client.h>
+#include <openthread/srp_client_buffers.h>
 #include <openthread/thread.h>
 
 #include <optional>
@@ -21,15 +23,20 @@ class OpenThreadComponent : public Component {
   OpenThreadComponent();
   ~OpenThreadComponent();
   void setup() override;
+  bool teardown() override;
   float get_setup_priority() const override { return setup_priority::WIFI; }
 
   bool is_connected();
   network::IPAddresses get_ip_addresses();
   std::optional<otIp6Address> get_omr_address();
   void ot_main();
+  void on_factory_reset();
+  bool factory_reset_ready{false};
 
  protected:
   std::optional<otIp6Address> get_omr_address_(InstanceLock &lock);
+  bool teardown_started_{false};
+  bool teardown_complete_{false};
 };
 
 extern OpenThreadComponent *global_openthread_component;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -40,6 +47,12 @@ class OpenThreadSrpComponent : public Component {
   // This has to run after the mdns component or else no services are available to advertise
   float get_setup_priority() const override { return this->mdns_->get_setup_priority() - 1.0; }
   void setup() override;
+  static void srp_callback(otError err, const otSrpClientHostInfo *host_info, const otSrpClientService *services,
+                           const otSrpClientService *removed_services, void *context);
+  static void srp_start_callback(const otSockAddr *server_socket_address, void *context);
+  static void srp_factory_reset_callback(otError err, const otSrpClientHostInfo *host_info,
+                                         const otSrpClientService *services, const otSrpClientService *removed_services,
+                                         void *context);
 
  protected:
   esphome::mdns::MDNSComponent *mdns_{nullptr};

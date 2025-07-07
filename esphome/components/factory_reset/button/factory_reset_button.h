@@ -9,6 +9,9 @@ namespace factory_reset {
 class FactoryResetButton : public button::Button, public Component {
  public:
   void dump_config() override;
+#ifdef USE_OPENTHREAD
+  void loop() override;
+#endif
 
  protected:
   void press_action() override;
