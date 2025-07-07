@@ -1194,7 +1194,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
   /**
    * Sets which page Nextion loads when exiting sleep mode. Note this can be set even when Nextion is in sleep mode.
-   * @param wake_up_page The page id, from 0 to the last page in Nextion. Set -1 (not set to any existing page) to
+   * @param wake_up_page The page id, from 0 to the last page in Nextion. Set 255 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
@@ -1204,11 +1204,12 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    *
    * The display will wake up to page 2.
    */
-  void set_wake_up_page(int16_t wake_up_page = -1);
+  void set_wake_up_page(uint8_t wake_up_page = 255);
 
+#ifdef USE_NEXTION_CONF_START_UP_PAGE
   /**
    * Sets which page Nextion loads when connecting to ESPHome.
-   * @param start_up_page The page id, from 0 to the last page in Nextion. Set -1 (not set to any existing page) to
+   * @param start_up_page The page id, from 0 to the last page in Nextion. Set 255 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
@@ -1218,7 +1219,8 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    *
    * The display will go to page 2 when it establishes a connection to ESPHome.
    */
-  void set_start_up_page(int16_t start_up_page = -1) { this->start_up_page_ = start_up_page; }
+  void set_start_up_page(uint8_t start_up_page = 255) { this->start_up_page_ = start_up_page; }
+#endif  // USE_NEXTION_CONF_START_UP_PAGE
 
   /**
    * Sets if Nextion should auto-wake from sleep when touch press occurs.
@@ -1300,7 +1302,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * @return true if the Nextion display is connected and ready to receive commands
    * @return false if the display is not yet connected or connection was lost
    */
-  bool is_connected() { return this->is_connected_; }
+  bool is_connected() { return this->connection_state_.is_connected_; }
 
  protected:
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
@@ -1334,19 +1336,28 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   bool remove_from_q_(bool report_empty = true);
 
   /**
-   * @brief
-   * Sends commands ignoring of the Nextion has been setup.
+   * @brief Status flags for Nextion display state management
+   *
+   * Uses bitfields to pack multiple boolean states into a single byte,
+   * saving 5 bytes of RAM compared to individual bool variables.
    */
-  bool ignore_is_setup_ = false;
+  struct {
+    uint8_t is_connected_ : 1;              ///< Connection established with Nextion display
+    uint8_t sent_setup_commands_ : 1;       ///< Initial setup commands have been sent
+    uint8_t ignore_is_setup_ : 1;           ///< Temporarily ignore setup state for special operations
+    uint8_t nextion_reports_is_setup_ : 1;  ///< Nextion has reported successful initialization
+    uint8_t is_updating_ : 1;               ///< TFT firmware update is currently in progress
+    uint8_t auto_wake_on_touch_ : 1;        ///< Display should wake automatically on touch (default: true)
+    uint8_t reserved_ : 2;                  ///< Reserved bits for future flag additions
+  } connection_state_{};                    ///< Zero-initialized status flags (all start as false)
 
-  bool nextion_reports_is_setup_ = false;
   void process_nextion_commands_();
   void process_serial_();
-  bool is_updating_ = false;
   uint16_t touch_sleep_timeout_ = 0;
-  int16_t wake_up_page_ = -1;
-  int16_t start_up_page_ = -1;
-  bool auto_wake_on_touch_ = true;
+  uint8_t wake_up_page_ = 255;
+#ifdef USE_NEXTION_CONF_START_UP_PAGE
+  uint8_t start_up_page_ = 255;
+#endif  // USE_NEXTION_CONF_START_UP_PAGE
   bool exit_reparse_on_start_ = false;
   bool skip_connection_handshake_ = false;
 
@@ -1468,11 +1479,9 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void reset_(bool reset_nextion = true);
 
   std::string command_data_;
-  bool is_connected_ = false;
   const uint16_t startup_override_ms_ = 8000;
   const uint16_t max_q_age_ms_ = 8000;
   uint32_t started_ms_ = 0;
-  bool sent_setup_commands_ = false;
 };
 
 }  // namespace nextion
