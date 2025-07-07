@@ -303,7 +303,7 @@ class APIConnection : public APIServerConnection {
 
 #ifdef USE_VOICE_ASSISTANT
   // Helper to check voice assistant validity and connection ownership
-  bool check_voice_assistant_api_connection_() const;
+  inline bool check_voice_assistant_api_connection_() const;
 #endif
 
   // Helper method to process multiple entities from an iterator in a batch
