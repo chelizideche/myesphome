@@ -185,6 +185,12 @@ class Scheduler {
     return item->remove || (item->component != nullptr && item->component->is_failed());
   }
 
+  // Check if the scheduler has no items.
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  // It performs cleanup of removed items and checks if the queue is empty.
+  // The items_.empty() check at the end is done without a lock for performance,
+  // which is safe because this is only called from the main thread while other
+  // threads only add items (never remove them).
   bool empty_() {
     this->cleanup_();
     return this->items_.empty();
@@ -202,7 +208,7 @@ class Scheduler {
 #endif
   uint32_t last_millis_{0};
   uint16_t millis_major_{0};
-  uint32_t to_remove_{0};
+  volatile uint32_t to_remove_{0};
 };
 
 }  // namespace esphome

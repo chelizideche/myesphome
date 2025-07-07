@@ -383,17 +383,27 @@ void HOT Scheduler::process_to_add() {
   this->to_add_.clear();
 }
 void HOT Scheduler::cleanup_() {
+  // Fast path: if nothing to remove, just return
+  // Reading to_remove_ without lock is safe because:
+  // 1. It's volatile, ensuring we read the latest value
+  // 2. If it's 0, there's definitely nothing to cleanup
+  // 3. If it becomes non-zero after we check, cleanup will happen next time
+  if (this->to_remove_ == 0)
+    return;
+
+  // We must hold the lock for the entire cleanup operation because:
+  // 1. We're modifying items_ (via pop_raw_) which other threads may be reading/writing
+  // 2. We're decrementing to_remove_ which must be synchronized with increments
+  // 3. We need a consistent view of items_ throughout the iteration
+  // 4. Other threads might be adding items or modifying the heap structure
+  // Without the lock, we could have race conditions leading to crashes or corruption
+  LockGuard guard{this->lock_};
   while (!this->items_.empty()) {
     auto &item = this->items_[0];
     if (!item->remove)
       return;
-
     this->to_remove_--;
-
-    {
-      LockGuard guard{this->lock_};
-      this->pop_raw_();
-    }
+    this->pop_raw_();
   }
 }
 void HOT Scheduler::pop_raw_() {
