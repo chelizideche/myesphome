@@ -398,7 +398,9 @@ void HOT Scheduler::cleanup_() {
   // Reading to_remove_ without lock is safe because:
   // 1. We only call this from the main thread during call()
   // 2. If it's 0, there's definitely nothing to cleanup
-  // 3. If it becomes non-zero after we check, cleanup will happen next time
+  // 3. If it becomes non-zero after we check, cleanup will happen on the next loop iteration
+  // 4. Not all platforms support atomics, so we accept this race in favor of performance
+  // 5. The worst case is a one-loop-iteration delay in cleanup, which is harmless
   if (this->to_remove_ == 0)
     return;
 

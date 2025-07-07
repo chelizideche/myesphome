@@ -163,7 +163,10 @@ class Scheduler {
     if (item_name == nullptr) {
       return false;
     }
-    // Fast path: if pointers are equal (common with string deduplication)
+    // Fast path: if pointers are equal
+    // This is effective because the core ESPHome codebase uses static strings (const char*)
+    // for component names. The std::string overloads exist only for compatibility with
+    // external components, but are rarely used in practice.
     if (item_name == name_cstr) {
       return true;
     }
