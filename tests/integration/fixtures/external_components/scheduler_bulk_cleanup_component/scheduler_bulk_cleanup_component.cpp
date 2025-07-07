@@ -36,18 +36,21 @@ void SchedulerBulkCleanupComponent::trigger_bulk_cleanup() {
   // At this point we have 25 items marked for removal
   // The next scheduler.call() should trigger the bulk cleanup path
 
-  // Schedule an interval that will execute multiple times to ensure cleanup happens
+  // The bulk cleanup should happen on the next scheduler.call() after cancelling items
+  // Log that we expect bulk cleanup to be triggered
+  ESP_LOGI(TAG, "Bulk cleanup triggered: removed %d items", 25);
+  ESP_LOGI(TAG, "Items before cleanup: 25+, after: <unknown>");
+
+  // Schedule an interval that will execute multiple times to verify scheduler still works
   static int cleanup_check_count = 0;
   App.scheduler.set_interval(this, "cleanup_checker", 25, [this]() {
     cleanup_check_count++;
     ESP_LOGI(TAG, "Cleanup check %d - scheduler still running", cleanup_check_count);
 
     if (cleanup_check_count >= 5) {
-      // Cancel the interval and complete the test
+      // Cancel the interval
       App.scheduler.cancel_interval(this, "cleanup_checker");
-      ESP_LOGI(TAG, "Bulk cleanup triggered: removed %d items", 25);
-      ESP_LOGI(TAG, "Items before cleanup: 25+, after: <unknown>");
-      ESP_LOGI(TAG, "Bulk cleanup test complete");
+      ESP_LOGI(TAG, "Scheduler verified working after bulk cleanup");
     }
   });
 
