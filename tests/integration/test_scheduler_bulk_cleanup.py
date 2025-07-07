@@ -37,9 +37,10 @@ async def test_scheduler_bulk_cleanup(
         "before": 0,
         "after": 0,
     }
+    post_cleanup_executed = 0
 
     def on_log_line(line: str) -> None:
-        nonlocal bulk_cleanup_triggered
+        nonlocal bulk_cleanup_triggered, post_cleanup_executed
 
         # Look for logs indicating bulk cleanup was triggered
         # The actual cleanup happens silently, so we track the cancel operations
@@ -58,9 +59,19 @@ async def test_scheduler_bulk_cleanup(
             cleanup_stats["before"] = int(match.group(1))
             cleanup_stats["after"] = int(match.group(2))
 
-        # Check for test completion
-        if "Bulk cleanup test complete" in line and not test_complete_future.done():
-            test_complete_future.set_result(None)
+        # Track post-cleanup timeout executions
+        if "Post-cleanup timeout" in line and "executed correctly" in line:
+            match = re.search(r"Post-cleanup timeout (\d+) executed correctly", line)
+            if match:
+                post_cleanup_executed += 1
+                # All 5 post-cleanup timeouts have executed
+                if post_cleanup_executed >= 5 and not test_complete_future.done():
+                    test_complete_future.set_result(None)
+
+        # Check for bulk cleanup completion (but don't end test yet)
+        if "Bulk cleanup test complete" in line:
+            # This just means the interval finished, not that all timeouts executed
+            pass
 
     async with (
         run_compiled(yaml_config, line_callback=on_log_line),
@@ -104,4 +115,9 @@ async def test_scheduler_bulk_cleanup(
         # Verify cleanup statistics
         assert cleanup_stats["removed"] > 10, (
             f"Expected more than 10 items removed, got {cleanup_stats['removed']}"
+        )
+
+        # Verify scheduler still works after bulk cleanup
+        assert post_cleanup_executed == 5, (
+            f"Expected 5 post-cleanup timeouts to execute, but {post_cleanup_executed} executed"
         )

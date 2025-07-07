@@ -16,7 +16,7 @@ void SchedulerBulkCleanupComponent::trigger_bulk_cleanup() {
   ESP_LOGI(TAG, "Scheduling 25 timeouts...");
   for (int i = 0; i < 25; i++) {
     std::string name = "bulk_timeout_" + std::to_string(i);
-    App.scheduler.set_timeout(this, name, 10000, [i]() {
+    App.scheduler.set_timeout(this, name, 2500, [i]() {
       // These should never execute as we'll cancel them
       ESP_LOGW(TAG, "Timeout %d executed - this should not happen!", i);
     });
@@ -38,7 +38,7 @@ void SchedulerBulkCleanupComponent::trigger_bulk_cleanup() {
 
   // Schedule an interval that will execute multiple times to ensure cleanup happens
   static int cleanup_check_count = 0;
-  App.scheduler.set_interval(this, "cleanup_checker", 100, [this]() {
+  App.scheduler.set_interval(this, "cleanup_checker", 25, [this]() {
     cleanup_check_count++;
     ESP_LOGI(TAG, "Cleanup check %d - scheduler still running", cleanup_check_count);
 
@@ -54,7 +54,7 @@ void SchedulerBulkCleanupComponent::trigger_bulk_cleanup() {
   // Also schedule some normal timeouts to ensure scheduler keeps working after cleanup
   for (int i = 0; i < 5; i++) {
     std::string name = "post_cleanup_" + std::to_string(i);
-    App.scheduler.set_timeout(this, name, 200 + i * 100,
+    App.scheduler.set_timeout(this, name, 50 + i * 25,
                               [i]() { ESP_LOGI(TAG, "Post-cleanup timeout %d executed correctly", i); });
   }
 }
