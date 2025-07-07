@@ -86,6 +86,8 @@ class HttpContainer : public Parented<HttpRequestComponent> {
  public:
   virtual ~HttpContainer() = default;
   size_t content_length;
+  bool response_chunked = false;
+
   int status_code;
   uint32_t duration_ms;
 
@@ -234,19 +236,39 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       return;
     }
 
-    size_t content_length = container->content_length;
-    size_t max_length = std::min(content_length, this->max_response_buffer_size_);
+    size_t max_length = this->max_response_buffer_size_;
+    // For chunked responses we don't know the size of the chunk yet so make the buffer which will hold the response
+    // body as large as possible and handle the decoding in 'read'
+    if (!container->response_chunked) {
+      max_length = std::min(container->content_length, this->max_response_buffer_size_);
+    }
 
     std::string response_body;
     if (this->capture_response_.value(x...)) {
       RAMAllocator<uint8_t> allocator;
       uint8_t *buf = allocator.allocate(max_length);
       if (buf != nullptr) {
+        // // temporary initialiser for debugging (i.e. printing as a string)
+        // for (int i=0; i<max_length; i++) {
+        //   *(buf + i) = 0x0;
+        // }
         size_t read_index = 0;
-        while (container->get_bytes_read() < max_length) {
-          int read = container->read(buf + read_index, std::min<size_t>(max_length - read_index, 512));
+        // Prevent loop getting stuck
+        // 'read' will not increment if there are no more bytes to read
+        int last_read_index = -1;
+        while (container->get_bytes_read() < max_length && read_index != last_read_index) {
+          last_read_index = read_index;
+          if (max_length <= read_index) {
+            // Read buffer too small
+            break;
+          }
+          int read = container->read(buf + read_index, max_length - read_index);
           App.feed_wdt();
           yield();
+          if (read < 0) {
+            // Read error from http client
+            break;
+          }
           read_index += read;
         }
         response_body.reserve(read_index);
@@ -255,6 +277,10 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       }
     }
 
+    if (container->response_chunked) {
+      // update the content_length with the total of the decoded chunks that were received
+      container->content_length = response_body.length();
+    }
     if (this->response_triggers_.size() == 1) {
       // if there is only one trigger, no need to copy the response body
       this->response_triggers_[0]->process(container, response_body);

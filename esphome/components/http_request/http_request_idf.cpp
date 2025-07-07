@@ -1,5 +1,4 @@
 #include "http_request_idf.h"
-
 #ifdef USE_ESP_IDF
 
 #include "esphome/components/network/util.h"
@@ -31,6 +30,42 @@ void HttpRequestIDF::dump_config() {
                 "  Buffer Size TX: %u",
                 this->buffer_size_rx_, this->buffer_size_tx_);
 }
+//#define DEBUG_IDF 1
+#if DEBUG_IDF
+esp_err_t _http_event_handle(esp_http_client_event_t *evt) {
+  switch (evt->event_id) {
+    case HTTP_EVENT_ERROR:
+      ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
+      break;
+    case HTTP_EVENT_ON_CONNECTED:
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+      break;
+    case HTTP_EVENT_HEADER_SENT:
+      ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+      break;
+    case HTTP_EVENT_ON_HEADER:
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+      break;
+    case HTTP_EVENT_ON_DATA:
+      if (esp_http_client_is_chunked_response(evt->client)) {
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, chunked, len=%d", evt->data_len);
+      } else {
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, not chunked, len=%d, '%s'", evt->data_len, (char *) evt->data);
+      }
+      break;
+    case HTTP_EVENT_ON_FINISH:
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+      break;
+    case HTTP_EVENT_DISCONNECTED:
+      ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+      break;
+      // case HTTP_EVENT_REDIRECT:
+      //     ESP_LOGD(TAG, "HTTP_EVENT_REDIRECT");
+      //     break;
+  }
+  return ESP_OK;
+}
+#endif
 
 esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   UserData *user_data = (UserData *) evt->user_data;
@@ -88,6 +123,9 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   config.disable_auto_redirect = !this->follow_redirects_;
   config.max_redirection_count = this->redirect_limit_;
   config.auth_type = HTTP_AUTH_TYPE_BASIC;
+#if DEBUG_IDF
+  config.event_handler = _http_event_handle;
+#endif
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
   if (secure) {
     config.crt_bundle_attach = esp_crt_bundle_attach;
@@ -152,10 +190,22 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   }
 
   container->feed_wdt();
+
+  // calling esp_http_client_fetch_headers can result in a
+  // "HTTP_CLIENT: Body received in fetch header state, 0xXXXXXXX, nnn" message
+  // nnn is the size of the body retrieved
+  // Even though this client already has the response body it still
+  // needs to be "read"
   container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
+
+  // Check for a chunked response where the content length could be 0 or negative
+  if (esp_http_client_is_chunked_response(client)) {
+    container->response_chunked = true;
+  }
+
   container->set_response_headers(user_data.response_headers);
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
@@ -191,6 +241,11 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
       container->feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       container->feed_wdt();
+
+      // Check for a chunked response where the content length could be 0 or negative
+      if (esp_http_client_is_chunked_response(client)) {
+        container->response_chunked = true;
+      }
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
@@ -213,15 +268,22 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   const uint32_t start = millis();
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
 
-  int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  int max_chars_to_read = 0;
+  if (this->response_chunked) {
+    // we don't know how many bytes the server will send with trandfer-encoding chunked
+    // so set the read limit as large as possible
+    max_chars_to_read = max_len;
+  } else {
+    max_chars_to_read = std::min(max_len, this->content_length - this->bytes_read_);
+  }
 
-  if (bufsize == 0) {
+  if (max_chars_to_read == 0) {
     this->duration_ms += (millis() - start);
     return 0;
   }
 
   this->feed_wdt();
-  int read_len = esp_http_client_read(this->client_, (char *) buf, bufsize);
+  int read_len = esp_http_client_read(this->client_, (char *) buf, max_chars_to_read);
   this->feed_wdt();
   this->bytes_read_ += read_len;
 
