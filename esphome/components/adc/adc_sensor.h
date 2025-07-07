@@ -7,59 +7,27 @@
 #include "esphome/core/hal.h"
 
 #ifdef USE_ESP32
-#include "hal/adc_types.h"  // This defines ADC_CHANNEL_MAX
-#include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
-#include "driver/adc_types_legacy.h"
-#endif  // USE_ESP32
+#include "esp_adc/adc_oneshot.h"
+#include "hal/adc_types.h"  // This defines ADC_CHANNEL_MAX
+#endif                      // USE_ESP32
 
 namespace esphome {
 namespace adc {
 
 #ifdef USE_ESP32
-// Map old channel names to new ones for compatibility, if needed
-#ifndef ADC1_CHANNEL_0
-#define ADC1_CHANNEL_0 ADC_CHANNEL_0
-#define ADC1_CHANNEL_1 ADC_CHANNEL_1
-#define ADC1_CHANNEL_2 ADC_CHANNEL_2
-#define ADC1_CHANNEL_3 ADC_CHANNEL_3
-#define ADC1_CHANNEL_4 ADC_CHANNEL_4
-#define ADC1_CHANNEL_5 ADC_CHANNEL_5
-#define ADC1_CHANNEL_6 ADC_CHANNEL_6
-#define ADC1_CHANNEL_7 ADC_CHANNEL_7
-#endif  // ADC1_CHANNEL_0
-
-#ifndef ADC1_CHANNEL_MAX
-#ifdef ADC_CHANNEL_MAX
-#define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
-#else   // ADC_CHANNEL_MAX
-constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
-#endif  // ADC_CHANNEL_MAX
-#endif  // ADC1_CHANNEL_MAX
-
-#ifndef ADC2_CHANNEL_0
-#define ADC2_CHANNEL_0 ADC_CHANNEL_0
-#define ADC2_CHANNEL_1 ADC_CHANNEL_1
-#define ADC2_CHANNEL_2 ADC_CHANNEL_2
-#define ADC2_CHANNEL_3 ADC_CHANNEL_3
-#define ADC2_CHANNEL_4 ADC_CHANNEL_4
-#define ADC2_CHANNEL_5 ADC_CHANNEL_5
-#define ADC2_CHANNEL_6 ADC_CHANNEL_6
-#define ADC2_CHANNEL_7 ADC_CHANNEL_7
-#define ADC2_CHANNEL_8 ADC_CHANNEL_8
-#define ADC2_CHANNEL_9 ADC_CHANNEL_9
-#endif  // ADC2_CHANNEL_0
-
-#ifndef ADC2_CHANNEL_MAX
-#ifdef ADC_CHANNEL_MAX
-#define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
-#else   // ADC_CHANNEL_MAX
-constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
-#endif  // ADC_CHANNEL_MAX
-#endif  // ADC2_CHANNEL_MAX
-
+// clang-format off
+#if (ESP_IDF_VERSION_MAJOR == 5 && \
+     ((ESP_IDF_VERSION_MINOR == 0 && ESP_IDF_VERSION_PATCH >= 5) || \
+      (ESP_IDF_VERSION_MINOR == 1 && ESP_IDF_VERSION_PATCH >= 3) || \
+      (ESP_IDF_VERSION_MINOR >= 2)) \
+    )
+// clang-format on
 static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_12;
+#else
+static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
+#endif
 #endif  // USE_ESP32
 
 enum class SamplingMode : uint8_t {
@@ -134,28 +102,14 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// This determines how the ADC interprets input voltages, allowing for greater precision
   /// or the ability to measure higher voltages depending on the chosen attenuation level.
   /// @param attenuation The desired ADC attenuation level (e.g., ADC_ATTEN_DB_0, ADC_ATTEN_DB_11).
-  void set_attenuation(adc_atten_t attenuation) {
-    this->attenuation_ = attenuation;
-    this->do_setup_ = true;
-  }
+  void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
 
   /// Configure the ADC to use a specific channel on ADC1.
   /// This sets the channel for single-shot or continuous ADC measurements.
   /// @param channel The ADC1 channel to configure, such as ADC_CHANNEL_0, ADC_CHANNEL_3, etc.
-  void set_channel1(adc_channel_t channel) {
+  void set_channel(adc_unit_t unit, adc_channel_t channel) {
+    this->adc_unit_ = unit;
     this->channel_ = channel;
-    this->is_adc1_ = true;
-    this->do_setup_ = true;
-  }
-
-  /// Configure the ADC to use a specific channel on ADC2.
-  /// This sets the channel for single-shot or continuous ADC measurements.
-  /// ADC2 is shared with other peripherals, so care must be taken to avoid conflicts.
-  /// @param channel The ADC2 channel to configure, such as ADC_CHANNEL_0, ADC_CHANNEL_3, etc.
-  void set_channel2(adc_channel_t channel) {
-    this->channel_ = channel;
-    this->is_adc1_ = false;
-    this->do_setup_ = true;
   }
 
   /// Set whether autoranging should be enabled for the ADC.
@@ -179,20 +133,22 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   SamplingMode sampling_mode_{SamplingMode::AVG};
 
 #ifdef USE_ESP32
+  float sample_autorange_();
+  float sample_fixed_attenuation_();
   bool autorange_{false};
-  adc_oneshot_unit_handle_t adc1_handle_{nullptr};
-  adc_oneshot_unit_handle_t adc2_handle_{nullptr};
+  adc_oneshot_unit_handle_t adc_handle_{nullptr};
   adc_cali_handle_t calibration_handle_{nullptr};
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
   adc_channel_t channel_;
-  bool is_adc1_{true};
-  bool do_setup_{false};
-  bool init_complete_{false};
-  bool config_complete_{false};
-  bool handle_init_complete_{false};
-  bool calibration_complete_{false};
-  static adc_oneshot_unit_handle_t shared_adc1_handle;
-  static adc_oneshot_unit_handle_t shared_adc2_handle;
+  adc_unit_t adc_unit_;
+  struct SetupFlags {
+    uint8_t init_complete : 1;
+    uint8_t config_complete : 1;
+    uint8_t handle_init_complete : 1;
+    uint8_t calibration_complete : 1;
+    uint8_t reserved : 4;
+  } setup_flags_{};
+  static adc_oneshot_unit_handle_t shared_adc_handles[2];
 #endif  // USE_ESP32
 
 #ifdef USE_RP2040
