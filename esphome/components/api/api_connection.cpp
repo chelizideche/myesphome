@@ -42,6 +42,19 @@ static const char *const TAG = "api.connection";
 static const int CAMERA_STOP_STREAM = 5000;
 #endif
 
+// Helper macro for entity command handlers - gets entity by key, returns if not found, and creates call object
+#define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
+  if ((entity_var) == nullptr) \
+    return; \
+  auto call = (entity_var)->make_call();
+
+// Helper macro for entity command handlers that don't use make_call() - gets entity by key and returns if not found
+#define ENTITY_COMMAND_GET(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
+  if ((entity_var) == nullptr) \
+    return;
+
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
@@ -361,11 +374,7 @@ uint16_t APIConnection::try_send_cover_info(EntityBase *entity, APIConnection *c
   return encode_message_to_buffer(msg, ListEntitiesCoverResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::cover_command(const CoverCommandRequest &msg) {
-  cover::Cover *cover = App.get_cover_by_key(msg.key);
-  if (cover == nullptr)
-    return;
-
-  auto call = cover->make_call();
+  ENTITY_COMMAND_MAKE_CALL(cover::Cover, cover, cover)
   if (msg.has_legacy_command) {
     switch (msg.legacy_command) {
       case enums::LEGACY_COVER_COMMAND_OPEN:
@@ -427,11 +436,7 @@ uint16_t APIConnection::try_send_fan_info(EntityBase *entity, APIConnection *con
   return encode_message_to_buffer(msg, ListEntitiesFanResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::fan_command(const FanCommandRequest &msg) {
-  fan::Fan *fan = App.get_fan_by_key(msg.key);
-  if (fan == nullptr)
-    return;
-
-  auto call = fan->make_call();
+  ENTITY_COMMAND_MAKE_CALL(fan::Fan, fan, fan)
   if (msg.has_state)
     call.set_state(msg.state);
   if (msg.has_oscillating)
@@ -504,11 +509,7 @@ uint16_t APIConnection::try_send_light_info(EntityBase *entity, APIConnection *c
   return encode_message_to_buffer(msg, ListEntitiesLightResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::light_command(const LightCommandRequest &msg) {
-  light::LightState *light = App.get_light_by_key(msg.key);
-  if (light == nullptr)
-    return;
-
-  auto call = light->make_call();
+  ENTITY_COMMAND_MAKE_CALL(light::LightState, light, light)
   if (msg.has_state)
     call.set_state(msg.state);
   if (msg.has_brightness)
@@ -597,9 +598,7 @@ uint16_t APIConnection::try_send_switch_info(EntityBase *entity, APIConnection *
   return encode_message_to_buffer(msg, ListEntitiesSwitchResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::switch_command(const SwitchCommandRequest &msg) {
-  switch_::Switch *a_switch = App.get_switch_by_key(msg.key);
-  if (a_switch == nullptr)
-    return;
+  ENTITY_COMMAND_GET(switch_::Switch, a_switch, switch)
 
   if (msg.state) {
     a_switch->turn_on();
@@ -708,11 +707,7 @@ uint16_t APIConnection::try_send_climate_info(EntityBase *entity, APIConnection 
   return encode_message_to_buffer(msg, ListEntitiesClimateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::climate_command(const ClimateCommandRequest &msg) {
-  climate::Climate *climate = App.get_climate_by_key(msg.key);
-  if (climate == nullptr)
-    return;
-
-  auto call = climate->make_call();
+  ENTITY_COMMAND_MAKE_CALL(climate::Climate, climate, climate)
   if (msg.has_mode)
     call.set_mode(static_cast<climate::ClimateMode>(msg.mode));
   if (msg.has_target_temperature)
@@ -767,11 +762,7 @@ uint16_t APIConnection::try_send_number_info(EntityBase *entity, APIConnection *
   return encode_message_to_buffer(msg, ListEntitiesNumberResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::number_command(const NumberCommandRequest &msg) {
-  number::Number *number = App.get_number_by_key(msg.key);
-  if (number == nullptr)
-    return;
-
-  auto call = number->make_call();
+  ENTITY_COMMAND_MAKE_CALL(number::Number, number, number)
   call.set_value(msg.state);
   call.perform();
 }
@@ -801,11 +792,7 @@ uint16_t APIConnection::try_send_date_info(EntityBase *entity, APIConnection *co
   return encode_message_to_buffer(msg, ListEntitiesDateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::date_command(const DateCommandRequest &msg) {
-  datetime::DateEntity *date = App.get_date_by_key(msg.key);
-  if (date == nullptr)
-    return;
-
-  auto call = date->make_call();
+  ENTITY_COMMAND_MAKE_CALL(datetime::DateEntity, date, date)
   call.set_date(msg.year, msg.month, msg.day);
   call.perform();
 }
@@ -835,11 +822,7 @@ uint16_t APIConnection::try_send_time_info(EntityBase *entity, APIConnection *co
   return encode_message_to_buffer(msg, ListEntitiesTimeResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::time_command(const TimeCommandRequest &msg) {
-  datetime::TimeEntity *time = App.get_time_by_key(msg.key);
-  if (time == nullptr)
-    return;
-
-  auto call = time->make_call();
+  ENTITY_COMMAND_MAKE_CALL(datetime::TimeEntity, time, time)
   call.set_time(msg.hour, msg.minute, msg.second);
   call.perform();
 }
@@ -871,11 +854,7 @@ uint16_t APIConnection::try_send_datetime_info(EntityBase *entity, APIConnection
   return encode_message_to_buffer(msg, ListEntitiesDateTimeResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
-  datetime::DateTimeEntity *datetime = App.get_datetime_by_key(msg.key);
-  if (datetime == nullptr)
-    return;
-
-  auto call = datetime->make_call();
+  ENTITY_COMMAND_MAKE_CALL(datetime::DateTimeEntity, datetime, datetime)
   call.set_datetime(msg.epoch_seconds);
   call.perform();
 }
@@ -909,11 +888,7 @@ uint16_t APIConnection::try_send_text_info(EntityBase *entity, APIConnection *co
   return encode_message_to_buffer(msg, ListEntitiesTextResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::text_command(const TextCommandRequest &msg) {
-  text::Text *text = App.get_text_by_key(msg.key);
-  if (text == nullptr)
-    return;
-
-  auto call = text->make_call();
+  ENTITY_COMMAND_MAKE_CALL(text::Text, text, text)
   call.set_value(msg.state);
   call.perform();
 }
@@ -945,11 +920,7 @@ uint16_t APIConnection::try_send_select_info(EntityBase *entity, APIConnection *
   return encode_message_to_buffer(msg, ListEntitiesSelectResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::select_command(const SelectCommandRequest &msg) {
-  select::Select *select = App.get_select_by_key(msg.key);
-  if (select == nullptr)
-    return;
-
-  auto call = select->make_call();
+  ENTITY_COMMAND_MAKE_CALL(select::Select, select, select)
   call.set_option(msg.state);
   call.perform();
 }
@@ -966,10 +937,7 @@ uint16_t APIConnection::try_send_button_info(EntityBase *entity, APIConnection *
   return encode_message_to_buffer(msg, ListEntitiesButtonResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg) {
-  button::Button *button = App.get_button_by_key(msg.key);
-  if (button == nullptr)
-    return;
-
+  ENTITY_COMMAND_GET(button::Button, button, button)
   button->press();
 }
 #endif
@@ -1000,9 +968,7 @@ uint16_t APIConnection::try_send_lock_info(EntityBase *entity, APIConnection *co
   return encode_message_to_buffer(msg, ListEntitiesLockResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::lock_command(const LockCommandRequest &msg) {
-  lock::Lock *a_lock = App.get_lock_by_key(msg.key);
-  if (a_lock == nullptr)
-    return;
+  ENTITY_COMMAND_GET(lock::Lock, a_lock, lock)
 
   switch (msg.command) {
     case enums::LOCK_UNLOCK:
@@ -1045,11 +1011,7 @@ uint16_t APIConnection::try_send_valve_info(EntityBase *entity, APIConnection *c
   return encode_message_to_buffer(msg, ListEntitiesValveResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::valve_command(const ValveCommandRequest &msg) {
-  valve::Valve *valve = App.get_valve_by_key(msg.key);
-  if (valve == nullptr)
-    return;
-
-  auto call = valve->make_call();
+  ENTITY_COMMAND_MAKE_CALL(valve::Valve, valve, valve)
   if (msg.has_position)
     call.set_position(msg.position);
   if (msg.stop)
@@ -1096,11 +1058,7 @@ uint16_t APIConnection::try_send_media_player_info(EntityBase *entity, APIConnec
   return encode_message_to_buffer(msg, ListEntitiesMediaPlayerResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::media_player_command(const MediaPlayerCommandRequest &msg) {
-  media_player::MediaPlayer *media_player = App.get_media_player_by_key(msg.key);
-  if (media_player == nullptr)
-    return;
-
-  auto call = media_player->make_call();
+  ENTITY_COMMAND_MAKE_CALL(media_player::MediaPlayer, media_player, media_player)
   if (msg.has_command) {
     call.set_command(static_cast<media_player::MediaPlayerCommand>(msg.command));
   }
@@ -1218,66 +1176,53 @@ void APIConnection::bluetooth_scanner_set_mode(const BluetoothScannerSetModeRequ
 #endif
 
 #ifdef USE_VOICE_ASSISTANT
+bool APIConnection::check_voice_assistant_api_connection_() const {
+  return voice_assistant::global_voice_assistant != nullptr &&
+         voice_assistant::global_voice_assistant->get_api_connection() == this;
+}
+
 void APIConnection::subscribe_voice_assistant(const SubscribeVoiceAssistantRequest &msg) {
   if (voice_assistant::global_voice_assistant != nullptr) {
     voice_assistant::global_voice_assistant->client_subscription(this, msg.subscribe);
   }
 }
 void APIConnection::on_voice_assistant_response(const VoiceAssistantResponse &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
+  if (!this->check_voice_assistant_api_connection_()) {
+    return;
+  }
 
-    if (msg.error) {
-      voice_assistant::global_voice_assistant->failed_to_start();
-      return;
-    }
-    if (msg.port == 0) {
-      // Use API Audio
-      voice_assistant::global_voice_assistant->start_streaming();
-    } else {
-      struct sockaddr_storage storage;
-      socklen_t len = sizeof(storage);
-      this->helper_->getpeername((struct sockaddr *) &storage, &len);
-      voice_assistant::global_voice_assistant->start_streaming(&storage, msg.port);
-    }
+  if (msg.error) {
+    voice_assistant::global_voice_assistant->failed_to_start();
+    return;
+  }
+  if (msg.port == 0) {
+    // Use API Audio
+    voice_assistant::global_voice_assistant->start_streaming();
+  } else {
+    struct sockaddr_storage storage;
+    socklen_t len = sizeof(storage);
+    this->helper_->getpeername((struct sockaddr *) &storage, &len);
+    voice_assistant::global_voice_assistant->start_streaming(&storage, msg.port);
   }
 };
 void APIConnection::on_voice_assistant_event_response(const VoiceAssistantEventResponse &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
-
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_event(msg);
   }
 }
 void APIConnection::on_voice_assistant_audio(const VoiceAssistantAudio &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
-
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_audio(msg);
   }
 };
 void APIConnection::on_voice_assistant_timer_event_response(const VoiceAssistantTimerEventResponse &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
-
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_timer_event(msg);
   }
 };
 
 void APIConnection::on_voice_assistant_announce_request(const VoiceAssistantAnnounceRequest &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
-
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_announce(msg);
   }
 }
@@ -1285,35 +1230,29 @@ void APIConnection::on_voice_assistant_announce_request(const VoiceAssistantAnno
 VoiceAssistantConfigurationResponse APIConnection::voice_assistant_get_configuration(
     const VoiceAssistantConfigurationRequest &msg) {
   VoiceAssistantConfigurationResponse resp;
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return resp;
-    }
-
-    auto &config = voice_assistant::global_voice_assistant->get_configuration();
-    for (auto &wake_word : config.available_wake_words) {
-      VoiceAssistantWakeWord resp_wake_word;
-      resp_wake_word.id = wake_word.id;
-      resp_wake_word.wake_word = wake_word.wake_word;
-      for (const auto &lang : wake_word.trained_languages) {
-        resp_wake_word.trained_languages.push_back(lang);
-      }
-      resp.available_wake_words.push_back(std::move(resp_wake_word));
-    }
-    for (auto &wake_word_id : config.active_wake_words) {
-      resp.active_wake_words.push_back(wake_word_id);
-    }
-    resp.max_active_wake_words = config.max_active_wake_words;
+  if (!this->check_voice_assistant_api_connection_()) {
+    return resp;
   }
+
+  auto &config = voice_assistant::global_voice_assistant->get_configuration();
+  for (auto &wake_word : config.available_wake_words) {
+    VoiceAssistantWakeWord resp_wake_word;
+    resp_wake_word.id = wake_word.id;
+    resp_wake_word.wake_word = wake_word.wake_word;
+    for (const auto &lang : wake_word.trained_languages) {
+      resp_wake_word.trained_languages.push_back(lang);
+    }
+    resp.available_wake_words.push_back(std::move(resp_wake_word));
+  }
+  for (auto &wake_word_id : config.active_wake_words) {
+    resp.active_wake_words.push_back(wake_word_id);
+  }
+  resp.max_active_wake_words = config.max_active_wake_words;
   return resp;
 }
 
 void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) {
-  if (voice_assistant::global_voice_assistant != nullptr) {
-    if (voice_assistant::global_voice_assistant->get_api_connection() != this) {
-      return;
-    }
-
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_set_configuration(msg.active_wake_words);
   }
 }
@@ -1346,11 +1285,7 @@ uint16_t APIConnection::try_send_alarm_control_panel_info(EntityBase *entity, AP
                                   is_single);
 }
 void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) {
-  alarm_control_panel::AlarmControlPanel *a_alarm_control_panel = App.get_alarm_control_panel_by_key(msg.key);
-  if (a_alarm_control_panel == nullptr)
-    return;
-
-  auto call = a_alarm_control_panel->make_call();
+  ENTITY_COMMAND_MAKE_CALL(alarm_control_panel::AlarmControlPanel, a_alarm_control_panel, alarm_control_panel)
   switch (msg.command) {
     case enums::ALARM_CONTROL_PANEL_DISARM:
       call.disarm();
@@ -1438,9 +1373,7 @@ uint16_t APIConnection::try_send_update_info(EntityBase *entity, APIConnection *
   return encode_message_to_buffer(msg, ListEntitiesUpdateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::update_command(const UpdateCommandRequest &msg) {
-  update::UpdateEntity *update = App.get_update_by_key(msg.key);
-  if (update == nullptr)
-    return;
+  ENTITY_COMMAND_GET(update::UpdateEntity, update, update)
 
   switch (msg.command) {
     case enums::UPDATE_COMMAND_UPDATE:
@@ -1459,12 +1392,11 @@ void APIConnection::update_command(const UpdateCommandRequest &msg) {
 }
 #endif
 
-bool APIConnection::try_send_log_message(int level, const char *tag, const char *line) {
+bool APIConnection::try_send_log_message(int level, const char *tag, const char *line, size_t message_len) {
   if (this->flags_.log_subscription < level)
     return false;
 
   // Pre-calculate message size to avoid reallocations
-  const size_t line_length = strlen(line);
   uint32_t msg_size = 0;
 
   // Add size for level field (field ID 1, varint type)
@@ -1473,14 +1405,14 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
 
   // Add size for string field (field ID 3, string type)
   // 1 byte for field tag + size of length varint + string length
-  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(line_length)) + line_length;
+  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(message_len)) + message_len;
 
   // Create a pre-sized buffer
   auto buffer = this->create_buffer(msg_size);
 
   // Encode the message (SubscribeLogsResponse)
   buffer.encode_uint32(1, static_cast<uint32_t>(level));  // LogLevel level = 1
-  buffer.encode_string(3, line, line_length);             // string message = 3
+  buffer.encode_string(3, line, message_len);             // string message = 3
 
   // SubscribeLogsResponse - 29
   return this->send_buffer(buffer, SubscribeLogsResponse::MESSAGE_TYPE);

@@ -107,7 +107,7 @@ class APIConnection : public APIServerConnection {
   bool send_media_player_state(media_player::MediaPlayer *media_player);
   void media_player_command(const MediaPlayerCommandRequest &msg) override;
 #endif
-  bool try_send_log_message(int level, const char *tag, const char *line);
+  bool try_send_log_message(int level, const char *tag, const char *line, size_t message_len);
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->flags_.service_call_subscription)
       return;
@@ -300,6 +300,11 @@ class APIConnection : public APIServerConnection {
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
+
+#ifdef USE_VOICE_ASSISTANT
+  // Helper to check voice assistant validity and connection ownership
+  inline bool check_voice_assistant_api_connection_() const;
+#endif
 
   // Helper method to process multiple entities from an iterator in a batch
   template<typename Iterator> void process_iterator_batch_(Iterator &iterator) {

@@ -933,21 +933,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void set_backlight_brightness(float brightness);
 
   /**
-   * Sets whether the Nextion display should skip the connection handshake process.
-   * @param skip_handshake True or false. When skip_connection_handshake is true,
-   * the connection will be established without performing the handshake.
-   * This can be useful when using Nextion Simulator.
-   *
-   * Example:
-   * ```cpp
-   * it.set_skip_connection_handshake(true);
-   * ```
-   *
-   * When set to true, the display will be marked as connected without performing a handshake.
-   */
-  void set_skip_connection_handshake(bool skip_handshake) { this->skip_connection_handshake_ = skip_handshake; }
-
-  /**
    * Sets Nextion mode between sleep and awake
    * @param True or false. Sleep=true to enter sleep mode or sleep=false to exit sleep mode.
    */
@@ -1179,18 +1164,39 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void update_components_by_prefix(const std::string &prefix);
 
   /**
-   * Set the touch sleep timeout of the display.
-   * @param timeout Timeout in seconds.
+   * Set the touch sleep timeout of the display using the `thsp` command.
+   *
+   * Sets internal No-touch-then-sleep timer to specified value in seconds.
+   * Nextion will auto-enter sleep mode if and when this timer expires.
+   *
+   * @param touch_sleep_timeout Timeout in seconds.
+   *                           Range: 3 to 65535 seconds (minimum 3 seconds, maximum ~18 hours 12 minutes 15 seconds)
+   *                           Use 0 to disable touch sleep timeout.
+   *
+   * @note Once `thsp` is set, it will persist until reboot or reset. The Nextion device
+   *       needs to exit sleep mode to issue `thsp=0` to disable sleep on no touch.
+   *
+   * @note The display will only wake up by a restart or by setting up `thup` (auto wake on touch).
+   *       See set_auto_wake_on_touch() to configure wake behavior.
    *
    * Example:
    * ```cpp
+   * // Set 30 second touch timeout
    * it.set_touch_sleep_timeout(30);
+   *
+   * // Set maximum timeout (~18 hours)
+   * it.set_touch_sleep_timeout(65535);
+   *
+   * // Disable touch sleep timeout
+   * it.set_touch_sleep_timeout(0);
    * ```
    *
-   * After 30 seconds the display will go to sleep. Note: the display will only wakeup by a restart or by setting up
-   * `thup`.
+   * Related Nextion instruction: `thsp=<value>`
+   *
+   * @see set_auto_wake_on_touch() Configure automatic wake on touch
+   * @see sleep() Manually control sleep state
    */
-  void set_touch_sleep_timeout(uint16_t touch_sleep_timeout);
+  void set_touch_sleep_timeout(uint16_t touch_sleep_timeout = 0);
 
   /**
    * Sets which page Nextion loads when exiting sleep mode. Note this can be set even when Nextion is in sleep mode.
@@ -1237,20 +1243,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void set_auto_wake_on_touch(bool auto_wake_on_touch);
 
   /**
-   * Sets if Nextion should exit the active reparse mode before the "connect" command is sent
-   * @param exit_reparse_on_start True or false. When exit_reparse_on_start is true, the exit reparse command
-   * will be sent before requesting the connection from Nextion.
-   *
-   * Example:
-   * ```cpp
-   * it.set_exit_reparse_on_start(true);
-   * ```
-   *
-   * The display will be requested to leave active reparse mode before setup.
-   */
-  void set_exit_reparse_on_start(bool exit_reparse_on_start) { this->exit_reparse_on_start_ = exit_reparse_on_start; }
-
-  /**
    * @brief Retrieves the number of commands pending in the Nextion command queue.
    *
    * This function returns the current count of commands that have been queued but not yet processed
@@ -1292,7 +1284,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * the Nextion display. A connection is considered established when:
    *
    * - The initial handshake with the display is completed successfully, or
-   * - The handshake is skipped via skip_connection_handshake_ flag
+   * - The handshake is skipped via USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE flag
    *
    * The connection status is particularly useful when:
    * - Troubleshooting communication issues
@@ -1358,8 +1350,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 #ifdef USE_NEXTION_CONF_START_UP_PAGE
   uint8_t start_up_page_ = 255;
 #endif  // USE_NEXTION_CONF_START_UP_PAGE
-  bool exit_reparse_on_start_ = false;
-  bool skip_connection_handshake_ = false;
+  bool auto_wake_on_touch_ = true;
 
   /**
    * Manually send a raw command to the display and don't wait for an acknowledgement packet.
@@ -1466,10 +1457,12 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   optional<nextion_writer_t> writer_;
   optional<float> brightness_;
 
+#ifdef USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
   std::string device_model_;
   std::string firmware_version_;
   std::string serial_number_;
   std::string flash_size_;
+#endif  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
 
   void remove_front_no_sensors_();
 
