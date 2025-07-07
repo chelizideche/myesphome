@@ -60,8 +60,8 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_TEXT_SENSOR
   bool send_text_sensor_state(text_sensor::TextSensor *text_sensor);
 #endif
-#ifdef USE_ESP32_CAMERA
-  void set_camera_state(std::shared_ptr<esp32_camera::CameraImage> image);
+#ifdef USE_CAMERA
+  void set_camera_state(std::shared_ptr<camera::CameraImage> image);
   void camera_image(const CameraImageRequest &msg) override;
 #endif
 #ifdef USE_CLIMATE
@@ -107,7 +107,7 @@ class APIConnection : public APIServerConnection {
   bool send_media_player_state(media_player::MediaPlayer *media_player);
   void media_player_command(const MediaPlayerCommandRequest &msg) override;
 #endif
-  bool try_send_log_message(int level, const char *tag, const char *line);
+  bool try_send_log_message(int level, const char *tag, const char *line, size_t message_len);
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->flags_.service_call_subscription)
       return;
@@ -301,6 +301,11 @@ class APIConnection : public APIServerConnection {
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
 
+#ifdef USE_VOICE_ASSISTANT
+  // Helper to check voice assistant validity and connection ownership
+  inline bool check_voice_assistant_api_connection_() const;
+#endif
+
   // Helper method to process multiple entities from an iterator in a batch
   template<typename Iterator> void process_iterator_batch_(Iterator &iterator) {
     size_t initial_size = this->deferred_batch_.size();
@@ -425,7 +430,7 @@ class APIConnection : public APIServerConnection {
   static uint16_t try_send_update_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
-#ifdef USE_ESP32_CAMERA
+#ifdef USE_CAMERA
   static uint16_t try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
@@ -455,8 +460,8 @@ class APIConnection : public APIServerConnection {
   // These contain vectors/pointers internally, so putting them early ensures good alignment
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
-#ifdef USE_ESP32_CAMERA
-  esp32_camera::CameraImageReader image_reader_;
+#ifdef USE_CAMERA
+  std::unique_ptr<camera::CameraImageReader> image_reader_;
 #endif
 
   // Group 3: Strings (12 bytes each on 32-bit, 4-byte aligned)
