@@ -13,14 +13,11 @@ void Nextion::setup() {
   this->is_setup_ = false;
   this->connection_state_.ignore_is_setup_ = true;
 
-  // Wake up the nextion
-  this->send_command_("bkcmd=0");
-  this->send_command_("sleep=0");
+  // Wake up the nextion and ensure clean communication state
+  this->send_command_("sleep=0");  // Exit sleep mode if sleeping
+  this->send_command_("bkcmd=0");  // Disable return data during init sequence
 
-  this->send_command_("bkcmd=0");
-  this->send_command_("sleep=0");
-
-  // Reboot it
+  // Reset device for clean state - critical for reliable communication
   this->send_command_("rest");
 
   this->connection_state_.ignore_is_setup_ = false;
@@ -51,24 +48,19 @@ bool Nextion::check_connect_() {
   if (this->connection_state_.is_connected_)
     return true;
 
-  // Check if the handshake should be skipped for the Nextion connection
-  if (this->skip_connection_handshake_) {
-    // Log the connection status without handshake
-    ESP_LOGW(TAG, "Connected (no handshake)");
-    // Set the connection status to true
-    this->connection_state_.is_connected_ = true;
-    // Return true indicating the connection is set
-    return true;
-  }
-
+#ifdef USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
+  ESP_LOGW(TAG, "Connected (no handshake)");  // Log the connection status without handshake
+  this->is_connected_ = true;                 // Set the connection status to true
+  return true;                                // Return true indicating the connection is set
+#else                                         // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
   if (this->comok_sent_ == 0) {
     this->reset_(false);
 
     this->connection_state_.ignore_is_setup_ = true;
     this->send_command_("boguscommand=0");  // bogus command. needed sometimes after updating
-    if (this->exit_reparse_on_start_) {
-      this->send_command_("DRAKJHSUYDGBNCJHGJKSHBDN");
-    }
+#ifdef USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
+    this->send_command_("DRAKJHSUYDGBNCJHGJKSHBDN");
+#endif  // USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
     this->send_command_("connect");
 
     this->comok_sent_ = App.get_loop_component_start_time();
@@ -94,7 +86,7 @@ bool Nextion::check_connect_() {
     for (size_t i = 0; i < response.length(); i++) {
       ESP_LOGN(TAG, "resp: %s %d %d %c", response.c_str(), i, response[i], response[i]);
     }
-#endif
+#endif  // NEXTION_PROTOCOL_LOG
 
     ESP_LOGW(TAG, "Not connected");
     comok_sent_ = 0;
@@ -118,11 +110,19 @@ bool Nextion::check_connect_() {
   this->is_detected_ = (connect_info.size() == 7);
   if (this->is_detected_) {
     ESP_LOGN(TAG, "Connect info: %zu", connect_info.size());
-
+#ifdef USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
     this->device_model_ = connect_info[2];
     this->firmware_version_ = connect_info[3];
     this->serial_number_ = connect_info[5];
     this->flash_size_ = connect_info[6];
+#else   // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+    ESP_LOGI(TAG,
+             "  Device Model:   %s\n"
+             "  FW Version:     %s\n"
+             "  Serial Number:  %s\n"
+             "  Flash Size:     %s\n",
+             connect_info[2].c_str(), connect_info[3].c_str(), connect_info[5].c_str(), connect_info[6].c_str());
+#endif  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
   } else {
     ESP_LOGE(TAG, "Bad connect value: '%s'", response.c_str());
   }
@@ -130,6 +130,7 @@ bool Nextion::check_connect_() {
   this->connection_state_.ignore_is_setup_ = false;
   this->dump_config();
   return true;
+#endif  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
 }
 
 void Nextion::reset_(bool reset_nextion) {
@@ -144,28 +145,32 @@ void Nextion::reset_(bool reset_nextion) {
 
 void Nextion::dump_config() {
   ESP_LOGCONFIG(TAG, "Nextion:");
-  if (this->skip_connection_handshake_) {
-    ESP_LOGCONFIG(TAG, "  Skip handshake: %s", YESNO(this->skip_connection_handshake_));
-  } else {
-    ESP_LOGCONFIG(TAG,
-                  "  Device Model:   %s\n"
-                  "  FW Version:     %s\n"
-                  "  Serial Number:  %s\n"
-                  "  Flash Size:     %s",
-                  this->device_model_.c_str(), this->firmware_version_.c_str(), this->serial_number_.c_str(),
-                  this->flash_size_.c_str());
-  }
+
+#ifdef USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
+  ESP_LOGCONFIG(TAG, "  Skip handshake: YES");
+#else  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
   ESP_LOGCONFIG(TAG,
+#ifdef USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+                "  Device Model:   %s\n"
+                "  FW Version:     %s\n"
+                "  Serial Number:  %s\n"
+                "  Flash Size:     %s\n"
+#endif  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+#ifdef USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
+                "  Exit reparse:   YES\n"
+#endif  // USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
                 "  Wake On Touch:  %s\n"
-                "  Exit reparse:   %s",
-                YESNO(this->connection_state_.auto_wake_on_touch_), YESNO(this->exit_reparse_on_start_));
+                "  Touch Timeout:  %" PRIu16,
+#ifdef USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+                this->device_model_.c_str(), this->firmware_version_.c_str(), this->serial_number_.c_str(),
+                this->flash_size_.c_str(),
+#endif  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+                YESNO(this->connection_state_.auto_wake_on_touch_), this->touch_sleep_timeout_);
+#endif  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
+
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
   ESP_LOGCONFIG(TAG, "  Max commands per loop: %u", this->max_commands_per_loop_);
 #endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
-
-  if (this->touch_sleep_timeout_ != 0) {
-    ESP_LOGCONFIG(TAG, "  Touch Timeout:  %" PRIu16, this->touch_sleep_timeout_);
-  }
 
   if (this->wake_up_page_ != 255) {
     ESP_LOGCONFIG(TAG, "  Wake Up Page:   %u", this->wake_up_page_);
@@ -312,6 +317,10 @@ void Nextion::loop() {
 
     if (this->wake_up_page_ != 255) {
       this->set_wake_up_page(this->wake_up_page_);
+    }
+
+    if (this->touch_sleep_timeout_ != 0) {
+      this->set_touch_sleep_timeout(this->touch_sleep_timeout_);
     }
 
     this->connection_state_.ignore_is_setup_ = false;
