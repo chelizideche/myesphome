@@ -308,10 +308,6 @@ void Nextion::loop() {
       this->set_wake_up_page(this->wake_up_page_);
     }
 
-    if (this->wake_up_page_ != 255) {
-      this->set_wake_up_page(this->wake_up_page_);
-    }
-
     if (this->touch_sleep_timeout_ != 0) {
       this->set_touch_sleep_timeout(this->touch_sleep_timeout_);
     }
