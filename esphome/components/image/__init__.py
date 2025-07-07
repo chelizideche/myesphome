@@ -5,6 +5,7 @@ import io
 import logging
 from pathlib import Path
 import re
+import struct
 
 from PIL import Image, UnidentifiedImageError
 
@@ -38,6 +39,7 @@ CONF_OPAQUE = "opaque"
 CONF_CHROMA_KEY = "chroma_key"
 CONF_ALPHA_CHANNEL = "alpha_channel"
 CONF_INVERT_ALPHA = "invert_alpha"
+CONF_BYTE_ORDER = "byte_order"
 
 TRANSPARENCY_TYPES = (
     CONF_OPAQUE,
@@ -469,6 +471,9 @@ BASE_SCHEMA = cv.Schema(
             "NONE", "FLOYDSTEINBERG", upper=True
         ),
         cv.Optional(CONF_INVERT_ALPHA, default=False): cv.boolean,
+        cv.Optional(CONF_BYTE_ORDER, default="big_endian"): cv.one_of(
+            "big_endian", "little_endian"
+        ),
         cv.GenerateID(CONF_RAW_DATA_ID): cv.declare_id(cg.uint8),
     }
 ).add_extra(validate_settings)
@@ -593,7 +598,15 @@ async def write_image(config, all_frames=False):
                 encoder.encode(pixels[row * width + col])
             encoder.end_row()
 
-    rhs = [HexInt(x) for x in encoder.data]
+    byte_order = config[CONF_BYTE_ORDER]
+    if byte_order == "big_endian":
+        image_data = encoder.data
+    else:
+        bytebuffer = [x[0] for x in struct.iter_unpack("<H", bytes(encoder.data))]
+        image_data = struct.pack(f">{len(bytebuffer) * 'H'}", *bytebuffer)
+
+    rhs = [HexInt(x) for x in image_data]
+
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
     image_type = get_image_type_enum(type)
     trans_value = get_transparency_enum(encoder.transparency)
