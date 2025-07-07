@@ -371,7 +371,6 @@ std::string format_hex_pretty(const uint8_t *data, size_t length, char separator
 /** Format a 16-bit word array in pretty-printed, human-readable hex format.
  *
  * Similar to the byte array version, but formats 16-bit words as 4-digit hex values.
- * Each word is converted to big-endian format before formatting.
  *
  * @param data Pointer to the 16-bit word array to format.
  * @param length Number of 16-bit words in the array.
