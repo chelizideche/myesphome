@@ -121,8 +121,8 @@ void Logger::log_vprintf_(uint8_t level, const char *tag, int line, const __Flas
   if (this->baud_rate_ > 0) {
     this->write_msg_(this->tx_buffer_ + msg_start);
   }
-  size_t msg_length = this->tx_buffer_at_ - 1;  // -1 to exclude null terminator
-  this->log_callback_.call(level, tag, this->tx_buffer_, msg_length);
+  size_t msg_length = this->tx_buffer_at_ - msg_start - 1;  // -1 to exclude null terminator
+  this->log_callback_.call(level, tag, this->tx_buffer_ + msg_start, msg_length);
 
   global_recursion_guard_ = false;
 }
