@@ -154,6 +154,8 @@ esphome/components/esp32_rmt/* @jesserockz
 esphome/components/esp32_rmt_led_strip/* @jesserockz
 esphome/components/esp8266/* @esphome/core
 esphome/components/esp_ldo/* @clydebarrow
+esphome/components/espnow/* @jesserockz @nielsnl68
+esphome/components/espnow_find/* @nielsnl68
 esphome/components/ethernet_info/* @gtjadsonsantos
 esphome/components/event/* @nohat
 esphome/components/event_emitter/* @Rapsssito

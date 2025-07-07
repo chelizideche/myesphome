@@ -1,0 +1,74 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  name: "lum-iot-test1"
+  friendly_name: "Project Template"
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: esp-idf
+
+esphome:
+  name: "${name}"
+  platformio_options:
+    upload_speed: 115200
+
+# To be able to get logs from the device via serial and api.
+logger:
+  level: verbose
+
+# wifi:
+#   fast_connect: true
+#   networks:
+#     - ssid: !secret wifi_ssid
+#       password: !secret wifi_password
+
+espnow:
+  auto_add_peer: true
+  wifi_channel: 1
+  attempts: 3
+  predefined_peers:
+    - mac_address: E8:6B:EA:24:22:04
+  on_new_peer:
+    - logger.log:
+        format: "New Peer from: %s = '%s' cmd: %d RSSI: %d"
+        args:
+          [
+            packet->payload(),
+            packet->peer_str().c_str(),
+            packet->command(),
+            packet->rssi(),
+          ]
+  custom_apps:
+    - on_receive:
+        - logger.log:
+            format: "Received from: %s = '%s' cmd: %d RSSI: %d"
+            args:
+              [
+                packet->payload(),
+                packet->peer_str().c_str(),
+                packet->command(),
+                packet->rssi(),
+              ]
+      on_failed:
+        - logger.log:
+            format: "Failed to send %s"
+            args: [packet->info().c_str()]
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO39
+      inverted: true
+    name: Button
+    disabled_by_default: true
+    entity_category: diagnostic
+    id: echo_button
+    on_click:
+      - logger.log:
+          format: "------------"
+      - espnow.send:
+          # ac_address: e8:6b:ea:24:22:04
+          # app_id: ${my_espnow_app}
+          command: 222
+          payload: "Test  1."

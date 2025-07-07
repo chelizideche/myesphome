@@ -1,0 +1,40 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  name: "lum-iot-test2"
+  friendly_name: "Project Template"
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: esp-idf
+
+esphome:
+  name: "${name}"
+  platformio_options:
+    upload_speed: 115200
+
+# To be able to get logs from the device via serial and api.
+logger:
+  level: verbose
+
+espnow:
+  auto_add_peer: true
+  wifi_channel: 1
+  predefined_peers:
+    - mac_address: E8:6B:EA:23:CD:98
+  on_raw_data:
+    - logger.log:
+        format: "RAW DATA Received from: %s = '%s' RSSI: %d"
+        args: [packet->peer_str().c_str(), packet->payload(), packet->rssi()]
+
+  custom_apps:
+    on_receive:
+      - logger.log:
+          format: "%s| Received: %s, cmd: %02x, RSSI: %d"
+          args:
+            [
+              packet->info().c_str(),
+              packet->payload(),
+              packet->command(),
+              packet->rssi(),
+            ]

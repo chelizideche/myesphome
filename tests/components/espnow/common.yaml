@@ -1,0 +1,74 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  my_espnow_app: "0x5354"
+
+globals:
+  - id: keeper
+    type: uint64_t
+    initial_value: "0xE86BEA23CD98"
+    restore_value: yes
+
+espnow:
+  auto_add_peer: true
+  wifi_channel: 1
+  predefined_peers:
+    - FF:FF:FF:FF:FF:FF
+    - mac_address: 11:22:33:44:55:66
+  on_new_peer:
+    - logger.log:
+        format: "New Peer from: %s  '%s'  RSSI: %d"
+        args:
+          [
+            packet->info().c_str(),
+            packet->payload(),
+            packet->rssi(),
+          ]
+
+  custom_apps:
+    - app_id: ${my_espnow_app}
+      on_receive:
+        - logger.log:
+            format: "Received from: %s = '%s'  RSSI: %d"
+            args:
+              [
+                packet->info().c_str(),
+                packet->payload(),
+                packet->rssi(),
+              ]
+
+      on_broadcast:
+        - command: 123
+          then:
+            - logger.log:
+                format: "Broadcast Received from: '%s' RSSI: %d: %s"
+                args:
+                  [
+                    packet->peer_str().c_str(),
+                    packet->rssi(),
+                    packet->payload(),
+                  ]
+
+interval:
+  - interval: 10sec
+    then:
+      - espnow.send.broadcast:
+          payload: "hallo everyone"
+          command: 123
+      - espnow.send:
+          mac_address: 44:55:66:77:88:33
+          payload: "hallo everyone"
+          command: 230
+
+      - espnow.send:
+          mac_address: !lambda return id(keeper);
+          payload: "Using a global numberic value dynamicly"
+          command: 132
+
+binary_sensor:
+  - platform: gpio
+    pin: GPIO39
+    name: Button
+    on_click:
+      - espnow.peer.add:
+          mac_address: 22:44:66:88:AA:CC
+      - espnow.peer.del: 22:44:66:88:AA:CC
