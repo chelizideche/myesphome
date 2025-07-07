@@ -18,6 +18,9 @@
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
 #endif
+#ifdef USE_TEXT_SENSOR
+#include "esphome/components/text_sensor/text_sensor.h"
+#endif
 
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/automation.h"
@@ -36,7 +39,7 @@ enum ModeConfig {
 
 const uint8_t MMWAVE_READ_BUFFER_LENGTH = 255;
 
-static const uint8_t COMMAND_QUEUE_SIZE = 20;
+static const uint8_t COMMAND_QUEUE_SIZE = 32;
 
 class CircularCommandQueue {
  public:
@@ -61,6 +64,8 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
 
 #ifdef USE_BUTTON
   SUB_BUTTON(config_save)
+  SUB_BUTTON(factory_reset)
+  SUB_BUTTON(restart)
 #endif
 
 #ifdef USE_NUMBER
@@ -86,6 +91,11 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   SUB_SWITCH(micro_motion_enable)
 #endif
 
+#ifdef USE_NUMBER
+  SUB_TEXT_SENSOR(software_version)
+  SUB_TEXT_SENSOR(hardware_version)
+#endif
+
  public:
   void dump_config() override;
   void setup() override;
@@ -103,14 +113,16 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_inhibit_time(float value, bool needs_save = true);
   void set_threshold_factor(float value, bool needs_save = true);
   void set_led_enable(bool value, bool needs_save = true);
-  void flash_led_enable();
   void set_micro_motion_enable(bool enable, bool needs_save = true);
+  void flash_led_enable();
   void set_mode(ModeConfig value);
-  void set_sw_version(std::string version);
-  void set_hw_version(std::string version);
+  void set_software_version(std::string version);
+  void set_hardware_version(std::string version);
   void set_needs_save(bool needs_save);
   void config_load();
   void config_save();
+  void factory_reset();
+  void restart();
   void set_occupancy(bool occupancy);
   void set_target_distance(float value);
   void set_target_speed(float value);

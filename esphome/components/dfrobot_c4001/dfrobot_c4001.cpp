@@ -180,16 +180,6 @@ void DFRobotC4001Hub::set_led_enable(bool value, bool needs_save) {
   }
 }
 
-void DFRobotC4001Hub::flash_led_enable() {
-#ifdef USE_SWITCH
-  // Save LED Enable preferences (to flash storage)
-  if (this->led_enable_switch_ != nullptr) {
-    ESP_LOGV(TAG, "Writing LED Enable setting to flash.");
-    this->pref_.save(&this->led_enable_);
-  }
-#endif
-}
-
 void DFRobotC4001Hub::set_micro_motion_enable(bool enable, bool needs_save) {
   if (this->mode_ == MODE_SPEED_AND_DISTANCE) {
     this->micro_motion_enable_ = enable;
@@ -202,9 +192,32 @@ void DFRobotC4001Hub::set_micro_motion_enable(bool enable, bool needs_save) {
     }
   }
 }
-void DFRobotC4001Hub::set_sw_version(std::string version) { this->sw_version_ = std::move(version); }
 
-void DFRobotC4001Hub::set_hw_version(std::string version) { this->hw_version_ = std::move(version); }
+void DFRobotC4001Hub::set_software_version(std::string version) {
+#ifdef USE_TEXT_SENSOR
+  if (this->software_version_text_sensor_ != nullptr)
+    this->software_version_text_sensor_->publish_state(version);
+#endif
+  this->sw_version_ = std::move(version);
+}
+
+void DFRobotC4001Hub::set_hardware_version(std::string version) {
+#ifdef USE_TEXT_SENSOR
+  if (this->hardware_version_text_sensor_ != nullptr)
+    this->hardware_version_text_sensor_->publish_state(version);
+#endif
+  this->hw_version_ = std::move(version);
+}
+
+void DFRobotC4001Hub::flash_led_enable() {
+#ifdef USE_SWITCH
+  // Save LED Enable preferences (to flash storage)
+  if (this->led_enable_switch_ != nullptr) {
+    ESP_LOGV(TAG, "Writing LED Enable setting to flash.");
+    this->pref_.save(&this->led_enable_);
+  }
+#endif
+}
 
 void DFRobotC4001Hub::set_mode(ModeConfig value) { this->mode_ = value; }
 
@@ -261,6 +274,18 @@ void DFRobotC4001Hub::config_save() {
   }
 }
 
+void DFRobotC4001Hub::factory_reset() {
+  ESP_LOGD(TAG, "Factory Reset Started");
+  this->enqueue(make_unique<PowerCommand>(false));
+  this->enqueue(make_unique<FactoryResetCommand>());
+}
+
+void DFRobotC4001Hub::restart() {
+  ESP_LOGD(TAG, "Restart Started");
+  this->enqueue(make_unique<PowerCommand>(false));
+  this->enqueue(make_unique<ResetSystemCommand>());
+}
+
 void DFRobotC4001Hub::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "DFRobot C4001 mmWave Radar:\n"
@@ -270,26 +295,37 @@ void DFRobotC4001Hub::dump_config() {
                 this->sw_version_.c_str(), this->hw_version_.c_str(),
                 this->mode_ == MODE_PRESENCE ? "PRESENCE" : "SPEED_AND_DISTANCE");
 #ifdef USE_BUTTON
-  LOG_BUTTON("  ", "Config Save Button", this->config_save_button_);
+  ESP_LOGCONFIG(TAG, "Buttons:");
+  LOG_BUTTON("  ", "Config Save", this->config_save_button_);
+  LOG_BUTTON("  ", "Restart", this->restart_button_);
+  LOG_BUTTON("  ", "Factory Reset", this->factory_reset_button_);
 #endif
 #ifdef USE_BINARY_SENSOR
+  ESP_LOGCONFIG(TAG, "Binary Sensors:");
   LOG_BINARY_SENSOR("  ", "Occupancy", this->occupancy_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Config Changed", this->config_changed_binary_sensor_);
 #endif
 #ifdef USE_NUMBER
-  LOG_NUMBER("  ", "Maximum Range Number", this->max_range_number_);
-  LOG_NUMBER("  ", "Minimum Range Number", this->min_range_number_);
-  LOG_NUMBER("  ", "Trigger Range Number", this->trigger_range_number_);
-  LOG_NUMBER("  ", "Hold Sensitivity Number", this->hold_sensitivity_number_);
-  LOG_NUMBER("  ", "Trigger Sensitivity Number", this->trigger_sensitivity_number_);
-  LOG_NUMBER("  ", "On Latency Number", this->on_latency_number_);
-  LOG_NUMBER("  ", "Off Latency Number", this->off_latency_number_);
-  LOG_NUMBER("  ", "Inhibit Time Number", this->inhibit_time_number_);
-  LOG_NUMBER("  ", "Threshold Factor Number", this->threshold_factor_number_);
+  ESP_LOGCONFIG(TAG, "Numbers:");
+  LOG_NUMBER("  ", "Maximum Range", this->max_range_number_);
+  LOG_NUMBER("  ", "Minimum Range", this->min_range_number_);
+  LOG_NUMBER("  ", "Trigger Range", this->trigger_range_number_);
+  LOG_NUMBER("  ", "Hold Sensitivity", this->hold_sensitivity_number_);
+  LOG_NUMBER("  ", "Trigger Sensitivity", this->trigger_sensitivity_number_);
+  LOG_NUMBER("  ", "On Latency", this->on_latency_number_);
+  LOG_NUMBER("  ", "Off Latency", this->off_latency_number_);
+  LOG_NUMBER("  ", "Inhibit Time", this->inhibit_time_number_);
+  LOG_NUMBER("  ", "Threshold Factor", this->threshold_factor_number_);
 #endif
 #ifdef USE_SWITCH
-  LOG_SWITCH("  ", "Turn on LED Switch", this->led_enable_switch_);
-  LOG_SWITCH("  ", "Micro Motion Enable Switch", this->micro_motion_enable_switch_);
+  ESP_LOGCONFIG(TAG, "Switches:");
+  LOG_SWITCH("  ", "Turn on LED", this->led_enable_switch_);
+  LOG_SWITCH("  ", "Micro Motion Enable", this->micro_motion_enable_switch_);
+#endif
+#ifdef USE_TEXT_SENSOR
+  ESP_LOGCONFIG(TAG, "Text Sensors:");
+  LOG_TEXT_SENSOR("  ", "Software Version", this->software_version_text_sensor_);
+  LOG_TEXT_SENSOR("  ", "Hardware Version", this->hardware_version_text_sensor_);
 #endif
 }
 
@@ -316,7 +352,7 @@ void DFRobotC4001Hub::loop() {
     // Command queue empty, first time this happens setup is complete
     if (!this->is_setup_) {
       this->is_setup_ = true;
-      ESP_LOGD(TAG, "Setup complete");
+      ESP_LOGV(TAG, "Setup complete");
     }
     // Read sensor state.
     cmd_queue_.enqueue(make_unique<ReadStateCommand>());
