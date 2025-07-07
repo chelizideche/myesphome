@@ -271,7 +271,7 @@ std::string format_hex_pretty(const uint8_t *data, size_t length, char separator
       ret[multiple * i + 2] = separator;
   }
   if (show_length && length > 4)
-    return ret + " (" + to_string(length) + ")";
+    return ret + " (" + std::to_string(length) + ")";
   return ret;
 }
 std::string format_hex_pretty(const std::vector<uint8_t> &data, char separator, bool show_length) {
@@ -293,7 +293,7 @@ std::string format_hex_pretty(const uint16_t *data, size_t length, char separato
       ret[multiple * i + 4] = separator;
   }
   if (show_length && length > 4)
-    return ret + " (" + to_string(length) + ")";
+    return ret + " (" + std::to_string(length) + ")";
   return ret;
 }
 std::string format_hex_pretty(const std::vector<uint16_t> &data, char separator, bool show_length) {
