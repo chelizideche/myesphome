@@ -29,7 +29,7 @@ void SchedulerRapidCancellationComponent::run_rapid_cancellation_test() {
   threads.reserve(NUM_THREADS);
 
   for (int thread_id = 0; thread_id < NUM_THREADS; thread_id++) {
-    threads.emplace_back([this, thread_id]() {
+    threads.emplace_back([this]() {
       for (int i = 0; i < OPERATIONS_PER_THREAD; i++) {
         // Use modulo to ensure multiple threads use the same names
         int name_index = i % NUM_NAMES;

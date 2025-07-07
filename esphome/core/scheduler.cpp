@@ -62,16 +62,16 @@ static void validate_static_string(const char *name) {
 void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
                                       const void *name_ptr, uint32_t delay, std::function<void()> func) {
   // Get the name as const char*
-  const char *name_cstr =
-      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
-  // Cancel existing timer if name is not empty
-  if (name_cstr != nullptr && name_cstr[0] != '\0') {
-    this->cancel_item_(component, name_cstr, type);
-  }
-
-  if (delay == SCHEDULER_DONT_RUN)
+  if (delay == SCHEDULER_DONT_RUN) {
+    // Still need to cancel existing timer if name is not empty
+    if (name_cstr != nullptr && name_cstr[0] != '\0') {
+      LockGuard guard{this->lock_};
+      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
+    }
     return;
+  }
 
   // Create and populate the scheduler item
   auto item = make_unique<SchedulerItem>();
@@ -87,6 +87,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
+    this->cancel_item_locked_(component, name_cstr, type, true);
     this->defer_queue_.push_back(std::move(item));
     return;
   }
@@ -122,7 +123,15 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   }
 #endif
 
-  this->push_(std::move(item));
+  LockGuard guard{this->lock_};
+  // If name is provided, do atomic cancel-and-add
+  if (name_cstr != nullptr && name_cstr[0] != '\0') {
+    // Cancel existing items
+    this->cancel_item_locked_(component, name_cstr, type, false);
+  }
+  // Add new item directly to to_add_
+  // since we have the lock held
+  this->to_add_.push_back(std::move(item));
 }
 
 void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
@@ -134,10 +143,10 @@ void HOT Scheduler::set_timeout(Component *component, const std::string &name, u
   this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func));
 }
 bool HOT Scheduler::cancel_timeout(Component *component, const std::string &name) {
-  return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
+  return this->cancel_item_(component, false, &name, SchedulerItem::TIMEOUT);
 }
 bool HOT Scheduler::cancel_timeout(Component *component, const char *name) {
-  return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
+  return this->cancel_item_(component, true, name, SchedulerItem::TIMEOUT);
 }
 void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
                                  std::function<void()> func) {
@@ -149,10 +158,10 @@ void HOT Scheduler::set_interval(Component *component, const char *name, uint32_
   this->set_timer_common_(component, SchedulerItem::INTERVAL, true, name, interval, std::move(func));
 }
 bool HOT Scheduler::cancel_interval(Component *component, const std::string &name) {
-  return this->cancel_item_(component, name, SchedulerItem::INTERVAL);
+  return this->cancel_item_(component, false, &name, SchedulerItem::INTERVAL);
 }
 bool HOT Scheduler::cancel_interval(Component *component, const char *name) {
-  return this->cancel_item_(component, name, SchedulerItem::INTERVAL);
+  return this->cancel_item_(component, true, name, SchedulerItem::INTERVAL);
 }
 
 struct RetryArgs {
@@ -282,10 +291,10 @@ void HOT Scheduler::call() {
   }
 #endif  // ESPHOME_DEBUG_SCHEDULER
 
-  auto to_remove_was = to_remove_;
+  auto to_remove_was = this->to_remove_;
   auto items_was = this->items_.size();
   // If we have too many items to remove
-  if (to_remove_ > MAX_LOGICALLY_DELETED_ITEMS) {
+  if (this->to_remove_ > MAX_LOGICALLY_DELETED_ITEMS) {
     std::vector<std::unique_ptr<SchedulerItem>> valid_items;
     while (!this->empty_()) {
       LockGuard guard{this->lock_};
@@ -300,10 +309,10 @@ void HOT Scheduler::call() {
     }
 
     // The following should not happen unless I'm missing something
-    if (to_remove_ != 0) {
+    if (this->to_remove_ != 0) {
       ESP_LOGW(TAG, "to_remove_ was %" PRIu32 " now: %" PRIu32 " items where %zu now %zu. Please report this",
                to_remove_was, to_remove_, items_was, items_.size());
-      to_remove_ = 0;
+      this->to_remove_ = 0;
     }
   }
 
@@ -336,26 +345,25 @@ void HOT Scheduler::call() {
     }
 
     {
-      this->lock_.lock();
+      LockGuard guard{this->lock_};
 
       // new scope, item from before might have been moved in the vector
       auto item = std::move(this->items_[0]);
-
       // Only pop after function call, this ensures we were reachable
       // during the function call and know if we were cancelled.
       this->pop_raw_();
 
-      this->lock_.unlock();
-
       if (item->remove) {
         // We were removed/cancelled in the function call, stop
-        to_remove_--;
+        this->to_remove_--;
         continue;
       }
 
       if (item->type == SchedulerItem::INTERVAL) {
         item->next_execution_ = now + item->interval;
-        this->push_(std::move(item));
+        // Add new item directly to to_add_
+        // since we have the lock held
+        this->to_add_.push_back(std::move(item));
       }
     }
   }
@@ -380,7 +388,7 @@ void HOT Scheduler::cleanup_() {
     if (!item->remove)
       return;
 
-    to_remove_--;
+    this->to_remove_--;
 
     {
       LockGuard guard{this->lock_};
@@ -391,19 +399,6 @@ void HOT Scheduler::cleanup_() {
 void HOT Scheduler::pop_raw_() {
   std::pop_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
   this->items_.pop_back();
-}
-void HOT Scheduler::push_(std::unique_ptr<Scheduler::SchedulerItem> item) {
-  LockGuard guard{this->lock_};
-  this->to_add_.push_back(std::move(item));
-}
-// Helper function to check if item matches criteria for cancellation
-bool HOT Scheduler::matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component,
-                                  const char *name_cstr, SchedulerItem::Type type) {
-  if (item->component != component || item->type != type || item->remove) {
-    return false;
-  }
-  const char *item_name = item->get_name();
-  return item_name != nullptr && strcmp(name_cstr, item_name) == 0;
 }
 
 // Helper to execute a scheduler item
@@ -417,11 +412,10 @@ void HOT Scheduler::execute_item_(SchedulerItem *item) {
 }
 
 // Common implementation for cancel operations
-bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr,
-                                        SchedulerItem::Type type) {
+bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, const void *name_ptr,
+                                 SchedulerItem::Type type) {
   // Get the name as const char*
-  const char *name_cstr =
-      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
   // Handle null or empty names
   if (name_cstr == nullptr)
@@ -429,43 +423,49 @@ bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_str
 
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
-  bool ret = false;
+  return this->cancel_item_locked_(component, name_cstr, type, false);
+}
+
+// Helper to cancel items by name - must be called with lock held
+bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type,
+                                        bool defer_only) {
+  size_t total_cancelled = 0;
 
   // Check all containers for matching items
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Only check defer_queue_ on platforms that have it
-  for (auto &item : this->defer_queue_) {
-    if (this->matches_item_(item, component, name_cstr, type)) {
-      item->remove = true;
-      ret = true;
+  // Only check defer queue for timeouts (intervals never go there)
+  if (type == SchedulerItem::TIMEOUT) {
+    for (auto &item : this->defer_queue_) {
+      if (this->matches_item_(item, component, name_cstr, type)) {
+        item->remove = true;
+        total_cancelled++;
+      }
+    }
+    if (defer_only) {
+      return total_cancelled > 0;
     }
   }
 #endif
 
+  // Cancel items in the main heap
   for (auto &item : this->items_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
-      ret = true;
-      this->to_remove_++;  // Only track removals for heap items
+      total_cancelled++;
+      this->to_remove_++;  // Track removals for heap items
     }
   }
 
+  // Cancel items in to_add_
   for (auto &item : this->to_add_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
-      ret = true;
+      total_cancelled++;
+      // Don't track removals for to_add_ items
     }
   }
 
-  return ret;
-}
-
-bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, Scheduler::SchedulerItem::Type type) {
-  return this->cancel_item_common_(component, false, &name, type);
-}
-
-bool HOT Scheduler::cancel_item_(Component *component, const char *name, SchedulerItem::Type type) {
-  return this->cancel_item_common_(component, true, name, type);
+  return total_cancelled > 0;
 }
 
 uint64_t Scheduler::millis_() {

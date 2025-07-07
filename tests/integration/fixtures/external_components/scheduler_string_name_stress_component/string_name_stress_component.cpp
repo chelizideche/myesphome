@@ -59,19 +59,19 @@ void SchedulerStringNameStressComponent::run_string_name_stress_test() {
         // Also test nested scheduling from callbacks
         if (j % 10 == 0) {
           // Every 10th callback schedules another callback
-          this->set_timeout(dynamic_name, delay, [component, i, j, callback_id]() {
+          this->set_timeout(dynamic_name, delay, [component, callback_id]() {
             component->executed_callbacks_.fetch_add(1);
             ESP_LOGV(TAG, "Executed string-named callback %d (nested scheduler)", callback_id);
 
             // Schedule another timeout from within this callback with a new dynamic name
             std::string nested_name = "nested_from_" + std::to_string(callback_id);
-            component->set_timeout(nested_name, 1, [component, callback_id]() {
+            component->set_timeout(nested_name, 1, [callback_id]() {
               ESP_LOGV(TAG, "Executed nested string-named callback from %d", callback_id);
             });
           });
         } else {
           // Regular callback
-          this->set_timeout(dynamic_name, delay, [component, i, j, callback_id]() {
+          this->set_timeout(dynamic_name, delay, [component, callback_id]() {
             component->executed_callbacks_.fetch_add(1);
             ESP_LOGV(TAG, "Executed string-named callback %d", callback_id);
           });

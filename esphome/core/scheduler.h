@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <cstring>
 #include <deque>
 
 #include "esphome/core/component.h"
@@ -139,17 +140,36 @@ class Scheduler {
   uint64_t millis_();
   void cleanup_();
   void pop_raw_();
-  void push_(std::unique_ptr<SchedulerItem> item);
-  // Common implementation for cancel operations
-  bool cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
  private:
-  bool cancel_item_(Component *component, const std::string &name, SchedulerItem::Type type);
-  bool cancel_item_(Component *component, const char *name, SchedulerItem::Type type);
+  // Helper to cancel items by name - must be called with lock held
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type, bool defer_only);
 
-  // Helper functions for cancel operations
-  bool matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
-                     SchedulerItem::Type type);
+  // Helper to extract name as const char* from either static string or std::string
+  inline const char *get_name_cstr_(bool is_static_string, const void *name_ptr) {
+    return is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  }
+
+  // Common implementation for cancel operations
+  bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+
+  // Helper function to check if item matches criteria for cancellation
+  inline bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
+                                SchedulerItem::Type type) {
+    if (item->component != component || item->type != type || item->remove) {
+      return false;
+    }
+    const char *item_name = item->get_name();
+    if (item_name == nullptr) {
+      return false;
+    }
+    // Fast path: if pointers are equal (common with string deduplication)
+    if (item_name == name_cstr) {
+      return true;
+    }
+    // Slow path: compare string contents
+    return strcmp(name_cstr, item_name) == 0;
+  }
 
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);

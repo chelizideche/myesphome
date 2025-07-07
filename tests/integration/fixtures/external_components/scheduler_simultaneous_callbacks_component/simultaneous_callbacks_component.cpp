@@ -48,7 +48,7 @@ void SchedulerSimultaneousCallbacksComponent::run_simultaneous_callbacks_test() 
         std::string name = ss.str();
 
         // Schedule callback for exactly DELAY_MS from now
-        this->set_timeout(name, DELAY_MS, [this, thread_id, i, name]() {
+        this->set_timeout(name, DELAY_MS, [this, name]() {
           // Increment concurrent counter atomically
           int current = this->callbacks_at_once_.fetch_add(1) + 1;
 
