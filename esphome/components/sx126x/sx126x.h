@@ -109,6 +109,7 @@ class SX126x : public Component,
   void wait_busy_();
   Trigger<std::vector<uint8_t>, float, float> *packet_trigger_{new Trigger<std::vector<uint8_t>, float, float>()};
   std::vector<SX126xListener *> listeners_;
+  std::vector<uint8_t> packet_;
   std::vector<uint8_t> sync_value_;
   InternalGPIOPin *busy_pin_{nullptr};
   InternalGPIOPin *dio1_pin_{nullptr};

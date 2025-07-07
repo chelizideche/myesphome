@@ -354,9 +354,9 @@ void SX126x::loop() {
         snr = 0;
       }
       this->read_opcode_(RADIO_GET_RXBUFFERSTATUS, buf, 2);
-      std::vector<uint8_t> packet(buf[0]);
-      this->read_fifo_(buf[1], packet);
-      this->call_listeners_(packet, (float) rssi / -2.0f, (float) snr / 4.0f);
+      this->packet_.resize(buf[0]);
+      this->read_fifo_(buf[1], this->packet_);
+      this->call_listeners_(this->packet_, (float) rssi / -2.0f, (float) snr / 4.0f);
     }
   }
 }
