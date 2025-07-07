@@ -403,7 +403,7 @@ void ESP32Camera::framebuffer_task(void *pv) {
   }
 }
 
-/* ---------------- CameraImageReader class ---------------- */
+/* ---------------- ESP32CameraImageReader class ----------- */
 void ESP32CameraImageReader::set_image(std::shared_ptr<camera::CameraImage> image) {
   this->image_ = std::static_pointer_cast<ESP32CameraImage>(image);
   this->offset_ = 0;
@@ -418,7 +418,7 @@ void ESP32CameraImageReader::return_image() { this->image_.reset(); }
 void ESP32CameraImageReader::consume_data(size_t consumed) { this->offset_ += consumed; }
 uint8_t *ESP32CameraImageReader::peek_data_buffer() { return this->image_->get_data_buffer() + this->offset_; }
 
-/* ---------------- CameraImage class ---------------- */
+/* ---------------- ESP32CameraImage class ----------- */
 ESP32CameraImage::ESP32CameraImage(camera_fb_t *buffer, uint8_t requesters)
     : buffer_(buffer), requesters_(requesters) {}
 

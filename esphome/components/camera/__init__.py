@@ -4,7 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_HEIGHT, CONF_ID, CONF_TRIGGER_ID, CONF_WIDTH
 from esphome.core.entity_helpers import setup_entity
 
-CODEOWNERS = ["@DT-art1"]
+CODEOWNERS = ["@DT-art1", "@bdraco"]
 
 CONF_IDLE_UPDATE_INTERVAL = "idle_update_interval"
 CONF_MAX_UPDATE_INTERVAL = "max_update_interval"

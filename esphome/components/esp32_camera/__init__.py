@@ -22,7 +22,7 @@ from esphome.core.entity_helpers import setup_entity
 
 DEPENDENCIES = ["esp32"]
 
-AUTO_LOAD = ["psram", "camera"]
+AUTO_LOAD = ["camera", "psram"]
 
 esp32_camera_ns = cg.esphome_ns.namespace("esp32_camera")
 ESP32Camera = esp32_camera_ns.class_("ESP32Camera", cg.PollingComponent, cg.EntityBase)

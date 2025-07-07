@@ -341,6 +341,7 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
     cv.Version(5, 5, 0),
+    cv.Version(5, 4, 2),
     cv.Version(5, 4, 1),
     cv.Version(5, 4, 0),
     cv.Version(5, 3, 3),
@@ -410,8 +411,8 @@ def _esp_idf_check_versions(value):
         version = cv.Version.parse(cv.version_number(value[CONF_VERSION]))
         source = value.get(CONF_SOURCE, None)
 
-    if version < cv.Version(4, 0, 0):
-        raise cv.Invalid("Only ESP-IDF 4.0+ is supported.")
+    if version < cv.Version(5, 0, 0):
+        raise cv.Invalid("Only ESP-IDF 5.0+ is supported.")
 
     # flag this for later *before* we set value[CONF_PLATFORM_VERSION] below
     has_platform_ver = CONF_PLATFORM_VERSION in value
@@ -421,20 +422,15 @@ def _esp_idf_check_versions(value):
     )
 
     if (
-        (is_platformio := _platform_is_platformio(value[CONF_PLATFORM_VERSION]))
-        and version.major >= 5
-        and version not in SUPPORTED_PLATFORMIO_ESP_IDF_5X
-    ):
+        is_platformio := _platform_is_platformio(value[CONF_PLATFORM_VERSION])
+    ) and version not in SUPPORTED_PLATFORMIO_ESP_IDF_5X:
         raise cv.Invalid(
             f"ESP-IDF {str(version)} not supported by platformio/espressif32"
         )
 
     if (
-        version.major < 5
-        or (
-            version in SUPPORTED_PLATFORMIO_ESP_IDF_5X
-            and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
-        )
+        version in SUPPORTED_PLATFORMIO_ESP_IDF_5X
+        and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
     ) and not has_platform_ver:
         raise cv.Invalid(
             f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
@@ -704,7 +700,7 @@ FINAL_VALIDATE_SCHEMA = cv.Schema(final_validate)
 async def to_code(config):
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_platformio_option("board_upload.flash_size", config[CONF_FLASH_SIZE])
-    cg.set_cpp_standard("gnu++17")
+    cg.set_cpp_standard("gnu++20")
     cg.add_build_flag("-DUSE_ESP32")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
@@ -758,6 +754,9 @@ async def to_code(config):
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0", False)
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1", False)
 
+        # Disable dynamic log level control to save memory
+        add_idf_sdkconfig_option("CONFIG_LOG_DYNAMIC_LEVEL_CONTROL", False)
+
         # Set default CPU frequency
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
 
@@ -797,14 +796,9 @@ async def to_code(config):
 
         if advanced.get(CONF_IGNORE_EFUSE_MAC_CRC):
             add_idf_sdkconfig_option("CONFIG_ESP_MAC_IGNORE_MAC_CRC_ERROR", True)
-            if (framework_ver.major, framework_ver.minor) >= (4, 4):
-                add_idf_sdkconfig_option(
-                    "CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE", False
-                )
-            else:
-                add_idf_sdkconfig_option(
-                    "CONFIG_ESP32_PHY_CALIBRATION_AND_DATA_STORAGE", False
-                )
+            add_idf_sdkconfig_option(
+                "CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE", False
+            )
         if advanced.get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
             _LOGGER.warning(
                 "Using experimental features in ESP-IDF may result in unexpected failures."
