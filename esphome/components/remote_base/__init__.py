@@ -4,6 +4,7 @@ from esphome.components import binary_sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
+    CONF_BATTERY_LEVEL,
     CONF_BUTTON,
     CONF_CARRIER_FREQUENCY,
     CONF_CHANNEL,
@@ -16,6 +17,7 @@ from esphome.const import (
     CONF_DEVICE,
     CONF_FAMILY,
     CONF_GROUP,
+    CONF_HUMIDITY,
     CONF_ID,
     CONF_INVERTED,
     CONF_LEVEL,
@@ -31,11 +33,14 @@ from esphome.const import (
     CONF_SOURCE,
     CONF_STATE,
     CONF_SYNC,
+    CONF_TEMPERATURE,
     CONF_TIMES,
     CONF_TRIGGER_ID,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
+    CONF_WIND_DIRECTION_DEGREES,
+    CONF_WIND_SPEED,
     CONF_ZERO,
 )
 from esphome.core import coroutine
@@ -47,6 +52,8 @@ AUTO_LOAD = ["binary_sensor"]
 CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
+CONF_RAIN = "rain"
+CONF_WIND_GUST = "wind_gust"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -2108,3 +2115,129 @@ async def Toto_action(var, config, args):
     cg.add(var.set_rc_code_2(template_))
     template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint8)
     cg.add(var.set_command(template_))
+
+
+# WeatherStation
+
+(
+    WeatherStationData,
+    WeatherStationBinarySensor,
+    WeatherStationTrigger,
+    WeatherStationAction,
+    WeatherStationDumper,
+) = declare_protocol("WeatherStation")
+
+WEATHER_STATION_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_ID): cv.uint16_t,
+        cv.Optional(CONF_BATTERY_LEVEL): cv.float_,
+        cv.Optional(CONF_CHANNEL): cv.uint8_t,
+        cv.Optional(CONF_TEMPERATURE): cv.float_,
+        cv.Optional(CONF_HUMIDITY): cv.uint8_t,
+        cv.Optional(CONF_RAIN): cv.float_,
+        cv.Optional(CONF_WIND_DIRECTION_DEGREES): cv.uint16_t,
+        cv.Optional(CONF_WIND_SPEED): cv.float_,
+        cv.Optional(CONF_WIND_GUST): cv.float_,
+    }
+)
+
+
+def weather_station_binary_sensor(var, config):
+    pass
+
+
+def weather_station_trigger(var, config):
+    pass
+
+
+def weather_station_action(var, config, args):
+    if CONF_ID in config:
+        cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint16))))
+    if CONF_BATTERY_LEVEL in config:
+        cg.add(
+            var.set_battery_level(
+                (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.float_))
+            )
+        )
+    if CONF_CHANNEL in config:
+        cg.add(
+            var.set_channel(
+                (yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8))
+            )
+        )
+    if CONF_TEMPERATURE in config:
+        cg.add(
+            var.set_temperature(
+                (yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))
+            )
+        )
+    if CONF_HUMIDITY in config:
+        cg.add(
+            var.set_humidity(
+                (yield cg.templatable(config[CONF_HUMIDITY], args, cg.uint8))
+            )
+        )
+    if CONF_RAIN in config:
+        cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.float_))))
+    if CONF_WIND_DIRECTION_DEGREES in config:
+        cg.add(
+            var.set_rain(
+                (
+                    yield cg.templatable(
+                        config[CONF_WIND_DIRECTION_DEGREES], args, cg.uint16
+                    )
+                )
+            )
+        )
+    if CONF_WIND_SPEED in config:
+        cg.add(
+            var.set_rain(
+                (yield cg.templatable(config[CONF_WIND_SPEED], args, cg.float_))
+            )
+        )
+    if CONF_WIND_GUST in config:
+        cg.add(
+            var.set_rain(
+                (yield cg.templatable(config[CONF_WIND_GUST], args, cg.float_))
+            )
+        )
+
+
+def weather_station_dumper(var, config):
+    pass
+
+
+def registere_weather_station_protocol(name):
+    lname = name.lower()
+    register_binary_sensor(
+        f"weather_station_{lname}",
+        ns.class_(f"WeatherStation{name}BinarySensor", RemoteReceiverBinarySensorBase),
+        WEATHER_STATION_SCHEMA,
+    )(weather_station_binary_sensor)
+    register_trigger(
+        f"weather_station_{lname}",
+        ns.class_(f"WeatherStation{name}Trigger", RemoteReceiverTrigger),
+        WeatherStationData,
+    )(weather_station_trigger)
+    register_action(
+        f"weather_station_{lname}",
+        ns.class_(f"WeatherStation{name}Action", RemoteTransmitterActionBase),
+        WEATHER_STATION_SCHEMA,
+    )(weather_station_action)
+    register_dumper(
+        f"weather_station_{lname}",
+        ns.class_(f"WeatherStation{name}Dumper", RemoteReceiverDumperBase),
+    )(weather_station_dumper)
+
+
+registere_weather_station_protocol("2032")
+registere_weather_station_protocol("4LD")
+registere_weather_station_protocol("AHFL")
+registere_weather_station_protocol("Bresser3CH")
+registere_weather_station_protocol("Eurochron")
+registere_weather_station_protocol("H10515")
+registere_weather_station_protocol("H13726")
+registere_weather_station_protocol("L08037A")
+registere_weather_station_protocol("Nexus")
+registere_weather_station_protocol("Z31743")
+registere_weather_station_protocol("Z32171")
