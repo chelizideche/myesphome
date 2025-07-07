@@ -385,7 +385,7 @@ class LoggerMessageTrigger : public Trigger<uint8_t, const char *, const char *>
  public:
   explicit LoggerMessageTrigger(Logger *parent, uint8_t level) {
     this->level_ = level;
-    parent->add_on_log_callback([this](uint8_t level, const char *tag, const char *message) {
+    parent->add_on_log_callback([this](uint8_t level, const char *tag, const char *message, size_t message_len) {
       if (level <= this->level_) {
         this->trigger(level, tag, message);
       }
