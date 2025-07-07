@@ -1,0 +1,7 @@
+remote_transmitter:
+  pin: ${pin}
+  carrier_duty_percent: 33%
+
+climate:
+  - platform: emerio_pac_125152
+    name: Emerio PAC 125152
