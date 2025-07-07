@@ -358,7 +358,13 @@ void APIServer::on_event(event::Event *obj, const std::string &event_type) {
 #endif
 
 #ifdef USE_UPDATE
-API_DISPATCH_UPDATE(update::UpdateEntity, update)
+// Update is a special case - the method is called on_update, not on_update_update
+void APIServer::on_update(update::UpdateEntity *obj) {
+  if (obj->is_internal())
+    return;
+  for (auto &c : this->clients_)
+    c->send_update_state(obj);
+}
 #endif
 
 #ifdef USE_ALARM_CONTROL_PANEL
