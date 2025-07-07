@@ -242,6 +242,10 @@ void HOT Scheduler::call() {
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
   // ESP8266 and RP2040 don't use this queue - they fall back to the heap-based approach
   // (ESP8266: single-core, RP2040: empty mutex implementation).
+  //
+  // Note: Items cancelled via cancel_item_locked_() are marked with remove=true but still
+  // processed here. They are removed from the queue normally via pop_front() but skipped
+  // during execution by should_skip_item_(). This is intentional - no memory leak occurs.
   while (!this->defer_queue_.empty()) {
     // The outer check is done without a lock for performance. If the queue
     // appears non-empty, we lock and process an item. We don't need to check
