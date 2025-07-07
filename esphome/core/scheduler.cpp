@@ -273,11 +273,11 @@ void HOT Scheduler::call() {
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now, this->millis_major_,
              this->last_millis_);
     while (!this->empty_()) {
+      std::unique_ptr<SchedulerItem> item;
       {
         LockGuard guard{this->lock_};
-        auto item = std::move(this->items_[0]);
+        item = std::move(this->items_[0]);
         this->pop_raw_();
-        old_items.push_back(std::move(item));
       }
 
       const char *name = item->get_name();
@@ -292,6 +292,8 @@ void HOT Scheduler::call() {
     {
       LockGuard guard{this->lock_};
       this->items_ = std::move(old_items);
+      // Rebuild heap after moving items back
+      std::make_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
     }
   }
 #endif  // ESPHOME_DEBUG_SCHEDULER
