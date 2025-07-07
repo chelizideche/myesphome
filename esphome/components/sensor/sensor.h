@@ -138,7 +138,6 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
    */
   float raw_state;
 
-
   void internal_send_state_to_frontend(float state);
 
  protected:
