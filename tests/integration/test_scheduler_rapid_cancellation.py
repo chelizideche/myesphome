@@ -74,9 +74,9 @@ async def test_scheduler_rapid_cancellation(
                 test_complete_future.set_exception(Exception(f"Crash detected: {line}"))
             return
 
-        # Check for completion
+        # Check for completion - wait for final message after all stats are logged
         if (
-            "Rapid cancellation test complete" in line
+            "Test finished - all statistics reported" in line
             and not test_complete_future.done()
         ):
             test_complete_future.set_result(None)

@@ -70,6 +70,9 @@ void SchedulerRapidCancellationComponent::run_rapid_cancellation_test() {
     ESP_LOGI(TAG, "  Implicit cancellations (replaced): %d", implicit_cancellations);
     ESP_LOGI(TAG, "  Total accounted: %d (executed + implicit cancellations)",
              this->total_executed_.load() + implicit_cancellations);
+
+    // Final message to signal test completion - ensures all stats are logged before test ends
+    ESP_LOGI(TAG, "Test finished - all statistics reported");
   });
 }
 
