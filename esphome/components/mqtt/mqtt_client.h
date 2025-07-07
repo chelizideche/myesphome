@@ -102,16 +102,16 @@ class MQTTClientComponent : public Component {
   MQTTClientComponent();
 
   /// Set the last will testament message.
-  void set_last_will(MQTTMessage &&message);
+  void set_last_will(MQTTMessage &&message, const std::string &check_topic_prefix);
   /// Remove the last will testament message.
   void disable_last_will();
 
   /// Set the birth message.
-  void set_birth_message(MQTTMessage &&message);
+  void set_birth_message(MQTTMessage &&message, const std::string &check_topic_prefix);
   /// Remove the birth message.
   void disable_birth_message();
 
-  void set_shutdown_message(MQTTMessage &&message);
+  void set_shutdown_message(MQTTMessage &&message, const std::string &check_topic_prefix);
   void disable_shutdown_message();
 
   /// Set the keep alive time in seconds, every 0.7*keep_alive a ping will be sent.
@@ -171,7 +171,7 @@ class MQTTClientComponent : public Component {
   const std::string &get_topic_prefix() const;
 
   /// Manually set the topic used for logging.
-  void set_log_message_template(MQTTMessage &&message);
+  void set_log_message_template(MQTTMessage &&message, const std::string &check_topic_prefix);
   void set_log_level(int level);
   /// Get the topic used for logging. Defaults to "<topic_prefix>/debug" and the value is cached for speed.
   void disable_log_message();
@@ -271,6 +271,8 @@ class MQTTClientComponent : public Component {
   void set_wait_for_connection(bool wait_for_connection) { this->wait_for_connection_ = wait_for_connection; }
 
  protected:
+  void parse_topic_(const std::string &topic, std::string &top_name, std::string &rest);
+  void fix_topic_(std::string &topic, const std::string &check_topic_prefix);
   void send_device_info_();
 
   /// Reconnect to the MQTT broker if not already connected.

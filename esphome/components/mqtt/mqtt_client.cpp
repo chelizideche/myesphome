@@ -84,6 +84,31 @@ void MQTTClientComponent::setup() {
   }
 }
 
+void MQTTClientComponent::parse_topic_(const std::string &topic, std::string &top_name, std::string &rest) {
+  size_t pos = topic.find('/');
+
+  if (pos != std::string::npos) {
+    // Extract the first part
+    top_name = topic.substr(0, pos);
+    // Extract the rest including the '/'
+    rest = topic.substr(pos);
+  } else {
+    // No '/' found, assign the entire string to top_name
+    top_name = topic;
+    rest.clear();
+  }
+}
+
+void MQTTClientComponent::fix_topic_(std::string &topic, const std::string &check_topic_prefix) {
+  if (App.is_name_add_mac_suffix_enabled()) {
+    std::string top_name(""), rest("");
+    parse_topic_(topic, top_name, rest);
+    if (top_name == check_topic_prefix) {
+      topic = str_sanitize(App.get_name()) + rest;
+    }
+  }
+}
+
 void MQTTClientComponent::send_device_info_() {
   if (!this->is_connected() or !this->is_discovery_ip_enabled()) {
     return;
@@ -616,7 +641,10 @@ void MQTTClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->re
 void MQTTClientComponent::register_mqtt_component(MQTTComponent *component) { this->children_.push_back(component); }
 void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
-void MQTTClientComponent::set_log_message_template(MQTTMessage &&message) { this->log_message_ = std::move(message); }
+void MQTTClientComponent::set_log_message_template(MQTTMessage &&message, const std::string &check_topic_prefix) {
+  this->log_message_ = std::move(message);
+  fix_topic_(this->log_message_.topic, check_topic_prefix);
+}
 const MQTTDiscoveryInfo &MQTTClientComponent::get_discovery_info() const { return this->discovery_info_; }
 void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix, const std::string &check_topic_prefix) {
   if (App.is_name_add_mac_suffix_enabled() && (topic_prefix == check_topic_prefix)) {
@@ -651,17 +679,22 @@ void MQTTClientComponent::recalculate_availability_() {
   this->availability_.payload_not_available = this->last_will_.payload;
 }
 
-void MQTTClientComponent::set_last_will(MQTTMessage &&message) {
+void MQTTClientComponent::set_last_will(MQTTMessage &&message, const std::string &check_topic_prefix) {
   this->last_will_ = std::move(message);
+  fix_topic_(this->last_will_.topic, check_topic_prefix);
   this->recalculate_availability_();
 }
 
-void MQTTClientComponent::set_birth_message(MQTTMessage &&message) {
+void MQTTClientComponent::set_birth_message(MQTTMessage &&message, const std::string &check_topic_prefix) {
   this->birth_message_ = std::move(message);
+  fix_topic_(this->birth_message_.topic, check_topic_prefix);
   this->recalculate_availability_();
 }
 
-void MQTTClientComponent::set_shutdown_message(MQTTMessage &&message) { this->shutdown_message_ = std::move(message); }
+void MQTTClientComponent::set_shutdown_message(MQTTMessage &&message, const std::string &check_topic_prefix) {
+  this->shutdown_message_ = std::move(message);
+  fix_topic_(this->shutdown_message_.topic, check_topic_prefix);
+}
 
 void MQTTClientComponent::set_discovery_info(std::string &&prefix, MQTTDiscoveryUniqueIdGenerator unique_id_generator,
                                              MQTTDiscoveryObjectIdGenerator object_id_generator, bool retain,
