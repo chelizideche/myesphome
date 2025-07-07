@@ -118,7 +118,7 @@ async def test_my_sensor(
     async with run_compiled(yaml_config), api_client_connected() as client:
         # Get entity list
         entities, services = await client.list_entities_services()
-        
+
         # Find specific entity
         sensor = next((e for e in entities if e.object_id == "my_sensor"), None)
         assert sensor is not None
@@ -281,9 +281,9 @@ async with run_compiled(yaml_config, line_callback=check_output):
     async with api_client_connected() as client:
         # Wait for specific log message
         await asyncio.wait_for(connected_future, timeout=5.0)
-        
+
         # Do test actions...
-        
+
         # Wait for service log
         await asyncio.wait_for(service_future, timeout=5.0)
 ```
