@@ -162,7 +162,7 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
     return false;
   }
 
-  this->is_updating_ = true;
+  this->connection_state_.is_updating_ = true;
 
   if (exit_reparse) {
     ESP_LOGD(TAG, "Exit reparse mode");
@@ -203,7 +203,7 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
   begin_status = http_client.begin(*this->get_wifi_client_(), this->tft_url_.c_str());
 #endif  // USE_ESP8266
   if (!begin_status) {
-    this->is_updating_ = false;
+    this->connection_state_.is_updating_ = false;
     ESP_LOGD(TAG, "Connection failed");
     return false;
   } else {

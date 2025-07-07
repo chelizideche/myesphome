@@ -1302,7 +1302,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * @return true if the Nextion display is connected and ready to receive commands
    * @return false if the display is not yet connected or connection was lost
    */
-  bool is_connected() { return this->state_.is_connected_; }
+  bool is_connected() { return this->connection_state_.is_connected_; }
 
  protected:
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
@@ -1337,7 +1337,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
   /**
    * @brief Status flags for Nextion display state management
-   * 
+   *
    * Uses bitfields to pack multiple boolean states into a single byte,
    * saving 5 bytes of RAM compared to individual bool variables.
    */
@@ -1349,7 +1349,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
     uint8_t is_updating_ : 1;               ///< TFT firmware update is currently in progress
     uint8_t auto_wake_on_touch_ : 1;        ///< Display should wake automatically on touch (default: true)
     uint8_t reserved_ : 2;                  ///< Reserved bits for future flag additions
-  } state_{};  ///< Zero-initialized status flags (all start as false)
+  } connection_state_{};  ///< Zero-initialized status flags (all start as false)
 
   void process_nextion_commands_();
   void process_serial_();
