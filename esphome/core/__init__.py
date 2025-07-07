@@ -508,7 +508,7 @@ class Library:
             return self  # incoming library has no version, current is acceptable
 
             # Same versions, current library is acceptable
-        elif self.version != other.version:
+        if self.version != other.version:
             raise ValueError(
                 f"Version pinning failed! Libraries {other} and {self} "
                 "requested with conflicting versions!"
