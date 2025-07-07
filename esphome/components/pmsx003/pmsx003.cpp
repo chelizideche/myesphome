@@ -10,7 +10,10 @@ static const char *const TAG = "pmsx003";
 static const uint8_t START_CHARACTER_1 = 0x42;
 static const uint8_t START_CHARACTER_2 = 0x4D;
 
-static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
+// Time until measurement data is stable (after power on).
+static const uint16_t PMS_STABILISING_MS = 30000;
+// Maximum expected time for receiving data
+static const uint16_t PMS_RECEIVE_TIMEOUT_MS = 500;
 
 static const uint16_t PMS_CMD_MEASUREMENT_MODE_PASSIVE =
     0x0000;  // use `PMS_CMD_MANUAL_MEASUREMENT` to trigger a measurement
@@ -42,101 +45,143 @@ void PMSX003Component::dump_config() {
   this->check_uart_settings(9600);
 }
 
-void PMSX003Component::loop() {
-  const uint32_t now = App.get_loop_component_start_time();
+void PMSX003Component::setup() {
+  ESP_LOGCONFIG(TAG, "PMSX003 setup:");
 
-  // If we update less often than it takes the device to stabilise, spin the fan down
-  // rather than running it constantly. It does take some time to stabilise, so we
-  // need to keep track of what state we're in.
-  if (this->update_interval_ > PMS_STABILISING_MS) {
-    if (this->initialised_ == 0) {
-      this->send_command_(PMS_CMD_MEASUREMENT_MODE, PMS_CMD_MEASUREMENT_MODE_PASSIVE);
-      this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
-      this->initialised_ = 1;
-    }
-    switch (this->state_) {
-      case PMSX003_STATE_IDLE:
-        // Power on the sensor now so it'll be ready when we hit the update time
-        if (now - this->last_update_ < (this->update_interval_ - PMS_STABILISING_MS))
-          return;
+  // If the update inverval is longer than the stabiliztion
+  // time, then put the device in sleep mode between
+  // measurements.
 
-        this->state_ = PMSX003_STATE_STABILISING;
-        this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
-        this->fan_on_time_ = now;
-        return;
-      case PMSX003_STATE_STABILISING:
-        // wait for the sensor to be stable
-        if (now - this->fan_on_time_ < PMS_STABILISING_MS)
-          return;
-        // consume any command responses that are in the serial buffer
-        while (this->available())
-          this->read_byte(&this->data_[0]);
-        // Trigger a new read
-        this->send_command_(PMS_CMD_MANUAL_MEASUREMENT, 0);
-        this->state_ = PMSX003_STATE_WAITING;
-        break;
-      case PMSX003_STATE_WAITING:
-        // Just go ahead and read stuff
-        break;
-    }
-  } else if (now - this->last_update_ < this->update_interval_) {
-    // Otherwise just leave the sensor powered up and come back when we hit the update
-    // time
-    return;
+  ESP_LOGD(TAG, "PMSX003 update_interval: %u", this->update_interval_);
+
+  if (this->update_interval_ < PMS_STABILISING_MS) {
+    // Send active-measurement command, then wait until we get
+    // stable data and start reporting.
+    ESP_LOGD(TAG, "Using active measurement");
+    this->send_command_(PMS_CMD_MEASUREMENT_MODE, PMS_CMD_MEASUREMENT_MODE_ACTIVE);
+    this->set_timeout("PMSX003 measure active", PMS_STABILISING_MS, [this]() { this->measure_active_initial_(); });
+  } else {
+    // Send passive-measurement command, then start the
+    // wakeup-stabelize-measure-sleep cycle.
+    ESP_LOGD(TAG, "Using passive measurement");
+    this->send_command_(PMS_CMD_MEASUREMENT_MODE, PMS_CMD_MEASUREMENT_MODE_PASSIVE);
+    this->wakeup_device_();
   }
+}
 
-  if (now - this->last_transmission_ >= 500) {
-    // last transmission too long ago. Reset RX index.
-    this->data_index_ = 0;
-  }
+void PMSX003Component::measure_active_initial_() {
+  // The device sends invalid data during the stabilization period.
+  // Let's drop this data now and process all data from now on.
+  while (this->available())
+    this->read_byte(&this->data_[0]);
 
-  if (this->available() == 0)
-    return;
+  // Schedule new data processing.
+  uint32_t timeout_ms = PMS_RECEIVE_TIMEOUT_MS;
+  this->set_timeout("PMSX003 update", timeout_ms, [this]() { this->measure_active_(); });
+}
 
-  this->last_transmission_ = now;
-  while (this->available() != 0) {
+void PMSX003Component::measure_active_() {
+  // Process received data.
+  this->process_data_();
+
+  // Schedule new data processing.
+  uint32_t timeout_ms = PMS_RECEIVE_TIMEOUT_MS;
+  this->set_timeout("PMSX003 update", timeout_ms, [this]() { this->measure_active_(); });
+}
+
+void PMSX003Component::wakeup_device_() {
+  // Wake the device and wait for stable data.
+  this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
+
+  uint32_t timeout_ms = PMS_STABILISING_MS;
+  this->set_timeout("PMSX003 stabelize", timeout_ms, [this]() { this->request_data_(); });
+}
+
+void PMSX003Component::request_data_() {
+  // Drop all data that we received so far.
+  while (this->available())
+    this->read_byte(&this->data_[0]);
+
+  // Request new data.
+  this->send_command_(PMS_CMD_MANUAL_MEASUREMENT, 0);
+
+  // Wait a bit until we receive data.
+  uint32_t timeout_ms = PMS_RECEIVE_TIMEOUT_MS;
+  this->set_timeout("PMSX003 receive", timeout_ms, [this]() { this->measure_passive_(); });
+}
+
+void PMSX003Component::measure_passive_() {
+  // Process one frame. The restriction to one comes from the fact
+  // that the device sends two identical. The data in the input buffer
+  // will be handled in the next call of `request_data()`.
+  this->process_data_(1);
+
+  // Put the device in sleep mode.
+  this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_SLEEP);
+
+  // Set callback to wake up the device.
+  assert(this->update_interval_ >= PMS_STABILISING_MS);
+  uint32_t timeout_ms = this->update_interval_ - PMS_STABILISING_MS;
+  this->set_timeout("PMSX003 sleep", timeout_ms, [this]() { this->wakeup_device_(); });
+}
+
+inline void PMSX003Component::clear_data_buffer_() {
+  memset(this->data_, 0, this->data_index_);
+  this->data_index_ = 0;
+}
+
+void PMSX003Component::process_data_(unsigned n) {
+  // We process all data in the receive buffer.
+  // Each byte will be read into a processing buffer and checked.
+  // Once we see a complete frame, we parse the data and publish them.
+  // Note that we might have received multiple frames.
+  unsigned frames = 0;
+  while (this->available()) {
     this->read_byte(&this->data_[this->data_index_]);
-    auto check = this->check_byte_();
-    if (!check.has_value()) {
-      // finished
-      this->parse_data_();
-      this->data_index_ = 0;
-      this->last_update_ = now;
-    } else if (!*check) {
-      // wrong data
-      this->data_index_ = 0;
-    } else {
-      // next byte
-      this->data_index_++;
+    PMSX003ParserState state = this->check_byte_();
+    switch (state) {
+      case PMSX003_PARSER_MORE:
+        this->data_index_++;
+        break;
+      case PMSX003_PARSER_COMPLETE:
+        this->parse_data_();
+        clear_data_buffer_();
+        frames++;
+        if (n && frames >= n)
+          return;
+        break;
+      case PMSX003_PARSER_ERROR:
+        clear_data_buffer_();
+        break;
     }
   }
 }
 
-optional<bool> PMSX003Component::check_byte_() {
+PMSX003ParserState PMSX003Component::check_byte_() {
   const uint8_t index = this->data_index_;
   const uint8_t byte = this->data_[index];
 
   if (index == 0 || index == 1) {
     const uint8_t start_char = index == 0 ? START_CHARACTER_1 : START_CHARACTER_2;
     if (byte == start_char) {
-      return true;
+      return PMSX003_PARSER_MORE;
     }
 
     ESP_LOGW(TAG, "Start character %u mismatch: 0x%02X != 0x%02X", index + 1, byte, START_CHARACTER_1);
-    return false;
+    return PMSX003_PARSER_ERROR;
   }
 
   if (index == 2) {
-    return true;
+    return PMSX003_PARSER_MORE;
   }
 
   const uint16_t payload_length = this->get_16_bit_uint_(2);
   if (index == 3) {
     if (this->check_payload_length_(payload_length)) {
-      return true;
+      return PMSX003_PARSER_MORE;
     } else {
       ESP_LOGW(TAG, "Payload length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
-      return false;
+      return PMSX003_PARSER_ERROR;
     }
   }
 
@@ -144,7 +189,7 @@ optional<bool> PMSX003Component::check_byte_() {
   const uint16_t total_size = 4 + payload_length;
 
   if (index < total_size - 1) {
-    return true;
+    return PMSX003_PARSER_MORE;
   }
 
   // checksum is without checksum bytes
@@ -156,10 +201,10 @@ optional<bool> PMSX003Component::check_byte_() {
   const uint16_t check = this->get_16_bit_uint_(total_size - 2);
   if (checksum != check) {
     ESP_LOGW(TAG, "PMSX003 checksum mismatch! 0x%02X != 0x%02X", checksum, check);
-    return false;
+    return PMSX003_PARSER_ERROR;
   }
 
-  return {};
+  return PMSX003_PARSER_COMPLETE;
 }
 
 bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
@@ -177,30 +222,6 @@ bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
       return payload_length == 36;  // 2*17+2 (Data 16 not set/reserved)
   }
   return false;
-}
-
-void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
-  uint8_t send_data[7] = {
-      START_CHARACTER_1,            // Start Byte 1
-      START_CHARACTER_2,            // Start Byte 2
-      cmd,                          // Command
-      uint8_t((data >> 8) & 0xFF),  // Data 1
-      uint8_t((data >> 0) & 0xFF),  // Data 2
-      0,                            // Verify Byte 1
-      0,                            // Verify Byte 2
-  };
-
-  // Calculate checksum
-  uint16_t checksum = 0;
-  for (uint8_t i = 0; i < 5; i++) {
-    checksum += send_data[i];
-  }
-  send_data[5] = (checksum >> 8) & 0xFF;  // Verify Byte 1
-  send_data[6] = (checksum >> 0) & 0xFF;  // Verify Byte 2
-
-  for (auto send_byte : send_data) {
-    this->write_byte(send_byte);
-  }
 }
 
 void PMSX003Component::parse_data_() {
@@ -303,15 +324,30 @@ void PMSX003Component::parse_data_() {
 
     ESP_LOGD(TAG, "Got Firmware Version: 0x%02X, Error Code: 0x%02X", firmware_version, error_code);
   }
+}
 
-  // Spin down the sensor again if we aren't going to need it until more time has
-  // passed than it takes to stabilise
-  if (this->update_interval_ > PMS_STABILISING_MS) {
-    this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_SLEEP);
-    this->state_ = PMSX003_STATE_IDLE;
+void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
+  uint8_t send_data[7] = {
+      START_CHARACTER_1,            // Start Byte 1
+      START_CHARACTER_2,            // Start Byte 2
+      cmd,                          // Command
+      uint8_t((data >> 8) & 0xFF),  // Data 1
+      uint8_t((data >> 0) & 0xFF),  // Data 2
+      0,                            // Verify Byte 1
+      0,                            // Verify Byte 2
+  };
+
+  // Calculate checksum
+  uint16_t checksum = 0;
+  for (uint8_t i = 0; i < 5; i++) {
+    checksum += send_data[i];
   }
+  send_data[5] = (checksum >> 8) & 0xFF;  // Verify Byte 1
+  send_data[6] = (checksum >> 0) & 0xFF;  // Verify Byte 2
 
-  this->status_clear_warning();
+  for (auto send_byte : send_data) {
+    this->write_byte(send_byte);
+  }
 }
 
 }  // namespace pmsx003

@@ -22,17 +22,17 @@ enum PMSX003Type {
   PMSX003_TYPE_5003S,
 };
 
-enum PMSX003State {
-  PMSX003_STATE_IDLE = 0,
-  PMSX003_STATE_STABILISING,
-  PMSX003_STATE_WAITING,
+enum PMSX003ParserState {
+  PMSX003_PARSER_MORE,
+  PMSX003_PARSER_COMPLETE,
+  PMSX003_PARSER_ERROR,
 };
 
 class PMSX003Component : public uart::UARTDevice, public Component {
  public:
   PMSX003Component() = default;
   void dump_config() override;
-  void loop() override;
+  void setup() override;
 
   void set_update_interval(uint32_t update_interval) { this->update_interval_ = update_interval; }
 
@@ -73,22 +73,30 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   void set_humidity_sensor(sensor::Sensor *humidity_sensor) { this->humidity_sensor_ = humidity_sensor; }
 
  protected:
-  optional<bool> check_byte_();
-  void parse_data_();
+  // Active measurement mode
+  void measure_active_initial_();
+  void measure_active_();
+
+  // Passive measurement mode
+  void wakeup_device_();
+  void request_data_();
+  void measure_passive_();
+
+  // Data processing
+  inline void clear_data_buffer_();
+  void process_data_(unsigned n = 0);
+  PMSX003ParserState check_byte_();
   bool check_payload_length_(uint16_t payload_length);
-  void send_command_(PMSX0003Command cmd, uint16_t data);
+  void parse_data_();
   uint16_t get_16_bit_uint_(uint8_t start_index) const {
     return encode_uint16(this->data_[start_index], this->data_[start_index + 1]);
   }
 
+  // Communication
+  void send_command_(PMSX0003Command cmd, uint16_t data);
   uint8_t data_[64];
   uint8_t data_index_{0};
-  uint8_t initialised_{0};
-  uint32_t fan_on_time_{0};
-  uint32_t last_update_{0};
-  uint32_t last_transmission_{0};
   uint32_t update_interval_{0};
-  PMSX003State state_{PMSX003_STATE_IDLE};
   PMSX003Type type_;
 
   // "Standard Particle"
