@@ -7,6 +7,7 @@
 #include "esphome/components/sensor/filter.h"
 
 #include <vector>
+#include <memory>
 
 namespace esphome {
 namespace sensor {
@@ -76,9 +77,9 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
    * state changes to the database when they are published, even if the state is the
    * same as before.
    */
-  bool get_force_update() const { return force_update_; }
+  bool get_force_update() const { return sensor_flags_.force_update; }
   /// Set force update mode.
-  void set_force_update(bool force_update) { force_update_ = force_update; }
+  void set_force_update(bool force_update) { sensor_flags_.force_update = force_update; }
 
   /// Add a filter to the filter chain. Will be appended to the back.
   void add_filter(Filter *filter);
@@ -143,15 +144,22 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
   void internal_send_state_to_frontend(float state);
 
  protected:
-  CallbackManager<void(float)> raw_callback_;  ///< Storage for raw state callbacks.
-  CallbackManager<void(float)> callback_;      ///< Storage for filtered state callbacks.
+  std::unique_ptr<CallbackManager<void(float)>> raw_callback_;  ///< Storage for raw state callbacks (lazy allocated).
+  CallbackManager<void(float)> callback_;                       ///< Storage for filtered state callbacks.
 
   Filter *filter_list_{nullptr};  ///< Store all active filters.
 
-  optional<int8_t> accuracy_decimals_;                  ///< Accuracy in decimals override
-  optional<StateClass> state_class_{STATE_CLASS_NONE};  ///< State class override
-  bool force_update_{false};                            ///< Force update mode
-  bool has_state_{false};
+  // Group small members together to avoid padding
+  int8_t accuracy_decimals_{-1};              ///< Accuracy in decimals (-1 = not set)
+  StateClass state_class_{STATE_CLASS_NONE};  ///< State class (STATE_CLASS_NONE = not set)
+
+  // Bit-packed flags for sensor-specific settings
+  struct SensorFlags {
+    uint8_t has_accuracy_override : 1;
+    uint8_t has_state_class_override : 1;
+    uint8_t force_update : 1;
+    uint8_t reserved : 5;  // Reserved for future use
+  } sensor_flags_{};
 };
 
 }  // namespace sensor
