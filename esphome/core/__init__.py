@@ -790,6 +790,7 @@ class EsphomeCore:
             return library
 
         self.platformio_libraries[short_name].reconcile_with(library)
+        return self.platformio_libraries[short_name]
 
     def add_build_flag(self, build_flag: str) -> str:
         self.build_flags.add(build_flag)
