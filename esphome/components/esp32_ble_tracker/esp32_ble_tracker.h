@@ -225,6 +225,7 @@ class ESP32BLETracker : public Component,
   void set_scan_active(bool scan_active) { scan_active_ = scan_active; }
   bool get_scan_active() const { return scan_active_; }
   void set_scan_continuous(bool scan_continuous) { scan_continuous_ = scan_continuous; }
+  void set_allowlist_addresses(const std::vector<uint64_t> &addresses) { this->allowlist_address_vec_ = addresses; }
 
   /// Setup the FreeRTOS task and the Bluetooth stack.
   void setup() override;
@@ -247,6 +248,15 @@ class ESP32BLETracker : public Component,
   void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) override;
   void gap_scan_event_handler(const BLEScanResult &scan_result) override;
   void ble_before_disabled_event_handler() override;
+
+  static void uint64_to_bd_addr(uint64_t address, esp_bd_addr_t bd_addr) {
+    bd_addr[0] = (address >> 40) & 0xff;
+    bd_addr[1] = (address >> 32) & 0xff;
+    bd_addr[2] = (address >> 24) & 0xff;
+    bd_addr[3] = (address >> 16) & 0xff;
+    bd_addr[4] = (address >> 8) & 0xff;
+    bd_addr[5] = (address >> 0) & 0xff;
+  }
 
   void add_scanner_state_callback(std::function<void(ScannerState)> &&callback) {
     this->scanner_state_callbacks_.add(std::move(callback));
@@ -291,6 +301,7 @@ class ESP32BLETracker : public Component,
   bool ble_was_disabled_{true};
   bool raw_advertisements_{false};
   bool parse_advertisements_{false};
+  bool allowlist_populated_{false};
 
   // Lock-free Single-Producer Single-Consumer (SPSC) ring buffer for scan results
   // Producer: ESP-IDF Bluetooth stack callback (gap_scan_event_handler)
@@ -303,6 +314,7 @@ class ESP32BLETracker : public Component,
 
   esp_bt_status_t scan_start_failed_{ESP_BT_STATUS_SUCCESS};
   esp_bt_status_t scan_set_param_failed_{ESP_BT_STATUS_SUCCESS};
+  std::vector<uint64_t> allowlist_address_vec_;
   int connecting_{0};
   int discovered_{0};
   int searching_{0};

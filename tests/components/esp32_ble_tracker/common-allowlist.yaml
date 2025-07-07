@@ -1,0 +1,13 @@
+# Test configuration for BLE tracker allowlist feature
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 320ms
+    window: 30ms
+    active: true
+    # Test allowlist with multiple addresses
+    allowlist_address:
+      - "AA:BB:CC:DD:EE:01"
+      - "AA:BB:CC:DD:EE:02"
+      - "AA:BB:CC:DD:EE:03"
+      - "AA:BB:CC:DD:EE:04"
+      - "AA:BB:CC:DD:EE:05"

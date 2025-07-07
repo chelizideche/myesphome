@@ -43,7 +43,22 @@ CONF_ESP32_BLE_ID = "esp32_ble_id"
 CONF_SCAN_PARAMETERS = "scan_parameters"
 CONF_WINDOW = "window"
 CONF_ON_SCAN_END = "on_scan_end"
+CONF_ALLOWLIST_ADDRESS = "allowlist_address"
 CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
+
+# Maximum allowlist size for BLE scanning
+# ESP-IDF default for all variants is 12, and Arduino framework uses
+# precompiled libraries so we can't change it. Using 12 as a safe
+# default that works across all platforms and frameworks.
+#
+# With ESP-IDF, these could be increased via sdkconfig:
+# - ESP32/ESP32-S3: Runtime determined via HCI_BLE_READ_WHITE_LIST_SIZE
+# - ESP32-C2/C5/C6/H2: CONFIG_BT_LE_WHITELIST_SIZE (range 1-31, default 12)  # NOLINT(lint_inclusive_language)
+# - ESP32-S2: No BLE support
+# - ESP32-C3: Uses ESP controller, likely similar to C2/C6
+# - ESP32-P4: Unknown, assuming default
+MAX_ALLOWLIST_SIZE = 12
+
 
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
@@ -85,6 +100,20 @@ ESP32BLEStartScanAction = esp32_ble_tracker_ns.class_(
 ESP32BLEStopScanAction = esp32_ble_tracker_ns.class_(
     "ESP32BLEStopScanAction", automation.Action
 )
+
+
+def validate_allowlist_addresses(value: list[cv.MacAddress]) -> list[cv.MacAddress]:
+    """Validate allowlist addresses against platform-specific limit."""
+    # For now, use the same limit for all variants since Arduino
+    # framework doesn't allow configuration and 12 is the ESP-IDF default
+    # In the future, we could check CORE.using_esp_idf and allow
+    # higher limits for variants that support it (C2/C5/C6/H2 can go up to 31)
+    if len(value) > MAX_ALLOWLIST_SIZE:
+        raise cv.Invalid(
+            f"Maximum {MAX_ALLOWLIST_SIZE} allowlist addresses are supported. "
+            f"You have configured {len(value)} addresses."
+        )
+    return value
 
 
 def validate_scan_parameters(config):
@@ -166,6 +195,11 @@ CONFIG_SCHEMA = cv.All(
                         ): cv.positive_time_period_milliseconds,
                         cv.Optional(CONF_ACTIVE, default=True): cv.boolean,
                         cv.Optional(CONF_CONTINUOUS, default=True): cv.boolean,
+                        cv.Optional(CONF_ALLOWLIST_ADDRESS): cv.All(
+                            cv.ensure_list(cv.mac_address),
+                            cv.Length(min=1),
+                            validate_allowlist_addresses,
+                        ),
                     }
                 ),
                 validate_scan_parameters,
@@ -277,12 +311,14 @@ async def to_code(config):
     cg.add(var.set_scan_window(int(params[CONF_WINDOW].total_milliseconds / 0.625)))
     cg.add(var.set_scan_active(params[CONF_ACTIVE]))
     cg.add(var.set_scan_continuous(params[CONF_CONTINUOUS]))
+    if CONF_ALLOWLIST_ADDRESS in params:
+        allowlist_addr_list = [it.as_hex for it in params[CONF_ALLOWLIST_ADDRESS]]
+        cg.add(var.set_allowlist_addresses(allowlist_addr_list))
+
     for conf in config.get(CONF_ON_BLE_ADVERTISE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         if CONF_MAC_ADDRESS in conf:
-            addr_list = []
-            for it in conf[CONF_MAC_ADDRESS]:
-                addr_list.append(it.as_hex)
+            addr_list = [it.as_hex for it in conf[CONF_MAC_ADDRESS]]
             cg.add(trigger.set_addresses(addr_list))
         await automation.build_automation(trigger, [(ESPBTDeviceConstRef, "x")], conf)
     for conf in config.get(CONF_ON_BLE_SERVICE_DATA_ADVERTISE, []):
