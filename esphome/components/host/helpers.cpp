@@ -11,7 +11,12 @@
 #include <limits>
 #include <random>
 
+#include "esphome/core/defines.h"
+#include "esphome/core/log.h"
+
 namespace esphome {
+
+static const char *const TAG = "helpers.host";
 
 uint32_t random_uint32() {
   std::random_device dev;
