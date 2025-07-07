@@ -75,6 +75,14 @@ uint32_t ESP32ArduinoUARTComponent::get_config() {
 
 void ESP32ArduinoUARTComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
+
+  if (this->rx_pin_) {
+    this->rx_pin_->setup();
+  }
+  if (this->tx_pin_ && this->rx_pin_ != this->tx_pin_) {
+    this->tx_pin_->setup();
+  }
+
   // Use Arduino HardwareSerial UARTs if all used pins match the ones
   // preconfigured by the platform. For example if RX disabled but TX pin
   // is 1 we still want to use Serial.
