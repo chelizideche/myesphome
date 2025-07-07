@@ -173,7 +173,7 @@ def validate_config(config):
             raise cv.Invalid("Payload length must be set when spreading factor is 6")
     else:
         if config[CONF_BANDWIDTH] in lora_bws:
-            raise cv.Invalid("{config[CONF_BANDWIDTH]} is not available with FSK")
+            raise cv.Invalid(f"{config[CONF_BANDWIDTH]} is not available with FSK")
         if config[CONF_PREAMBLE_DETECT] > len(config[CONF_SYNC_VALUE]):
             raise cv.Invalid("Preamble detection length must be <= sync value length")
     return config
