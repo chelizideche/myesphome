@@ -742,17 +742,11 @@ void LD2412Component::readline_(int readch) {
   if (this->buffer_pos_ < 4) {
     return;  // Not enough data to process yet
   }
-  if (this->buffer_data_[this->buffer_pos_ - 4] == DATA_FRAME_FOOTER[0] &&
-      this->buffer_data_[this->buffer_pos_ - 3] == DATA_FRAME_FOOTER[1] &&
-      this->buffer_data_[this->buffer_pos_ - 2] == DATA_FRAME_FOOTER[2] &&
-      this->buffer_data_[this->buffer_pos_ - 1] == DATA_FRAME_FOOTER[3]) {
+  if (ld2412::validate_header_footer(DATA_FRAME_FOOTER, &this->buffer_data_[this->buffer_pos_ - 4])) {
     ESP_LOGV(TAG, "Handling Periodic Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
     this->handle_periodic_data_();
     this->buffer_pos_ = 0;  // Reset position index for next message
-  } else if (this->buffer_data_[this->buffer_pos_ - 4] == CMD_FRAME_FOOTER[0] &&
-             this->buffer_data_[this->buffer_pos_ - 3] == CMD_FRAME_FOOTER[1] &&
-             this->buffer_data_[this->buffer_pos_ - 2] == CMD_FRAME_FOOTER[2] &&
-             this->buffer_data_[this->buffer_pos_ - 1] == CMD_FRAME_FOOTER[3]) {
+  } else if (ld2412::validate_header_footer(CMD_FRAME_FOOTER, &this->buffer_data_[this->buffer_pos_ - 4])) {
     ESP_LOGV(TAG, "Handling Ack Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
     if (this->handle_ack_data_()) {
       this->buffer_pos_ = 0;  // Reset position index for next message
