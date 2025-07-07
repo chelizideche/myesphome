@@ -1,25 +1,45 @@
 """Tests for mpip_spi configuration validation."""
 
-import contextvars
 from pathlib import Path
 
 import pytest
 
-from esphome import config_validation as cv
+from esphome import config_validation as cv, final_validate
 from esphome.components.esp32 import (
     FRAMEWORK_ARDUINO,
     FRAMEWORK_ESP_IDF,
     KEY_BOARD,
     KEY_ESP32,
+    VARIANT_ESP32,
+    VARIANT_ESP32C3,
+    VARIANT_ESP32P4,
     VARIANT_ESP32S3,
 )
+from esphome.components.esp32.gpio import validate_gpio_pin
+from esphome.config import Config
 from esphome.const import (
+    CONF_DC_PIN,
+    CONF_DIMENSIONS,
+    CONF_HEIGHT,
+    CONF_INIT_SEQUENCE,
+    CONF_WIDTH,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     KEY_VARIANT,
     PLATFORM_ESP32,
 )
+from esphome.core import CORE
+from esphome.pins import gpio_output_pin_schema
+
+_VARIANTS = (VARIANT_ESP32S3, VARIANT_ESP32C3, VARIANT_ESP32P4, VARIANT_ESP32)
+
+_mock_config = Config()
+
+
+def _set_component_config(name, value):
+    """Set a component configuration in the mock config."""
+    _mock_config[name] = value
 
 
 def _config_setup():
@@ -27,27 +47,31 @@ def _config_setup():
     from esphome.core import CORE
 
     CORE.config_path = __file__
-    CORE.data[KEY_CORE] = {KEY_TARGET_PLATFORM: PLATFORM_ESP32}
+    CORE.data[KEY_CORE] = {
+        KEY_TARGET_PLATFORM: PLATFORM_ESP32,
+        KEY_TARGET_FRAMEWORK: FRAMEWORK_ESP_IDF,
+    }
     CORE.data[KEY_ESP32] = {
         KEY_VARIANT: VARIANT_ESP32S3,
         KEY_BOARD: "esp32-s3-devkitc-1",
     }
-    config.path_context = contextvars.ContextVar("Config path")
     config.path_context.set([])
+    final_validate.full_config.set(_mock_config)
 
 
 def _test_failure(config, error_msg: str, validator=None) -> None:
     """Helper function to test failure of configuration validation."""
-    from esphome.components.mipi_spi.display import CONFIG_SCHEMA
-
-    validator = validator or CONFIG_SCHEMA
+    from esphome.components.mipi_spi.display import CONFIG_SCHEMA, FINAL_VALIDATE_SCHEMA
 
     with pytest.raises(cv.Invalid) as exc_info:
-        validator(config)
+        if validator:
+            validator(config)
+        else:
+            FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
     assert error_msg in str(exc_info.value)
 
 
-def test_image_configuration_errors() -> None:
+def test_configuration_errors() -> None:
     """Test detection of invalid configuration"""
 
     _config_setup()
@@ -85,15 +109,6 @@ def test_image_configuration_errors() -> None:
         "Dimensions and offsets must be divisible by 32",
         dimension_schema(32),
     )
-
-    CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = FRAMEWORK_ARDUINO
-
-    _test_failure(
-        {"model": "wt32-sc01-plus"},
-        "This feature is only available with frameworks ['esp-idf']",
-    )
-
-    CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = FRAMEWORK_ESP_IDF
 
     _test_failure(
         {
@@ -133,86 +148,116 @@ def test_image_configuration_errors() -> None:
         {"model": "ili9488"},
         "DC pin is required in single mode",
     )
+    # Brightness is not supported except for specific models
     _test_failure(
         {"model": "wt32-sc01-plus", "brightness": 128},
         "extra keys not allowed @ data['brightness']",
     )
+    _test_failure(
+        {
+            "model": "T-DISPLAY-S3-PRO",
+        },
+        "PSRAM is required for this display",
+    )
+
+    CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = FRAMEWORK_ARDUINO
+    _test_failure(
+        {"model": "wt32-sc01-plus"},
+        "This feature is only available with frameworks ['esp-idf']",
+    )
+
+    CORE.reset()
 
 
-def test_image_configuration_success() -> None:
-    """Test successful configuration validation."""
-    from esphome.components.image import CONFIG_SCHEMA
+def _set_variant(model):
+    """
+    Get the ESP32 variant for the given model based on pins
+    """
     from esphome.core import CORE
 
-    CORE.config_path = __file__
+    for v in _VARIANTS:
+        try:
+            CORE.data[KEY_ESP32][KEY_VARIANT] = v
+            for pin in [
+                model.get_default(pin, None)
+                for pin in ("dc_pin", "reset_pin", "cs_pin")
+            ]:
+                if pin is not None:
+                    pin = gpio_output_pin_schema(pin)
+                    validate_gpio_pin(pin)
+            return
+        except cv.Invalid:
+            continue
 
-    # Valid image configuration
-    CONFIG_SCHEMA(
+
+def _success(config):
+    """Helper function to test successful configuration validation."""
+    from esphome.components.mipi_spi.display import CONFIG_SCHEMA, FINAL_VALIDATE_SCHEMA
+
+    FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
+
+
+def test_configuration_success() -> None:
+    """Test successful configuration validation."""
+    _config_setup()
+
+    from esphome.components.mipi_spi.display import (
+        CONF_BUS_MODE,
+        CONF_NATIVE_HEIGHT,
+        MODELS,
+    )
+
+    # Custom model with all options
+    _success(
         {
-            "id": "image_id",
-            "file": "image.png",
-            "type": "rgb565",
-            "transparency": "chroma_key",
+            "model": "custom",
+            "pixel_mode": "18bit",
+            "color_depth": 8,
+            "id": "display_id",
             "byte_order": "little_endian",
-            "dither": "FloydSteinberg",
-            "resize": "100x100",
-            "invert_alpha": False,
-        }
-    )
-    CONFIG_SCHEMA(
-        [
-            {
-                "id": "image_id",
-                "file": "image.png",
-                "type": "binary",
-            }
-        ]
-    )
-    CONFIG_SCHEMA(
-        {
-            "defaults": {
-                "type": "rgb565",
-                "transparency": "chroma_key",
-                "byte_order": "little_endian",
-                "dither": "FloydSteinberg",
-                "resize": "100x100",
-                "invert_alpha": False,
+            "bus_mode": "single",
+            "color_order": "rgb",
+            "dc_pin": 11,
+            "reset_pin": 12,
+            "enable_pin": 13,
+            "cs_pin": 14,
+            "init_sequence": [[0xA0, 0x01]],
+            "dimensions": {
+                "width": 320,
+                "height": 240,
+                "offset_width": 32,
+                "offset_height": 32,
             },
-            "images": [
-                {
-                    "id": "image_id",
-                    "file": "image.png",
-                }
-            ],
+            "invert_colors": True,
+            "transform": {"mirror_x": True, "mirror_y": True, "swap_xy": False},
+            "spi_mode": "mode0",
+            "data_rate": "40MHz",
+            "use_axis_flips": True,
+            "draw_rounding": 4,
+            "spi_16": True,
+            "buffer_size": 0.25,
         }
     )
-    CONFIG_SCHEMA(
-        {
-            "rgb565": {
-                "alpha_channel": [
-                    {
-                        "id": "image_id",
-                        "file": "image.png",
-                        "transparency": "alpha_channel",
-                        "byte_order": "little_endian",
-                        "dither": "FloydSteinberg",
-                        "resize": "100x100",
-                        "invert_alpha": False,
-                    }
-                ]
-            },
-            "binary": [
-                {
-                    "id": "image_id",
-                    "file": "image.png",
-                    "transparency": "opaque",
-                    "dither": "FloydSteinberg",
-                    "resize": "100x100",
-                    "invert_alpha": False,
-                }
-            ],
-        }
-    )
+
+    # Enable PSRAM for the remainder
+    _set_component_config("psram", True)
+
+    # Test all models, providing default values where necessary
+    for name, model in MODELS.items():
+        config = {"model": name}
+        _set_variant(model)
+        if (
+            not model.get_default(CONF_DC_PIN)
+            and model.get_default(CONF_BUS_MODE) != "quad"
+        ):
+            config[CONF_DC_PIN] = 14
+        if not model.get_default(CONF_NATIVE_HEIGHT):
+            config[CONF_DIMENSIONS] = {CONF_HEIGHT: 240, CONF_WIDTH: 320}
+        if model.initsequence is None:
+            config[CONF_INIT_SEQUENCE] = [[0xA0, 0x01]]
+        _success(config)
+
+    CORE.reset()
 
 
 def _get_path(file_name: str) -> Path:
@@ -220,15 +265,25 @@ def _get_path(file_name: str) -> Path:
     return (Path(__file__).parent / file_name).absolute()
 
 
-def test_image_generation(generate_main) -> None:
-    """Test image generation configuration."""
-    from esphome.core import CORE
+def test_native_generation(generate_main) -> None:
+    """Test code generation for display."""
 
-    CORE.config_path = __file__
-
-    main_cpp = generate_main(_get_path("image_test.yaml"))
-    assert "uint8_t_id[] PROGMEM = {0x24, 0x21, 0x24, 0x21" in main_cpp
+    main_cpp = generate_main(_get_path("native.yaml"))
     assert (
-        "cat_img = new image::Image(uint8_t_id, 32, 24, image::IMAGE_TYPE_RGB565, image::TRANSPARENCY_OPAQUE);"
+        "mipi_spi::MipiSpiBuffer<uint16_t, mipi_spi::PIXEL_MODE_16, true, mipi_spi::PIXEL_MODE_16, mipi_spi::BUS_TYPE_QUAD, 360, 360, 0, 1, display::DISPLAY_ROTATION_0_DEGREES, 1>()"
         in main_cpp
     )
+    assert "set_init_sequence({240, 1, 8, 242" in main_cpp
+    assert "show_test_card();" in main_cpp
+    assert "set_write_only(true);" in main_cpp
+
+    CORE.reset()
+
+    main_cpp = generate_main(_get_path("lvgl.yaml"))
+    assert (
+        "mipi_spi::MipiSpi<uint16_t, mipi_spi::PIXEL_MODE_16, true, mipi_spi::PIXEL_MODE_16, mipi_spi::BUS_TYPE_SINGLE, 128, 160, 0, 0>();"
+        in main_cpp
+    )
+    assert "set_init_sequence({1, 0, 10, 255, 177" in main_cpp
+    assert "show_test_card();" not in main_cpp
+    assert "set_auto_clear(false);" in main_cpp

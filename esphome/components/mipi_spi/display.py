@@ -38,7 +38,7 @@ from esphome.const import (
     CONF_TRANSFORM,
     CONF_WIDTH,
 )
-from esphome.core import TimePeriod
+from esphome.core import CORE, TimePeriod
 from esphome.cpp_generator import TemplateArguments
 from esphome.final_validate import full_config
 
@@ -109,7 +109,7 @@ BusTypes = {
 DriverChip("CUSTOM")
 
 MODELS = DriverChip.models
-# These statements are noops, but serve to suppress linting of side-effect-only imports
+# This loop is a noop, but suppresses linting of side-effect-only imports
 for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare):
     pass
 
@@ -137,9 +137,9 @@ def get_dimensions(config):
         return width, height, 0, 0
 
     # Default dimensions, use model defaults
-    model = MODELS[config[CONF_MODEL]]
-    transform = get_transform(model, config)
+    transform = get_transform(config)
 
+    model = MODELS[config[CONF_MODEL]]
     width = model.get_default(CONF_WIDTH)
     height = model.get_default(CONF_HEIGHT)
     offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
@@ -235,7 +235,7 @@ def dimension_schema(rounding):
 
 
 def swap_xy_schema(model):
-    uses_swap = model.get_default(CONF_SWAP_XY, cv.UNDEFINED) != cv.UNDEFINED
+    uses_swap = model.get_default(CONF_SWAP_XY, None) != cv.UNDEFINED
 
     def validator(value):
         if value:
@@ -247,7 +247,9 @@ def swap_xy_schema(model):
     return {cv.Optional(CONF_SWAP_XY, default=False): validator}
 
 
-def model_schema(bus_mode, model: DriverChip, swapsies: bool):
+def model_schema(config):
+    model = MODELS[config[CONF_MODEL]]
+    bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
     transform = cv.Schema(
         {
             cv.Required(CONF_MIRROR_X): cv.boolean,
@@ -261,9 +263,10 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
         if model.initsequence is None
         else cv.Optional(CONF_INIT_SEQUENCE)
     )
-    # Dimensions are optional if the model has a default width and the transform is not overridden
+    # Dimensions are optional if the model has a default width and the x-y transform is not overridden
+    is_swapped = config.get(CONF_TRANSFORM, {}).get(CONF_SWAP_XY) is True
     cv_dimensions = (
-        cv.Optional if model.get_default(CONF_WIDTH) and not swapsies else cv.Required
+        cv.Optional if model.get_default(CONF_WIDTH) and not is_swapped else cv.Required
     )
     pixel_modes = DISPLAY_PIXEL_MODES if bus_mode == TYPE_SINGLE else (DISPLAY_16BIT,)
     color_depth = (
@@ -336,18 +339,25 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
     return schema
 
 
-def rotation_as_transform(model, config):
+def is_rotation_transformable(config):
     """
     Check if a rotation can be implemented in hardware using the MADCTL register.
     A rotation of 180 is always possible, 90 and 270 are possible if the model supports swapping X and Y.
     """
+    model = MODELS[config[CONF_MODEL]]
     rotation = config.get(CONF_ROTATION, 0)
     return rotation and (
         model.get_default(CONF_SWAP_XY) != cv.UNDEFINED or rotation == 180
     )
 
 
-def config_schema(config):
+def customise_schema(config):
+    """
+    Create a customised config schema for a specific model and validate the configuration.
+    :param config: The configuration dictionary to validate
+    :return: The validated configuration dictionary
+    :raises cv.Invalid: If the configuration is invalid
+    """
     # First get the model and bus mode
     config = cv.Schema(
         {
@@ -365,8 +375,7 @@ def config_schema(config):
         extra=ALLOW_EXTRA,
     )(config)
     bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
-    swapsies = config.get(CONF_TRANSFORM, {}).get(CONF_SWAP_XY) is True
-    config = model_schema(bus_mode, model, swapsies)(config)
+    config = model_schema(config)(config)
     # Check for invalid combinations of MADCTL config
     if init_sequence := config.get(CONF_INIT_SEQUENCE):
         commands = [x[0] for x in init_sequence]
@@ -387,13 +396,22 @@ def config_schema(config):
     return config
 
 
-CONFIG_SCHEMA = config_schema
+CONFIG_SCHEMA = customise_schema
 
 
 def requires_buffer(config):
+    """
+    Check if the display configuration requires a buffer. It will do so if any drawing methods are configured.
+    :param config:
+    :return:  True if a buffer is required, False otherwise
+    """
     return any(
         config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
     )
+
+
+def get_color_depth(config):
+    return int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
 
 
 def _final_validate(config):
@@ -409,22 +427,25 @@ def _final_validate(config):
         if not requires_buffer(config):
             return config  # No buffer needed, so no need to set a buffer size
         # If PSRAM is not enabled, choose a small buffer size by default
-        buffer_size = get_buffer_size(config)
-        if buffer_size == 0:
+        if not requires_buffer(config):
             # not our problem.
             return config
+        color_depth = get_color_depth(config)
+        frac = denominator(config)
+        height, width, _offset_width, _offset_height = get_dimensions(config)
+
+        buffer_size = color_depth // 8 * width * height // frac
         # Target a buffer size of 20kB
         fraction = 20000.0 / buffer_size
-        height, _width, _offset_width, _offset_height = get_dimensions(config)
         try:
             config[CONF_BUFFER_SIZE] = 1.0 / next(
                 x for x in range(2, 17) if fraction >= 1 / x and height % x == 0
             )
         except StopIteration:
-            # pylint: disable=raise-missing-from
-            raise cv.Invalid(
-                f"Unable to determine a suitable buffer size fraction for height {height} - specify one in the config using '{CONF_BUFFER_SIZE}'"
-            ) from StopIteration
+            # Either the screen is too big, or the height is not divisible by any of the fractions, so use 1.0
+            # PSRAM will be needed.
+            if CORE.is_esp32:
+                raise cv.Invalid("PSRAM is required for this display")
 
     return config
 
@@ -432,17 +453,14 @@ def _final_validate(config):
 FINAL_VALIDATE_SCHEMA = _final_validate
 
 
-def get_buffer_size(config):
-    if not requires_buffer(config):
-        return 0
-    color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
-    frac = denominator(config)
-    height, width, _offset_width, _offset_height = get_dimensions(config)
-    return color_depth // 8 * width * height // frac
-
-
-def get_transform(model, config):
-    can_transform = rotation_as_transform(model, config)
+def get_transform(config):
+    """
+    Get the transformation configuration for the display.
+    :param config:
+    :return:
+    """
+    model = MODELS[config[CONF_MODEL]]
+    can_transform = is_rotation_transformable(config)
     transform = config.get(
         CONF_TRANSFORM,
         {
@@ -488,7 +506,7 @@ def get_sequence(model, config):
     use_flip = config[CONF_USE_AXIS_FLIPS]
     if MADCTL not in commands:
         madctl = 0
-        transform = get_transform(model, config)
+        transform = get_transform(config)
         if transform.get(CONF_TRANSFORM):
             LOGGER.info("Using hardware transform to implement rotation")
         if transform.get(CONF_MIRROR_X):
@@ -525,8 +543,13 @@ def get_sequence(model, config):
     )
 
 
-async def to_code(config):
-    model = MODELS[config[CONF_MODEL]]
+def get_instance(config):
+    """
+    Get the type of MipiSpi instance to create based on the configuration,
+    and the template arguments.
+    :param config:
+    :return: type, template arguments
+    """
     width, height, offset_width, offset_height = get_dimensions(config)
 
     color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
@@ -540,10 +563,9 @@ async def to_code(config):
     else:
         bus_type = BusTypes[bus_type]
     buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
-    buffer_size = get_buffer_size(config)
     frac = denominator(config)
     rotation = DISPLAY_ROTATIONS[
-        0 if rotation_as_transform(model, config) else config.get(CONF_ROTATION, 0)
+        0 if is_rotation_transformable(config) else config.get(CONF_ROTATION, 0)
     ]
     templateargs = [
         buffer_type,
@@ -556,15 +578,21 @@ async def to_code(config):
         offset_width,
         offset_height,
     ]
-    var_id = config[CONF_ID]
     # If a buffer is required, use MipiSpiBuffer, otherwise use MipiSpi
-    if buffer_size != 0:
+    if requires_buffer(config):
         templateargs.append(rotation)
         templateargs.append(frac)
-        var_id.type = MipiSpiBuffer
+        return MipiSpiBuffer, templateargs
+    return MipiSpi, templateargs
+
+
+async def to_code(config):
+    model = MODELS[config[CONF_MODEL]]
+    var_id = config[CONF_ID]
+    var_id.type, templateargs = get_instance(config)
     var = cg.new_Pvariable(var_id, TemplateArguments(*templateargs))
     cg.add(var.set_init_sequence(get_sequence(model, config)))
-    if rotation_as_transform(model, config):
+    if is_rotation_transformable(config):
         if CONF_TRANSFORM in config:
             LOGGER.warning("Use of 'transform' with 'rotation' is not recommended")
         else:
@@ -590,4 +618,5 @@ async def to_code(config):
         cg.add(var.set_writer(lambda_))
     await display.register_display(var, config)
     await spi.register_spi_device(var, config)
+    # Displays are write-only, set the SPI device to write-only as well
     cg.add(var.set_write_only(True))
