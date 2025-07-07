@@ -75,19 +75,22 @@ struct ZoneOfNumbers {
 #endif
 
 class LD2450Component : public Component, public uart::UARTDevice {
-#ifdef USE_SENSOR
-  SUB_SENSOR(target_count)
-  SUB_SENSOR(still_target_count)
-  SUB_SENSOR(moving_target_count)
-#endif
 #ifdef USE_BINARY_SENSOR
-  SUB_BINARY_SENSOR(target)
   SUB_BINARY_SENSOR(moving_target)
   SUB_BINARY_SENSOR(still_target)
+  SUB_BINARY_SENSOR(target)
+#endif
+#ifdef USE_SENSOR
+  SUB_SENSOR(moving_target_count)
+  SUB_SENSOR(still_target_count)
+  SUB_SENSOR(target_count)
 #endif
 #ifdef USE_TEXT_SENSOR
-  SUB_TEXT_SENSOR(version)
   SUB_TEXT_SENSOR(mac)
+  SUB_TEXT_SENSOR(version)
+#endif
+#ifdef USE_NUMBER
+  SUB_NUMBER(presence_timeout)
 #endif
 #ifdef USE_SELECT
   SUB_SELECT(baud_rate)
@@ -98,11 +101,8 @@ class LD2450Component : public Component, public uart::UARTDevice {
   SUB_SWITCH(multi_target)
 #endif
 #ifdef USE_BUTTON
-  SUB_BUTTON(reset)
+  SUB_BUTTON(factory_reset)
   SUB_BUTTON(restart)
-#endif
-#ifdef USE_NUMBER
-  SUB_NUMBER(presence_timeout)
 #endif
 
  public:

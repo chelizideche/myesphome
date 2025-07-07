@@ -226,9 +226,6 @@ void LD2450Component::dump_config() {
   for (sensor::Sensor *s : this->move_y_sensors_) {
     LOG_SENSOR("  ", "TargetY", s);
   }
-  for (sensor::Sensor *s : this->move_speed_sensors_) {
-    LOG_SENSOR("  ", "TargetSpeed", s);
-  }
   for (sensor::Sensor *s : this->move_angle_sensors_) {
     LOG_SENSOR("  ", "TargetAngle", s);
   }
@@ -238,14 +235,17 @@ void LD2450Component::dump_config() {
   for (sensor::Sensor *s : this->move_resolution_sensors_) {
     LOG_SENSOR("  ", "TargetResolution", s);
   }
+  for (sensor::Sensor *s : this->move_speed_sensors_) {
+    LOG_SENSOR("  ", "TargetSpeed", s);
+  }
   for (sensor::Sensor *s : this->zone_target_count_sensors_) {
     LOG_SENSOR("  ", "ZoneTargetCount", s);
   }
-  for (sensor::Sensor *s : this->zone_still_target_count_sensors_) {
-    LOG_SENSOR("  ", "ZoneStillTargetCount", s);
-  }
   for (sensor::Sensor *s : this->zone_moving_target_count_sensors_) {
     LOG_SENSOR("  ", "ZoneMovingTargetCount", s);
+  }
+  for (sensor::Sensor *s : this->zone_still_target_count_sensors_) {
+    LOG_SENSOR("  ", "ZoneStillTargetCount", s);
   }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -278,7 +278,7 @@ void LD2450Component::dump_config() {
 #endif
 #ifdef USE_BUTTON
   ESP_LOGCONFIG(TAG, "Buttons:");
-  LOG_BUTTON("  ", "Reset", this->reset_button_);
+  LOG_BUTTON("  ", "FactoryReset", this->factory_reset_button_);
   LOG_BUTTON("  ", "Restart", this->restart_button_);
 #endif
 }
