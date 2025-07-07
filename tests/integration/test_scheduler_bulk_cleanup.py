@@ -101,10 +101,7 @@ async def test_scheduler_bulk_cleanup(
             "Bulk cleanup path was not triggered - MAX_LOGICALLY_DELETED_ITEMS threshold not reached"
         )
 
-        # Verify cleanup statistics if available
-        if cleanup_stats.get("removed", 0) > 0:
-            assert cleanup_stats.get("removed", 0) > 10, (
-                f"Expected more than 10 items removed, got {cleanup_stats.get('removed', 0)}"
-            )
-            # Note: We're not tracking before/after counts in this test
-            # The important thing is that >10 items were cancelled triggering bulk cleanup
+        # Verify cleanup statistics
+        assert cleanup_stats["removed"] > 10, (
+            f"Expected more than 10 items removed, got {cleanup_stats['removed']}"
+        )
