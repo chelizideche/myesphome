@@ -129,6 +129,7 @@ def _validate_cpu_frequency(config):
         raise cv.Invalid(
             "Inkplate requires 240MHz CPU frequency (set in esp32 component)"
         )
+    return config
 
 
 FINAL_VALIDATE_SCHEMA = _validate_cpu_frequency
