@@ -314,6 +314,8 @@ void HOT Scheduler::call() {
 
     // Replace items_ with the filtered list
     this->items_ = std::move(valid_items);
+    // Rebuild the heap structure since items are no longer in heap order
+    std::make_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
     this->to_remove_ = 0;
   }
 
