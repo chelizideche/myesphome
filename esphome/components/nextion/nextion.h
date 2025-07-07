@@ -1457,11 +1457,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   optional<nextion_writer_t> writer_;
   optional<float> brightness_;
 
-  std::string device_model_;
-  std::string firmware_version_;
-  std::string serial_number_;
-  std::string flash_size_;
-
   void remove_front_no_sensors_();
 
 #ifdef NEXTION_PROTOCOL_LOG
