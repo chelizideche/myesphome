@@ -1,0 +1,13 @@
+wifi:
+  ssid: ssid
+  password: password
+
+api:
+  services:
+    - service: 'store_yaml_log'
+      then:
+        - store_yaml.log
+
+store_yaml:
+  show_in_dump_config: True
+  show_secrets: True
