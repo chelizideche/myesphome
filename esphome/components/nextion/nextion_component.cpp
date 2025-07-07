@@ -67,7 +67,7 @@ void NextionComponent::set_visible(bool visible) {
 void NextionComponent::update_component_settings(bool force_update) {
   if (this->nextion_->is_sleeping() || !this->nextion_->is_setup() || !this->component_state_.visible_is_set ||
       (!this->component_state_.visible_needs_update && !this->component_state_.visible)) {
-    this->component_state_.needs_to_send_update_ = true;
+    this->needs_to_send_update_ = true;
     return;
   }
 
