@@ -64,14 +64,13 @@ async def test_scheduler_bulk_cleanup(
             match = re.search(r"Post-cleanup timeout (\d+) executed correctly", line)
             if match:
                 post_cleanup_executed += 1
-                # All 5 post-cleanup timeouts have executed
-                if post_cleanup_executed >= 5 and not test_complete_future.done():
-                    test_complete_future.set_result(None)
 
-        # Check for bulk cleanup completion (but don't end test yet)
-        if "Bulk cleanup test complete" in line:
-            # This just means the interval finished, not that all timeouts executed
-            pass
+        # Check for final test completion
+        if (
+            "All post-cleanup timeouts completed - test finished" in line
+            and not test_complete_future.done()
+        ):
+            test_complete_future.set_result(None)
 
     async with (
         run_compiled(yaml_config, line_callback=on_log_line),

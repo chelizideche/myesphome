@@ -52,10 +52,16 @@ void SchedulerBulkCleanupComponent::trigger_bulk_cleanup() {
   });
 
   // Also schedule some normal timeouts to ensure scheduler keeps working after cleanup
+  static int post_cleanup_count = 0;
   for (int i = 0; i < 5; i++) {
     std::string name = "post_cleanup_" + std::to_string(i);
-    App.scheduler.set_timeout(this, name, 50 + i * 25,
-                              [i]() { ESP_LOGI(TAG, "Post-cleanup timeout %d executed correctly", i); });
+    App.scheduler.set_timeout(this, name, 50 + i * 25, [i]() {
+      ESP_LOGI(TAG, "Post-cleanup timeout %d executed correctly", i);
+      post_cleanup_count++;
+      if (post_cleanup_count >= 5) {
+        ESP_LOGI(TAG, "All post-cleanup timeouts completed - test finished");
+      }
+    });
   }
 }
 
