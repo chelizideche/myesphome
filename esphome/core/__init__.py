@@ -595,7 +595,7 @@ class EsphomeCore:
         self.variables = {}
         self.main_statements = []
         self.global_statements = []
-        self.platformio_libraries = []
+        self.platformio_libraries = {}
         self.build_flags = set()
         self.build_unflags = set()
         self.defines = set()
