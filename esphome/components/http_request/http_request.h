@@ -243,8 +243,9 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       uint8_t *buf = allocator.allocate(max_length);
       if (buf != nullptr) {
         size_t read_index = 0;
-        while (container->get_bytes_read() < max_length) {
-          int read = container->read(buf + read_index, std::min<size_t>(max_length - read_index, 512));
+        int read = -1;
+        while (container->get_bytes_read() < max_length && read != 0) {
+          read = container->read(buf + read_index, std::min<size_t>(max_length - read_index, 512));
           App.feed_wdt();
           yield();
           read_index += read;

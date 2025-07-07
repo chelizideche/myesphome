@@ -153,8 +153,17 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
 
   container->feed_wdt();
   container->content_length = esp_http_client_fetch_headers(client);
+  ESP_LOGV(TAG, "HTTP Request has content_length %d", container->content_length);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
+
+  container->feed_wdt();
+  container->chunked = container->content_length == 0 ? esp_http_client_is_chunked_response(client) : false;
+  if (container->chunked) {
+    container->content_length = SIZE_MAX;
+    ESP_LOGV(TAG, "Got chunked HTTP Response");
+  }
+
   container->feed_wdt();
   container->set_response_headers(user_data.response_headers);
   if (is_success(container->status_code)) {
@@ -188,9 +197,18 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
 
       container->feed_wdt();
       container->content_length = esp_http_client_fetch_headers(client);
+      ESP_LOGV(TAG, "HTTP Response has content_length %d", container->content_length);
       container->feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       container->feed_wdt();
+
+      container->chunked = container->content_length == 0 ? esp_http_client_is_chunked_response(client) : false;
+      if (container->chunked) {
+        container->content_length = SIZE_MAX;
+        ESP_LOGV(TAG, "Got Chunked HTTP Response");
+      }
+      container->feed_wdt();
+
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
@@ -213,7 +231,8 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   const uint32_t start = millis();
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
 
-  int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  // int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  int bufsize = this->chunked ? 512 : std::min(max_len, this->content_length - this->bytes_read_);
 
   if (bufsize == 0) {
     this->duration_ms += (millis() - start);
