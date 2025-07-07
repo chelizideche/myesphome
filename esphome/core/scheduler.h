@@ -143,7 +143,7 @@ class Scheduler {
 
  private:
   // Helper to cancel items by name - must be called with lock held
-  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type, bool check_defer_only);
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
 
   // Helper to extract name as const char* from either static string or std::string
   inline const char *get_name_cstr_(bool is_static_string, const void *name_ptr) {
