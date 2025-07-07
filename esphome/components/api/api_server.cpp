@@ -263,7 +263,7 @@ void APIServer::handle_disconnect(APIConnection *conn) {}
 
 // Macro for entities without extra parameters
 #define API_DISPATCH_UPDATE(entity_type, entity_name) \
-  void APIServer::on_##entity_name##_update(entity_type *obj) { \
+  void APIServer::on_##entity_name##_update(entity_type *obj) { /* NOLINT(bugprone-macro-parentheses) */ \
     if (obj->is_internal()) \
       return; \
     for (auto &c : this->clients_) \
@@ -272,7 +272,7 @@ void APIServer::handle_disconnect(APIConnection *conn) {}
 
 // Macro for entities with extra parameters (but parameters not used in send)
 #define API_DISPATCH_UPDATE_IGNORE_PARAMS(entity_type, entity_name, ...) \
-  void APIServer::on_##entity_name##_update(entity_type *obj, __VA_ARGS__) { \
+  void APIServer::on_##entity_name##_update(entity_type *obj, __VA_ARGS__) { /* NOLINT(bugprone-macro-parentheses) */ \
     if (obj->is_internal()) \
       return; \
     for (auto &c : this->clients_) \
