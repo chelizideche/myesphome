@@ -152,7 +152,7 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
   ESP_LOGD(TAG, "Exit reparse: %s", YESNO(exit_reparse));
   ESP_LOGD(TAG, "URL: %s", this->tft_url_.c_str());
 
-  if (this->is_updating_) {
+  if (this->connection_state_.is_updating_) {
     ESP_LOGW(TAG, "Upload in progress");
     return false;
   }
@@ -254,7 +254,7 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
 
   // The Nextion will ignore the upload command if it is sleeping
   ESP_LOGV(TAG, "Wake-up");
-  this->ignore_is_setup_ = true;
+  this->connection_state_.ignore_is_setup_ = true;
   this->send_command_("sleep=0");
   this->send_command_("dim=100");
   delay(250);  // NOLINT
