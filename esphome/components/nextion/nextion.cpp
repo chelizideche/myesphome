@@ -115,7 +115,7 @@ bool Nextion::check_connect_() {
     this->firmware_version_ = connect_info[3];
     this->serial_number_ = connect_info[5];
     this->flash_size_ = connect_info[6];
-#else  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
+#else   // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
     ESP_LOGI(TAG,
              "  Device Model:   %s\n"
              "  FW Version:     %s\n"
@@ -162,8 +162,8 @@ void Nextion::dump_config() {
                 "  Wake On Touch:  %s\n"
                 "  Touch Timeout:  %" PRIu16,
 #ifdef USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
-                this->device_model_.c_str(), this->firmware_version_.c_str(),
-                this->serial_number_.c_str(), this->flash_size_.c_str(),
+                this->device_model_.c_str(), this->firmware_version_.c_str(), this->serial_number_.c_str(),
+                this->flash_size_.c_str(),
 #endif  // USE_NEXTION_CONFIG_DUMP_DEVICE_INFO
                 YESNO(this->connection_state_.auto_wake_on_touch_), this->touch_sleep_timeout_);
 #endif  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
