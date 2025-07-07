@@ -1459,7 +1459,7 @@ void APIConnection::update_command(const UpdateCommandRequest &msg) {
 }
 #endif
 
-bool APIConnection::try_send_log_message(int level, const char *tag, const char *line, size_t line_length) {
+bool APIConnection::try_send_log_message(int level, const char *tag, const char *line, size_t message_len) {
   if (this->flags_.log_subscription < level)
     return false;
 
@@ -1472,14 +1472,14 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
 
   // Add size for string field (field ID 3, string type)
   // 1 byte for field tag + size of length varint + string length
-  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(line_length)) + line_length;
+  msg_size += 1 + api::ProtoSize::varint(static_cast<uint32_t>(message_len)) + message_len;
 
   // Create a pre-sized buffer
   auto buffer = this->create_buffer(msg_size);
 
   // Encode the message (SubscribeLogsResponse)
   buffer.encode_uint32(1, static_cast<uint32_t>(level));  // LogLevel level = 1
-  buffer.encode_string(3, line, line_length);             // string message = 3
+  buffer.encode_string(3, line, message_len);             // string message = 3
 
   // SubscribeLogsResponse - 29
   return this->send_buffer(buffer, SubscribeLogsResponse::MESSAGE_TYPE);
