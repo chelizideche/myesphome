@@ -19,17 +19,7 @@ enum State : uint8_t {
   STATE_INIT,
   STATE_STARTING,
   STATE_RUNNING,
-  STATE_STOPPING,
 };
-
-#ifdef USE_SPEAKER
-static const size_t SAMPLE_BUFFER_SIZE = 2048;
-
-struct SpeakerSample {
-  int8_t left{0};
-  int8_t right{0};
-};
-#endif
 
 class Rtttl : public Component {
  public:
@@ -72,7 +62,7 @@ class Rtttl : public Component {
   uint16_t note_duration_;
 
   uint32_t output_freq_;
-  float gain_{0.6f};
+  float gain_{0.9f};
   State state_{State::STATE_STOPPED};
 
 #ifdef USE_OUTPUT
@@ -81,7 +71,6 @@ class Rtttl : public Component {
 
 #ifdef USE_SPEAKER
   speaker::Speaker *speaker_{nullptr};
-  int sample_rate_{16000};
   int samples_per_wave_{0};
   int samples_sent_{0};
   int samples_count_{0};
