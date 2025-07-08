@@ -1,0 +1,5 @@
+substitutions:
+  pin: GPIO2
+
+<<: !include common-esp32-rmt.yaml
+<<: !include common-display.yaml

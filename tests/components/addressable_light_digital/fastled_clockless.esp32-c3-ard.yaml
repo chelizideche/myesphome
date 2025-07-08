@@ -1,0 +1,5 @@
+substitutions:
+  pin: GPIO2
+
+<<: !include common-fastled.yaml
+<<: !include common-display.yaml

@@ -1,0 +1,160 @@
+#include "digital_display.h"
+#include "ascii_to_raw.h"
+#include "esphome/core/log.h"
+#include <cstdio>
+#include <cstring>
+
+namespace esphome {
+namespace addressable_light_digital {
+
+static const char *const TAG = "addressable_light_digital.display";
+
+light::LightTraits DigitalDisplay::get_traits() { return this->internal_light_output_->get_traits(); }
+
+void DigitalDisplay::setup_state(light::LightState *state) {
+  ESP_LOGD(TAG, "Setup state");
+  this->external_light_state_ = state;
+}
+
+void DigitalDisplay::write_state(light::LightState *state) {
+  ESP_LOGD(TAG, "Writing state");
+  this->internal_light_output_->update_state(state);
+  this->display_();
+}
+
+void DigitalDisplay::dump_config() {
+  ESP_LOGCONFIG(TAG,
+                "Addressable Light Digital:\n"
+                "  Update interval (ms): %d\n"
+                "  Number of LEDs: %d\n"
+                "  LED MAP: %s\n"
+                "  Max number of characters: %d\n"
+                "  Reverse: %s",
+                this->get_update_interval(), this->num_leds_, (this->led_map_).c_str(), this->max_characters_,
+                TRUEFALSE(this->reverse_));
+  LOG_UPDATE_INTERVAL(this);
+}
+
+void DigitalDisplay::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+  this->num_leds_ = this->internal_light_output_->size();
+  this->led_buffer_ = new bool[this->num_leds_];
+}
+
+void DigitalDisplay::update() {
+  if (this->writer_.has_value())
+    (*this->writer_)(*this);
+  this->display_();
+}
+
+void DigitalDisplay::display_() {
+  auto val = this->external_light_state_->current_values;
+  auto color = color_from_light_color_values(val);
+
+  for (int i = 0; i < this->num_leds_; i++) {
+    light::ESPColorView view = (*this->internal_light_output_)[i];
+    if (this->led_buffer_[i]) {
+      view.set(color);
+    } else {
+      view.set_rgbw(0, 0, 0, 0);
+    }
+  }
+
+  this->internal_light_output_->schedule_show();
+}
+
+uint8_t DigitalDisplay::print_core(uint8_t start_pos, const char *str) {
+  if (start_pos != 0) {
+    ESP_LOGE(TAG, "Only Position 0 is supported.");
+  }
+
+  ESP_LOGV(TAG, "Print at %d: %s", start_pos, str);
+
+  uint8_t map_length = this->led_map_.size();
+  uint8_t char_index = 0;
+  uint8_t led_index = 0;
+  uint8_t bit_locator = 0;
+  char current_char = ' ';
+  uint8_t max_char = strlen(str) > this->max_characters_ ? this->max_characters_ : strlen(str);
+  if (strlen(str) > this->max_characters_) {
+    ESP_LOGW(TAG, "Input string exceeds max_characters_ (%d). Truncating to %d characters.", this->max_characters_,
+             this->max_characters_);
+  }
+  uint8_t max_led = this->num_leds_;
+  bool reverse = this->reverse_;
+  char current_map_char;
+  bool led_on = false;
+  bool is_special_map_char = false;
+  bool skip_led = false;
+
+  for (uint8_t i = 0; i < max_led; i++) {
+    this->led_buffer_[i] = false;
+  }
+
+  for (uint8_t map_index = 0; map_index < map_length; map_index++) {
+    current_map_char = this->led_map_[map_index];
+    current_char = reverse ? str[max_char - 1 - char_index] : str[char_index];
+    is_special_map_char = current_map_char == '.' || current_map_char == ':';
+    if (is_special_map_char && (current_char != current_map_char) && (current_char != ' ')) {
+      skip_led = true;
+      led_index++;
+      continue;
+    }
+
+    if (current_map_char == ' ') {
+      if (!skip_led) {
+        char_index++;
+      }
+      continue;
+    }
+
+    if (char_index >= max_char) {
+      break;
+    }
+
+    if (is_special_map_char) {
+      led_on = current_char == current_map_char;
+    } else {
+      uint8_t data = UNKNOWN_CHAR;
+      if (current_char >= ' ' && current_char <= '~') {
+        data = progmem_read_byte(&ASCII_TO_RAW[current_char - ' ']);
+      }
+
+      if (data == UNKNOWN_CHAR) {
+        ESP_LOGW(TAG, "Encountered character '%c' with no representation while translating string!", current_char);
+      }
+
+      if (current_map_char >= 'A' && current_map_char <= 'Z') {
+        bit_locator = 0x01 << (6 - (current_map_char - 'A'));
+      } else {
+        ESP_LOGW(TAG, "Invalid map character '%c' encountered, skipping calculation.", current_map_char);
+        continue;
+      }
+      led_on = (bit_locator & data) == bit_locator;
+    }
+
+    this->led_buffer_[led_index] = led_on;
+    led_index++;
+    if (led_index >= max_led) {
+      break;
+    }
+    skip_led = false;
+  }
+
+  return char_index + 1;
+}
+
+void DigitalDisplay::set_writer(writer_t &&writer) { this->writer_ = writer; }
+void DigitalDisplay::set_led_map(const std::string &led_map) { this->led_map_ = led_map; }
+void DigitalDisplay::set_max_characters(uint8_t max_characters) { this->max_characters_ = max_characters; }
+void DigitalDisplay::set_reverse(bool reverse) { this->reverse_ = reverse; }
+
+void DigitalDisplay::set_internal_light(light::LightState *state) {
+  this->internal_light_state_ = state;
+  this->internal_light_output_ = static_cast<light::AddressableLight *>(state->get_output());
+}
+
+void DigitalDisplay::set_external_light(light::LightState *state) { this->external_light_state_ = state; }
+
+}  // namespace addressable_light_digital
+}  // namespace esphome

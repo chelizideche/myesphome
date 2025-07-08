@@ -1,0 +1,8 @@
+light:
+  - platform: esp32_rmt_led_strip
+    id: internal_light_state
+    internal: true
+    chipset: WS2812
+    rgb_order: GRB
+    pin: ${pin}
+    num_leds: 90
