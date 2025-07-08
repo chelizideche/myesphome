@@ -35,6 +35,18 @@ MQTTClientComponent::MQTTClientComponent() {
 // Connection
 void MQTTClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
+
+  if (App.is_name_add_mac_suffix_enabled()) {
+    // Use App name without added MAC suffix as prefix to check against
+    auto check_prefix = App.get_name().substr(0, App.get_name().size() - 7);
+    this->check_topic_prefix(this->topic_prefix_, check_prefix);
+    this->check_topic_prefix(this->log_message_.topic, check_prefix);
+    this->check_topic_prefix(this->last_will_.topic, check_prefix);
+    this->check_topic_prefix(this->birth_message_.topic, check_prefix);
+    this->check_topic_prefix(this->shutdown_message_.topic, check_prefix);
+    this->recalculate_availability_();
+  }
+
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
         if (index == 0)
@@ -619,13 +631,7 @@ void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MQTTClientComponent::set_log_message_template(MQTTMessage &&message) { this->log_message_ = std::move(message); }
 const MQTTDiscoveryInfo &MQTTClientComponent::get_discovery_info() const { return this->discovery_info_; }
-void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix, const std::string &check_topic_prefix) {
-  if (App.is_name_add_mac_suffix_enabled() && (topic_prefix == check_topic_prefix)) {
-    this->topic_prefix_ = str_sanitize(App.get_name());
-  } else {
-    this->topic_prefix_ = topic_prefix;
-  }
-}
+void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix) { this->topic_prefix_ = topic_prefix; }
 const std::string &MQTTClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
 void MQTTClientComponent::set_publish_nan_as_none(bool publish_nan_as_none) {
   this->publish_nan_as_none_ = publish_nan_as_none;
@@ -650,6 +656,13 @@ void MQTTClientComponent::recalculate_availability_() {
   this->availability_.topic = this->birth_message_.topic;
   this->availability_.payload_available = this->birth_message_.payload;
   this->availability_.payload_not_available = this->last_will_.payload;
+}
+
+void MQTTClientComponent::check_topic_prefix(std::string &topic, const std::string &check_topic_prefix) {
+  if (App.is_name_add_mac_suffix_enabled() &&
+      (topic == check_topic_prefix || topic.substr(0, check_topic_prefix.size() + 1) == check_topic_prefix + "/")) {
+    topic = App.get_name() + topic.substr(check_topic_prefix.size());
+  }
 }
 
 void MQTTClientComponent::set_last_will(MQTTMessage &&message) {
