@@ -4,13 +4,16 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_VOLTAGE,
+    CONF_FREQUENCY,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_VOLTAGE,
+    ICON_CURRENT_AC,
     STATE_CLASS_MEASUREMENT,
     UNIT_AMPERE,
     UNIT_VOLT,
     UNIT_WATT,
+    UNIT_HERTZ,
 )
 
 CODEOWNERS = ["@berfenger"]
@@ -25,6 +28,13 @@ CONF_CURRENT_1 = "current_1"
 CONF_CURRENT_2 = "current_2"
 CONF_ACTIVE_POWER_1 = "active_power_1"
 CONF_ACTIVE_POWER_2 = "active_power_2"
+CONF_SONOFF_MODEL = "sonoff_model"
+
+SonoffModel = cse7761_ns.enum("SonoffModel")
+SONOFF_MODEL = {
+    "DUALR3": SonoffModel.CSE7761_MODEL_DUALR3,
+    "POWCT": SonoffModel.CSE7761_MODEL_POWCT,
+}
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -60,6 +70,15 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_POWER,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
+            cv.Optional(CONF_FREQUENCY): sensor.sensor_schema(
+                unit_of_measurement=UNIT_HERTZ,
+                icon=ICON_CURRENT_AC,
+                accuracy_decimals=1,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_SONOFF_MODEL, default="DUALR3"): cv.enum(
+                SONOFF_MODEL, upper=True
+            ),
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -82,9 +101,12 @@ async def to_code(config):
         CONF_CURRENT_2,
         CONF_ACTIVE_POWER_1,
         CONF_ACTIVE_POWER_2,
+        CONF_FREQUENCY,
     ]:
         if key not in config:
             continue
         conf = config[key]
         sens = await sensor.new_sensor(conf)
         cg.add(getattr(var, f"set_{key}_sensor")(sens))
+
+    cg.add(var.set_model(config[CONF_SONOFF_MODEL]))
