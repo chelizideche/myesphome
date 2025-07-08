@@ -1,0 +1,34 @@
+uart:
+  - id: uart_hpma115c0
+    baud_rate: 9600
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+
+hpma115c0:
+  uart_id: uart_hpma115c0
+  update_interval: 30s
+
+button:
+  - platform: hpma115c0
+    factory_reset:
+      name: "Factory defaults"
+
+number:
+  - platform: hpma115c0
+    adjustment_coefficient:
+      name: "Adjustment coefficient"
+
+sensor:
+  - platform: hpma115c0
+    pm_1_0:
+      name: "PM 1µm"
+    pm_2_5:
+      name: "Pm 2.5µm"
+    pm_4_0:
+      name: "PM 4µm"
+    pm_10_0:
+      name: "PM 10µm"
+    aqi_2_5:
+      name: "AQI PM 2.5µm"
+    aqi_10_0:
+      name: "AQI PM 10µm"
