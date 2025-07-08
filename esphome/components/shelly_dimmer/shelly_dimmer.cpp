@@ -21,6 +21,9 @@ namespace {
 
 constexpr char TAG[] = "shelly_dimmer";
 
+constexpr float CALIBRATION_STEP = 0.05f;
+constexpr uint32_t RESTORE_STATE_VERSION = 0x362A4931UL;
+
 constexpr uint8_t SHELLY_DIMMER_ACK_TIMEOUT = 200;  // ms
 constexpr uint8_t SHELLY_DIMMER_MAX_RETRIES = 3;
 constexpr uint16_t SHELLY_DIMMER_MAX_BRIGHTNESS = 1000;  // 100%
@@ -109,10 +112,26 @@ void ShellyDimmer::setup() {
   // Do an immediate poll to refresh current state.
   this->send_command_(SHELLY_DIMMER_PROTO_CMD_POLL, nullptr, 0);
 
+  this->calibration_data_.fill(0);
+  this->rtc_ = global_preferences->make_preference<std::array<float, 20>>(this->state_->get_object_id_hash() ^
+                                                                          RESTORE_STATE_VERSION);
+  if (this->rtc_.load(&this->calibration_data_)) {
+    ESP_LOGD(TAG, "Loaded calibration from flash");
+    for (float value : this->calibration_data_) {
+      ESP_LOGV(TAG, "%f", value);
+    }
+  }
+
   this->ready_ = true;
 }
 
-void ShellyDimmer::update() { this->send_command_(SHELLY_DIMMER_PROTO_CMD_POLL, nullptr, 0); }
+void ShellyDimmer::update() {
+  this->send_command_(SHELLY_DIMMER_PROTO_CMD_POLL, nullptr, 0);
+
+  if (this->calibrating_) {
+    this->perform_calibration_measurement_();
+  }
+}
 
 void ShellyDimmer::dump_config() {
   ESP_LOGCONFIG(TAG, "ShellyDimmer:");
@@ -135,6 +154,7 @@ void ShellyDimmer::dump_config() {
                 "  STM32 required firmware version: %d.%d",
                 this->version_major_, this->version_minor_, USE_SHD_FIRMWARE_MAJOR_VERSION,
                 USE_SHD_FIRMWARE_MINOR_VERSION);
+  ESP_LOGCONFIG(TAG, "  Calibrated: %s", YESNO(this->calibration_data_[0] != 0));
 
   if (this->version_major_ != USE_SHD_FIRMWARE_MAJOR_VERSION ||
       this->version_minor_ != USE_SHD_FIRMWARE_MINOR_VERSION) {
@@ -149,6 +169,32 @@ void ShellyDimmer::write_state(light::LightState *state) {
 
   float brightness;
   state->current_values_as_brightness(&brightness);
+
+  // If we are in a process of calibration, don't mess with brightness.
+  // Also check whether we have calibration data and wheteher edge values were requested.
+  if (!this->calibrating_ && this->calibration_data_[0] != 0.0f && brightness != 0 && brightness != 1.0f) {
+    // We have calibration data, find the nearest range and remap value
+    uint32_t pos;
+    for (pos = 0; pos < this->calibration_data_.size(); ++pos) {
+      if (this->calibration_data_[pos] < brightness) {
+        break;
+      }
+    }
+    if (pos == this->calibration_data_.size() || pos == 0) {
+      ESP_LOGW(TAG, "Failed to find suitable calibration range for brightness %f", brightness);
+    } else {
+      float min = this->calibration_data_[pos];
+      float max = this->calibration_data_[pos - 1];
+      float min_out = 1 - (float) pos * CALIBRATION_STEP;
+      float max_out = min_out + CALIBRATION_STEP;
+      float remapped = remap(brightness, min, max, min_out, max_out);
+
+      ESP_LOGD(TAG, "Remapped %f to %f (min %f, max %f, min_out %f, max_out %f)", brightness, remapped, min, max,
+               min_out, max_out);
+
+      brightness = remapped;
+    }
+  }
 
   const uint16_t brightness_int = this->convert_brightness_(brightness);
   if (brightness_int == this->brightness_) {
@@ -438,13 +484,13 @@ bool ShellyDimmer::handle_frame_() {
         current = CURRENT_SCALING_FACTOR / static_cast<float>(current_raw);
       }
 
-      ESP_LOGI(TAG, "Got dimmer data:");
-      ESP_LOGI(TAG, "  HW version: %d", hw_version);
-      ESP_LOGI(TAG, "  Brightness: %d", brightness);
-      ESP_LOGI(TAG, "  Fade rate:  %d", fade_rate);
-      ESP_LOGI(TAG, "  Power:      %f W", power);
-      ESP_LOGI(TAG, "  Voltage:    %f V", voltage);
-      ESP_LOGI(TAG, "  Current:    %f A", current);
+      ESP_LOGD(TAG, "Got dimmer data:");
+      ESP_LOGD(TAG, "  HW version: %d", hw_version);
+      ESP_LOGD(TAG, "  Brightness: %d", brightness);
+      ESP_LOGD(TAG, "  Fade rate:  %d", fade_rate);
+      ESP_LOGD(TAG, "  Power:      %f W", power);
+      ESP_LOGD(TAG, "  Voltage:    %f V", voltage);
+      ESP_LOGD(TAG, "  Current:    %f A", current);
 
       // Update sensors.
       if (this->power_sensor_ != nullptr) {
@@ -523,6 +569,125 @@ void ShellyDimmer::reset_dfu_boot_() {
 
   this->flush();
   this->reset_(true);
+}
+
+void ShellyDimmer::start_calibration() {
+  ESP_LOGD(TAG, "Setting update interval to 1 second");
+  this->update_interval_original_ = this->get_update_interval();
+  this->stop_poller();
+  this->set_update_interval(1000);
+  this->start_poller();
+
+  ESP_LOGI(TAG, "Starting calibration");
+  // Turn on the light, disable transition, set max brightness
+  this->set_brightness_no_transition_(1);
+
+  // Init calibration data
+  this->calibration_data_.fill(0);
+  this->calibration_measurements_.fill(0);
+  this->calibration_measurement_cnt_ = 0;
+  this->calibration_step_ = -20;
+  this->calibrating_ = true;
+}
+
+void ShellyDimmer::perform_calibration_measurement_() {
+  if (!this->power_sensor_->has_state())  // Wait for power sensor to receive data
+    return;
+
+  if (this->calibration_step_ < 0) {
+    ESP_LOGD(TAG, "Calibration warmup. Steps till calibration: %d", -this->calibration_step_);
+    this->calibration_step_++;
+    if (this->calibration_step_ == 0) {
+      ESP_LOGD(TAG, "Calibration warmup complete");
+    }
+    return;
+  }
+
+  ESP_LOGD(TAG, "Calibration step %d, measurement %d", this->calibration_step_ + 1,
+           this->calibration_measurement_cnt_ + 1);
+
+  this->calibration_measurements_[this->calibration_measurement_cnt_] = this->power_sensor_->state;
+  this->calibration_measurement_cnt_++;
+
+  if ((uint32_t) this->calibration_measurement_cnt_ >= this->calibration_measurements_.size()) {
+    this->complete_calibration_step_();
+  }
+}
+
+void ShellyDimmer::complete_calibration_step_() {
+  // Calculate mean power across measurements at this step
+  float result = 0;
+  for (float measurement : this->calibration_measurements_) {
+    result += measurement;
+  }
+
+  result = result / (float) this->calibration_measurements_.size();
+
+  ESP_LOGD(TAG, "Mean power at step %d: %f", this->calibration_step_ + 1, result);
+
+  // Prepare for the next measurement
+  this->calibration_data_[this->calibration_step_] = result;
+  this->calibration_step_++;
+  this->calibration_measurement_cnt_ = 0;
+  this->calibration_measurements_.fill(0);
+
+  // If all measurements collected, finish calibration
+  if ((uint32_t) this->calibration_step_ >= this->calibration_data_.size()) {
+    this->complete_calibration_();
+    return;
+  }
+
+  // Decrease brightness for next set of measurements
+  float cur_brightness = 0;
+  this->state_->current_values_as_brightness(&cur_brightness);
+  this->set_brightness_no_transition_(cur_brightness - CALIBRATION_STEP);
+}
+
+void ShellyDimmer::complete_calibration_() {
+  this->calibrating_ = false;
+
+  // Sort the values, since power readings can be jittery due to voltage fluctuations
+  std::sort(this->calibration_data_.begin(), this->calibration_data_.end(), std::greater{});
+
+  // Normalize values in the range of [0..1]
+  float max = this->calibration_data_[0];
+  float min = this->calibration_data_[this->calibration_data_.size() - 1];
+  for (float &value : this->calibration_data_) {
+    value = remap(value, min, max, 0.0f, 1.0f);
+  }
+
+  this->save_calibration_();
+
+  ESP_LOGD(TAG, "Finished calibration. Values:");
+  for (float value : this->calibration_data_) {
+    ESP_LOGD(TAG, "%f", value);
+  }
+
+  this->set_brightness_no_transition_(1);
+
+  uint32_t update_interval = this->update_interval_original_ == 0 ? 10000 : this->update_interval_original_;
+  ESP_LOGD(TAG, "Reverting update interval to %d seconds", update_interval / 1000);
+  this->stop_poller();
+  this->set_update_interval(update_interval);
+  this->start_poller();
+}
+void ShellyDimmer::save_calibration_() {
+  if (this->rtc_.save(&this->calibration_data_)) {
+    ESP_LOGD(TAG, "Saved calibration to flash");
+  } else {
+    ESP_LOGW(TAG, "Couldn't save calibration to flash");
+  }
+}
+void ShellyDimmer::set_brightness_no_transition_(float brightness) {
+  auto call = this->state_->make_call();
+  call.set_brightness(brightness);
+  call.set_transition_length(0);
+  call.set_state(true);
+  call.perform();
+}
+void ShellyDimmer::clear_calibration() {
+  this->calibration_data_.fill(0);
+  this->save_calibration_();
 }
 
 }  // namespace shelly_dimmer

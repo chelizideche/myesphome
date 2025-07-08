@@ -8,6 +8,7 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 
+#include <algorithm>
 #include <array>
 
 namespace esphome {
@@ -49,6 +50,12 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
   void set_voltage_sensor(sensor::Sensor *voltage_sensor) { this->voltage_sensor_ = voltage_sensor; }
   void set_current_sensor(sensor::Sensor *current_sensor) { this->current_sensor_ = current_sensor; }
 
+  /// Starts the calibration process.
+  void start_calibration();
+
+  /// Clears calibration values.
+  void clear_calibration();
+
  protected:
   GPIOPin *pin_nrst_;
   GPIOPin *pin_boot0_;
@@ -77,6 +84,14 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
 
   bool ready_{false};
   uint16_t brightness_;
+  bool calibrating_{false};
+  int8_t calibration_step_{0};
+  uint8_t calibration_measurement_cnt_{0};
+  std::array<float, 3> calibration_measurements_;
+  std::array<float, 20> calibration_data_;
+  uint32_t update_interval_original_{0};
+
+  ESPPreferenceObject rtc_;
 
   /// Convert relative brightness into a dimmer brightness value.
   uint16_t convert_brightness_(float brightness);
@@ -115,6 +130,21 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
 
   /// Reset STM32 to boot into DFU mode to enable firmware upgrades.
   void reset_dfu_boot_();
+
+  /// Perform calibration measurement.
+  void perform_calibration_measurement_();
+
+  /// Complete a single calibration step averaging over accumulated measurements.
+  void complete_calibration_step_();
+
+  /// Complete the whole calibration process.
+  void complete_calibration_();
+
+  /// Saves calibration values to flash.
+  void save_calibration_();
+
+  /// Set brightness with no transition during calibration.
+  void set_brightness_no_transition_(float brightness);
 };
 
 }  // namespace shelly_dimmer
