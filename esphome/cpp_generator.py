@@ -4,6 +4,7 @@ import inspect
 import math
 import re
 from typing import Any
+import warnings
 
 from esphome.core import (
     CORE,
