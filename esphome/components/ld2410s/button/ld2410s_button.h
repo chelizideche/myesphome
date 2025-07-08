@@ -1,0 +1,50 @@
+#pragma once
+
+#include "esphome/components/button/button.h"
+#include "../ld2410s.h"
+
+namespace esphome {
+namespace ld2410s {
+
+class LD2410SReadAll : public button::Button, public Parented<LD2410S> {
+ public:
+  LD2410SReadAll() = default;
+
+ protected:
+  void press_action() override;
+};
+
+class LD2410SApplyConfigButton : public button::Button, public Parented<LD2410S> {
+ public:
+  LD2410SApplyConfigButton() = default;
+
+ protected:
+  void press_action() override;
+};
+
+class LD2410SCalibration : public button::Button, public Parented<LD2410S> {
+ public:
+  LD2410SCalibration() = default;
+
+ protected:
+  void press_action() override;
+};
+
+class LD2410SFactoryReset : public button::Button, public Parented<LD2410S> {
+ public:
+  LD2410SFactoryReset() = default;
+
+ protected:
+  void press_action() override;
+};
+
+class LD2410SMinimalOutput : public button::Button, public Parented<LD2410S> {
+ public:
+  LD2410SMinimalOutput() = default;
+
+ protected:
+  void press_action() override;
+};
+
+}  // namespace ld2410s
+}  // namespace esphome
