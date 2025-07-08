@@ -1,3 +1,19 @@
+esphome:
+  on_boot:
+    then:
+      - switch.turn_on: the_switch
+      - switch.turn_off: the_switch
+      - switch.toggle: the_switch
+      - switch.control:
+          id: the_switch
+          state: false
+      - switch.control:
+          id: the_switch
+          state: true
+      - switch.control:
+          id: the_switch
+          state: !lambda 'return !id(some_binary_sensor).state;'
+
 binary_sensor:
   - platform: switch
     id: some_binary_sensor

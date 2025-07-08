@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/entity_base.h"
 #include "esphome/core/helpers.h"
+#include "switch_call.h"
 #include "esphome/core/preferences.h"
 
 namespace esphome {
@@ -71,6 +72,14 @@ class Switch : public EntityBase, public EntityBase_DeviceClass {
    */
   void toggle();
 
+  /** Control this switch. This is called by the front-end.
+   *
+   * For implementing switches, please override write_state.
+
+   * @param state The new state.
+   */
+  void control(bool state);
+
   /** Set whether the state should be treated as inverted.
    *
    * To the developer and user an inverted switch will act just like a non-inverted one.
@@ -111,6 +120,8 @@ class Switch : public EntityBase, public EntityBase_DeviceClass {
   bool is_inverted() const;
 
   void set_restore_mode(SwitchRestoreMode restore_mode) { this->restore_mode = restore_mode; }
+
+  SwitchCall make_call() { return SwitchCall(this); }
 
  protected:
   /** Write the given state to hardware. You should implement this
