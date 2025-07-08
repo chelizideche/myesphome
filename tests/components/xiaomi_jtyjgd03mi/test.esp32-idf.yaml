@@ -1,0 +1,19 @@
+esp32_ble_tracker:
+
+xiaomi_jtyjgd03mi:
+  - id: smoke_one
+    mac_address: 18:C2:3C:31:77:7B
+    bindkey: 520d1864d53ce8010101010101010101
+binary_sensor:
+  - platform: xiaomi_jtyjgd03mi
+    id: smoke_one
+    smoke:
+      name: "smoke_detection"
+      id: detection_smoke
+sensor:
+  - platform: xiaomi_jtyjgd03mi
+    id: smoke_one
+    battery_level:
+      name: "smoke battery"
+      unit_of_measurement: "%"
+      accuracy_decimals: 0
