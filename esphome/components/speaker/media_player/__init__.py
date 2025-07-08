@@ -51,6 +51,7 @@ CONF_VOLUME_INCREMENT = "volume_increment"
 CONF_VOLUME_INITIAL = "volume_initial"
 CONF_VOLUME_MIN = "volume_min"
 CONF_VOLUME_MAX = "volume_max"
+CONF_OFF_ON_ENABLED = "off_on_enabled"
 
 
 speaker_ns = cg.esphome_ns.namespace("speaker")
@@ -289,6 +290,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_MUTE): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_UNMUTE): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_VOLUME): automation.validate_automation(single=True),
+            cv.Optional(CONF_OFF_ON_ENABLED, default=False): cv.boolean,
         }
     ),
     cv.only_with_esp_idf,
@@ -309,6 +311,9 @@ FINAL_VALIDATE_SCHEMA = cv.All(
 
 
 async def to_code(config):
+    if config[CONF_OFF_ON_ENABLED]:
+        cg.add_define("USE_SUPPORTS_TURN_OFF_ON", True)
+
     if config[CONF_CODEC_SUPPORT_ENABLED]:
         # Compile all supported audio codecs and optimize the wifi settings
 
@@ -316,27 +321,27 @@ async def to_code(config):
         cg.add_define("USE_AUDIO_MP3_SUPPORT", True)
 
         # Wifi settings based on https://github.com/espressif/esp-adf/issues/297#issuecomment-783811702
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM", 16)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM", 512)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_STATIC_TX_BUFFER", True)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_TX_BUFFER_TYPE", 0)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_STATIC_TX_BUFFER_NUM", 8)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_CACHE_TX_BUFFER_NUM", 32)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_AMPDU_TX_ENABLED", True)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_TX_BA_WIN", 16)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_AMPDU_RX_ENABLED", True)
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP32_WIFI_RX_BA_WIN", 32)
-        esp32.add_idf_sdkconfig_option("CONFIG_LWIP_MAX_ACTIVE_TCP", 16)
-        esp32.add_idf_sdkconfig_option("CONFIG_LWIP_MAX_LISTENING_TCP", 16)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_MAXRTX", 12)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_SYNMAXRTX", 6)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_MSS", 1436)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_MSL", 60000)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_SND_BUF_DEFAULT", 65535)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_WND_DEFAULT", 512000)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_RECVMBOX_SIZE", 512)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_QUEUE_OOSEQ", True)
-        esp32.add_idf_sdkconfig_option("CONFIG_TCP_OVERSIZE_MSS", True)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM", 16)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 512)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STATIC_TX_BUFFER", True)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_TX_BUFFER_TYPE", 0)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM", 8)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_CACHE_TX_BUFFER_NUM", 32)
+        # esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", True)
+        # esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_TX_BA_WIN", 16)
+        # esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", True)
+        esp32.add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_BA_WIN", 32)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_MAX_ACTIVE_TCP", 16)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_MAX_LISTENING_TCP", 16)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_MAXRTX", 12)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_SYNMAXRTX", 6)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_MSS", 1436)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_MSL", 60000)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_SND_BUF_DEFAULT", 65535)
+        esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_WND_DEFAULT", 512000)
+        esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_RECVMBOX_SIZE", 512)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_QUEUE_OOSEQ", True)
+        # esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_OVERSIZE_MSS", True)
         esp32.add_idf_sdkconfig_option("CONFIG_LWIP_WND_SCALE", True)
         esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCP_RCV_SCALE", 3)
         esp32.add_idf_sdkconfig_option("CONFIG_LWIP_TCPIP_RECVMBOX_SIZE", 512)

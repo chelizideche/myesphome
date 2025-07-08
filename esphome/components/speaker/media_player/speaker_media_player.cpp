@@ -51,7 +51,11 @@ static const UBaseType_t ANNOUNCEMENT_PIPELINE_TASK_PRIORITY = 1;
 static const char *const TAG = "speaker_media_player";
 
 void SpeakerMediaPlayer::setup() {
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+  state = media_player::MEDIA_PLAYER_STATE_OFF;
+#else
   state = media_player::MEDIA_PLAYER_STATE_IDLE;
+#endif
 
   this->media_control_command_queue_ = xQueueCreate(MEDIA_CONTROLS_QUEUE_LENGTH, sizeof(MediaCallCommand));
 
@@ -131,6 +135,12 @@ void SpeakerMediaPlayer::watch_media_commands_() {
     bool enqueue = media_command.enqueue.has_value() && media_command.enqueue.value();
 
     if (media_command.url.has_value() || media_command.file.has_value()) {
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+      if (this->state == media_player::MEDIA_PLAYER_STATE_OFF) {
+        this->state = media_player::MEDIA_PLAYER_STATE_ON;
+        publish_state();
+      }
+#endif
       PlaylistItem playlist_item;
       if (media_command.url.has_value()) {
         playlist_item.url = *media_command.url.value();
@@ -195,6 +205,12 @@ void SpeakerMediaPlayer::watch_media_commands_() {
     if (media_command.command.has_value()) {
       switch (media_command.command.value()) {
         case media_player::MEDIA_PLAYER_COMMAND_PLAY:
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+          if (this->state == media_player::MEDIA_PLAYER_STATE_OFF) {
+            this->state = media_player::MEDIA_PLAYER_STATE_ON;
+            publish_state();
+          }
+#endif
           if ((this->media_pipeline_ != nullptr) && (this->is_paused_)) {
             this->media_pipeline_->set_pause_state(false);
           }
@@ -239,6 +255,49 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           }
 
           break;
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+        case media_player::MEDIA_PLAYER_COMMAND_TURN_ON:
+          if (this->state == media_player::MEDIA_PLAYER_STATE_OFF) {
+            this->state = media_player::MEDIA_PLAYER_STATE_ON;
+            this->publish_state();
+          }
+          break;
+        case media_player::MEDIA_PLAYER_COMMAND_TURN_OFF:
+          if (this->state != media_player::MEDIA_PLAYER_STATE_OFF) {
+            if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
+              if (this->announcement_pipeline_ != nullptr) {
+                this->cancel_timeout("next_ann");
+                this->announcement_playlist_.clear();
+                this->announcement_pipeline_->stop();
+                this->set_retry("unpause_med", 50, 3, [this](const uint8_t remaining_attempts) {
+                  if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
+                    this->media_pipeline_->set_pause_state(false);
+                    this->is_paused_ = false;
+                    return RetryResult::DONE;
+                  }
+                  return RetryResult::RETRY;
+                });
+              }
+            } else {
+              if (this->media_pipeline_ != nullptr) {
+                this->cancel_timeout("next_media");
+                this->media_playlist_.clear();
+                this->media_pipeline_->stop();
+                this->set_retry("unpause_med", 50, 3, [this](const uint8_t remaining_attempts) {
+                  if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
+                    this->media_pipeline_->set_pause_state(false);
+                    this->is_paused_ = false;
+                    return RetryResult::DONE;
+                  }
+                  return RetryResult::RETRY;
+                });
+              }
+            }
+            this->state = media_player::MEDIA_PLAYER_STATE_OFF;
+            this->publish_state();
+          }
+          break;
+#endif
         case media_player::MEDIA_PLAYER_COMMAND_TOGGLE:
           if (this->media_pipeline_ != nullptr) {
             if (this->is_paused_) {
@@ -362,9 +421,21 @@ void SpeakerMediaPlayer::loop() {
       }
     } else {
       if (this->is_paused_) {
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+        if (this->state != media_player::MEDIA_PLAYER_STATE_OFF) {
+          this->state = media_player::MEDIA_PLAYER_STATE_PAUSED;
+        }
+#else
         this->state = media_player::MEDIA_PLAYER_STATE_PAUSED;
+#endif
       } else if (this->media_pipeline_state_ == AudioPipelineState::PLAYING) {
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+        if (this->state != media_player::MEDIA_PLAYER_STATE_OFF) {
+          this->state = media_player::MEDIA_PLAYER_STATE_PLAYING;
+        }
+#else
         this->state = media_player::MEDIA_PLAYER_STATE_PLAYING;
+#endif
       } else if (this->media_pipeline_state_ == AudioPipelineState::STOPPED) {
         if (!media_playlist_.empty()) {
           uint32_t timeout_ms = 0;
@@ -395,7 +466,13 @@ void SpeakerMediaPlayer::loop() {
             }
           }
         } else {
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+          if (this->state != media_player::MEDIA_PLAYER_STATE_OFF) {
+            this->state = media_player::MEDIA_PLAYER_STATE_IDLE;
+          }
+#else
           this->state = media_player::MEDIA_PLAYER_STATE_IDLE;
+#endif
         }
       }
     }
@@ -476,6 +553,9 @@ media_player::MediaPlayerTraits SpeakerMediaPlayer::get_traits() {
   auto traits = media_player::MediaPlayerTraits();
   if (!this->single_pipeline_()) {
     traits.set_supports_pause(true);
+#ifdef USE_SUPPORTS_TURN_OFF_ON
+    traits.set_supports_turn_off_on(true);
+#endif
   }
 
   if (this->announcement_format_.has_value()) {
