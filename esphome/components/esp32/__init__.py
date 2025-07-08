@@ -132,6 +132,12 @@ def set_core_data(config):
             cpu_frequency = "360MHZ"
         else:
             cpu_frequency = choices[-1]
+        if cpu_frequency != choices[-1] and cpu_frequency == "160MHZ":
+            _LOGGER.warning(
+                "[esp32] cpu_frequency was not set, defaulting to 160MHZ, "
+                "maximum is %s, see https://esphome.io/components/esp32",
+                choices[-1],
+            )
         config[CONF_CPU_FREQUENCY] = cpu_frequency
     elif cpu_frequency not in CPU_FREQUENCIES[variant]:
         raise cv.Invalid(
