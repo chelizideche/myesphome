@@ -27,6 +27,8 @@ class HttpContainerIDF : public HttpContainer {
 
  protected:
   esp_http_client_handle_t client_;
+
+  size_t chunk_bytes_read_{0};
 };
 
 class HttpRequestIDF : public HttpRequestComponent {

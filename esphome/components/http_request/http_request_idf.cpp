@@ -152,10 +152,11 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   }
 
   container->feed_wdt();
-  container->content_length = esp_http_client_fetch_headers(client);
+  esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
+  container->content_length = esp_http_client_get_content_length(client);
   container->set_response_headers(user_data.response_headers);
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
@@ -187,10 +188,11 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
       }
 
       container->feed_wdt();
-      container->content_length = esp_http_client_fetch_headers(client);
+      esp_http_client_fetch_headers(client);
       container->feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       container->feed_wdt();
+      container->content_length = esp_http_client_get_content_length(client);
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
@@ -213,7 +215,17 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   const uint32_t start = millis();
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
 
-  int bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  int bufsize;
+  size_t chunk_length = this->content_length;
+  if (esp_http_client_is_chunked_response(this->client_)) {
+    int signed_chunk_length;
+    esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
+    chunk_length = (size_t) signed_chunk_length;
+
+    bufsize = std::min(max_len, chunk_length - this->chunk_bytes_read_);
+  } else {
+    bufsize = std::min(max_len, this->content_length - this->bytes_read_);
+  }
 
   if (bufsize == 0) {
     this->duration_ms += (millis() - start);
@@ -224,6 +236,10 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   int read_len = esp_http_client_read(this->client_, (char *) buf, bufsize);
   this->feed_wdt();
   this->bytes_read_ += read_len;
+  this->chunk_bytes_read_ += read_len;
+  if (this->chunk_bytes_read_ >= chunk_length) {
+    this->chunk_bytes_read_ = 0;
+  }
 
   this->duration_ms += (millis() - start);
 
