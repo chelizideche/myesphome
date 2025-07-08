@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pytest import ExceptionInfo
 
 from esphome import config_validation as cv
 from esphome.components.image import CONFIG_SCHEMA
@@ -15,8 +14,6 @@ from esphome.components.image import CONFIG_SCHEMA
 
 def test_image_configuration_errors() -> None:
     """Test detection of invalid configuration."""
-
-    exc_info: ExceptionInfo[cv.Invalid]
     with pytest.raises(cv.Invalid) as exc_info:
         CONFIG_SCHEMA("a string")
     assert "Badly formed image configuration, expected a list or a dictionary" in str(
