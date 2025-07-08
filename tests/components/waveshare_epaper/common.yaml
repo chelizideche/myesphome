@@ -678,6 +678,26 @@ display:
       it.rectangle(0, 0, it.get_width(), it.get_height());
 
   - platform: waveshare_epaper
+    id: epd_7_50bv3_bwralt
+    model: 7.50in-bv3-bwr-alt
+    spi_id: spi_waveshare_epaper
+    cs_pin:
+      allow_other_uses: true
+      number: ${cs_pin}
+    dc_pin:
+      allow_other_uses: true
+      number: ${dc_pin}
+    busy_pin:
+      allow_other_uses: true
+      number: ${busy_pin}
+      inverted: true
+    reset_pin:
+      allow_other_uses: true
+      number: ${reset_pin}
+    lambda: |-
+      it.rectangle(0, 0, it.get_width(), it.get_height());
+
+  - platform: waveshare_epaper
     id: epd_7_50bc
     model: 7.50in-bc
     spi_id: spi_waveshare_epaper

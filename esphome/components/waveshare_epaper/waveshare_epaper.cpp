@@ -3383,6 +3383,8 @@ void WaveshareEPaper7P5InBV3::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
+/* WaveshareEPaper7P5InBV3BWR */
+
 void WaveshareEPaper7P5InBV3BWR::initialize() { this->init_display_(); }
 bool WaveshareEPaper7P5InBV3BWR::wait_until_idle_() {
   if (this->busy_pin_ == nullptr) {
@@ -3482,6 +3484,102 @@ void WaveshareEPaper7P5InBV3BWR::dump_config() {
   LOG_PIN("  Busy Pin: ", this->busy_pin_);
   LOG_UPDATE_INTERVAL(this);
 }
+
+/* WaveshareEPaper7P5InBV3BWRalt */
+
+bool WaveshareEPaper7P5InBV3BWRalt::wait_until_idle_() {
+  if (this->busy_pin_ == nullptr) {
+    return true;
+  }
+
+  const uint32_t start = millis();
+  while (this->busy_pin_->digital_read()) {
+    this->command(0x71);
+    if (millis() - start > this->idle_timeout_()) {
+      ESP_LOGI(TAG, "Timeout while displaying image!");
+      return false;
+    }
+    App.feed_wdt();
+    delay(10);
+  }
+  delay(200);  // NOLINT
+  return true;
+};
+
+void HOT WaveshareEPaper7P5InBV3BWRalt::display() {
+  this->init_display_();
+  const uint32_t buf_len = this->get_buffer_length_() / 2u;
+
+  this->command(0x10);  // Send BW data Transmission
+  delay(2);
+  for (uint32_t i = 0; i < buf_len; i++) {
+    this->data(this->buffer_[i]);
+  }
+
+  this->command(0x13);  // Send red data Transmission
+  delay(2);
+  for (uint32_t i = 0; i < buf_len; i++) {
+    this->data(this->buffer_[i + buf_len]);
+  }
+
+  this->command(0x12);  // Display Refresh
+  delay(100);           // NOLINT
+  this->wait_until_idle_();
+  this->deep_sleep();
+}
+int WaveshareEPaper7P5InBV3BWRalt::get_width_internal() { return 800; }
+int WaveshareEPaper7P5InBV3BWRalt::get_height_internal() { return 480; }
+void WaveshareEPaper7P5InBV3BWRalt::initialize() { this->init_display_(); }
+void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
+  this->reset_();
+
+  this->command(0x00);
+  this->data(0x00);  // reset device to defaults
+
+  // COMMAND POWER SETTING
+  this->command(0x01);
+  this->data(0x07);  // VRS_EN=1, VS_EN=1, VG_EN=1
+  this->data(0x17);
+
+  // VCOM DC Setting
+  this->command(0x82);
+  this->data(0x1E);  // VCOM=-1.6V
+
+  // POWER ON
+  this->command(0x04);
+  this->wait_until_idle_();
+  delay(10);
+
+  // COMMAND PANEL SETTING
+  this->command(0x00);
+  this->data(0x0F);  // This is actually this panels default, no need to set it?
+
+  // COMMAND VCOM AND DATA INTERVAL SETTING
+  // This is the most important command differentiating these panels, the lookup tables and border control are not the
+  // same. A red border remains with BDV[10] (0x40) on this panel, black border when you enable border control 0xC0.
+  // Setting DDX[1:0] seems to have no affect?
+  this->command(0x50);
+  this->data(0x43);
+  this->data(0x00);
+
+  // COMMAND RESOLUTION SETTING
+  this->command(0x61);
+  this->data(0x03);  // source 800
+  this->data(0x20);
+  this->data(0x01);  // gate 480
+  this->data(0xE0);
+}
+
+void WaveshareEPaper7P5InBV3BWRalt::dump_config() {
+  LOG_DISPLAY("", "Waveshare E-Paper", this);
+  ESP_LOGCONFIG(TAG, "  Model: 7.5in-bv3 BWR-Mode XSRUPB");
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  LOG_UPDATE_INTERVAL(this);
+}
+
+/* WaveshareEPaper7P5In */
 
 void WaveshareEPaper7P5In::initialize() {
   // COMMAND POWER SETTING
