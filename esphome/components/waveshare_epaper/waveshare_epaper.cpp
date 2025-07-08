@@ -319,6 +319,9 @@ uint32_t WaveshareEPaper::get_buffer_length_() {
 uint32_t WaveshareEPaperBWR::get_buffer_length_() {
   return this->get_width_controller() * this->get_height_internal() / 4u;
 }  // black and red buffer
+uint32_t WaveshareEPaper4C::get_buffer_length_() {
+  return this->get_width_controller() * this->get_height_internal() / 4u;
+}  // 4 colors buffer, 1 pixel = 2 bits, we will store 4 pixels in every byte
 uint32_t WaveshareEPaper7C::get_buffer_length_() {
   return this->get_width_controller() * this->get_height_internal() / 8u * 3u;
 }  // 7 colors buffer, 1 pixel = 3 bits, we will store 8 pixels in 24 bits = 3 bytes
@@ -348,6 +351,44 @@ void HOT WaveshareEPaperBWR::draw_absolute_pixel_internal(int x, int y, Color co
     this->buffer_[pos + buf_half_len] &= ~(0x80 >> subpos);
   }
 }
+void WaveshareEPaper4C::fill(Color color) {
+  const uint8_t pixel_bits = this->color_to_hex(color);
+  const uint8_t fill_pattern = (pixel_bits << 6) | (pixel_bits << 4) | (pixel_bits << 2) | (pixel_bits);
+
+  memset(this->buffer_, fill_pattern, this->get_buffer_length_());
+}
+void HOT WaveshareEPaper4C::draw_absolute_pixel_internal(int x, int y, Color color) {
+  if (x >= this->get_width_internal() || y >= this->get_height_internal() || x < 0 || y < 0)
+    return;
+
+  const uint32_t pos = (x + y * this->get_width_internal()) / 4u;
+  const uint8_t subpos = x & 0x03;
+  const uint8_t pixel_bits = this->color_to_hex(color);
+
+  const uint8_t offset_bits = (3 - subpos) * 2;
+  this->buffer_[pos] &= ~(0b11 << offset_bits);
+  this->buffer_[pos] |= pixel_bits << offset_bits;
+}
+
+uint8_t WaveshareEPaper4C::color_to_hex(Color color) {
+  uint8_t hex_code;
+  if (color.red > 127) {
+    if (color.green > 170) {
+      if (color.blue > 127) {
+        hex_code = 0b01;  // White
+      } else {
+        hex_code = 0b10;  // Yellow
+      }
+    } else {
+      hex_code = 0b11;  // Red
+    }
+  } else {
+    hex_code = 0b00;  // Black
+  }
+
+  return hex_code;
+}
+
 void HOT WaveshareEPaper7C::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || y >= this->get_height_internal() || x < 0 || y < 0)
     return;
@@ -1832,6 +1873,222 @@ int WaveshareEPaper2P9InV2R2::get_width_controller() { return this->get_width_in
 void WaveshareEPaper2P9InV2R2::set_full_update_every(uint32_t full_update_every) {
   this->full_update_every_ = full_update_every;
 }
+
+// ========================================================
+//               3.70in (G)
+// based on SDK and examples in ZIP file from:
+// https://files.waveshare.com/wiki/3.7inch_e-Paper_HAT%2B_G/3in7_e-Paper_G.zip
+// ========================================================
+void WaveshareEPaper3P7InG::initialize() {
+  this->init_display_();
+  ESP_LOGD(TAG, "Initialized WaveshareEPaper3P7");
+  this->deep_sleep();
+}
+
+void WaveshareEPaper3P7InG::init_display_() {
+  this->reset_();
+  this->wait_until_idle_();
+
+  // Panel settings
+  this->command(0x00);
+  this->data(0x0F);
+  this->data(0x29);
+
+  // Power settings
+  this->command(0x01);
+  this->data(0x07);
+  this->data(0x00);
+  this->data(0x22);
+  this->data(0x78);
+  this->data(0x0A);
+  this->data(0x22);
+
+  this->command(0x03);
+  this->data(0x10);
+  this->data(0x54);
+  this->data(0x44);
+
+  this->command(0x06);
+  this->data(0xC0);
+  this->data(0xC0);
+  this->data(0xC0);
+
+  // PLL Control
+  this->command(0x30);
+  this->data(0x08);
+
+  // Temperature sensor enable
+  this->command(0x41);
+  this->data(0x00);
+
+  this->command(0x50);
+  this->data(0x37);
+
+  // TCON setting
+  this->command(0x60);
+  this->data(0x02);
+  this->data(0x02);
+
+  // Resolution setting
+  this->command(0x61);
+  this->data(this->get_width_internal() / 256);
+  this->data(this->get_width_internal() % 256);
+  this->data(this->get_height_internal() / 256);
+  this->data(this->get_height_internal() % 256);
+
+  // Gate/source start setting
+  this->command(0x65);
+  this->data(0x00);
+  this->data(0x00);
+  this->data(0x00);
+  this->data(0x00);
+
+  this->command(0xE7);
+  this->data(0x1C);
+
+  this->command(0xE3);
+  this->data(0x22);
+
+  this->command(0xFF);
+  this->data(0xA5);
+
+  this->command(0xEF);
+  this->data(0x01);
+  this->data(0x1E);
+  this->data(0x0A);
+  this->data(0x1B);
+  this->data(0x0B);
+  this->data(0x17);
+
+  this->command(0xC3);
+  this->data(0xFD);
+  this->command(0xDC);
+  this->data(0x01);
+  this->command(0xDD);
+  this->data(0x08);
+  this->command(0xDE);
+  this->data(0x41);
+
+  this->command(0xFD);
+  this->data(0x01);
+  this->command(0xE8);
+  this->data(0x03);
+
+  this->command(0xDA);
+  this->data(0x07);
+
+  this->command(0xC9);
+  this->data(0x00);
+
+  this->command(0xA8);
+  this->data(0x0F);
+
+  this->command(0xFF);
+  this->data(0xE3);
+
+  this->command(0xE9);
+  this->data(0x01);
+
+  this->command(0x04);
+  this->wait_until_idle_();
+
+  this->command(0xFF);
+  this->data(0xA5);
+
+  this->command(0xEF);
+  this->data(0x03);
+  this->data(0x1E);
+  this->data(0x0A);
+  this->data(0x1B);
+  this->data(0x0E);
+  this->data(0x15);
+
+  this->command(0xDC);
+  this->data(0x01);
+
+  this->command(0xDD);
+  this->data(0x08);
+
+  this->command(0xDE);
+  this->data(0x41);
+
+  this->command(0xFF);
+  this->data(0xE3);
+
+  /* Enable fast refresh
+   * Reduces refresh time from 20s to 12s.
+   */
+  this->command(0xE0);
+  this->data(0x02);
+
+  this->command(0xE6);
+  this->data(0x5B);
+
+  this->command(0xA5);
+  this->data(0x00);
+  this->wait_until_idle_();
+}
+
+void WaveshareEPaper3P7InG::reset_() {
+  // vendor library uses a delay of 200ms, but 20ms seems to work fine
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->digital_write(true);
+    delay(20);
+    this->reset_pin_->digital_write(false);
+    delay(2);
+    this->reset_pin_->digital_write(true);
+    delay(20);
+  }
+}
+
+void HOT WaveshareEPaper3P7InG::display() {
+  this->init_display_();
+
+  this->command(0x10);
+  this->start_data_();
+  this->write_array(this->buffer_, this->get_buffer_length_());
+  this->end_data_();
+
+  this->command(0x12);
+  this->data(0x00);
+  this->wait_until_idle_();
+
+  this->deep_sleep();
+}
+
+// busy pin is inverted compared to most panels!
+bool WaveshareEPaper3P7InG::wait_until_idle_() {
+  if (this->busy_pin_ == nullptr || this->busy_pin_->digital_read()) {
+    return true;
+  }
+
+  const uint32_t start = millis();
+  while (!this->busy_pin_->digital_read()) {
+    if (millis() - start > this->idle_timeout_()) {
+      ESP_LOGE(TAG, "Timeout while displaying image!");
+      return false;
+    }
+    App.feed_wdt();
+    delay(5);
+  }
+  return true;
+}
+
+void WaveshareEPaper3P7InG::dump_config() {
+  LOG_DISPLAY("", "Waveshare E-Paper", this);
+  ESP_LOGCONFIG(TAG, "  Model: 3.7inG");
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  LOG_UPDATE_INTERVAL(this);
+}
+
+int WaveshareEPaper3P7InG::get_width_internal() { return 240; }
+int WaveshareEPaper3P7InG::get_height_internal() { return 416; }
+
+// Refresh time is usually 12s, so we use 20s to be save.
+uint32_t WaveshareEPaper3P7InG::idle_timeout_() { return 20000; }
+
 // ========================================================
 //     Good Display 2.9in black/white
 // Datasheet:
