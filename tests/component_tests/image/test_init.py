@@ -12,74 +12,79 @@ from esphome import config_validation as cv
 from esphome.components.image import CONFIG_SCHEMA
 
 
-def test_image_configuration_errors() -> None:
-    """Test detection of invalid configuration."""
-
-    with pytest.raises(
-        cv.Invalid,
-        match="Badly formed image configuration, expected a list or a dictionary",
-    ):
-        CONFIG_SCHEMA("a string")
-
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\[0\]\['file'\]"
-    ):
-        CONFIG_SCHEMA({"id": "image_id", "type": "rgb565"})
-
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\[0\]\['id'\]"
-    ):
-        CONFIG_SCHEMA({"file": "image.png", "type": "rgb565"})
-
-    with pytest.raises(cv.Invalid, match="Could not parse mdi icon name"):
-        CONFIG_SCHEMA({"id": "mdi_id", "file": "mdi:weather-##", "type": "rgb565"})
-
-    with pytest.raises(
-        cv.Invalid, match="Image format 'BINARY' cannot have transparency"
-    ):
-        CONFIG_SCHEMA(
+@pytest.mark.parametrize(
+    "config,error_match",
+    [
+        pytest.param(
+            "a string",
+            "Badly formed image configuration, expected a list or a dictionary",
+            id="invalid_string_config",
+        ),
+        pytest.param(
+            {"id": "image_id", "type": "rgb565"},
+            r"required key not provided @ data\[0\]\['file'\]",
+            id="missing_file",
+        ),
+        pytest.param(
+            {"file": "image.png", "type": "rgb565"},
+            r"required key not provided @ data\[0\]\['id'\]",
+            id="missing_id",
+        ),
+        pytest.param(
+            {"id": "mdi_id", "file": "mdi:weather-##", "type": "rgb565"},
+            "Could not parse mdi icon name",
+            id="invalid_mdi_icon",
+        ),
+        pytest.param(
             {
                 "id": "image_id",
                 "file": "image.png",
                 "type": "binary",
                 "transparency": "alpha_channel",
-            }
-        )
-
-    with pytest.raises(cv.Invalid, match="No alpha channel to invert"):
-        CONFIG_SCHEMA(
+            },
+            "Image format 'BINARY' cannot have transparency",
+            id="binary_with_transparency",
+        ),
+        pytest.param(
             {
                 "id": "image_id",
                 "file": "image.png",
                 "type": "rgb565",
                 "transparency": "chroma_key",
                 "invert_alpha": True,
-            }
-        )
-
-    with pytest.raises(
-        cv.Invalid,
-        match="Image format 'BINARY' does not support byte order configuration",
-    ):
-        CONFIG_SCHEMA(
+            },
+            "No alpha channel to invert",
+            id="invert_alpha_without_alpha_channel",
+        ),
+        pytest.param(
             {
                 "id": "image_id",
                 "file": "image.png",
                 "type": "binary",
                 "byte_order": "big_endian",
-            }
-        )
-
-    with pytest.raises(cv.Invalid, match="File can't be opened as image"):
-        CONFIG_SCHEMA({"id": "image_id", "file": "bad.png", "type": "binary"})
-
-    with pytest.raises(
-        cv.Invalid,
-        match="Type is required either in the image config or in the defaults",
-    ):
-        CONFIG_SCHEMA(
-            {"defaults": {}, "images": [{"id": "image_id", "file": "image.png"}]}
-        )
+            },
+            "Image format 'BINARY' does not support byte order configuration",
+            id="binary_with_byte_order",
+        ),
+        pytest.param(
+            {"id": "image_id", "file": "bad.png", "type": "binary"},
+            "File can't be opened as image",
+            id="invalid_image_file",
+        ),
+        pytest.param(
+            {"defaults": {}, "images": [{"id": "image_id", "file": "image.png"}]},
+            "Type is required either in the image config or in the defaults",
+            id="missing_type_in_defaults",
+        ),
+    ],
+)
+def test_image_configuration_errors(
+    config: Any,
+    error_match: str,
+) -> None:
+    """Test detection of invalid configuration."""
+    with pytest.raises(cv.Invalid, match=error_match):
+        CONFIG_SCHEMA(config)
 
 
 @pytest.mark.parametrize(
