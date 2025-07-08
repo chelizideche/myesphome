@@ -186,7 +186,7 @@ def validate_config(config):
     return config
 
 
-CONFIG_SCHEMA = (
+FULL_CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SX127x),
@@ -225,8 +225,16 @@ CONFIG_SCHEMA = (
     .add_extra(validate_config)
 )
 
+CONFIG_SCHEMA = cv.Any(
+    FULL_CONFIG_SCHEMA,
+    cv.Schema({}),  # For allowing empy config with AUTO_LOAD
+)
+
 
 async def to_code(config):
+    print(config)
+    if config is None or not config:
+        return  # Catch and ignore empty config for AUTO_LOAD
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await spi.register_spi_device(var, config)

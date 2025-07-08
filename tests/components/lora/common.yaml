@@ -1,0 +1,33 @@
+spi:
+  clk_pin: ${clk_pin}
+  mosi_pin: ${mosi_pin}
+  miso_pin: ${miso_pin}
+
+sx127x:
+  cs_pin: ${cs_pin}
+  rst_pin: ${rst_pin}
+  dio0_pin: ${dio0_pin}
+  id: sx127x_radio
+  frequency: 868100000
+  modulation: LORA
+  bandwidth: 250_0kHz
+  spreading_factor: 10
+  coding_rate: CR_4_8
+  rx_start: true
+  rx_floor: -90
+
+lora:
+  - platform: sx127x
+    id: lora_comp
+    sx127x_id: sx127x_radio
+    on_message:
+      then:
+        - lambda: |-
+            ESP_LOGD("lora.on_message", "packet %s", format_hex(x).c_str());
+            ESP_LOGD("lora.on_message", "rssi %.2f", rssi);
+            ESP_LOGD("lora.on_message", "snr %.2f", snr);
+
+packet_transport:
+  - platform: lora
+    id: packet_transport_lora
+    lora_id: lora_comp
