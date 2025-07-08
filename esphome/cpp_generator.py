@@ -601,13 +601,6 @@ def add_library(name: str, version: str | None, repository: str | None = None):
     :param version: The version of the library, may be None.
     :param repository: The repository for the library
     """
-    if repository is None:
-        warnings.warn(
-            "Auto-resolution of the repository of a PlatformIO libraries is deprecated, "
-            "please use add_library() with an explicit repository instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     CORE.add_library(Library(name, version, repository))
 
 
