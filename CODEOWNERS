@@ -458,6 +458,7 @@ esphome/components/template/datetime/* @rfdarter
 esphome/components/template/event/* @nohat
 esphome/components/template/fan/* @ssieb
 esphome/components/text/* @mauritskorse
+esphome/components/tfluna/* @candrews
 esphome/components/thermostat/* @kbx81
 esphome/components/time/* @OttoWinter
 esphome/components/tlc5947/* @rnauber
