@@ -1,6 +1,6 @@
-from esphome import automation, pins
+from esphome import pins
 import esphome.codegen as cg
-from esphome.components import i2c
+from esphome.components import camera, i2c
 from esphome.components.esp32 import add_idf_component
 import esphome.config_validation as cv
 from esphome.const import (
@@ -15,7 +15,6 @@ from esphome.const import (
     CONF_RESOLUTION,
     CONF_SCL,
     CONF_SDA,
-    CONF_TRIGGER_ID,
     CONF_VSYNC_PIN,
 )
 from esphome.core import CORE
@@ -27,19 +26,6 @@ AUTO_LOAD = ["camera", "psram"]
 
 esp32_camera_ns = cg.esphome_ns.namespace("esp32_camera")
 ESP32Camera = esp32_camera_ns.class_("ESP32Camera", cg.PollingComponent, cg.EntityBase)
-ESP32CameraImageData = esp32_camera_ns.struct("CameraImageData")
-# Triggers
-ESP32CameraImageTrigger = esp32_camera_ns.class_(
-    "ESP32CameraImageTrigger", automation.Trigger.template()
-)
-ESP32CameraStreamStartTrigger = esp32_camera_ns.class_(
-    "ESP32CameraStreamStartTrigger",
-    automation.Trigger.template(),
-)
-ESP32CameraStreamStopTrigger = esp32_camera_ns.class_(
-    "ESP32CameraStreamStopTrigger",
-    automation.Trigger.template(),
-)
 ESP32CameraFrameSize = esp32_camera_ns.enum("ESP32CameraFrameSize")
 FRAME_SIZES = {
     "160X120": ESP32CameraFrameSize.ESP32_CAMERA_SIZE_160X120,
@@ -144,11 +130,6 @@ CONF_IDLE_FRAMERATE = "idle_framerate"
 # frame buffer
 CONF_FRAME_BUFFER_COUNT = "frame_buffer_count"
 
-# stream trigger
-CONF_ON_STREAM_START = "on_stream_start"
-CONF_ON_STREAM_STOP = "on_stream_stop"
-CONF_ON_IMAGE = "on_image"
-
 camera_range_param = cv.int_range(min=-2, max=2)
 
 CONFIG_SCHEMA = cv.All(
@@ -224,29 +205,10 @@ CONFIG_SCHEMA = cv.All(
                 cv.framerate, cv.Range(min=0, max=1)
             ),
             cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
-            cv.Optional(CONF_ON_STREAM_START): automation.validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                        ESP32CameraStreamStartTrigger
-                    ),
-                }
-            ),
-            cv.Optional(CONF_ON_STREAM_STOP): automation.validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                        ESP32CameraStreamStopTrigger
-                    ),
-                }
-            ),
-            cv.Optional(CONF_ON_IMAGE): automation.validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                        ESP32CameraImageTrigger
-                    ),
-                }
-            ),
         }
-    ).extend(cv.COMPONENT_SCHEMA),
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(camera.CAMERA_AUTOMATION_SCHEMA),
     cv.has_exactly_one_key(CONF_I2C_PINS, CONF_I2C_ID),
 )
 
@@ -287,6 +249,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await setup_entity(var, config, "camera")
     await cg.register_component(var, config)
+    await camera.setup_camera_automation(var, config)
 
     for key, setter in SETTERS.items():
         if key in config:
@@ -308,21 +271,5 @@ async def to_code(config):
     cg.add(var.set_frame_buffer_count(config[CONF_FRAME_BUFFER_COUNT]))
     cg.add(var.set_frame_size(config[CONF_RESOLUTION]))
 
-    cg.add_define("USE_ESP32_CAMERA")
-
     if CORE.using_esp_idf:
         add_idf_component(name="espressif/esp32-camera", ref="2.0.15")
-
-    for conf in config.get(CONF_ON_STREAM_START, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_STREAM_STOP, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_IMAGE, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(
-            trigger, [(ESP32CameraImageData, "image")], conf
-        )

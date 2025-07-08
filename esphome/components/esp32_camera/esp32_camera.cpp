@@ -352,16 +352,11 @@ void ESP32Camera::set_frame_buffer_count(uint8_t fb_count) {
 }
 
 /* ---------------- public API (specific) ---------------- */
-void ESP32Camera::add_image_callback(std::function<void(std::shared_ptr<camera::CameraImage>)> &&callback) {
-  this->new_image_callback_.add(std::move(callback));
-}
-void ESP32Camera::add_stream_start_callback(std::function<void()> &&callback) {
-  this->stream_start_callback_.add(std::move(callback));
-}
-void ESP32Camera::add_stream_stop_callback(std::function<void()> &&callback) {
-  this->stream_stop_callback_.add(std::move(callback));
-}
+camera::CameraImageReader *ESP32Camera::create_image_reader() { return new ESP32CameraImageReader; }
 void ESP32Camera::start_stream(camera::CameraRequester requester) {
+  if (this->stream_requesters_ & (1U << requester))
+    return;
+
   this->stream_start_callback_.call();
   this->stream_requesters_ |= (1U << requester);
 }
@@ -370,7 +365,6 @@ void ESP32Camera::stop_stream(camera::CameraRequester requester) {
   this->stream_requesters_ &= ~(1U << requester);
 }
 void ESP32Camera::request_image(camera::CameraRequester requester) { this->single_requesters_ |= (1U << requester); }
-camera::CameraImageReader *ESP32Camera::create_image_reader() { return new ESP32CameraImageReader; }
 void ESP32Camera::update_camera_parameters() {
   sensor_t *s = esp_camera_sensor_get();
   /* update image */

@@ -87,11 +87,6 @@ class ESP32CameraImage : public camera::CameraImage {
   uint8_t requesters_;
 };
 
-struct CameraImageData {
-  uint8_t *data;
-  size_t length;
-};
-
 /* ---------------- CameraImageReader class ---------------- */
 class ESP32CameraImageReader : public camera::CameraImageReader {
  public:
@@ -164,9 +159,6 @@ class ESP32Camera : public camera::Camera {
   void request_image(camera::CameraRequester requester) override;
   void update_camera_parameters();
 
-  void add_image_callback(std::function<void(std::shared_ptr<camera::CameraImage>)> &&callback) override;
-  void add_stream_start_callback(std::function<void()> &&callback);
-  void add_stream_stop_callback(std::function<void()> &&callback);
   camera::CameraImageReader *create_image_reader() override;
 
  protected:
@@ -209,44 +201,12 @@ class ESP32Camera : public camera::Camera {
   uint8_t stream_requesters_{0};
   QueueHandle_t framebuffer_get_queue_;
   QueueHandle_t framebuffer_return_queue_;
-  CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
-  CallbackManager<void()> stream_start_callback_{};
-  CallbackManager<void()> stream_stop_callback_{};
 
   uint32_t last_idle_request_{0};
   uint32_t last_update_{0};
 #ifdef USE_I2C
   i2c::InternalI2CBus *i2c_bus_{nullptr};
 #endif  // USE_I2C
-};
-
-class ESP32CameraImageTrigger : public Trigger<CameraImageData> {
- public:
-  explicit ESP32CameraImageTrigger(ESP32Camera *parent) {
-    parent->add_image_callback([this](const std::shared_ptr<camera::CameraImage> &image) {
-      CameraImageData camera_image_data{};
-      camera_image_data.length = image->get_data_length();
-      camera_image_data.data = image->get_data_buffer();
-      this->trigger(camera_image_data);
-    });
-  }
-};
-
-class ESP32CameraStreamStartTrigger : public Trigger<> {
- public:
-  explicit ESP32CameraStreamStartTrigger(ESP32Camera *parent) {
-    parent->add_stream_start_callback([this]() { this->trigger(); });
-  }
-
- protected:
-};
-class ESP32CameraStreamStopTrigger : public Trigger<> {
- public:
-  explicit ESP32CameraStreamStopTrigger(ESP32Camera *parent) {
-    parent->add_stream_stop_callback([this]() { this->trigger(); });
-  }
-
- protected:
 };
 
 }  // namespace esp32_camera
