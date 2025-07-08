@@ -82,75 +82,86 @@ def test_image_configuration_errors() -> None:
     )
 
 
-def test_image_configuration_success() -> None:
-    """Test successful configuration validation."""
-
-    # Valid image configuration
-    config1: dict[str, Any] = {
-        "id": "image_id",
-        "file": "image.png",
-        "type": "rgb565",
-        "transparency": "chroma_key",
-        "byte_order": "little_endian",
-        "dither": "FloydSteinberg",
-        "resize": "100x100",
-        "invert_alpha": False,
-    }
-    CONFIG_SCHEMA(config1)
-
-    config2: list[dict[str, Any]] = [
-        {
-            "id": "image_id",
-            "file": "image.png",
-            "type": "binary",
-        }
-    ]
-    CONFIG_SCHEMA(config2)
-
-    config3: dict[str, Any] = {
-        "defaults": {
-            "type": "rgb565",
-            "transparency": "chroma_key",
-            "byte_order": "little_endian",
-            "dither": "FloydSteinberg",
-            "resize": "100x100",
-            "invert_alpha": False,
-        },
-        "images": [
+@pytest.mark.parametrize(
+    "config",
+    [
+        pytest.param(
             {
                 "id": "image_id",
                 "file": "image.png",
-            }
-        ],
-    }
-    CONFIG_SCHEMA(config3)
-
-    config4: dict[str, Any] = {
-        "rgb565": {
-            "alpha_channel": [
+                "type": "rgb565",
+                "transparency": "chroma_key",
+                "byte_order": "little_endian",
+                "dither": "FloydSteinberg",
+                "resize": "100x100",
+                "invert_alpha": False,
+            },
+            id="single_image_all_options",
+        ),
+        pytest.param(
+            [
                 {
                     "id": "image_id",
                     "file": "image.png",
-                    "transparency": "alpha_channel",
+                    "type": "binary",
+                }
+            ],
+            id="list_of_images",
+        ),
+        pytest.param(
+            {
+                "defaults": {
+                    "type": "rgb565",
+                    "transparency": "chroma_key",
                     "byte_order": "little_endian",
                     "dither": "FloydSteinberg",
                     "resize": "100x100",
                     "invert_alpha": False,
-                }
-            ]
-        },
-        "binary": [
+                },
+                "images": [
+                    {
+                        "id": "image_id",
+                        "file": "image.png",
+                    }
+                ],
+            },
+            id="images_with_defaults",
+        ),
+        pytest.param(
             {
-                "id": "image_id",
-                "file": "image.png",
-                "transparency": "opaque",
-                "dither": "FloydSteinberg",
-                "resize": "100x100",
-                "invert_alpha": False,
-            }
-        ],
-    }
-    CONFIG_SCHEMA(config4)
+                "rgb565": {
+                    "alpha_channel": [
+                        {
+                            "id": "image_id",
+                            "file": "image.png",
+                            "transparency": "alpha_channel",
+                            "byte_order": "little_endian",
+                            "dither": "FloydSteinberg",
+                            "resize": "100x100",
+                            "invert_alpha": False,
+                        }
+                    ]
+                },
+                "binary": [
+                    {
+                        "id": "image_id",
+                        "file": "image.png",
+                        "transparency": "opaque",
+                        "dither": "FloydSteinberg",
+                        "resize": "100x100",
+                        "invert_alpha": False,
+                    }
+                ],
+            },
+            id="type_based_organization",
+        ),
+    ],
+)
+def test_image_configuration_success(
+    config: dict[str, Any] | list[dict[str, Any]],
+) -> None:
+    """Test successful configuration validation."""
+    CONFIG_SCHEMA(config)
 
 
 def test_image_generation(
