@@ -10,9 +10,17 @@ from esphome.components.packet_transport import (
     CONF_SENSORS,
 )
 import esphome.config_validation as cv
-from esphome.const import CONF_DATA, CONF_ID, CONF_PORT, CONF_TRIGGER_ID
+from esphome.const import (
+    CONF_DATA,
+    CONF_ENABLE_IPV6,
+    CONF_ID,
+    CONF_NETWORK,
+    CONF_PORT,
+    CONF_TRIGGER_ID,
+)
 from esphome.core import Lambda
 from esphome.cpp_generator import ExpressionStatement, MockObj
+import esphome.final_validate as fv
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["network"]
@@ -36,6 +44,15 @@ UDP_SCHEMA = cv.Schema(
         cv.GenerateID(CONF_UDP_ID): cv.use_id(UDPComponent),
     }
 )
+
+
+def _final_validate(config):
+    enable_ipv6 = fv.full_config.get().get(CONF_NETWORK).get(CONF_ENABLE_IPV6)
+    if not enable_ipv6:
+        for address in config[CONF_ADDRESSES]:
+            cv.ipv4address(address)
+        cv.ipv4address_multi_broadcast(config[CONF_LISTEN_ADDRESS])
+    return config
 
 
 def is_relocated(option):
@@ -92,6 +109,9 @@ async def register_udp_client(var, config):
     udp_var = await cg.get_variable(config[CONF_UDP_ID])
     cg.add(var.set_parent(udp_var))
     return udp_var
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
