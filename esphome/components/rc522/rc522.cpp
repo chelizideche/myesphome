@@ -1,5 +1,6 @@
 #include "rc522.h"
 #include "esphome/core/log.h"
+#include <cstdio>
 
 // Based on:
 // - https://github.com/miguelbalboa/rfid
@@ -13,29 +14,26 @@ static const char *const TAG = "rc522";
 
 static const uint8_t RESET_COUNT = 5;
 
-std::string format_buffer(uint8_t *b, uint8_t len) {
-  char buf[32];
-  int offset = 0;
-  for (uint8_t i = 0; i < len; i++) {
-    const char *format = "%02X";
-    if (i + 1 < len)
-      format = "%02X-";
-    offset += sprintf(buf + offset, format, b[i]);
+static std::string format_bytes(const uint8_t *b, size_t len) {
+  std::string out;
+  out.reserve(len * 3u);
+  for (size_t i = 0; i < len; ++i) {
+    char tmp[4];
+    const bool dash = i + 1 < len;
+    int n = snprintf(tmp, sizeof(tmp), dash ? "%02X-" : "%02X", b[i]);
+    if (n > 0) {
+      size_t count = static_cast<size_t>(n);
+      if (count > sizeof(tmp) - 1)
+        count = sizeof(tmp) - 1;
+      out.append(tmp, count);
+    }
   }
-  return std::string(buf);
+  return out;
 }
 
-std::string format_uid(std::vector<uint8_t> &uid) {
-  char buf[32];
-  int offset = 0;
-  for (size_t i = 0; i < uid.size(); i++) {
-    const char *format = "%02X";
-    if (i + 1 < uid.size())
-      format = "%02X-";
-    offset += sprintf(buf + offset, format, uid[i]);
-  }
-  return std::string(buf);
-}
+std::string format_buffer(uint8_t *b, size_t len) { return format_bytes(b, len); }
+
+std::string format_uid(std::vector<uint8_t> &uid) { return format_bytes(uid.data(), uid.size()); }
 
 void RC522::setup() {
   state_ = STATE_SETUP;
